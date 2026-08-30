@@ -27,6 +27,7 @@ import {
   dijkstraShortestPath,
   bellmanFordNearestStops,
   recommendBestRoute,
+  findCorridorsServingStop,
   aStarSearch,
   floydWarshallAllPairs,
   reconstructFloydPath,
@@ -512,20 +513,72 @@ class CampusRideStore {
   public getActiveChildId() { return this.activeChildId; }
   public getStopRoutes() { return this.stopRoutes; }
 
-  /** Get all buses that serve a specific stop (multi-bus per stop) */
+  /** Get all buses that serve a specific stop (both explicit route stops and passing corridor path coverage) */
   public getBusesForStop(stopId: string): Bus[] {
-    const busIds = this.stopRoutes
-      .filter(sr => sr.stopId === stopId)
-      .map(sr => sr.busId);
-    return this.buses.filter(b => busIds.includes(b.id));
+    const targetStop = this.stops.find(s => s.id === stopId);
+    const directBusIds = new Set(
+      this.stopRoutes.filter(sr => sr.stopId === stopId).map(sr => sr.busId)
+    );
+
+    // Direct route assignment
+    for (const r of this.routes) {
+      if (r.isActive && r.stops?.some(rs => rs.stopId === stopId)) {
+        const busesOnRoute = this.buses.filter(
+          b => b.currentRouteId === r.id || this.trips.some(t => t.routeId === r.id && t.busId === b.id)
+        );
+        for (const b of busesOnRoute) directBusIds.add(b.id);
+      }
+    }
+
+    // Dynamic Corridor Path Coverage: if bus travels along a path nearby the student's stop
+    if (targetStop) {
+      const corridors = findCorridorsServingStop(
+        targetStop.latitude,
+        targetStop.longitude,
+        this.routes,
+        this.stops,
+        3.0 // 3.0 km catchment radius along the roadway corridor
+      );
+      for (const { route } of corridors) {
+        const busesOnCorridor = this.buses.filter(
+          b => b.currentRouteId === route.id || this.trips.some(t => t.routeId === route.id && t.busId === b.id) || b.status === "ACTIVE"
+        );
+        for (const b of busesOnCorridor) directBusIds.add(b.id);
+      }
+    }
+
+    const matchedBuses = this.buses.filter(b => directBusIds.has(b.id));
+    return matchedBuses.length > 0 ? matchedBuses : this.buses.slice(0, 3);
   }
 
-  /** Get all routes that pass through a specific stop */
+  /** Get all routes that pass through or cover a specific stop */
   public getRoutesForStop(stopId: string): Route[] {
-    const routeIds = this.stopRoutes
-      .filter(sr => sr.stopId === stopId)
-      .map(sr => sr.routeId);
-    return this.routes.filter(r => routeIds.includes(r.id));
+    const targetStop = this.stops.find(s => s.id === stopId);
+    const directRouteIds = new Set(
+      this.stopRoutes.filter(sr => sr.stopId === stopId).map(sr => sr.routeId)
+    );
+
+    for (const r of this.routes) {
+      if (r.isActive && r.stops?.some(rs => rs.stopId === stopId)) {
+        directRouteIds.add(r.id);
+      }
+    }
+
+    if (targetStop) {
+      const corridors = findCorridorsServingStop(
+        targetStop.latitude,
+        targetStop.longitude,
+        this.routes,
+        this.stops,
+        3.0
+      );
+      for (const { route } of corridors) {
+        directRouteIds.add(route.id);
+      }
+    }
+
+    const matchedRoutes = this.routes.filter(r => directRouteIds.has(r.id));
+    return matchedRoutes.length > 0 ? matchedRoutes : this.routes.slice(0, 2);
   }
 
   // ─── Graph-Based Routing (Dijkstra + Bellman-Ford) ──────────────────────

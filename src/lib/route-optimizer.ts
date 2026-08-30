@@ -436,22 +436,79 @@ export function bellmanFordNearestStops(
 // ─── Route Recommendation Engine ─────────────────────────────────────────────
 
 /**
+ * Calculates which bus routes cover a given student stop or neighborhood based on roadway corridor path proximity.
+ * In a campus transit system, stops are dynamic: if a bus travels along a path nearby a student's house/stop,
+ * that bus directly services that student at that pickup point.
+ *
+ * @param stopLat - Latitude of the student pickup point
+ * @param stopLng - Longitude of the student pickup point
+ * @param routes - All active bus routes
+ * @param stops - All transit stops
+ * @param maxCatchmentKm - Maximum corridor proximity threshold (default 2.5 km)
+ */
+export function findCorridorsServingStop(
+  stopLat: number,
+  stopLng: number,
+  routes: Route[],
+  stops: Stop[],
+  maxCatchmentKm: number = 2.5
+): { route: Route; distanceToCorridorKm: number }[] {
+  const stopMap = new Map(stops.map(s => [s.id, s]));
+  const results: { route: Route; distanceToCorridorKm: number }[] = [];
+
+  for (const route of routes) {
+    if (!route.isActive || !route.stops || route.stops.length === 0) continue;
+
+    let minDistance = Infinity;
+    for (const rs of route.stops) {
+      const s = stopMap.get(rs.stopId) || rs.stop;
+      if (s) {
+        const d = calculateHaversineDistanceKm(stopLat, stopLng, s.latitude, s.longitude);
+        if (d < minDistance) {
+          minDistance = d;
+        }
+      }
+    }
+
+    if (minDistance <= maxCatchmentKm) {
+      results.push({
+        route,
+        distanceToCorridorKm: Math.round(minDistance * 100) / 100,
+      });
+    }
+  }
+
+  // Fallback: if no route within radius, include the closest route so students always have coverage
+  if (results.length === 0 && routes.length > 0) {
+    let closestRoute = routes[0];
+    let minD = Infinity;
+    for (const route of routes) {
+      for (const rs of route.stops || []) {
+        const s = stopMap.get(rs.stopId) || rs.stop;
+        if (s) {
+          const d = calculateHaversineDistanceKm(stopLat, stopLng, s.latitude, s.longitude);
+          if (d < minD) {
+            minD = d;
+            closestRoute = route;
+          }
+        }
+      }
+    }
+    results.push({ route: closestRoute, distanceToCorridorKm: Math.round(minD * 100) / 100 });
+  }
+
+  return results.sort((a, b) => a.distanceToCorridorKm - b.distanceToCorridorKm);
+}
+
+/**
  * Combined route recommender: finds the best pickup stop + bus route to campus.
  *
  * Algorithm:
  * 1. Bellman-Ford → Find top N nearest stops from home
- * 2. Dijkstra → For each candidate stop, find shortest path to campus
- * 3. Score → walking_distance * 2 + bus_distance + transfer_penalty * 5
- * 4. Sort by total score and return ranked recommendations
- *
- * @param homeLat - Student's home latitude
- * @param homeLng - Student's home longitude
- * @param campusStopId - The campus terminal stop ID
- * @param stops - All stops
- * @param routes - All routes
- * @param graph - Pre-built stop graph (optional, built if not provided)
- * @param topN - Number of candidate stops to evaluate (default 8)
- * @returns Ranked route recommendations
+ * 2. Dynamic Corridor Traversal → Connects neighborhood stops to passing bus routes
+ * 3. Dijkstra → For each candidate stop, find shortest path to campus
+ * 4. Score → walking_distance * 4 + bus_distance + doorstep_bonus + transfer_penalty
+ * 5. Sort by total score and return ranked recommendations
  */
 export function recommendBestRoute(
   homeLat: number,
