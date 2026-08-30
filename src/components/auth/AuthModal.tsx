@@ -204,29 +204,6 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
         {/* STEP 1: Method Selector */}
         {authStep === "SELECT" && (
           <div className="space-y-4">
-            {/* Role Switcher Pills */}
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">
-                Select Your Role
-              </label>
-              <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl text-[11px] font-bold">
-                {(["student", "guardian", "driver", "transport_manager"] as UserRole[]).map(r => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRole(r)}
-                    className={`py-1.5 rounded-xl capitalize transition-all ${
-                      role === r
-                        ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
-                  >
-                    {r === "transport_manager" ? "Admin" : r}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Google OAuth Button */}
             <button
               onClick={handleGoogleLogin}

@@ -236,29 +236,6 @@ export default function UnifiedLoginPage() {
           {/* STEP 1: Main Login Form */}
           {authStep === "LOGIN_FORM" && (
             <div className="space-y-5">
-              {/* Role Selection */}
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">
-                  Select Role (Or Auto-Detect via Email)
-                </label>
-                <div className="grid grid-cols-5 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl text-[10px] font-bold">
-                  {(["student", "parent", "driver", "conductor", "admin"] as UserRole[]).map(r => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRole(r)}
-                      className={`py-2 rounded-xl capitalize transition-all truncate px-1 ${
-                        role === r
-                          ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                          : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                      }`}
-                    >
-                      {r === "admin" ? "Admin" : r === "parent" ? "Parent" : r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Google SSO */}
               <button
                 onClick={handleGoogleLogin}
