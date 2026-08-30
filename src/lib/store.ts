@@ -85,7 +85,78 @@ class CampusRideStore {
     if (typeof window !== "undefined") {
       this.loadFromLocalStorage();
       this.syncFromSupabase();
+      this.initSupabaseAuth();
     }
+  }
+
+  private initSupabaseAuth() {
+    try {
+      // 1. Restore active session on page load
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          this.setUserFromSupabaseUser(session.user);
+        }
+      });
+
+      // 2. React to login / token refresh / logout events
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+          this.setUserFromSupabaseUser(session.user);
+        } else if (event === "SIGNED_OUT") {
+          this.currentUser = null;
+          this.saveToLocalStorage();
+          this.notify();
+        }
+      });
+    } catch (e) {
+      console.warn("Auth initialization error:", e);
+    }
+  }
+
+  public setUserFromSupabaseUser(user: any) {
+    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+    const userEmail = (user.email || "").toLowerCase();
+    const isUserAdmin = Boolean(adminEmail && userEmail === adminEmail);
+    const userRole: UserRole = isUserAdmin
+      ? "admin"
+      : user.user_metadata?.role ||
+        (userEmail.includes("driver")
+          ? "driver"
+          : userEmail.includes("conductor")
+          ? "conductor"
+          : userEmail.includes("parent")
+          ? "parent"
+          : "student");
+
+    const displayName =
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      (isUserAdmin
+        ? "Aditya Pandey (Admin)"
+        : userEmail
+        ? userEmail.split("@")[0].replace(".", " ").toUpperCase()
+        : "Student Passenger");
+
+    this.currentUser = {
+      id: user.id,
+      email: user.email || "",
+      fullName: displayName,
+      role: userRole,
+      studentId: userRole === "student" ? "stud-1" : undefined,
+    };
+    this.saveToLocalStorage();
+    this.notify();
+  }
+
+  public async logout() {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Supabase signout:", e);
+    }
+    this.currentUser = null;
+    this.saveToLocalStorage();
+    this.notify();
   }
 
   public async syncFromSupabase() {
