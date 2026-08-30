@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { Booking, Student, Bus, Stop, Shift, Trip } from "@/lib/types";
@@ -8,8 +8,8 @@ import { formatTime, formatDate } from "@/lib/utils";
 import { BusFront, Clock, User, ShieldCheck, Download, Share2, AlertCircle } from "lucide-react";
 
 interface BoardingPassCardProps {
-  booking: Booking;
-  student: Student;
+  booking?: Booking;
+  student?: Student;
   bus?: Bus;
   stop?: Stop;
   shift?: Shift;
@@ -26,23 +26,36 @@ export function BoardingPassCard({
   trip,
   onCancelBooking,
 }: BoardingPassCardProps) {
-  // Token payload for conductor QR scanner
-  const qrPayload = JSON.stringify({
-    bookingId: booking.id,
-    bookingCode: booking.bookingCode,
-    studentId: student.id,
-    studentName: student.fullName,
-    tripId: booking.tripId,
-    seatNumber: booking.seatNumber,
-    status: booking.status,
-    issuedAt: booking.createdAt,
-    hash: `SEC-${booking.id.substring(0, 8)}-${Date.now().toString(36)}`,
-  });
+  const currentBooking = booking || {
+    id: "bk-preview",
+    bookingCode: "GEHU-PASS",
+    studentId: student?.id || "st-01",
+    tripId: trip?.id || "trip-01",
+    boardingStopId: stop?.id || "stop-01",
+    status: "CONFIRMED" as const,
+    seatNumber: "1A",
+    createdAt: "2026-08-30T00:00:00.000Z",
+  };
 
-  const isConfirmed = booking.status === "CONFIRMED";
-  const isWaitlisted = booking.status === "WAITLISTED";
-  const isBoarded = booking.status === "BOARDED";
-  const isCancelled = booking.status === "CANCELLED";
+  // Deterministic token payload for conductor QR scanner (no non-deterministic Date.now in SSR)
+  const qrPayload = useMemo(() => {
+    return JSON.stringify({
+      bookingId: currentBooking.id,
+      bookingCode: currentBooking.bookingCode,
+      studentId: student?.id || "st-student",
+      studentName: student?.fullName || "Student Passenger",
+      tripId: currentBooking.tripId,
+      seatNumber: currentBooking.seatNumber || "1A",
+      status: currentBooking.status,
+      issuedAt: currentBooking.createdAt,
+      hash: `SEC-${(currentBooking.id || "pass").slice(0, 8)}-${(currentBooking.bookingCode || "gehu").toLowerCase()}`,
+    });
+  }, [currentBooking, student]);
+
+  const isConfirmed = currentBooking.status === "CONFIRMED";
+  const isWaitlisted = currentBooking.status === "WAITLISTED";
+  const isBoarded = currentBooking.status === "BOARDED";
+  const isCancelled = currentBooking.status === "CANCELLED";
 
   return (
     <div className="relative max-w-md w-full mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -84,7 +97,7 @@ export function BoardingPassCard({
               : "bg-slate-800 text-slate-300"
           }`}
         >
-          {isWaitlisted ? `WL-${String(booking.waitlistPosition).padStart(2, "0")}` : booking.status}
+          {isWaitlisted ? `WL-${String(currentBooking.waitlistPosition || 1).padStart(2, "0")}` : currentBooking.status}
         </div>
       </div>
 
@@ -97,10 +110,10 @@ export function BoardingPassCard({
               Passenger Name
             </span>
             <div className="text-base font-bold text-slate-900 dark:text-white truncate">
-              {student.fullName}
+              {student?.fullName || "Student Passenger"}
             </div>
             <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
-              ID: {student.enrollmentNo}
+              ID: {student?.enrollmentNo || "GEHU-STUDENT"}
             </div>
           </div>
 
@@ -117,7 +130,7 @@ export function BoardingPassCard({
                   : "text-slate-400"
               }`}
             >
-              {booking.seatNumber || `WL-${booking.waitlistPosition}`}
+              {currentBooking.seatNumber || (currentBooking.waitlistPosition ? `WL-${currentBooking.waitlistPosition}` : "1A")}
             </div>
           </div>
         </div>
@@ -129,10 +142,10 @@ export function BoardingPassCard({
               Boarding Stop
             </span>
             <div className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">
-              {stop?.name || "Designated Campus Stop"}
+              {stop?.name || "Campus Designated Stop"}
             </div>
             <div className="text-xs text-slate-500 mt-0.5 font-mono">
-              Code: {stop?.code || "ST-00"}
+              Code: {stop?.code || "ST-CAMPUS"}
             </div>
           </div>
 
@@ -141,10 +154,10 @@ export function BoardingPassCard({
               Shift & Timing
             </span>
             <div className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">
-              {shift ? `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}` : "07:30 AM"}
+              {shift ? `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}` : "07:30 AM - 08:30 AM"}
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
-              {formatDate(trip?.tripDate || booking.createdAt)}
+              {formatDate(trip?.tripDate || currentBooking.createdAt)}
             </div>
           </div>
         </div>
@@ -186,7 +199,7 @@ export function BoardingPassCard({
                 />
               </div>
               <div className="text-xs font-mono text-slate-400 dark:text-slate-500 mt-2 tracking-wider">
-                {booking.bookingCode}
+                {currentBooking.bookingCode}
               </div>
               <div className="flex items-center gap-1 text-[11px] text-teal-600 dark:text-teal-400 font-semibold mt-1">
                 <ShieldCheck className="w-3.5 h-3.5" />
@@ -199,15 +212,15 @@ export function BoardingPassCard({
         {/* Waitlist Warning notice if waitlisted */}
         {isWaitlisted && (
           <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 rounded-xl text-xs text-amber-800 dark:text-amber-300">
-            <span className="font-bold">Waitlist Ticket (WL-{booking.waitlistPosition}):</span> You will be automatically allocated a seat and notified if a confirmed passenger cancels prior to the cutoff time.
+            <span className="font-bold">Waitlist Ticket (WL-{currentBooking.waitlistPosition}):</span> You will be automatically allocated a seat and notified if a confirmed passenger cancels prior to the cutoff time.
           </div>
         )}
 
         {/* Action Buttons */}
         <div className="flex items-center gap-3 pt-2">
-          {!isCancelled && !isBoarded && onCancelBooking && (
+          {!isCancelled && !isBoarded && onCancelBooking && currentBooking.id && (
             <button
-              onClick={() => onCancelBooking(booking.id)}
+              onClick={() => onCancelBooking(currentBooking.id)}
               className="flex-1 py-2.5 px-4 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 rounded-xl border border-rose-200 dark:border-rose-900/50 transition-all"
             >
               Cancel Booking

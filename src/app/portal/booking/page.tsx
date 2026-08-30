@@ -103,14 +103,14 @@ export default function ShiftBookingPage() {
     if (anyActive) return anyActive;
 
     return {
-      id: `bk-${activeStudent?.id || "student"}-${Date.now()}`,
-      bookingCode: `GEHU-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: `bk-${activeStudent?.id || "student"}-preview`,
+      bookingCode: "GEHU-PASS-01",
       studentId: activeStudent?.id || "student-1",
       tripId: targetTrip?.id || trips[0]?.id || "trip-1",
       boardingStopId: selectedStopId || stops[0]?.id || "stop-1",
       status: "CONFIRMED" as const,
       seatNumber: selectedSeatNumber || "1A",
-      createdAt: new Date().toISOString(),
+      createdAt: "2026-08-30T00:00:00.000Z",
     };
   }, [userExistingBooking, bookings, activeStudent, targetTrip, trips, selectedStopId, stops, selectedSeatNumber]);
 
@@ -127,6 +127,10 @@ export default function ShiftBookingPage() {
   }, [selectedStopId]);
 
   const handleBook = () => {
+    if (!activeStudent) {
+      setBookingMessage({ type: "error", text: "Student profile is not active. Please select or initialize your profile." });
+      return;
+    }
     if (!bus || !targetTrip) {
       setBookingMessage({ type: "error", text: "No active bus or trip scheduled for this shift yet. Please contact the Transport Admin." });
       return;
