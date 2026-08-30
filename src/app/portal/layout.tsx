@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Key,
 } from "lucide-react";
+import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
@@ -40,12 +41,7 @@ export default function StudentPortalLayout({
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.warn(e);
-    }
-    store.setCurrentUser(null as any);
+    await store.logout();
     router.push("/login");
   };
 
@@ -169,6 +165,16 @@ export default function StudentPortalLayout({
                 <span>Sign In</span>
               </Link>
             )}
+
+            {/* Universal Cross-Portal Role Switcher */}
+            <RolePortalSwitcher />
+
+            <Link
+              href="/admin"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition-colors"
+            >
+              <span>Admin Operations →</span>
+            </Link>
 
             {/* Theme Toggle */}
             <ThemeToggle />

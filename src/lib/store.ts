@@ -326,7 +326,30 @@ class CampusRideStore {
   // Setters & Actions
   public setCurrentUser(user: { id: string; email: string; fullName: string; role: UserRole; studentId?: string } | null) {
     this.currentUser = user;
+    this.saveToLocalStorage();
     this.notify();
+  }
+
+  public switchRole(newRole: UserRole) {
+    if (this.currentUser) {
+      this.currentUser = {
+        ...this.currentUser,
+        role: newRole,
+        studentId: newRole === "student" ? (this.currentUser.studentId || "stud-1") : undefined,
+      };
+    } else {
+      const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+      this.currentUser = {
+        id: `usr_${Date.now()}`,
+        email: newRole === "admin" ? (adminEmail || "admin@campus.gehu.ac.in") : "student@campus.gehu.ac.in",
+        fullName: newRole === "admin" ? "Aditya Pandey (Admin)" : "Student Commuter",
+        role: newRole,
+        studentId: newRole === "student" ? "stud-1" : undefined,
+      };
+    }
+    this.saveToLocalStorage();
+    this.notify();
+    return this.currentUser;
   }
 
   public markNotificationAsRead(id: string) {

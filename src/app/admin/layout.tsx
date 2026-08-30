@@ -32,7 +32,7 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 import { useRouter } from "next/navigation";
 
 export default function AdminLayout({
@@ -49,12 +49,7 @@ export default function AdminLayout({
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.warn(e);
-    }
-    store.setCurrentUser(null as any);
+    await store.logout();
     router.push("/login");
   };
   const [notifications, setNotifications] = useState(store.getNotifications());
@@ -202,9 +197,12 @@ export default function AdminLayout({
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Universal Cross-Portal Role Switcher */}
+            <RolePortalSwitcher />
+
             <button
               onClick={() => setIsDataModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs font-bold rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs font-bold rounded-2xl hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors"
             >
               <Database className="w-3.5 h-3.5 text-amber-600" />
               <span>Data & Reset</span>
@@ -212,14 +210,14 @@ export default function AdminLayout({
 
             <Link
               href="/portal"
-              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-bold transition-colors"
             >
-              Student Portal →
+              <span>Student Portal →</span>
             </Link>
 
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-1.5 px-3 py-1 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-xs font-bold rounded-xl transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-xs font-bold rounded-2xl transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Sign Out</span>
