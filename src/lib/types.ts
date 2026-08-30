@@ -22,6 +22,18 @@ export interface Profile {
   createdAt: string;
 }
 
+export interface UserAccount {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+  provider: string;
+  phone?: string;
+  campus?: string;
+  avatarUrl?: string;
+  createdAt: string;
+}
+
 export interface Stop {
   id: string;
   name: string;
@@ -210,6 +222,8 @@ export interface SubscriptionPlan {
   price: number;
   description: string;
   features: string[];
+  corridorTier?: string;
+  stoppages?: string[];
 }
 
 export interface PaymentRecord {

@@ -17,6 +17,7 @@ import {
   NotificationItem,
   AuditLog,
   UserRole,
+  UserAccount,
 } from "./types";
 import { createBooking, cancelBookingAndPromoteWaitlist, lockFinalManifest } from "./reservation-engine";
 import { supabase } from "./supabaseClient";
@@ -68,6 +69,7 @@ class CampusRideStore {
   private notifications: NotificationItem[] = [];
   private auditLogs: AuditLog[] = [];
   private attendanceRecords: AttendanceRecord[] = [];
+  private users: UserAccount[] = [];
 
   // Active session state: strictly null by default until user logs in
   private currentUser: {
@@ -229,6 +231,41 @@ class CampusRideStore {
         }));
       }
 
+      // 5. Fetch Users from Supabase
+      const { data: dbUsers } = await supabase.from("users").select("*");
+      if (dbUsers && dbUsers.length > 0) {
+        this.users = dbUsers.map(u => ({
+          id: u.id,
+          email: u.email,
+          fullName: u.full_name,
+          role: u.role || "student",
+          provider: u.provider || "Google",
+          phone: u.phone || "+91 9876543210",
+          campus: u.campus || "GEHU Bhimtal",
+          createdAt: u.created_at || new Date().toISOString(),
+        }));
+      }
+
+      // 6. Fetch Subscription Plans (Official GEHU 2026-27 Semester Fees)
+      const { data: dbPlans } = await supabase.from("subscription_plans").select("*");
+      if (dbPlans && dbPlans.length > 0) {
+        this.plans = dbPlans.map(p => ({
+          id: p.id,
+          name: p.name,
+          durationMonths: p.duration_months || 6,
+          price: p.price,
+          description: p.description || "Official Semester Bus Pass (6 Months)",
+          corridorTier: p.corridor_tier,
+          stoppages: p.stoppages || [],
+          features: [
+            "Unlimited Morning & Evening Shifts",
+            "Reserved Bus Seat Allocation",
+            "Digital Dynamic QR Pass",
+            "Real-Time GPS Telematics & Delay Alerts",
+          ],
+        }));
+      }
+
       this.notify();
     } catch (e) {
       console.warn("Supabase database sync:", e);
@@ -320,8 +357,24 @@ class CampusRideStore {
   public getNotifications() { return this.notifications; }
   public getAuditLogs() { return this.auditLogs; }
   public getAttendanceRecords() { return this.attendanceRecords; }
+  public getUsers(): UserAccount[] { return this.users; }
   public getCurrentUser() { return this.currentUser; }
   public getActiveChildId() { return this.activeChildId; }
+
+  public async updateUserRole(userId: string, newRole: UserRole) {
+    this.users = this.users.map(u => (u.id === userId ? { ...u, role: newRole } : u));
+    if (this.currentUser && this.currentUser.id === userId) {
+      this.currentUser = { ...this.currentUser, role: newRole };
+    }
+    this.saveToLocalStorage();
+    this.notify();
+
+    try {
+      await supabase.from("users").update({ role: newRole }).eq("id", userId);
+    } catch (e) {
+      console.warn("Supabase user role update error:", e);
+    }
+  }
 
   // Setters & Actions
   public setCurrentUser(user: { id: string; email: string; fullName: string; role: UserRole; studentId?: string } | null) {
