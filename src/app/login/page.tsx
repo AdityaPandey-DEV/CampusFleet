@@ -141,35 +141,32 @@ export default function UnifiedLoginPage() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com").toLowerCase();
-    const resolvedEmail = (email.trim() || "student.commuter@gehu.ac.in").toLowerCase();
-    const isUserAdmin = Boolean(adminEmail && resolvedEmail === adminEmail);
-    const role: UserRole = isUserAdmin
-      ? "admin"
-      : resolvedEmail.includes("driver")
-      ? "driver"
-      : resolvedEmail.includes("conductor")
-      ? "conductor"
-      : "student";
 
     try {
-      const user = authService.instantLogin(resolvedEmail, role);
-      store.setCurrentUser(user);
+      // Try real Google OAuth first
+      const result = await authService.signInWithGoogle();
+      if (!result.success) {
+        // Fallback: if Google OAuth provider isn't configured, use instant login
+        const resolvedEmail = (email.trim() || "student.commuter@gehu.ac.in").toLowerCase();
+        const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+        const isUserAdmin = Boolean(adminEmail && resolvedEmail === adminEmail);
+        const role: UserRole = isUserAdmin ? "admin" : "student";
 
-      if (user.role === "admin") {
-        setAuthStep("SUCCESS");
-        setTimeout(() => router.push("/admin"), 700);
-      } else if (user.role === "driver" || user.role === "conductor") {
-        setAuthStep("SUCCESS");
-        setTimeout(() => router.push(authService.getTargetRouteForRole(user.role)), 700);
-      } else {
-        // For students, initiate onboarding details
-        setPendingAuthUser(user);
-        setOnboardingName(user.fullName || "Student Commuter");
-        const defaultStop = stops.find(s => s.name.includes("Laldant")) || stops[0];
-        if (defaultStop) setSelectedStopId(defaultStop.id);
-        setAuthStep("ONBOARDING");
+        const user = authService.instantLogin(resolvedEmail, role);
+        store.setCurrentUser(user);
+
+        if (user.role === "admin" || user.role === "driver" || user.role === "conductor") {
+          setAuthStep("SUCCESS");
+          setTimeout(() => router.push(authService.getTargetRouteForRole(user.role)), 700);
+        } else {
+          setPendingAuthUser(user);
+          setOnboardingName(user.fullName || "Student Commuter");
+          const defaultStop = campusStops[0];
+          if (defaultStop) setSelectedStopId(defaultStop.id);
+          setAuthStep("ONBOARDING");
+        }
       }
+      // If success, browser will redirect to /auth/callback
     } catch (err: any) {
       console.warn("Auth exception:", err);
       setErrorMessage(err.message || "Authentication failed");
@@ -187,10 +184,7 @@ export default function UnifiedLoginPage() {
     try {
       const res = await authService.sendOtp(email);
       if (res.success) {
-        setGeneratedCodeHint(res.generatedCode || "123456");
-        if (res.generatedCode) {
-          setOtp(res.generatedCode.split(""));
-        }
+        setGeneratedCodeHint(null); // No more auto-displayed codes
         setAuthStep("EMAIL_OTP");
       } else {
         setErrorMessage(res.message);

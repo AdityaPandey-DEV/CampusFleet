@@ -26,19 +26,19 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-    const resolvedEmail = email.trim() || adminEmail || "adityapandey.dev.in@gmail.com";
-    const isUserAdmin = Boolean(adminEmail && resolvedEmail.toLowerCase() === adminEmail);
-    const effectiveRole: UserRole = isUserAdmin ? "admin" : role;
-
     try {
-      const user = authService.instantLogin(resolvedEmail, effectiveRole);
-      store.setCurrentUser(user);
-      setAuthStep("SUCCESS");
-      setTimeout(() => {
-        onClose();
-        setAuthStep("SELECT");
-      }, 700);
+      const result = await authService.signInWithGoogle();
+      if (!result.success) {
+        // Fallback to instant login if Google OAuth not configured
+        const resolvedEmail = email.trim() || "student@gehu.ac.in";
+        const user = authService.instantLogin(resolvedEmail, role);
+        store.setCurrentUser(user);
+        setAuthStep("SUCCESS");
+        setTimeout(() => {
+          onClose();
+          setAuthStep("SELECT");
+        }, 700);
+      }
     } catch (err: any) {
       console.warn("Auth Exception:", err);
       setErrorMessage(err.message || "Failed to authenticate");
@@ -56,10 +56,7 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
     try {
       const res = await authService.sendOtp(email);
       if (res.success) {
-        setGeneratedCodeHint(res.generatedCode || "123456");
-        if (res.generatedCode) {
-          setOtp(res.generatedCode.split(""));
-        }
+        setGeneratedCodeHint(null);
         setAuthStep("EMAIL_OTP");
       } else {
         setErrorMessage(res.message);

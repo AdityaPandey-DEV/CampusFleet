@@ -21,6 +21,7 @@ import {
 } from "./types";
 import { createBooking, cancelBookingAndPromoteWaitlist, lockFinalManifest } from "./reservation-engine";
 import { supabase } from "./supabaseClient";
+import { authService } from "./auth-service";
 
 // Zero Hardcoded Constants — All Data is Stored and Sourced Exclusively from Database
 export const INITIAL_STOPS: Stop[] = [];
@@ -70,6 +71,7 @@ class CampusRideStore {
   private auditLogs: AuditLog[] = [];
   private attendanceRecords: AttendanceRecord[] = [];
   private users: UserAccount[] = [];
+  private stopRoutes: { stopId: string; routeId: string; busId: string; stopOrder: number }[] = [];
 
   // Active session state: strictly null by default until user logs in
   private currentUser: {
@@ -87,75 +89,46 @@ class CampusRideStore {
     if (typeof window !== "undefined") {
       this.loadFromLocalStorage();
       this.syncFromSupabase();
-      this.initSupabaseAuth();
+      this.initAuthSync();
     }
   }
 
-  private initSupabaseAuth() {
-    try {
-      // 1. Restore active session on page load
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          this.setUserFromSupabaseUser(session.user);
-        }
-      });
-
-      // 2. React to login / token refresh / logout events
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (session?.user) {
-          this.setUserFromSupabaseUser(session.user);
-        } else if (event === "SIGNED_OUT") {
-          this.currentUser = null;
-          this.saveToLocalStorage();
-          this.notify();
-        }
-      });
-    } catch (e) {
-      console.warn("Auth initialization error:", e);
+  /** Subscribe to authService for user changes — single source of truth */
+  private initAuthSync() {
+    // Sync initial user from authService
+    const authUser = authService.getCurrentUser();
+    if (authUser) {
+      this.currentUser = {
+        id: authUser.id,
+        email: authUser.email,
+        fullName: authUser.fullName,
+        role: authUser.role,
+        studentId: authUser.studentId,
+      };
+      this.saveToLocalStorage();
+      this.notify();
     }
-  }
 
-  public setUserFromSupabaseUser(user: any) {
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-    const userEmail = (user.email || "").toLowerCase();
-    const isUserAdmin = Boolean(adminEmail && userEmail === adminEmail);
-    const userRole: UserRole = isUserAdmin
-      ? "admin"
-      : user.user_metadata?.role ||
-        (userEmail.includes("driver")
-          ? "driver"
-          : userEmail.includes("conductor")
-          ? "conductor"
-          : userEmail.includes("parent")
-          ? "parent"
-          : "student");
-
-    const displayName =
-      user.user_metadata?.full_name ||
-      user.user_metadata?.name ||
-      (isUserAdmin
-        ? "Aditya Pandey (Admin)"
-        : userEmail
-        ? userEmail.split("@")[0].replace(".", " ").toUpperCase()
-        : "Student Passenger");
-
-    this.currentUser = {
-      id: user.id,
-      email: user.email || "",
-      fullName: displayName,
-      role: userRole,
-      studentId: userRole === "student" ? "stud-1" : undefined,
-    };
-    this.saveToLocalStorage();
-    this.notify();
+    // Listen for future auth changes
+    authService.subscribe((user) => {
+      if (user) {
+        this.currentUser = {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+          studentId: user.studentId,
+        };
+      } else {
+        this.currentUser = null;
+      }
+      this.saveToLocalStorage();
+      this.notify();
+    });
   }
 
   public async logout() {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.warn("Supabase signout:", e);
-    }
+    await authService.logout();
     this.currentUser = null;
     this.saveToLocalStorage();
     this.notify();
@@ -163,7 +136,7 @@ class CampusRideStore {
 
   public async syncFromSupabase() {
     try {
-      // 1. Fetch Stops from Supabase
+      // 1. Fetch Stops
       const { data: dbStops } = await supabase.from("stops").select("*");
       if (dbStops && dbStops.length > 0) {
         this.stops = dbStops.map(s => ({
@@ -178,7 +151,7 @@ class CampusRideStore {
         }));
       }
 
-      // 2. Fetch Buses from Supabase
+      // 2. Fetch Buses
       const { data: dbBuses } = await supabase.from("buses").select("*");
       if (dbBuses && dbBuses.length > 0) {
         this.buses = dbBuses.map(b => ({
@@ -196,7 +169,7 @@ class CampusRideStore {
         }));
       }
 
-      // 3. Fetch Routes from Supabase
+      // 3. Fetch Routes
       const { data: dbRoutes } = await supabase.from("routes").select("*");
       if (dbRoutes && dbRoutes.length > 0) {
         this.routes = dbRoutes.map(r => ({
@@ -213,7 +186,7 @@ class CampusRideStore {
         }));
       }
 
-      // 4. Fetch Shifts from Supabase
+      // 4. Fetch Shifts
       const { data: dbShifts } = await supabase.from("shifts").select("*");
       if (dbShifts && dbShifts.length > 0) {
         this.shifts = dbShifts.map(sh => ({
@@ -226,7 +199,7 @@ class CampusRideStore {
         }));
       }
 
-      // 5. Fetch Users from Supabase
+      // 5. Fetch Users
       const { data: dbUsers } = await supabase.from("users").select("*");
       if (dbUsers && dbUsers.length > 0) {
         this.users = dbUsers.map(u => ({
@@ -235,13 +208,91 @@ class CampusRideStore {
           fullName: u.full_name,
           role: u.role || "student",
           provider: u.provider || "Google",
-          phone: u.phone || "+91 9876543210",
+          phone: u.phone,
           campus: u.campus || "GEHU Bhimtal",
           createdAt: u.created_at || new Date().toISOString(),
         }));
       }
 
-      // 6. Fetch Subscription Plans (Official GEHU 2026-27 Semester Fees)
+      // 6. Fetch Trips (with driver/conductor from users table)
+      const { data: dbTrips } = await supabase.from("trips").select("*");
+      if (dbTrips && dbTrips.length > 0) {
+        this.trips = dbTrips.map(t => ({
+          id: t.id,
+          tripCode: t.trip_code,
+          routeId: t.route_id,
+          busId: t.bus_id,
+          shiftId: t.shift_id,
+          driverId: t.driver_id || "",
+          conductorId: t.conductor_id || "",
+          tripDate: t.trip_date,
+          status: t.status || "SCHEDULED",
+          delayMinutes: t.delay_minutes || 0,
+          manifestLocked: t.manifest_locked || false,
+          manifestLockedAt: t.manifest_locked_at,
+          startedAt: t.started_at,
+          completedAt: t.completed_at,
+          currentStopIndex: t.current_stop_index || 0,
+        }));
+      }
+
+      // 7. Fetch Students
+      const { data: dbStudents } = await supabase.from("students").select("*");
+      if (dbStudents && dbStudents.length > 0) {
+        this.students = dbStudents.map(s => ({
+          id: s.id,
+          userId: s.user_id,
+          enrollmentNo: s.enrollment_no || "PENDING",
+          fullName: s.full_name,
+          email: s.email,
+          phone: s.phone || "+91 0000000000",
+          department: s.department || "B.Tech CSE",
+          semester: s.semester || "5th",
+          primaryStopId: s.primary_stop_id || "",
+          primaryRouteId: s.primary_route_id || "",
+          emergencyContact: s.emergency_contact || { name: "Campus Desk", relationship: "Admin", phone: "+91 0000000000" },
+          transportAccessSuspended: s.transport_access_suspended || false,
+          hasActiveSubscription: s.has_active_subscription || false,
+          subscriptionExpiryDate: s.subscription_expiry_date,
+        }));
+      }
+
+      // 8. Fetch Staff (Drivers & Conductors)
+      const { data: dbStaff } = await supabase.from("staff").select("*");
+      if (dbStaff && dbStaff.length > 0) {
+        this.staff = dbStaff.map(s => ({
+          id: s.id,
+          userId: s.user_id || s.id,
+          employeeCode: s.employee_code || `EMP-${s.id}`,
+          fullName: s.full_name,
+          email: s.email,
+          phone: s.phone || "+91 0000000000",
+          category: s.category || "TRANSPORT_OPS",
+          rank: "REGULAR" as const,
+          role: (s.role || "driver") as UserRole,
+          permissions: [],
+          licenseNo: s.license_no,
+          isActive: s.is_active ?? true,
+        }));
+      }
+
+      // 9. Fetch Bookings
+      const { data: dbBookings } = await supabase.from("bookings").select("*");
+      if (dbBookings && dbBookings.length > 0) {
+        this.bookings = dbBookings.map(b => ({
+          id: b.id,
+          bookingCode: b.booking_code,
+          studentId: b.student_id,
+          tripId: b.trip_id,
+          boardingStopId: b.boarding_stop_id,
+          status: b.status || "CONFIRMED",
+          waitlistPosition: b.waitlist_position,
+          seatNumber: b.seat_number,
+          createdAt: b.created_at || new Date().toISOString(),
+        }));
+      }
+
+      // 10. Fetch Subscription Plans
       const { data: dbPlans } = await supabase.from("subscription_plans").select("*");
       if (dbPlans && dbPlans.length > 0) {
         this.plans = dbPlans.map(p => ({
@@ -261,65 +312,86 @@ class CampusRideStore {
         }));
       }
 
+      // 11. Fetch Stop-Route mappings (multiple buses per stop)
+      const { data: dbStopRoutes } = await supabase.from("stop_routes").select("*");
+      if (dbStopRoutes && dbStopRoutes.length > 0) {
+        this.stopRoutes = dbStopRoutes.map(sr => ({
+          stopId: sr.stop_id,
+          routeId: sr.route_id,
+          busId: sr.bus_id || "",
+          stopOrder: sr.stop_order || 0,
+        }));
+      }
+
       this.notify();
     } catch (e) {
       console.warn("Supabase database sync:", e);
     }
   }
 
-  private buildRouteStops(routeId: string, description: string, allStops: Stop[]) {
+  private buildRouteStops(routeId: string, _description: string, allStops: Stop[]) {
+    // Helper to find a stop by its ID from the current allStops (19 official Bhimtal stops)
+    const find = (id: string) => allStops.find(s => s.id === id);
+
+    const bhimtal = find("stop-bhimtal-campus") || allStops[0];
+    const bhowali = find("stop-bhowali");
+    const kathgodam = find("stop-kathgodam");
+    const laldant = find("stop-bhakda-laldant");
+    const unchapul = find("stop-unchapul");
+    const mukhani = find("stop-mukhani");
+    const kusumkhera = find("stop-kusumkhera");
+    const kamluvaganja = find("stop-kamluvaganja");
+    const bhagwanpur = find("stop-bhagwanpur");
+    const lamachaur = find("stop-lamachaur");
+    const gannaCenter = find("stop-ganna-center");
+    const gaulapar = find("stop-gaulapar");
+    const jadgeFarm = find("stop-jadge-farm");
+    const newIti = find("stop-new-iti");
+    const gusaipur = find("stop-gusaipur");
+    const panchayatGhar = find("stop-panchayat-ghar");
+    const lalkuan = find("stop-lalkuan-nagla");
+    const nainital = find("stop-nainital-tallital");
+    const naukuchiatal = find("stop-naukuchiatal");
+
     let matchingStops: Stop[] = [];
 
-    const bhimtalTerm = allStops.find(s => s.id === "stop-bhimtal-campus") || allStops[0];
-    const bhowaliStop = allStops.find(s => s.id === "stop-bhowali");
-    const kathgodamStop = allStops.find(s => s.id === "stop-kathgodam");
-    const laldantStop = allStops.find(s => s.id === "stop-laldant");
-    const unchapulStop = allStops.find(s => s.id === "stop-unchapul");
-    const mukhaniStop = allStops.find(s => s.id === "stop-mukhani");
-    const kusumkheraStop = allStops.find(s => s.id === "stop-kusumkhera");
-    const panchakkiStop = allStops.find(s => s.id === "stop-panchakki");
-    const nainitalStop = allStops.find(s => s.id === "stop-nainital");
-    const lalkuanStop = allStops.find(s => s.id === "stop-lalkuan");
-    const pantnagarStop = allStops.find(s => s.id === "stop-pantnagar");
-    const naukuchiatalStop = allStops.find(s => s.id === "stop-naukuchiatal");
-    const tikoniaStop = allStops.find(s => s.id === "stop-tikonia" || s.id === "stop-hld-tikonia");
-    const isbtStop = allStops.find(s => s.id === "stop-hld-isbt");
-    const ranibaghStop = allStops.find(s => s.id === "stop-ranibagh");
-    const jyolikoteStop = allStops.find(s => s.id === "stop-jyolikote");
-    const ddnClockStop = allStops.find(s => s.id === "stop-ddn-clock");
-    const ddnIsbtStop = allStops.find(s => s.id === "stop-ddn-isbt");
-    const ddnCampusStop = allStops.find(s => s.id === "stop-gehu-ddn");
-
-    if (routeId.includes("bht-ddn-placement")) {
-      matchingStops = [bhimtalTerm, kathgodamStop, ddnIsbtStop, ddnCampusStop].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-44")) {
-      matchingStops = [laldantStop, unchapulStop, mukhaniStop, kusumkheraStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-8")) {
-      matchingStops = [pantnagarStop, lalkuanStop, tikoniaStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-11")) {
-      matchingStops = [nainitalStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    if (routeId.includes("bus-44")) {
+      matchingStops = [laldant, kamluvaganja, unchapul, mukhani, kusumkhera, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
     } else if (routeId.includes("bus-45")) {
-      matchingStops = [naukuchiatalStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-36")) {
-      matchingStops = [kusumkheraStop, laldantStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-37")) {
-      matchingStops = [unchapulStop, panchakkiStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-9")) {
-      matchingStops = [mukhaniStop, panchakkiStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+      matchingStops = [naukuchiatal, bhowali, bhimtal].filter(Boolean) as Stop[];
     } else if (routeId.includes("bus-2")) {
-      matchingStops = [isbtStop, tikoniaStop, kathgodamStop, ranibaghStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+      matchingStops = [gannaCenter, mukhani, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
     } else if (routeId.includes("bus-3")) {
-      matchingStops = [isbtStop, kathgodamStop, ranibaghStop, jyolikoteStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-50")) {
-      matchingStops = [tikoniaStop, panchakkiStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+      matchingStops = [gaulapar, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-8")) {
+      matchingStops = [lalkuan, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-9")) {
+      matchingStops = [jadgeFarm, mukhani, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-11")) {
+      matchingStops = [nainital, bhowali, bhimtal].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-36")) {
+      matchingStops = [bhagwanpur, kusumkhera, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-37")) {
+      matchingStops = [lamachaur, unchapul, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-40")) {
+      matchingStops = [gusaipur, mukhani, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-43")) {
+      matchingStops = [kamluvaganja, kusumkhera, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
     } else if (routeId.includes("bus-49")) {
-      matchingStops = [mukhaniStop, kusumkheraStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+      matchingStops = [panchayatGhar, mukhani, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-50")) {
+      matchingStops = [newIti, kusumkhera, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bht-ddn") || routeId.includes("placement")) {
+      matchingStops = [bhimtal, kathgodam, bhowali].filter(Boolean) as Stop[];
+    } else if (routeId.includes("tempo")) {
+      matchingStops = [nainital, bhimtal].filter(Boolean) as Stop[];
     } else {
-      matchingStops = [laldantStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+      // Default: generic corridor
+      matchingStops = [laldant, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
     }
 
     if (matchingStops.length === 0) {
-      matchingStops = allStops.slice(0, 5);
+      matchingStops = allStops.slice(0, 4);
     }
 
     return matchingStops.map((st, idx) => ({
@@ -419,6 +491,23 @@ class CampusRideStore {
   public getUsers(): UserAccount[] { return this.users; }
   public getCurrentUser() { return this.currentUser; }
   public getActiveChildId() { return this.activeChildId; }
+  public getStopRoutes() { return this.stopRoutes; }
+
+  /** Get all buses that serve a specific stop (multi-bus per stop) */
+  public getBusesForStop(stopId: string): Bus[] {
+    const busIds = this.stopRoutes
+      .filter(sr => sr.stopId === stopId)
+      .map(sr => sr.busId);
+    return this.buses.filter(b => busIds.includes(b.id));
+  }
+
+  /** Get all routes that pass through a specific stop */
+  public getRoutesForStop(stopId: string): Route[] {
+    const routeIds = this.stopRoutes
+      .filter(sr => sr.stopId === stopId)
+      .map(sr => sr.routeId);
+    return this.routes.filter(r => routeIds.includes(r.id));
+  }
 
   public async updateUserRole(userId: string, newRole: UserRole) {
     this.users = this.users.map(u => (u.id === userId ? { ...u, role: newRole } : u));
@@ -447,7 +536,7 @@ class CampusRideStore {
       this.currentUser = {
         ...this.currentUser,
         role: newRole,
-        studentId: newRole === "student" ? (this.currentUser.studentId || "stud-1") : undefined,
+        studentId: newRole === "student" ? (this.currentUser.studentId || this.currentUser.id) : undefined,
       };
     } else {
       const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
@@ -456,7 +545,7 @@ class CampusRideStore {
         email: newRole === "admin" ? (adminEmail || "admin@campus.gehu.ac.in") : "student@campus.gehu.ac.in",
         fullName: newRole === "admin" ? "Aditya Pandey (Admin)" : "Student Commuter",
         role: newRole,
-        studentId: newRole === "student" ? "stud-1" : undefined,
+        studentId: newRole === "student" ? `stud_${Date.now()}` : undefined,
       };
     }
     this.saveToLocalStorage();

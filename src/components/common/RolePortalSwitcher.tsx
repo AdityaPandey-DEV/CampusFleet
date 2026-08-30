@@ -120,7 +120,6 @@ export function RolePortalSwitcher() {
 
   const handleSelectPortal = (option: RolePortalOption) => {
     store.switchRole(option.role);
-    authService.switchRole(option.role);
     setIsOpen(false);
     router.push(option.path);
   };
