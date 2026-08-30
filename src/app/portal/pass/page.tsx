@@ -7,6 +7,7 @@ import { BoardingPassCard } from "@/components/ticket/BoardingPassCard";
 import { QrCode, ArrowLeft, PlusCircle } from "lucide-react";
 
 export default function DigitalPassPage() {
+  const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [students, setStudents] = useState(store.getStudents());
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
   const [buses, setBuses] = useState(store.getBuses());
@@ -17,6 +18,7 @@ export default function DigitalPassPage() {
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
+      setCurrentUser(store.getCurrentUser());
       setStudents(store.getStudents());
       setActiveChildId(store.getActiveChildId());
       setBuses(store.getBuses());
@@ -28,8 +30,25 @@ export default function DigitalPassPage() {
     return unsub;
   }, []);
 
-  const activeStudent = students.find(s => s.id === activeChildId) || students[0];
-  const userBookings = bookings.filter(b => b.studentId === activeStudent?.id);
+  const activeStudent =
+    students.find(
+      s =>
+        (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
+        (currentUser &&
+          ((currentUser.studentId && s.id === currentUser.studentId) ||
+            s.userId === currentUser.id ||
+            s.email?.toLowerCase() === currentUser.email?.toLowerCase()))
+    ) || students[0];
+
+  const userBookings = bookings.filter(
+    b =>
+      b.studentId === activeStudent?.id ||
+      b.studentId === activeStudent?.userId ||
+      (currentUser &&
+        (b.studentId === currentUser.id ||
+          b.studentId === currentUser.studentId ||
+          b.studentId === `stud-${currentUser.id}`))
+  );
   const activeBooking = userBookings.find(b => b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED") || userBookings[0];
 
   const trip = trips.find(t => t.id === activeBooking?.tripId) || trips[0];

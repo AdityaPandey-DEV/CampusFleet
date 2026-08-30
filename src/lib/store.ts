@@ -1169,6 +1169,14 @@ class CampusRideStore {
         console.warn("DB bookShift sync notice:", e);
       }
 
+      if (this.currentUser) {
+        this.currentUser = {
+          ...this.currentUser,
+          studentId: student.id,
+        };
+      }
+
+      this.saveToLocalStorage();
       this.notify();
     }
 

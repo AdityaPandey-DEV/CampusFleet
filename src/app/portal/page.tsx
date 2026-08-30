@@ -63,9 +63,25 @@ export default function StudentPortalDashboard() {
     return unsub;
   }, []);
 
-  const activeStudent = students.find(s => s.id === (activeChildId || currentUser?.studentId)) || students[0];
+  const activeStudent =
+    students.find(
+      s =>
+        (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
+        (currentUser &&
+          ((currentUser.studentId && s.id === currentUser.studentId) ||
+            s.userId === currentUser.id ||
+            s.email?.toLowerCase() === currentUser.email?.toLowerCase()))
+    ) || students[0];
+
   const activeBooking = bookings.find(
-    b => b.studentId === activeStudent?.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
+    b =>
+      (b.studentId === activeStudent?.id ||
+        b.studentId === activeStudent?.userId ||
+        (currentUser &&
+          (b.studentId === currentUser.id ||
+            b.studentId === currentUser.studentId ||
+            b.studentId === `stud-${currentUser.id}`))) &&
+      (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
   );
 
   const activeTrip = trips.find(t => t.id === activeBooking?.tripId) || trips[0];

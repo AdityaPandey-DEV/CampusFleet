@@ -45,6 +45,7 @@ const CampusRideMap = dynamic(() => import("@/components/maps/CampusRideMap"), {
 
 export default function ShiftBookingPage() {
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [students, setStudents] = useState(store.getStudents());
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
   const [shifts, setShifts] = useState(store.getShifts());
@@ -62,6 +63,7 @@ export default function ShiftBookingPage() {
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
+      setCurrentUser(store.getCurrentUser());
       setStudents(store.getStudents());
       setActiveChildId(store.getActiveChildId());
       setShifts(store.getShifts());
@@ -73,7 +75,15 @@ export default function ShiftBookingPage() {
     return unsub;
   }, []);
 
-  const activeStudent = students.find(s => s.id === activeChildId) || students[0];
+  const activeStudent =
+    students.find(
+      s =>
+        (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
+        (currentUser &&
+          ((currentUser.studentId && s.id === currentUser.studentId) ||
+            s.userId === currentUser.id ||
+            s.email?.toLowerCase() === currentUser.email?.toLowerCase()))
+    ) || students[0];
 
   useEffect(() => {
     if (activeStudent && !selectedStopId) {
@@ -89,7 +99,16 @@ export default function ShiftBookingPage() {
   const isFull = bus ? confirmedCount >= bus.capacity : false;
 
   const userExistingBooking = bookings.find(
-    b => b.studentId === activeStudent?.id && targetTrip && b.tripId === targetTrip.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
+    b =>
+      (b.studentId === activeStudent?.id ||
+        b.studentId === activeStudent?.userId ||
+        (currentUser &&
+          (b.studentId === currentUser.id ||
+            b.studentId === currentUser.studentId ||
+            b.studentId === `stud-${currentUser.id}`))) &&
+      targetTrip &&
+      b.tripId === targetTrip.id &&
+      (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
   );
 
   const selectedStop = stops.find(s => s.id === selectedStopId) || stops[0];
@@ -98,7 +117,14 @@ export default function ShiftBookingPage() {
   const displayBookingForQR = useMemo(() => {
     if (userExistingBooking) return userExistingBooking;
     const anyActive = bookings.find(
-      b => b.studentId === activeStudent?.id && (b.status === "CONFIRMED" || b.status === "BOARDED" || b.status === "WAITLISTED")
+      b =>
+        (b.studentId === activeStudent?.id ||
+          b.studentId === activeStudent?.userId ||
+          (currentUser &&
+            (b.studentId === currentUser.id ||
+              b.studentId === currentUser.studentId ||
+              b.studentId === `stud-${currentUser.id}`))) &&
+        (b.status === "CONFIRMED" || b.status === "BOARDED" || b.status === "WAITLISTED")
     );
     if (anyActive) return anyActive;
 
@@ -112,7 +138,7 @@ export default function ShiftBookingPage() {
       seatNumber: selectedSeatNumber || "1A",
       createdAt: "2026-08-30T00:00:00.000Z",
     };
-  }, [userExistingBooking, bookings, activeStudent, targetTrip, trips, selectedStopId, stops, selectedSeatNumber]);
+  }, [userExistingBooking, bookings, activeStudent, currentUser, targetTrip, trips, selectedStopId, stops, selectedSeatNumber]);
 
   // Dynamic Dijkstra Shortest Path to Campus
   const shortestPath = useMemo(() => {
