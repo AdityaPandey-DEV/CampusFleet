@@ -32,10 +32,13 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
 
     try {
       if (typeof window !== "undefined") {
+        const nextUrl = effectiveRole === "transport_manager" ? "/admin" : "/portal";
+        const callbackUrl = `${window.location.origin}/auth/callback?next=${nextUrl}`;
+
         const { error } = await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: window.location.origin + (effectiveRole === "transport_manager" ? "/admin" : "/portal"),
+            redirectTo: callbackUrl,
           },
         });
         if (error) {
