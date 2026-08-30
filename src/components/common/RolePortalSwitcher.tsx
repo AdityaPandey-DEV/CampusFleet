@@ -89,13 +89,32 @@ export function RolePortalSwitcher() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const userRole = currentUser?.role || "student";
+  const isAdmin = userRole === "admin" || userRole === "transport_manager";
+  const isStaff = userRole === "driver" || userRole === "conductor";
+
+  // Strict Hierarchy Filter:
+  // Admin: Student, Admin, Driver, Conductor
+  // Staff: Student, Driver, Conductor (No Admin)
+  // Student: Student only (Switcher Hidden)
+  const allowedOptions = PORTAL_OPTIONS.filter(opt => {
+    if (isAdmin) return true;
+    if (isStaff) return opt.role !== "admin";
+    return opt.role === "student";
+  });
+
+  // If student only has 1 option, do not show switcher
+  if (!isAdmin && !isStaff) {
+    return null;
+  }
+
   // Match current portal option based on pathname
   const currentOption =
-    PORTAL_OPTIONS.find(opt => {
+    allowedOptions.find(opt => {
       if (opt.path === "/admin") return pathname.startsWith("/admin");
       if (opt.path === "/portal") return pathname.startsWith("/portal");
       return pathname.startsWith(opt.path);
-    }) || PORTAL_OPTIONS[0];
+    }) || allowedOptions[0];
 
   const CurrentIcon = currentOption.icon;
 
@@ -127,7 +146,7 @@ export function RolePortalSwitcher() {
           <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
               <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                Universal Portal Switcher
+                {isAdmin ? "Admin Superuser Switcher" : "Staff Console Switcher"}
               </div>
               <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 {currentUser?.fullName || "Active Session"}
@@ -139,7 +158,7 @@ export function RolePortalSwitcher() {
           </div>
 
           <div className="space-y-1 pt-1">
-            {PORTAL_OPTIONS.map(opt => {
+            {allowedOptions.map(opt => {
               const Icon = opt.icon;
               const isCurrent = opt.path === currentOption.path;
 

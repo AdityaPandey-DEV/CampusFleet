@@ -169,12 +169,14 @@ export default function StudentPortalLayout({
             {/* Universal Cross-Portal Role Switcher */}
             <RolePortalSwitcher />
 
-            <Link
-              href="/admin"
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition-colors"
-            >
-              <span>Admin Operations →</span>
-            </Link>
+            {(currentUser?.role === "admin" || currentUser?.role === "transport_manager") && (
+              <Link
+                href="/admin"
+                className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition-colors"
+              >
+                <span>Admin Operations →</span>
+              </Link>
+            )}
 
             {/* Theme Toggle */}
             <ThemeToggle />

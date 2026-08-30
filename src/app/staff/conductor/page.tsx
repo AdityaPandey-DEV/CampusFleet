@@ -18,6 +18,7 @@ import {
   FileText,
   Lock,
 } from "lucide-react";
+import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 
 export default function ConductorConsolePage() {
   const [trips, setTrips] = useState(store.getTrips());
@@ -108,6 +109,7 @@ export default function ConductorConsolePage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <RolePortalSwitcher />
           <ThemeToggle />
           <Link
             href="/"

@@ -20,6 +20,7 @@ import {
   TrafficCone,
   LogOut,
 } from "lucide-react";
+import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 
 export default function DriverConsolePage() {
   const [trips, setTrips] = useState(store.getTrips());
@@ -128,6 +129,7 @@ export default function DriverConsolePage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <RolePortalSwitcher />
           <ThemeToggle />
           <Link
             href="/"
