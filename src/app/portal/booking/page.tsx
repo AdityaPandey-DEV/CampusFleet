@@ -70,7 +70,7 @@ export default function ShiftBookingPage() {
     b => b.studentId === activeStudent?.id && targetTrip && b.tripId === targetTrip.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED")
   );
 
-  const selectedStop = stops.find(s => s.id === selectedStopId) || stops[0] || { id: "default", name: "Main Campus Station", code: "MC-01" };
+  const selectedStop = stops.find(s => s.id === selectedStopId) || stops[0];
 
   const handleBook = () => {
     if (!bus || !targetTrip) {
@@ -321,7 +321,7 @@ export default function ShiftBookingPage() {
               <div className="text-right">
                 <div className="text-[10px] uppercase font-bold text-slate-400">Pickup Station</div>
                 <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[140px]">
-                  {selectedStop.name}
+                  {selectedStop?.name || "Select Pickup Stop"}
                 </div>
               </div>
             </div>

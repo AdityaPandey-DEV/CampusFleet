@@ -35,7 +35,7 @@ export default function DigitalPassPage() {
   const trip = trips.find(t => t.id === activeBooking?.tripId) || trips[0];
   const bus = buses.find(b => b.id === trip?.busId) || buses[0];
   const shift = shifts.find(sh => sh.id === trip?.shiftId) || shifts[0];
-  const stop = stops.find(st => st.id === (activeBooking?.boardingStopId || activeStudent?.primaryStopId)) || stops[1];
+  const stop = stops.find(st => st.id === (activeBooking?.boardingStopId || activeStudent?.primaryStopId)) || stops[0];
 
   const handleCancel = (bookingId: string) => {
     if (confirm("Are you sure you want to cancel your seat? If cancelled, your seat will be automatically allocated to the next eligible waitlisted student.")) {

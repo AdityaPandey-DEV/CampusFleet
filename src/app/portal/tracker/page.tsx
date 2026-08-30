@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { store } from "@/lib/store";
 import CampusRideMap from "@/components/maps/CampusRideMap";
 import { StationLineProgress } from "@/components/ui/StationLineProgress";
-import { Compass, Clock, MapPin, ShieldAlert, Phone, Navigation, RefreshCw } from "lucide-react";
+import { Compass, Clock, MapPin, ShieldAlert, Phone, Navigation, RefreshCw, AlertCircle, Plus } from "lucide-react";
 
 export default function LiveTrackerPage() {
   const [buses, setBuses] = useState(store.getBuses());
@@ -30,8 +31,29 @@ export default function LiveTrackerPage() {
 
   const activeStudent = students.find(s => s.id === activeChildId) || students[0];
   const assignedRoute = routes.find(r => r.id === activeStudent?.primaryRouteId) || routes[0];
-  const pickupStop = stops.find(s => s.id === activeStudent?.primaryStopId) || stops[1];
-  const activeTrip = trips[0];
+  const pickupStop = stops.find(s => s.id === activeStudent?.primaryStopId) || stops[0];
+  const activeTrip = trips.find(t => t.routeId === assignedRoute?.id) || trips[0];
+
+  if (stops.length === 0 || routes.length === 0) {
+    return (
+      <div className="text-center py-16 p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 max-w-lg mx-auto my-8">
+        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950 rounded-2xl flex items-center justify-center mx-auto text-blue-600">
+          <Compass className="w-8 h-8" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">No Active Route Corridors in Database</h3>
+        <p className="text-xs text-slate-500">
+          No campus bus stops or route corridors have been created yet. Please use the Admin Operations Console to add stops and allocate fleet buses.
+        </p>
+        <Link
+          href="/admin/routes"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md"
+        >
+          <Plus className="w-4 h-4" />
+          Create Stops & Routes in Admin →
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in">
@@ -43,7 +65,7 @@ export default function LiveTrackerPage() {
             Live Fleet Tracking & Station Radar
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Real-time geospatial telemetry for {assignedRoute.name}
+            Real-time geospatial telemetry for {assignedRoute?.name || "Campus Network"}
           </p>
         </div>
 
@@ -70,25 +92,25 @@ export default function LiveTrackerPage() {
             <div>
               <div className="text-[10px] uppercase font-bold text-slate-400">Current Speed</div>
               <div className="text-xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
-                {liveLocation.speedKmh} <span className="text-xs font-normal">km/h</span>
+                {liveLocation?.speedKmh || 0} <span className="text-xs font-normal">km/h</span>
               </div>
             </div>
             <div>
               <div className="text-[10px] uppercase font-bold text-slate-400">ETA to Stop</div>
               <div className="text-xl font-black text-blue-600 dark:text-blue-400 font-mono mt-0.5">
-                {liveLocation.estimatedArrivalNextStopMins} <span className="text-xs font-normal">mins</span>
+                {liveLocation?.estimatedArrivalNextStopMins || 0} <span className="text-xs font-normal">mins</span>
               </div>
             </div>
             <div>
               <div className="text-[10px] uppercase font-bold text-slate-400">Schedule Status</div>
-              <div className={`text-xl font-black font-mono mt-0.5 ${liveLocation.delayMinutes > 0 ? "text-amber-500" : "text-emerald-500"}`}>
-                {liveLocation.delayMinutes > 0 ? `+${liveLocation.delayMinutes}m delay` : "On Time"}
+              <div className={`text-xl font-black font-mono mt-0.5 ${(liveLocation?.delayMinutes || 0) > 0 ? "text-amber-500" : "text-emerald-500"}`}>
+                {(liveLocation?.delayMinutes || 0) > 0 ? `+${liveLocation.delayMinutes}m delay` : "On Time"}
               </div>
             </div>
             <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400">GPS Device</div>
+              <div className="text-[10px] uppercase font-bold text-slate-400">Active Bus</div>
               <div className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono mt-2 truncate">
-                GPS-TRK-901
+                {buses.find(b => b.id === liveLocation?.busId)?.registrationNo || "Live Bus"}
               </div>
             </div>
           </div>
@@ -99,18 +121,32 @@ export default function LiveTrackerPage() {
           </div>
         </div>
 
-        {/* Right Col: Linear Station progression & Driver Contact */}
-        <div className="space-y-6">
+        {/* Right 1 Col: Station Line Progression Timeline */}
+        <div className="space-y-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-2">
-              Station Sequence
-            </h3>
-            <StationLineProgress
-              route={assignedRoute}
-              currentStopIndex={activeTrip.currentStopIndex || 1}
-              selectedStopId={pickupStop.id}
-              compact={false}
-            />
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                Station Route Progression
+              </h3>
+              <span className="text-[10px] font-mono font-bold text-slate-400">
+                {assignedRoute?.code}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Real-time progression along the configured stops.
+            </p>
+
+            {assignedRoute ? (
+              <StationLineProgress
+                route={assignedRoute}
+                currentStopIndex={activeTrip?.currentStopIndex || 0}
+                selectedStopId={pickupStop?.id}
+              />
+            ) : (
+              <div className="p-6 text-center text-xs text-slate-400 font-mono">
+                No route sequence available.
+              </div>
+            )}
           </div>
         </div>
       </div>
