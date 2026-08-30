@@ -19,6 +19,9 @@ import {
   Wrench,
   TrafficCone,
   LogOut,
+  Sparkles,
+  Users,
+  Shield,
 } from "lucide-react";
 import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 
@@ -33,6 +36,7 @@ export default function DriverConsolePage() {
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [incidentNotes, setIncidentNotes] = useState("");
   const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -57,7 +61,6 @@ export default function DriverConsolePage() {
     if (!isBroadcasting || activeTrip?.status !== "IN_PROGRESS") return;
 
     const interval = setInterval(() => {
-      // Add slight jitter / forward movement to latitude
       const latDelta = (Math.random() - 0.3) * 0.001;
       const speed = Math.floor(25 + Math.random() * 20);
       store.updateLiveLocation({
@@ -74,7 +77,8 @@ export default function DriverConsolePage() {
     activeTrip.status = "IN_PROGRESS";
     activeTrip.startedAt = new Date().toISOString();
     store.updateLiveLocation({ delayMinutes: 0 });
-    alert("Trip started! GPS coordinates broadcasting live to students and parents.");
+    setToastMessage("✓ Trip started! GPS coordinates broadcasting live to commuters.");
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   const handleEndTrip = () => {
@@ -82,7 +86,8 @@ export default function DriverConsolePage() {
     if (confirm("Are you sure you want to end this trip?")) {
       activeTrip.status = "COMPLETED";
       activeTrip.completedAt = new Date().toISOString();
-      alert("Trip completed successfully.");
+      setToastMessage("✓ Trip completed successfully.");
+      setTimeout(() => setToastMessage(null), 3500);
     }
   };
 
@@ -95,6 +100,8 @@ export default function DriverConsolePage() {
         currentStopId: route.stops[nextIdx].stopId,
         estimatedArrivalNextStopMins: 4,
       });
+      setToastMessage(`✓ Arrived at ${route.stops[nextIdx].stop.name}`);
+      setTimeout(() => setToastMessage(null), 3000);
     }
   };
 
@@ -108,99 +115,120 @@ export default function DriverConsolePage() {
       severity: selectedIncident === "BREAKDOWN" || selectedIncident === "EMERGENCY" ? "HIGH" : "MEDIUM",
       description: incidentNotes || `Driver reported ${selectedIncident} during trip.`,
     });
-    alert(`Incident [${selectedIncident}] logged with Transport Control Desk!`);
+    setToastMessage(`✓ Incident [${selectedIncident}] logged with Transport Dispatch!`);
     setIsIncidentModalOpen(false);
     setSelectedIncident(null);
     setIncidentNotes("");
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white pb-16 font-sans">
-      {/* Top Driver Header */}
-      <header className="bg-slate-950/80 backdrop-blur border-b border-slate-800 p-4 sticky top-0 z-40 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center font-bold">
-            <BusFront className="w-5 h-5" />
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-16 font-sans transition-colors duration-200 selection:bg-blue-600 selection:text-white">
+      {/* Top Driver Header (Fully Responsive, Zero Overflow!) */}
+      <header className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 p-3 sm:p-4 sticky top-0 z-40 shadow-xs dark:shadow-xl">
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20 flex-shrink-0">
+              <BusFront className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                  Driver Cockpit
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                  <Radio className="w-2.5 h-2.5 text-emerald-500 animate-pulse" /> Telematics Live
+                </span>
+              </div>
+              <div className="text-sm font-black text-slate-900 dark:text-white truncate">
+                {bus?.busNumber || "Active Bus Cockpit"}
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-xs uppercase font-bold text-slate-400">Driver Console</div>
-            <div className="text-sm font-bold truncate">{bus?.busNumber || "Active Bus Cockpit"}</div>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <RolePortalSwitcher />
-          <ThemeToggle />
-          <Link
-            href="/"
-            className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
-            title="Exit"
-          >
-            <LogOut className="w-4 h-4" />
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between sm:justify-end min-w-0">
+            <RolePortalSwitcher align="right" />
+            <ThemeToggle />
+            <Link
+              href="/"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+              title="Exit"
+            >
+              <LogOut className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </header>
 
       {/* Main Console Content */}
-      <main className="max-w-2xl mx-auto p-4 space-y-5">
+      <main className="max-w-2xl mx-auto p-4 space-y-5 min-w-0">
+        {/* Toast Alert */}
+        {toastMessage && (
+          <div className="p-3.5 bg-blue-50 dark:bg-blue-950/90 border border-blue-300 dark:border-blue-500 rounded-2xl text-xs font-bold text-blue-900 dark:text-blue-200 text-center animate-in fade-in shadow-md flex items-center justify-center gap-2">
+            <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+
         {/* Live Trip Status Card */}
-        <div className="bg-slate-800/80 rounded-3xl p-5 border border-slate-700/60 space-y-4">
+        <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm dark:shadow-xl">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-blue-900/60 text-blue-300 border border-blue-700">
+            <span className="text-xs font-mono px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold">
               Trip: {activeTrip?.tripCode || "Standby Mode"}
             </span>
             <div className="flex items-center gap-2">
               <span className={`w-2.5 h-2.5 rounded-full ${activeTrip?.status === "IN_PROGRESS" ? "bg-emerald-500 animate-ping" : "bg-amber-500"}`} />
-              <span className="text-xs font-bold uppercase">{activeTrip?.status || "STANDBY"}</span>
+              <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">{activeTrip?.status || "STANDBY"}</span>
             </div>
           </div>
 
           <div>
-            <div className="text-xl font-black">{route?.name || "Campus Shuttle Route"}</div>
-            <div className="text-xs text-slate-400 mt-0.5">
-              Capacity: {confirmedCount} / {bus?.capacity || 40} Passengers Confirmed
+            <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">{route?.name || "Campus Shuttle Route"}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5" />
+              <span>Capacity: {confirmedCount} / {bus?.capacity || 40} Passengers Confirmed</span>
             </div>
           </div>
 
           {/* Big Action Buttons */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             {activeTrip?.status !== "IN_PROGRESS" ? (
               <button
                 onClick={handleStartTrip}
-                className="py-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30"
+                className="py-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
               >
                 <Play className="w-5 h-5 fill-current" />
-                START TRIP
+                <span>START TRIP</span>
               </button>
             ) : (
               <button
                 onClick={handleEndTrip}
-                className="py-4 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-rose-900/30"
+                className="py-4 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20 transition-all cursor-pointer"
               >
                 <Square className="w-5 h-5 fill-current" />
-                END TRIP
+                <span>END TRIP</span>
               </button>
             )}
 
             <button
               onClick={handleAdvanceStop}
-              className="py-4 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-900/30"
+              className="py-4 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
             >
               <Navigation className="w-5 h-5" />
-              ARRIVED AT STOP
+              <span>ARRIVED AT STOP</span>
             </button>
           </div>
         </div>
 
         {/* GPS Live Telematics Broadcaster Card */}
-        <div className="bg-slate-800/80 rounded-3xl p-5 border border-slate-700/60 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`p-3 rounded-2xl ${isBroadcasting ? "bg-emerald-900/60 text-emerald-400 ring-2 ring-emerald-500/40" : "bg-slate-700 text-slate-400"}`}>
+        <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-sm dark:shadow-xl gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`p-3 rounded-2xl flex-shrink-0 ${isBroadcasting ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 ring-2 ring-emerald-500/30" : "bg-slate-100 dark:bg-slate-800 text-slate-400"}`}>
               <Radio className={`w-5 h-5 ${isBroadcasting ? "animate-pulse" : ""}`} />
             </div>
-            <div>
-              <div className="font-bold text-sm">GPS Telemetry Stream</div>
-              <div className="text-xs text-slate-400 font-mono">
+            <div className="min-w-0">
+              <div className="font-bold text-sm text-slate-900 dark:text-white truncate">GPS Telemetry Stream</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
                 {liveLocation.latitude.toFixed(4)}, {liveLocation.longitude.toFixed(4)} • {liveLocation.speedKmh} km/h
               </div>
             </div>
@@ -208,8 +236,8 @@ export default function DriverConsolePage() {
 
           <button
             onClick={() => setIsBroadcasting(!isBroadcasting)}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors ${
-              isBroadcasting ? "bg-emerald-600 text-white" : "bg-slate-700 text-slate-300"
+            className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-colors flex-shrink-0 cursor-pointer ${
+              isBroadcasting ? "bg-emerald-600 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
             }`}
           >
             {isBroadcasting ? "Broadcasting" : "Paused"}
@@ -217,17 +245,17 @@ export default function DriverConsolePage() {
         </div>
 
         {/* Route Station Progression Checklist */}
-        <div className="bg-slate-800/80 rounded-3xl p-5 border border-slate-700/60 space-y-4">
+        <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm dark:shadow-xl">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-sm text-slate-200">
+            <h3 className="font-black text-sm text-slate-900 dark:text-slate-100">
               Station Sequence Checklist
             </h3>
-            <span className="text-xs font-mono text-slate-400">
+            <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-bold">
               Stop {(activeTrip?.currentStopIndex || 0) + 1} of {route?.stops?.length || 0}
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {route?.stops?.map((rs, idx) => {
               const isCurrent = idx === (activeTrip?.currentStopIndex || 0);
               const isPassed = idx < (activeTrip?.currentStopIndex || 0);
@@ -235,36 +263,36 @@ export default function DriverConsolePage() {
               return (
                 <div
                   key={rs.stopId}
-                  className={`p-3 rounded-2xl border flex items-center justify-between ${
+                  className={`p-3 rounded-2xl border flex items-center justify-between transition-colors ${
                     isCurrent
-                      ? "bg-blue-950/60 border-blue-500 text-blue-300 ring-2 ring-blue-500/20"
+                      ? "bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-500 text-blue-900 dark:text-blue-200 ring-2 ring-blue-500/20"
                       : isPassed
-                      ? "bg-slate-900/50 border-slate-800 text-slate-500"
-                      : "bg-slate-800 border-slate-700 text-slate-300"
+                      ? "bg-slate-50 dark:bg-slate-950/50 border-slate-100 dark:border-slate-800/80 text-slate-400 dark:text-slate-500"
+                      : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                         isPassed
-                          ? "bg-emerald-900 text-emerald-400"
+                          ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400"
                           : isCurrent
                           ? "bg-blue-600 text-white animate-pulse"
-                          : "bg-slate-700 text-slate-400"
+                          : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
                       }`}
                     >
                       {idx + 1}
                     </div>
-                    <div>
-                      <div className="font-bold text-xs">{rs.stop.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs truncate">{rs.stop.name}</div>
+                      <div className="text-[10px] text-slate-400 font-mono truncate">
                         {rs.stop.landmark}
                       </div>
                     </div>
                   </div>
 
-                  <span className="text-xs font-mono font-semibold">
-                    {isCurrent ? "Current / Approaching" : isPassed ? "Departed" : `+${rs.arrivalOffsetMinutes}m`}
+                  <span className="text-xs font-mono font-semibold flex-shrink-0 ml-2">
+                    {isCurrent ? "Approaching" : isPassed ? "Departed" : `+${rs.arrivalOffsetMinutes}m`}
                   </span>
                 </div>
               );
@@ -273,8 +301,8 @@ export default function DriverConsolePage() {
         </div>
 
         {/* Quick Incident Reporting Triggers */}
-        <div className="bg-slate-800/80 rounded-3xl p-5 border border-slate-700/60 space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+        <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm dark:shadow-xl">
+          <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
             One-Tap Incident & Delay Dispatch
           </h4>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -292,9 +320,9 @@ export default function DriverConsolePage() {
                     setSelectedIncident(inc.id);
                     setIsIncidentModalOpen(true);
                   }}
-                  className="p-3 bg-slate-900 hover:bg-slate-700 border border-slate-700 rounded-xl flex flex-col items-center gap-1.5 font-semibold text-slate-200 transition-all active:scale-95"
+                  className="p-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200 transition-all active:scale-95 cursor-pointer shadow-xs"
                 >
-                  <Icon className="w-4 h-4 text-amber-400" />
+                  <Icon className="w-4 h-4 text-amber-500" />
                   <span>{inc.label}</span>
                 </button>
               );
@@ -305,9 +333,9 @@ export default function DriverConsolePage() {
 
       {/* Incident Modal */}
       {isIncidentModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-6 space-y-4 text-white">
-            <h3 className="font-bold text-base flex items-center gap-2 text-amber-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl">
+            <h3 className="font-bold text-base flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="w-5 h-5" />
               Report {selectedIncident} Incident
             </h3>
@@ -315,13 +343,13 @@ export default function DriverConsolePage() {
               rows={3}
               value={incidentNotes}
               onChange={e => setIncidentNotes(e.target.value)}
-              placeholder="Add optional brief details for Transport Office..."
-              className="w-full text-xs p-3 rounded-xl bg-slate-800 border border-slate-700 text-white outline-none focus:ring-2 focus:ring-amber-500"
+              placeholder="Add brief details for Transport Office..."
+              className="w-full text-xs p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
             />
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsIncidentModalOpen(false)}
-                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl"
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl"
               >
                 Cancel
               </button>
