@@ -53,16 +53,28 @@ export default function UnifiedLoginPage() {
   const [pendingAuthUser, setPendingAuthUser] = useState<any>(null);
 
   React.useEffect(() => {
+    const initialStops = store.getStops();
+    if (initialStops.length > 0) {
+      setStops(initialStops);
+      const defaultStop = initialStops.find(s => s.name.includes("Laldant")) || initialStops[0];
+      if (defaultStop) setSelectedStopId(defaultStop.id);
+    }
+
     const unsub = store.subscribe(() => {
-      setStops(store.getStops());
+      const latestStops = store.getStops();
+      setStops(latestStops);
+      if (latestStops.length > 0 && !selectedStopId) {
+        const defaultStop = latestStops.find(s => s.name.includes("Laldant")) || latestStops[0];
+        if (defaultStop) setSelectedStopId(defaultStop.id);
+      }
     });
     return unsub;
-  }, []);
+  }, [selectedStopId]);
 
   // Compute nearest stops based on text filter or GPS
   const filteredNearestStops = React.useMemo(() => {
     if (!homeLocation.trim()) {
-      return stops.slice(0, 6);
+      return stops.slice(0, 8);
     }
     const q = homeLocation.toLowerCase().trim();
     const matched = stops.filter(
@@ -71,7 +83,7 @@ export default function UnifiedLoginPage() {
         st.landmark.toLowerCase().includes(q) ||
         st.code.toLowerCase().includes(q)
     );
-    return matched.length > 0 ? matched : stops.slice(0, 6);
+    return matched.length > 0 ? matched : stops.slice(0, 8);
   }, [stops, homeLocation]);
 
   const handleDetectGPSLocation = () => {
@@ -84,7 +96,8 @@ export default function UnifiedLoginPage() {
       pos => {
         setIsLocating(false);
         const { latitude, longitude } = pos.coords;
-        // Calculate nearest stop
+        if (stops.length === 0) return;
+        
         let nearestStop = stops[0];
         let minDistance = Infinity;
 
@@ -105,7 +118,6 @@ export default function UnifiedLoginPage() {
       err => {
         setIsLocating(false);
         console.warn("GPS error:", err);
-        // Fallback default stop (Laldant for Bhimtal)
         const defaultStop = stops.find(s => s.code.includes("LDT") || s.name.includes("Laldant")) || stops[0];
         if (defaultStop) setSelectedStopId(defaultStop.id);
       },
@@ -116,9 +128,9 @@ export default function UnifiedLoginPage() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-    const resolvedEmail = email.trim() || adminEmail || "adityapandey.dev.in@gmail.com";
-    const isUserAdmin = Boolean(adminEmail && resolvedEmail.toLowerCase() === adminEmail);
+    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com").toLowerCase();
+    const resolvedEmail = (email.trim() || "student.commuter@gehu.ac.in").toLowerCase();
+    const isUserAdmin = Boolean(adminEmail && resolvedEmail === adminEmail);
     const role: UserRole = isUserAdmin
       ? "admin"
       : resolvedEmail.includes("driver")
@@ -138,7 +150,7 @@ export default function UnifiedLoginPage() {
         setAuthStep("SUCCESS");
         setTimeout(() => router.push(authService.getTargetRouteForRole(user.role)), 700);
       } else {
-        // For students, check if onboarding details are needed
+        // For students, initiate onboarding details
         setPendingAuthUser(user);
         setOnboardingName(user.fullName || "Student Commuter");
         const defaultStop = stops.find(s => s.name.includes("Laldant")) || stops[0];
