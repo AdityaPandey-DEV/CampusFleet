@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { store } from "@/lib/store";
+import dynamic from "next/dynamic";
 import { formatTime, formatDate } from "@/lib/utils";
-import CampusRideMap from "@/components/maps/CampusRideMap";
 import { StationLineProgress } from "@/components/ui/StationLineProgress";
 import {
   BusFront,
@@ -22,6 +22,16 @@ import {
   AlertCircle,
   Bell,
 } from "lucide-react";
+
+// Dynamic import for Leaflet map with no SSR
+const CampusRideMap = dynamic(() => import("@/components/maps/CampusRideMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-72 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+      Loading Live Map Radar...
+    </div>
+  ),
+});
 
 export default function StudentPortalDashboard() {
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
@@ -239,17 +249,19 @@ export default function StudentPortalDashboard() {
                     <User className="w-4 h-4 text-blue-600" />
                     <div>
                       <div className="font-bold text-slate-800 dark:text-slate-200">
-                        {driver?.fullName || "Rajesh Kumar (Driver)"}
+                        {driver?.fullName || staff.find(s => s.role === "driver")?.fullName || "Assigned Bus Driver"}
                       </div>
                       <div className="text-[10px] text-slate-400">Assigned Campus Driver</div>
                     </div>
                   </div>
-                  <a
-                    href={`tel:${driver?.phone || "+919811044219"}`}
-                    className="p-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                  </a>
+                  {(driver?.phone || staff.find(s => s.role === "driver")?.phone) && (
+                    <a
+                      href={`tel:${driver?.phone || staff.find(s => s.role === "driver")?.phone}`}
+                      className="p-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                    </a>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
@@ -257,17 +269,19 @@ export default function StudentPortalDashboard() {
                     <ShieldCheck className="w-4 h-4 text-teal-600" />
                     <div>
                       <div className="font-bold text-slate-800 dark:text-slate-200">
-                        {conductor?.fullName || "Manoj Verma (Conductor)"}
+                        {conductor?.fullName || staff.find(s => s.role === "conductor")?.fullName || "Assigned Conductor"}
                       </div>
                       <div className="text-[10px] text-slate-400">Boarding & Verification</div>
                     </div>
                   </div>
-                  <a
-                    href={`tel:${conductor?.phone || "+919873188402"}`}
-                    className="p-1.5 bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 rounded-lg hover:bg-teal-200"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                  </a>
+                  {(conductor?.phone || staff.find(s => s.role === "conductor")?.phone) && (
+                    <a
+                      href={`tel:${conductor?.phone || staff.find(s => s.role === "conductor")?.phone}`}
+                      className="p-1.5 bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 rounded-lg hover:bg-teal-200"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>

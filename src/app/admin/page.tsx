@@ -3,8 +3,18 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { store } from "@/lib/store";
+import dynamic from "next/dynamic";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import CampusRideMap from "@/components/maps/CampusRideMap";
+
+// Dynamic import for Leaflet map with no SSR
+const CampusRideMap = dynamic(() => import("@/components/maps/CampusRideMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-80 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+      Loading Admin GIS Telematics Map...
+    </div>
+  ),
+});
 import {
   ResponsiveContainer,
   BarChart,

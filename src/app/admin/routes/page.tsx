@@ -2,8 +2,18 @@
 
 import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
+import dynamic from "next/dynamic";
 import { Route, Stop, Bus } from "@/lib/types";
-import CampusRideMap from "@/components/maps/CampusRideMap";
+
+// Dynamic import for Leaflet map with no SSR
+const CampusRideMap = dynamic(() => import("@/components/maps/CampusRideMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-80 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+      Loading Corridor GIS Map...
+    </div>
+  ),
+});
 import {
   Route as RouteIcon,
   Plus,
