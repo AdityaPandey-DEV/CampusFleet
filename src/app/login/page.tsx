@@ -21,18 +21,97 @@ import {
   Navigation,
   LayoutDashboard,
   Users,
+  MapPin,
+  Compass,
+  Check,
+  Building,
+  Home,
+  User,
 } from "lucide-react";
 
+import { calculateDistanceKm } from "@/lib/utils";
+import { Stop } from "@/lib/types";
 import { authService } from "@/lib/auth-service";
 
 export default function UnifiedLoginPage() {
   const router = useRouter();
-  const [authStep, setAuthStep] = useState<"LOGIN_FORM" | "EMAIL_OTP" | "SUCCESS">("LOGIN_FORM");
+  const [authStep, setAuthStep] = useState<"LOGIN_FORM" | "EMAIL_OTP" | "ONBOARDING" | "SUCCESS">("LOGIN_FORM");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [generatedCodeHint, setGeneratedCodeHint] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // New Commuter Onboarding State
+  const [stops, setStops] = useState<Stop[]>(store.getStops());
+  const [onboardingName, setOnboardingName] = useState("");
+  const [onboardingCampus, setOnboardingCampus] = useState("GEHU Bhimtal");
+  const [homeLocation, setHomeLocation] = useState("");
+  const [selectedStopId, setSelectedStopId] = useState("");
+  const [detectedDistanceText, setDetectedDistanceText] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [pendingAuthUser, setPendingAuthUser] = useState<any>(null);
+
+  React.useEffect(() => {
+    const unsub = store.subscribe(() => {
+      setStops(store.getStops());
+    });
+    return unsub;
+  }, []);
+
+  // Compute nearest stops based on text filter or GPS
+  const filteredNearestStops = React.useMemo(() => {
+    if (!homeLocation.trim()) {
+      return stops.slice(0, 6);
+    }
+    const q = homeLocation.toLowerCase().trim();
+    const matched = stops.filter(
+      st =>
+        st.name.toLowerCase().includes(q) ||
+        st.landmark.toLowerCase().includes(q) ||
+        st.code.toLowerCase().includes(q)
+    );
+    return matched.length > 0 ? matched : stops.slice(0, 6);
+  }, [stops, homeLocation]);
+
+  const handleDetectGPSLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setIsLocating(false);
+        const { latitude, longitude } = pos.coords;
+        // Calculate nearest stop
+        let nearestStop = stops[0];
+        let minDistance = Infinity;
+
+        stops.forEach(st => {
+          const dist = calculateDistanceKm(latitude, longitude, st.latitude, st.longitude);
+          if (dist < minDistance) {
+            minDistance = dist;
+            nearestStop = st;
+          }
+        });
+
+        if (nearestStop) {
+          setSelectedStopId(nearestStop.id);
+          setHomeLocation(`${nearestStop.name} Area`);
+          setDetectedDistanceText(`📍 Nearest stop found: ~${minDistance} km away (${nearestStop.name})`);
+        }
+      },
+      err => {
+        setIsLocating(false);
+        console.warn("GPS error:", err);
+        // Fallback default stop (Laldant for Bhimtal)
+        const defaultStop = stops.find(s => s.code.includes("LDT") || s.name.includes("Laldant")) || stops[0];
+        if (defaultStop) setSelectedStopId(defaultStop.id);
+      },
+      { timeout: 8000 }
+    );
+  };
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -40,17 +119,32 @@ export default function UnifiedLoginPage() {
     const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
     const resolvedEmail = email.trim() || adminEmail || "adityapandey.dev.in@gmail.com";
     const isUserAdmin = Boolean(adminEmail && resolvedEmail.toLowerCase() === adminEmail);
-    const role: UserRole = isUserAdmin ? "admin" : "student";
-    const targetRoute = authService.getTargetRouteForRole(role);
+    const role: UserRole = isUserAdmin
+      ? "admin"
+      : resolvedEmail.includes("driver")
+      ? "driver"
+      : resolvedEmail.includes("conductor")
+      ? "conductor"
+      : "student";
 
     try {
-      // Direct Native Institutional Auth: zero external redirects, instant verification
       const user = authService.instantLogin(resolvedEmail, role);
       store.setCurrentUser(user);
-      setAuthStep("SUCCESS");
-      setTimeout(() => {
-        router.push(targetRoute);
-      }, 800);
+
+      if (user.role === "admin") {
+        setAuthStep("SUCCESS");
+        setTimeout(() => router.push("/admin"), 700);
+      } else if (user.role === "driver" || user.role === "conductor") {
+        setAuthStep("SUCCESS");
+        setTimeout(() => router.push(authService.getTargetRouteForRole(user.role)), 700);
+      } else {
+        // For students, check if onboarding details are needed
+        setPendingAuthUser(user);
+        setOnboardingName(user.fullName || "Student Commuter");
+        const defaultStop = stops.find(s => s.name.includes("Laldant")) || stops[0];
+        if (defaultStop) setSelectedStopId(defaultStop.id);
+        setAuthStep("ONBOARDING");
+      }
     } catch (err: any) {
       console.warn("Auth exception:", err);
       setErrorMessage(err.message || "Authentication failed");
@@ -69,7 +163,6 @@ export default function UnifiedLoginPage() {
       const res = await authService.sendOtp(email);
       if (res.success) {
         setGeneratedCodeHint(res.generatedCode || "123456");
-        // Pre-fill OTP for ultra-smooth experience
         if (res.generatedCode) {
           setOtp(res.generatedCode.split(""));
         }
@@ -98,17 +191,77 @@ export default function UnifiedLoginPage() {
     try {
       const res = await authService.verifyOtp(email, enteredOtp);
       if (res.success && res.user) {
-        store.setCurrentUser(res.user);
-        setAuthStep("SUCCESS");
-        const targetRoute = authService.getTargetRouteForRole(res.user.role);
-        setTimeout(() => {
-          router.push(targetRoute);
-        }, 800);
+        const authUser = res.user;
+        store.setCurrentUser(authUser);
+
+        if (authUser.role === "admin") {
+          setAuthStep("SUCCESS");
+          setTimeout(() => router.push("/admin"), 700);
+        } else if (authUser.role === "driver" || authUser.role === "conductor") {
+          setAuthStep("SUCCESS");
+          setTimeout(() => router.push(authService.getTargetRouteForRole(authUser.role)), 700);
+        } else {
+          // New student commuter onboarding
+          setPendingAuthUser(authUser);
+          setOnboardingName(authUser.fullName || "Student Commuter");
+          const defaultStop = stops.find(s => s.name.includes("Laldant")) || stops[0];
+          if (defaultStop) setSelectedStopId(defaultStop.id);
+          setAuthStep("ONBOARDING");
+        }
       } else {
         setErrorMessage(res.message);
       }
     } catch (err: any) {
       setErrorMessage(err.message || "Invalid passcode.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCompleteOnboarding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onboardingName.trim()) {
+      setErrorMessage("Please enter your full name.");
+      return;
+    }
+    if (!selectedStopId) {
+      setErrorMessage("Please select your nearest boarding stop.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const chosenStop = stops.find(s => s.id === selectedStopId) || stops[0];
+      const updatedUser = {
+        ...(pendingAuthUser || store.getCurrentUser()),
+        fullName: onboardingName.trim(),
+        campus: onboardingCampus,
+        primaryStopId: selectedStopId,
+        primaryStopName: chosenStop?.name,
+      };
+
+      store.setCurrentUser(updatedUser);
+
+      // Also persist to Supabase users table
+      try {
+        await supabase.from("users").upsert({
+          id: updatedUser.id,
+          email: updatedUser.email,
+          full_name: updatedUser.fullName,
+          role: "student",
+          campus: onboardingCampus,
+        });
+      } catch (err) {
+        console.warn("Supabase user update notice:", err);
+      }
+
+      setAuthStep("SUCCESS");
+      setTimeout(() => {
+        router.push("/portal");
+      }, 700);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to complete onboarding.");
     } finally {
       setIsLoading(false);
     }
@@ -275,7 +428,7 @@ export default function UnifiedLoginPage() {
                 disabled={isLoading}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl shadow-md shadow-blue-600/20"
               >
-                {isLoading ? "Verifying..." : "Verify & Enter Dashboard"}
+                {isLoading ? "Verifying..." : "Verify & Setup Transit Profile"}
               </button>
 
               <button
@@ -288,7 +441,124 @@ export default function UnifiedLoginPage() {
             </form>
           )}
 
-          {/* STEP 3: Success Screen */}
+          {/* STEP 3: Required Details & Nearest Stop Selection */}
+          {authStep === "ONBOARDING" && (
+            <form onSubmit={handleCompleteOnboarding} className="space-y-4 animate-in fade-in">
+              <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl text-white text-center space-y-1">
+                <h3 className="font-black text-sm">Required Details: Student Onboarding</h3>
+                <p className="text-[11px] opacity-90">
+                  Select your campus & home location to find your nearest bus stop.
+                </p>
+              </div>
+
+              {/* Full Name */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Full Name
+                </label>
+                <div className="relative mt-1">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Aditya Pandey"
+                    value={onboardingName}
+                    onChange={e => setOnboardingName(e.target.value)}
+                    className="w-full text-xs pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Campus Selection */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Enrolled Campus
+                </label>
+                <div className="relative mt-1">
+                  <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <select
+                    value={onboardingCampus}
+                    onChange={e => setOnboardingCampus(e.target.value)}
+                    className="w-full text-xs pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none font-bold cursor-pointer"
+                  >
+                    <option value="GEHU Bhimtal">Graphic Era Hill University, Bhimtal Campus</option>
+                    <option value="GEHU Haldwani">Graphic Era Hill University, Haldwani Campus</option>
+                    <option value="GEHU Dehradun">Graphic Era Dehradun Main Campus (Clement Town)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Home Location / Neighborhood */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Home Location / Area
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleDetectGPSLocation}
+                    disabled={isLocating}
+                    className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  >
+                    <Navigation className="w-3 h-3" />
+                    <span>{isLocating ? "Locating..." : "📍 Auto-Detect Nearest"}</span>
+                  </button>
+                </div>
+
+                <div className="relative mt-1">
+                  <Home className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Laldant, Mukhani, Kathgodam, Lalkuan, Nainital..."
+                    value={homeLocation}
+                    onChange={e => {
+                      setHomeLocation(e.target.value);
+                      setDetectedDistanceText(null);
+                    }}
+                    className="w-full text-xs pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none"
+                  />
+                </div>
+
+                {detectedDistanceText && (
+                  <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                    {detectedDistanceText}
+                  </p>
+                )}
+              </div>
+
+              {/* Nearest Stop Selector Card */}
+              <div className="space-y-1.5 pt-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Select Your Primary Bus Boarding Stop
+                </label>
+
+                <div className="relative">
+                  <MapPin className="w-4 h-4 text-blue-600 absolute left-3.5 top-3.5" />
+                  <select
+                    value={selectedStopId}
+                    onChange={e => setSelectedStopId(e.target.value)}
+                    className="w-full text-xs pl-10 pr-4 py-3 bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl outline-none font-bold text-slate-900 dark:text-white cursor-pointer"
+                  >
+                    {filteredNearestStops.map(st => (
+                      <option key={st.id} value={st.id} className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white">
+                        {st.name} ({st.code}) — {st.landmark}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-transform active:scale-95 mt-2"
+              >
+                <span>{isLoading ? "Saving Profile..." : "Confirm Stop & Enter Student Hub →"}</span>
+              </button>
+            </form>
+          )}
+
+          {/* STEP 4: Success Screen */}
           {authStep === "SUCCESS" && (
             <div className="text-center py-6 space-y-3 animate-in zoom-in-95">
               <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-md shadow-emerald-500/20">
