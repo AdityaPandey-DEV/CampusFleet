@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
@@ -21,7 +22,21 @@ import {
   Shield,
   RotateCcw,
   Info,
+  Route as RouteIcon,
+  Navigation,
+  Compass,
+  Layers,
 } from "lucide-react";
+
+// Dynamic import for Leaflet map with no SSR
+const CampusRideMap = dynamic(() => import("@/components/maps/CampusRideMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-80 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+      Loading Dynamic Campus GIS Map...
+    </div>
+  ),
+});
 
 export default function ShiftBookingPage() {
   const [students, setStudents] = useState(store.getStudents());
@@ -55,9 +70,9 @@ export default function ShiftBookingPage() {
 
   useEffect(() => {
     if (activeStudent && !selectedStopId) {
-      setSelectedStopId(activeStudent.primaryStopId);
+      setSelectedStopId(activeStudent.primaryStopId || stops[0]?.id || "");
     }
-  }, [activeStudent, selectedStopId]);
+  }, [activeStudent, selectedStopId, stops]);
 
   const targetTrip = trips.find(t => t.shiftId === selectedShiftId) || trips[0];
   const bus = buses.find(b => b.id === targetTrip?.busId) || buses[0];
@@ -71,6 +86,18 @@ export default function ShiftBookingPage() {
   );
 
   const selectedStop = stops.find(s => s.id === selectedStopId) || stops[0];
+
+  // Dynamic Dijkstra Shortest Path to Campus
+  const shortestPath = useMemo(() => {
+    if (!selectedStopId) return null;
+    return store.findShortestPathToCampus(selectedStopId);
+  }, [selectedStopId, stops]);
+
+  // Multiple buses servicing this stop
+  const busesForStop = useMemo(() => {
+    if (!selectedStopId) return [];
+    return store.getBusesForStop(selectedStopId);
+  }, [selectedStopId]);
 
   const handleBook = () => {
     if (!bus || !targetTrip) {
@@ -154,49 +181,6 @@ export default function ShiftBookingPage() {
           </div>
         </div>
 
-        {/* Corridor Category Selector: Daily Commute vs Special Occasion */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold text-slate-400">Transit Category:</span>
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => {
-                  const dailyShift = shifts.find(s => s.shiftType === "MORNING" || s.shiftType === "EVENING");
-                  if (dailyShift) setSelectedShiftId(dailyShift.id);
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  shifts.find(s => s.id === selectedShiftId)?.shiftType !== "CUSTOM"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                🏫 Daily Academic Commute
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const customShift = shifts.find(s => s.shiftType === "CUSTOM");
-                  if (customShift) setSelectedShiftId(customShift.id);
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  shifts.find(s => s.id === selectedShiftId)?.shiftType === "CUSTOM"
-                    ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                🎯 Special Placement & Campus Events
-              </button>
-            </div>
-          </div>
-
-          <div className="text-[11px] text-slate-500 italic">
-            {shifts.find(s => s.id === selectedShiftId)?.shiftType === "CUSTOM"
-              ? "⚡ Inter-campus express for Placement Drives & Events"
-              : "🏠 Routine daily route to enrolled GEHU Bhimtal Campus"}
-          </div>
-        </div>
-
         {/* Shift Selection Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pt-1">
           {shifts.map(sh => {
@@ -245,10 +229,12 @@ export default function ShiftBookingPage() {
                 : "border-transparent text-slate-400 hover:text-slate-700"
             }`}
           >
-            <span className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-[10px]">
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+              activeStep === "SEATS" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800"
+            }`}>
               1
             </span>
-            <span>1. Select seats</span>
+            <span>1. Select Seats</span>
           </button>
 
           <button
@@ -259,10 +245,12 @@ export default function ShiftBookingPage() {
                 : "border-transparent text-slate-400 hover:text-slate-700"
             }`}
           >
-            <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px]">
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+              activeStep === "BOARDING" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800"
+            }`}>
               2
             </span>
-            <span>2. Board/Drop point</span>
+            <span>2. Route & Path (Dijkstra)</span>
           </button>
 
           <button
@@ -273,7 +261,9 @@ export default function ShiftBookingPage() {
                 : "border-transparent text-slate-400 hover:text-slate-700"
             }`}
           >
-            <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px]">
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+              activeStep === "PASSENGER" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800"
+            }`}>
               3
             </span>
             <span>3. Passenger & Policy</span>
@@ -298,7 +288,7 @@ export default function ShiftBookingPage() {
         </div>
       )}
 
-      {/* AI Nearest Stop Finder & Location Suggestion */}
+      {/* AI Nearest Stop Finder & Location Suggestion (Bellman-Ford) */}
       <NearestStopFinder
         stops={stops}
         selectedStopId={selectedStopId}
@@ -308,181 +298,326 @@ export default function ShiftBookingPage() {
         }}
       />
 
-      {/* Main Multi-Column Experience */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left 5 Cols: redBus Interactive Visual Seat Selector */}
-        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center">
-          {bus ? (
-            <>
-              <div className="w-full flex items-center justify-between mb-4">
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                  <BusFront className="w-4 h-4 text-blue-600" />
-                  Bus Seat Layout ({bus.seatLayout || "2x2"} Seater)
-                </h3>
-                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
-                  {bus.capacity - confirmedCount} Seats Available
-                </span>
+      {/* STEP 2: ROUTE PROGRESSION & DIJKSTRA MAP VIEW */}
+      {activeStep === "BOARDING" && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Dijkstra Route Summary Card */}
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs font-mono bg-white/20 px-3 py-1 rounded-full w-fit">
+                <Sparkles className="w-3.5 h-3.5" /> Dijkstra Shortest Path Computed
               </div>
-
-              <InteractiveBusSeatGrid
-                bus={bus}
-                activeBookings={tripBookings}
-                selectedSeat={selectedSeatNumber}
-                onSelectSeat={seat => setSelectedSeatNumber(seat)}
-                disabled={isFull}
-              />
-            </>
-          ) : (
-            <div className="text-center py-12 space-y-3">
-              <BusFront className="w-10 h-10 text-slate-400 mx-auto" />
-              <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                No Bus Allocated Yet
-              </div>
-              <p className="text-xs text-slate-400">
-                The transport desk is finalizing bus allocations for this shift.
+              <h3 className="font-black text-xl">
+                {selectedStop?.name} → Campus Terminal
+              </h3>
+              <p className="text-xs opacity-90">
+                Optimal transit corridor sequenced through graph optimization algorithm.
               </p>
+            </div>
+
+            <div className="flex items-center gap-4 text-center font-mono">
+              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm">
+                <div className="text-[10px] uppercase opacity-80 font-sans">Distance</div>
+                <div className="text-lg font-black">{shortestPath?.totalDistanceKm || "--"} km</div>
+              </div>
+              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm">
+                <div className="text-[10px] uppercase opacity-80 font-sans">Transit Time</div>
+                <div className="text-lg font-black">~{shortestPath?.totalEstimatedMins || "--"} mins</div>
+              </div>
+              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm">
+                <div className="text-[10px] uppercase opacity-80 font-sans">Station Stops</div>
+                <div className="text-lg font-black">{shortestPath?.stopCount || "--"}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive GIS Map with Dijkstra Corridor Highlight */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-4 h-4 text-blue-600" />
+                Live Route Progression & Geographic Corridor
+              </h4>
+              <span className="text-xs font-mono text-purple-600 dark:text-purple-400 font-bold">
+                🟣 Purple Dotted Line: Shortest Path
+              </span>
+            </div>
+
+            <CampusRideMap
+              stops={stops}
+              shortestPathStopIds={shortestPath?.path || []}
+              height="380px"
+              zoom={13}
+            />
+          </div>
+
+          {/* Station Sequence Progression */}
+          {shortestPath && shortestPath.path.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <RouteIcon className="w-4 h-4 text-indigo-600" />
+                Station-by-Station Rapid Transit Sequence
+              </h4>
+
+              <div className="space-y-3">
+                {shortestPath.path.map((sId, idx) => {
+                  const s = stops.find(stop => stop.id === sId);
+                  if (!s) return null;
+                  const isFirst = idx === 0;
+                  const isLast = idx === shortestPath.path.length - 1;
+
+                  return (
+                    <div
+                      key={s.id}
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between ${
+                        isFirst
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800"
+                          : isLast
+                          ? "bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800"
+                          : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                          isFirst
+                            ? "bg-emerald-500 text-white"
+                            : isLast
+                            ? "bg-blue-600 text-white"
+                            : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                        }`}>
+                          {isFirst ? "🚏" : isLast ? "🏫" : idx + 1}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-slate-900 dark:text-white">
+                            {s.name} ({s.code})
+                          </div>
+                          <div className="text-[10px] text-slate-500">{s.landmark}</div>
+                        </div>
+                      </div>
+
+                      <div className="text-right font-mono text-xs">
+                        <span className="font-bold text-slate-700 dark:text-slate-300">
+                          {isFirst ? "Boarding Stop" : isLast ? "Terminal Destination" : `+${idx * 10} mins`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Multiple Buses for this stop */}
+          {busesForStop.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <BusFront className="w-4 h-4 text-blue-600" />
+                Available Buses Serving {selectedStop?.name} ({busesForStop.length} options)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {busesForStop.map(b => (
+                  <div key={b.id} className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1">
+                    <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center justify-between">
+                      <span>{b.busNumber}</span>
+                      <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">{b.status}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500">{b.model}</div>
+                    <div className="text-[10px] font-mono text-slate-400">{b.capacity} Seats • {b.seatLayout}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
+      )}
 
-        {/* Right 7 Cols: Details, Cancellation Policy, & Booking Action */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            {/* Active Shift & Bus Vehicle Overview Card */}
-            {bus && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <div className="text-lg font-black text-slate-900 dark:text-white">
-                    {bus.busNumber}
+      {/* STEP 1: SEAT SELECTION & DETAILS (DEFAULT VIEW) */}
+      {(activeStep === "SEATS" || activeStep === "PASSENGER") && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left 5 Cols: redBus Interactive Visual Seat Selector */}
+          <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center">
+            {bus ? (
+              <>
+                <div className="w-full flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <BusFront className="w-4 h-4 text-blue-600" />
+                    Bus Seat Layout ({bus.seatLayout || "2x2"} Seater)
+                  </h3>
+                  <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
+                    {bus.capacity - confirmedCount} Seats Available
+                  </span>
+                </div>
+
+                <InteractiveBusSeatGrid
+                  bus={bus}
+                  activeBookings={tripBookings}
+                  selectedSeat={selectedSeatNumber}
+                  onSelectSeat={seat => setSelectedSeatNumber(seat)}
+                  disabled={isFull}
+                />
+              </>
+            ) : (
+              <div className="text-center py-12 space-y-3">
+                <BusFront className="w-10 h-10 text-slate-400 mx-auto" />
+                <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                  No Bus Allocated Yet
+                </div>
+                <p className="text-xs text-slate-400">
+                  The transport desk is finalizing bus allocations for this shift.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Right 7 Cols: Details, Cancellation Policy, & Booking Action */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              {/* Active Shift & Bus Vehicle Overview Card */}
+              {bus && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <div className="text-lg font-black text-slate-900 dark:text-white">
+                      {bus.busNumber}
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono">
+                      {bus.model} • Reg: {bus.registrationNo}
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-500 font-mono">
-                    {bus.model} • Reg: {bus.registrationNo}
+
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-slate-400 uppercase">Coverage</span>
+                    <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                      Included in Active Pass (₹0.00)
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Seat Callout Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-teal-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/80 border border-blue-200 dark:border-slate-700 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-500 text-slate-950 font-black font-mono text-xl flex items-center justify-center shadow-md">
+                    {isFull ? `WL-${waitlistCount + 1}` : selectedSeatNumber || "1A"}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">
+                      {isFull ? "Railway Sequential Waitlist Position" : "Selected Physical Seat"}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-medium">
+                      {isFull
+                        ? `Position WL-${waitlistCount + 1} (Auto-promoted on cancellation)`
+                        : `Seat ${selectedSeatNumber || "1A"} • Window / Campus Corridor View`}
+                    </div>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Coverage</span>
-                  <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                    Included in Active Pass (₹0.00)
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Pickup Station</div>
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[140px]">
+                    {selectedStop?.name || "Select Pickup Stop"}
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* Selected Seat Callout Card */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-teal-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/80 border border-blue-200 dark:border-slate-700 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-teal-500 text-slate-950 font-black font-mono text-xl flex items-center justify-center shadow-md">
-                  {isFull ? `WL-${waitlistCount + 1}` : selectedSeatNumber || "1A"}
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">
-                    {isFull ? "Railway Sequential Waitlist Position" : "Selected Physical Seat"}
-                  </div>
-                  <div className="text-[11px] text-slate-500 font-medium">
-                    {isFull
-                      ? `Position WL-${waitlistCount + 1} (Auto-promoted on cancellation)`
-                      : `Seat ${selectedSeatNumber || "1A"} • Window / Campus Corridor View`}
-                  </div>
+                  {shortestPath && (
+                    <div className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                      ~{shortestPath.totalEstimatedMins}m via Dijkstra
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="text-right">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Pickup Station</div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[140px]">
-                  {selectedStop?.name || "Select Pickup Stop"}
+              {/* Passenger & Emergency Contact Details */}
+              <div className="grid grid-cols-2 gap-3 text-xs pt-1">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Passenger</div>
+                  <div className="font-bold text-slate-900 dark:text-white">{activeStudent?.fullName || "Student Passenger"}</div>
+                  <div className="text-[10px] text-slate-400 font-mono">{activeStudent?.enrollmentNo || "Pending Profile"}</div>
+                </div>
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Guardian / Emergency</div>
+                  <div className="font-bold text-slate-900 dark:text-white">{activeStudent?.emergencyContact?.name || "Campus Desk"}</div>
+                  <div className="text-[10px] text-slate-400 font-mono">{activeStudent?.emergencyContact?.phone || "+91 0000000000"}</div>
                 </div>
               </div>
+
+              {/* Final Book Button / Active State */}
+              {userExistingBooking ? (
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-300 dark:border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="space-y-0.5 text-center sm:text-left">
+                    <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                      You already hold an active booking for this shift!
+                    </div>
+                    <div className="text-sm font-black text-emerald-700 dark:text-emerald-400">
+                      {userExistingBooking.status} {userExistingBooking.seatNumber ? `(Physical Seat ${userExistingBooking.seatNumber})` : `(WL-${userExistingBooking.waitlistPosition})`}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/portal/pass"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm"
+                    >
+                      View QR Pass
+                    </Link>
+                    <button
+                      onClick={() => handleCancelBooking(userExistingBooking.id)}
+                      className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-300 dark:border-rose-900"
+                    >
+                      Cancel Seat
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={handleBook}
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 via-teal-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {isFull
+                    ? `Enroll in Waitlist Queue (WL-0${waitlistCount + 1})`
+                    : `Confirm Seat Reservation (${selectedSeatNumber || "1A"})`}
+                </button>
+              )}
             </div>
 
-            {/* Passenger & Emergency Contact Details */}
-            <div className="grid grid-cols-2 gap-3 text-xs pt-1">
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Passenger</div>
-                <div className="font-bold text-slate-900 dark:text-white">{activeStudent?.fullName || "Student Passenger"}</div>
-                <div className="text-[10px] text-slate-400 font-mono">{activeStudent?.enrollmentNo || "Pending Profile"}</div>
+            {/* redBus-inspired Cancellation & Institutional Policy Table */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-blue-600" />
+                Reservation & Cancellation Rules (Railway Model)
+              </h4>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                      <th className="p-3">Timeline Prior to Departure</th>
+                      <th className="p-3">Action & Policy</th>
+                      <th className="p-3">Waitlist Impact</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                    <tr>
+                      <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">&gt; 45 Minutes</td>
+                      <td className="p-3">Free cancellation with zero strike penalty</td>
+                      <td className="p-3">Auto-promotes WL-01 passenger instantly</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3 font-mono font-bold text-amber-600 dark:text-amber-400">15 - 45 Minutes</td>
+                      <td className="p-3">Late release warning recorded to student record</td>
+                      <td className="p-3">Immediate SMS/Notification to waitlisted commuter</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3 font-mono font-bold text-rose-600 dark:text-rose-400">&lt; 15 Minutes (Finalized)</td>
+                      <td className="p-3">Manifest locked for Conductor Console verification</td>
+                      <td className="p-3">Marked as NO_SHOW if unboarded</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Guardian / Emergency</div>
-                <div className="font-bold text-slate-900 dark:text-white">{activeStudent?.emergencyContact?.name || "Campus Desk"}</div>
-                <div className="text-[10px] text-slate-400 font-mono">{activeStudent?.emergencyContact?.phone || "+91 0000000000"}</div>
-              </div>
-            </div>
-
-            {/* Final Book Button / Active State */}
-            {userExistingBooking ? (
-              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-300 dark:border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="space-y-0.5 text-center sm:text-left">
-                  <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
-                    You already hold an active booking for this shift!
-                  </div>
-                  <div className="text-sm font-black text-emerald-700 dark:text-emerald-400">
-                    {userExistingBooking.status} {userExistingBooking.seatNumber ? `(Physical Seat ${userExistingBooking.seatNumber})` : `(WL-${userExistingBooking.waitlistPosition})`}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Link
-                    href="/portal/pass"
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm"
-                  >
-                    View QR Pass
-                  </Link>
-                  <button
-                    onClick={() => handleCancelBooking(userExistingBooking.id)}
-                    className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-300 dark:border-rose-900"
-                  >
-                    Cancel Seat
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={handleBook}
-                className="w-full py-4 bg-gradient-to-r from-blue-600 via-teal-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
-              >
-                <Sparkles className="w-4 h-4" />
-                {isFull
-                  ? `Enroll in Waitlist Queue (WL-0${waitlistCount + 1})`
-                  : `Confirm Seat Reservation (${selectedSeatNumber || "1A"})`}
-              </button>
-            )}
-          </div>
-
-          {/* redBus-inspired Cancellation & Institutional Policy Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-              <Shield className="w-4 h-4 text-blue-600" />
-              Reservation & Cancellation Rules (Railway Model)
-            </h4>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                  <tr>
-                    <th className="p-3">Timeline Prior to Departure</th>
-                    <th className="p-3">Action & Policy</th>
-                    <th className="p-3">Waitlist Impact</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                  <tr>
-                    <td className="p-3 font-semibold">More than 45 mins before</td>
-                    <td className="p-3 text-emerald-600 font-bold">Free Instant Cancellation</td>
-                    <td className="p-3 text-teal-600 font-semibold">WL-01 auto-promoted to your seat</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 font-semibold">Cutoff (45 mins before)</td>
-                    <td className="p-3 text-amber-600 font-bold">Manifest Locked for Conductor</td>
-                    <td className="p-3 text-slate-500">Unassigned waitlists expired</td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

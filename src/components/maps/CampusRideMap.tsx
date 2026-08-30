@@ -8,6 +8,7 @@ interface CampusRideMapProps {
   stops?: Stop[];
   routeCoordinates?: [number, number][];
   activeStopIndex?: number;
+  shortestPathStopIds?: string[];
   height?: string;
   zoom?: number;
 }
@@ -42,6 +43,7 @@ export default function CampusRideMap({
   stops = [],
   routeCoordinates = [],
   activeStopIndex = 0,
+  shortestPathStopIds = [],
   height = "400px",
   zoom = 13,
 }: CampusRideMapProps) {
@@ -50,6 +52,8 @@ export default function CampusRideMap({
   const busMarkerRef = useRef<any>(null);
   const polylineRef = useRef<any>(null);
   const polylineGlowRef = useRef<any>(null);
+  const shortestPathPolylineRef = useRef<any>(null);
+  const markersGroupRef = useRef<any>(null);
 
   useEffect(() => {
     if (typeof window === "undefined" || !mapContainerRef.current) return;
@@ -67,12 +71,12 @@ export default function CampusRideMap({
         shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
-      // Default center: Dehradun campus corridor
+      // Default center: GEHU Bhimtal default or first stop
       const defaultCenter: [number, number] = busLocation
         ? [busLocation.latitude, busLocation.longitude]
         : stops[0]
         ? [stops[0].latitude, stops[0].longitude]
-        : [29.3516, 79.5583]; // GEHU Bhimtal default
+        : [29.3516, 79.5583];
 
       if (!mapInstanceRef.current) {
         const map = L.map(mapContainerRef.current, {
@@ -93,7 +97,14 @@ export default function CampusRideMap({
 
       const map = mapInstanceRef.current;
 
-      // Calculate Waypoints to snap along actual streets/highways
+      // Clean existing markers group
+      if (markersGroupRef.current) {
+        markersGroupRef.current.clearLayers();
+      } else {
+        markersGroupRef.current = L.layerGroup().addTo(map);
+      }
+
+      // Calculate Main Route Waypoints
       const waypoints: [number, number][] =
         stops.length >= 2
           ? stops.map(s => [s.latitude, s.longitude])
@@ -128,50 +139,95 @@ export default function CampusRideMap({
             lineCap: "round",
           }).addTo(map);
 
-          // Fit bounds to entire route if not focused on bus
-          if (!busLocation) {
+          // Fit bounds to entire route if not focused on bus and no shortest path
+          if (!busLocation && shortestPathStopIds.length === 0) {
             const bounds = L.latLngBounds(roadSnappedCoords);
             map.fitBounds(bounds, { padding: [40, 40] });
           }
         }
       }
 
+      // Dijkstra Shortest Path Overlay (if provided)
+      if (shortestPathStopIds.length >= 2) {
+        const stopMap = new Map(stops.map(s => [s.id, s]));
+        const pathCoords: [number, number][] = shortestPathStopIds
+          .map(id => stopMap.get(id))
+          .filter(Boolean)
+          .map(s => [s!.latitude, s!.longitude]);
+
+        if (pathCoords.length >= 2) {
+          const snappedPath = await fetchRoadSnappedRoute(pathCoords);
+          if (isMounted) {
+            if (shortestPathPolylineRef.current) map.removeLayer(shortestPathPolylineRef.current);
+
+            shortestPathPolylineRef.current = L.polyline(snappedPath, {
+              color: "#8B5CF6", // Purple / Violet shortest path
+              weight: 6,
+              opacity: 0.9,
+              dashArray: "10, 6",
+              lineJoin: "round",
+              lineCap: "round",
+            }).addTo(map);
+
+            if (!busLocation) {
+              const bounds = L.latLngBounds(snappedPath);
+              map.fitBounds(bounds, { padding: [50, 50] });
+            }
+          }
+        }
+      }
+
       // Render Stop Station Markers
+      const shortestPathSet = new Set(shortestPathStopIds);
+
       stops.forEach((stop, idx) => {
         const isPassed = idx < activeStopIndex;
         const isNext = idx === activeStopIndex;
+        const isOnShortestPath = shortestPathSet.has(stop.id);
+        const isStartOfPath = shortestPathStopIds[0] === stop.id;
+        const isEndOfPath = shortestPathStopIds[shortestPathStopIds.length - 1] === stop.id;
+
+        let iconBgClass = "bg-teal-600 border-white text-white";
+        if (isStartOfPath) {
+          iconBgClass = "bg-emerald-500 border-white text-white ring-4 ring-emerald-400/40 animate-pulse";
+        } else if (isEndOfPath) {
+          iconBgClass = "bg-blue-600 border-white text-white ring-4 ring-blue-400/40";
+        } else if (isOnShortestPath) {
+          iconBgClass = "bg-purple-600 border-white text-white ring-2 ring-purple-400/30";
+        } else if (isNext) {
+          iconBgClass = "bg-amber-500 border-white text-white animate-bounce ring-4 ring-amber-400/30";
+        } else if (isPassed) {
+          iconBgClass = "bg-slate-300 dark:bg-slate-700 border-slate-400 text-slate-700 dark:text-slate-300";
+        }
 
         const stopIcon = L.divIcon({
           className: "custom-stop-icon",
-          html: `<div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-md border-2 ${
-            isNext
-              ? "bg-amber-500 border-white text-white animate-bounce ring-4 ring-amber-400/30"
-              : isPassed
-              ? "bg-slate-300 dark:bg-slate-700 border-slate-400 text-slate-700 dark:text-slate-300"
-              : "bg-teal-600 border-white text-white"
-          }">${idx + 1}</div>`,
+          html: `<div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-md border-2 ${iconBgClass}">
+            ${isStartOfPath ? "🚏" : isEndOfPath ? "🏫" : idx + 1}
+          </div>`,
           iconSize: [28, 28],
           iconAnchor: [14, 14],
         });
 
-        const marker = L.marker([stop.latitude, stop.longitude], { icon: stopIcon }).addTo(map);
+        const marker = L.marker([stop.latitude, stop.longitude], { icon: stopIcon }).addTo(markersGroupRef.current);
         marker.bindPopup(`
           <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
             <strong style="color: #0f172a; font-size: 13px;">${stop.name} (${stop.code})</strong><br/>
             <span>Landmark: <strong>${stop.landmark || "Campus Stop"}</strong></span><br/>
             <span>Corridor Sequence: Stop #${idx + 1}</span>
+            ${isOnShortestPath ? '<br/><span style="color: #7c3aed; font-weight: bold;">★ On Shortest Route to Campus</span>' : ""}
           </div>
         `);
 
-        // Draw 80m Geofence circle
+        // Draw Geofence circle
         L.circle([stop.latitude, stop.longitude], {
           radius: stop.geofenceRadiusMeters || 80,
-          color: isNext ? "#f59e0b" : "#0d9488",
+          color: isStartOfPath ? "#10b981" : isOnShortestPath ? "#8b5cf6" : isNext ? "#f59e0b" : "#0d9488",
           weight: 1.5,
           opacity: 0.6,
-          fillColor: isNext ? "#fef3c7" : "#ccfbf1",
+          fillColor: isStartOfPath ? "#d1fae5" : isOnShortestPath ? "#ede9fe" : isNext ? "#fef3c7" : "#ccfbf1",
           fillOpacity: 0.25,
-        }).addTo(map);
+        }).addTo(markersGroupRef.current);
       });
 
       // Render Real-time Live Bus Vehicle Marker
@@ -216,7 +272,7 @@ export default function CampusRideMap({
     return () => {
       isMounted = false;
     };
-  }, [busLocation, stops, routeCoordinates, activeStopIndex, zoom]);
+  }, [busLocation, stops, routeCoordinates, activeStopIndex, shortestPathStopIds, zoom]);
 
   return (
     <div

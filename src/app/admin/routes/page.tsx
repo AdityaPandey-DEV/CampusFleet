@@ -191,6 +191,12 @@ export default function RouteAndStopManagementPage() {
   const assignedBusIds = Array.from(new Set(assignedTrips.map(t => t.busId)));
   const assignedBuses = buses.filter(b => assignedBusIds.includes(b.id));
 
+  const networkStats = React.useMemo(() => {
+    return store.getNetworkStats();
+  }, [routes, stops]);
+
+  const hubStop = stops.find(s => s.id === networkStats.hubStopId);
+
   return (
     <div className="space-y-6 animate-in fade-in">
       {/* Header */}
@@ -221,6 +227,41 @@ export default function RouteAndStopManagementPage() {
             <Plus className="w-4 h-4" />
             + Add Route
           </button>
+        </div>
+      </div>
+
+      {/* Graph Network Analytics Bar (Floyd-Warshall + Kruskal MST) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400">Network Hub Station</span>
+          <div className="text-sm font-black text-slate-900 dark:text-white truncate">
+            {hubStop?.name || "Transit Terminal"}
+          </div>
+          <p className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">Most connected transfer point</p>
+        </div>
+
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400">Network Diameter (Floyd-Warshall)</span>
+          <div className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+            {networkStats.networkDiameterKm} km
+          </div>
+          <p className="text-[10px] text-slate-400 font-mono">Longest shortest path corridor</p>
+        </div>
+
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400">MST Min. Infrastructure (Kruskal)</span>
+          <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+            {networkStats.mstTotalKm} km
+          </div>
+          <p className="text-[10px] text-slate-400 font-mono">Optimal spanning tree span</p>
+        </div>
+
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400">Network Density</span>
+          <div className="text-sm font-black text-purple-600 dark:text-purple-400">
+            {networkStats.avgConnectivity} conn / stop
+          </div>
+          <p className="text-[10px] text-slate-400 font-mono">{networkStats.totalEdges} active corridor links</p>
         </div>
       </div>
 

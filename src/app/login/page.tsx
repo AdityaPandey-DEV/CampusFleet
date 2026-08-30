@@ -98,6 +98,8 @@ export default function UnifiedLoginPage() {
     return matched.length > 0 ? matched : campusStops;
   }, [campusStops, homeLocation]);
 
+  const [recommendedStops, setRecommendedStops] = useState<any[]>([]);
+
   const handleDetectGPSLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser");
@@ -109,28 +111,26 @@ export default function UnifiedLoginPage() {
         setIsLocating(false);
         const { latitude, longitude } = pos.coords;
         if (campusStops.length === 0) return;
-        
-        let nearestStop = campusStops[0];
-        let minDistance = Infinity;
 
-        campusStops.forEach(st => {
-          const dist = calculateDistanceKm(latitude, longitude, st.latitude, st.longitude);
-          if (dist < minDistance) {
-            minDistance = dist;
-            nearestStop = st;
+        // Use Bellman-Ford + Dijkstra combined recommendation engine
+        const recs = store.recommendRoute(latitude, longitude);
+        setRecommendedStops(recs);
+
+        if (recs.length > 0) {
+          const topPickStop = stops.find(s => s.id === recs[0].stopId);
+          if (topPickStop) {
+            setSelectedStopId(topPickStop.id);
+            setHomeLocation(topPickStop.name.split("(")[0].trim());
+            setDetectedDistanceText(
+              `📍 Algorithm Match: ~${recs[0].walkingDistanceKm} km walk (${recs[0].busCount} bus options, ${topPickStop.name})`
+            );
           }
-        });
-
-        if (nearestStop) {
-          setSelectedStopId(nearestStop.id);
-          setHomeLocation(`${nearestStop.name.split("(")[0].trim()}`);
-          setDetectedDistanceText(`📍 Nearest stop found: ~${minDistance} km away (${nearestStop.name})`);
         }
       },
       err => {
         setIsLocating(false);
         console.warn("GPS error:", err);
-        const defaultStop = campusStops.find(s => s.code.includes("LDT") || s.name.includes("Laldant")) || campusStops[0];
+        const defaultStop = campusStops[0];
         if (defaultStop) setSelectedStopId(defaultStop.id);
       },
       { timeout: 8000 }
@@ -539,10 +539,44 @@ export default function UnifiedLoginPage() {
               </div>
 
               {/* Nearest Stop Selector Card */}
-              <div className="space-y-1.5 pt-1">
+              <div className="space-y-2 pt-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Select Your Primary Bus Boarding Stop
                 </label>
+
+                {recommendedStops.length > 0 && (
+                  <div className="space-y-1.5 pb-1">
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> Recommended by Bellman-Ford:
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {recommendedStops.slice(0, 2).map((rec: any) => {
+                        const st = stops.find(s => s.id === rec.stopId);
+                        if (!st) return null;
+                        const isSelected = selectedStopId === st.id;
+                        return (
+                          <div
+                            key={st.id}
+                            onClick={() => setSelectedStopId(st.id)}
+                            className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                              isSelected
+                                ? "bg-blue-50/80 dark:bg-blue-950/60 border-blue-600 ring-2 ring-blue-500/20"
+                                : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-blue-300"
+                            }`}
+                          >
+                            <div className="font-bold text-slate-900 dark:text-white truncate">
+                              {st.name}
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between mt-1">
+                              <span>~{rec.walkingDistanceKm}km walk</span>
+                              <span className="text-blue-600 dark:text-blue-400 font-bold">{rec.busCount} buses</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="relative">
                   <MapPin className="w-4 h-4 text-blue-600 absolute left-3.5 top-3.5" />

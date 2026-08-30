@@ -569,7 +569,7 @@ class CampusRideStore {
   }
 
   /** Dynamically find the campus terminal stop (admin can rename/recreate stops) */
-  private resolveCampusStopId(): string | null {
+  public resolveCampusStopId(): string | null {
     // Priority 1: stop name contains "campus" (case-insensitive)
     const campusStop = this.stops.find(s =>
       s.name.toLowerCase().includes("campus") ||
@@ -585,6 +585,13 @@ class CampusRideStore {
     }
     // Priority 3: first stop
     return this.stops[0]?.id || null;
+  }
+
+  /** Dijkstra: Find shortest path from a given stop directly to the campus terminal */
+  public findShortestPathToCampus(fromStopId: string): ShortestPathResult | null {
+    const campusId = this.resolveCampusStopId();
+    if (!campusId) return null;
+    return this.findShortestPath(fromStopId, campusId);
   }
 
   /** A* Search: Heuristic-guided shortest path (faster than Dijkstra for point-to-point) */
