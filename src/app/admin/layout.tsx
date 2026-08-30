@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { store } from "@/lib/store";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { AuthModal } from "@/components/auth/AuthModal";
 import {
   LayoutDashboard,
   BusFront,
@@ -25,6 +26,7 @@ import {
   ShieldCheck,
   Radio,
   AlertTriangle,
+  Key,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -35,11 +37,14 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [notifications, setNotifications] = useState(store.getNotifications());
   const [issues, setIssues] = useState(store.getIssues());
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
+      setCurrentUser(store.getCurrentUser());
       setNotifications(store.getNotifications());
       setIssues(store.getIssues());
     });
@@ -191,12 +196,13 @@ export default function AdminLayout({
             >
               Driver Console
             </Link>
-            <Link
-              href="/staff/conductor"
-              className="text-xs font-bold text-slate-600 dark:text-slate-400 hover:underline"
+            <button
+              onClick={() => setIsAuthOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-colors"
             >
-              Conductor Desk
-            </Link>
+              <Key className="w-3.5 h-3.5 text-blue-600" />
+              <span>{currentUser ? currentUser.fullName : "Sign In"}</span>
+            </button>
           </div>
         </header>
 
@@ -204,6 +210,13 @@ export default function AdminLayout({
           {children}
         </main>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        initialRole="transport_manager"
+      />
     </div>
   );
 }

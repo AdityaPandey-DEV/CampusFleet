@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { store } from "@/lib/store";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { SOSModal } from "@/components/common/SOSModal";
+import { AuthModal } from "@/components/auth/AuthModal";
 import {
   BusFront,
   Compass,
@@ -18,6 +19,7 @@ import {
   Shield,
   LogOut,
   ChevronDown,
+  Key,
 } from "lucide-react";
 
 export default function StudentPortalLayout({
@@ -32,6 +34,7 @@ export default function StudentPortalLayout({
   const [notifications, setNotifications] = useState(store.getNotifications());
   const [isSOSOpen, setIsSOSOpen] = useState(false);
   const [isChildMenuOpen, setIsChildMenuOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -157,6 +160,15 @@ export default function StudentPortalLayout({
               <span>SOS</span>
             </button>
 
+            {/* Auth / Account Switcher */}
+            <button
+              onClick={() => setIsAuthOpen(true)}
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+              title="Sign In / Switch Account"
+            >
+              <Key className="w-4 h-4 text-blue-600" />
+            </button>
+
             {/* Switch Panel Shortcut */}
             <Link
               href="/"
@@ -201,6 +213,13 @@ export default function StudentPortalLayout({
         isOpen={isSOSOpen}
         onClose={() => setIsSOSOpen(false)}
         studentId={activeStudent?.id || "stud-1"}
+      />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        initialRole="student"
       />
     </div>
   );
