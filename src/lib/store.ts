@@ -714,14 +714,14 @@ class BusSyncStore {
     this.notify();
   }
 
-  public bookShift(studentId: string, tripId: string, stopId: string) {
+  public bookShift(studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string) {
     const student = this.students.find(s => s.id === studentId);
     const trip = this.trips.find(t => t.id === tripId);
     if (!student || !trip) return { success: false, message: "Invalid student or trip selected" };
     const bus = this.buses.find(b => b.id === trip.busId) || this.buses[0];
     const tripBookings = this.bookings.filter(b => b.tripId === trip.id);
 
-    const result = createBooking(student, trip, bus, stopId, tripBookings, this.currentUser.id);
+    const result = createBooking(student, trip, bus, stopId, tripBookings, this.currentUser.id, requestedSeatNumber);
     if (result.success && result.booking) {
       this.bookings = [result.booking, ...this.bookings];
       

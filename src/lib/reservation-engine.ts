@@ -55,11 +55,11 @@ export function createBooking(
   bus: Bus,
   boardingStopId: string,
   existingTripBookings: Booking[],
-  userId: string
+  userId: string,
+  requestedSeatNumber?: string
 ): BookingResult {
   // 1. Subscription check
   if (!student.hasActiveSubscription && !student.transportAccessSuspended) {
-    // If student has no subscription
     return {
       success: false,
       message: "Cannot book: Active transportation subscription required.",
@@ -98,8 +98,17 @@ export function createBooking(
   const bookingCode = `BS-${trip.tripCode}-${Math.floor(1000 + Math.random() * 9000)}`;
 
   if (confirmedCount < totalCapacity && availableSeats.length > 0) {
-    // Confirmed with allocated seat
-    const allocatedSeat = availableSeats[0];
+    // If student selected a specific seat and it's available, use it; otherwise pick first available
+    let allocatedSeat = availableSeats[0];
+    if (requestedSeatNumber && availableSeats.includes(requestedSeatNumber)) {
+      allocatedSeat = requestedSeatNumber;
+    } else if (requestedSeatNumber && !availableSeats.includes(requestedSeatNumber)) {
+      return {
+        success: false,
+        message: `Requested seat ${requestedSeatNumber} was just taken. Please choose another seat.`,
+      };
+    }
+
     const newBooking: Booking = {
       id: `bk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       bookingCode,
