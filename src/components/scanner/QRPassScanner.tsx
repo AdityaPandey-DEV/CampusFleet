@@ -15,7 +15,6 @@ import {
   VolumeX,
   UserCheck,
   Keyboard,
-  Sparkles,
   XCircle,
   RefreshCw,
 } from "lucide-react";
@@ -367,10 +366,10 @@ export function QRPassScanner({
   };
 
   return (
-    <div className="bg-slate-900/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-slate-800 shadow-2xl space-y-5 text-white">
+    <div className="bg-white dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md dark:shadow-2xl space-y-5 text-slate-900 dark:text-white transition-colors">
       {/* Scanner Mode Tabs & Sound Controls */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 rounded-2xl w-full sm:w-auto border border-slate-800">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-950/80 rounded-2xl w-full sm:w-auto border border-slate-200 dark:border-slate-800">
           <button
             onClick={() => {
               setActiveTab("CAMERA");
@@ -378,8 +377,8 @@ export function QRPassScanner({
             }}
             className={`flex-1 sm:flex-none py-2 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
               activeTab === "CAMERA"
-                ? "bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20"
-                : "text-slate-400 hover:text-white"
+                ? "bg-teal-600 dark:bg-teal-500 text-white dark:text-slate-950 shadow-md"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <Camera className="w-4 h-4" />
@@ -395,7 +394,7 @@ export function QRPassScanner({
             className={`flex-1 sm:flex-none py-2 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
               activeTab === "MANUAL"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                : "text-slate-400 hover:text-white"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <Keyboard className="w-4 h-4" />
@@ -407,8 +406,8 @@ export function QRPassScanner({
           onClick={() => setSoundEnabled(!soundEnabled)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
             soundEnabled
-              ? "bg-teal-950/80 border-teal-700/80 text-teal-300 shadow-sm"
-              : "bg-slate-950/60 border-slate-800 text-slate-500"
+              ? "bg-teal-50 dark:bg-teal-950/80 border-teal-200 dark:border-teal-700/80 text-teal-800 dark:text-teal-300 shadow-xs"
+              : "bg-slate-100 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-500"
           }`}
           title="Toggle Boarding Audio Confirmation Chimes"
         >
@@ -420,7 +419,7 @@ export function QRPassScanner({
       {/* Optical Camera Scanner Viewfinder */}
       {activeTab === "CAMERA" && (
         <div className="space-y-4">
-          <div className="relative aspect-video max-h-80 w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-slate-800 shadow-2xl">
+          <div className="relative aspect-video max-h-80 w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-slate-800 shadow-2xl text-white">
             <video
               ref={videoRef}
               className={`w-full h-full object-cover ${isCameraActive ? "block" : "hidden"}`}
@@ -457,7 +456,7 @@ export function QRPassScanner({
                 </div>
                 <div>
                   <h4 className="font-black text-white text-base">High-Speed Optical QR Radar</h4>
-                  <p className="text-xs text-slate-400 max-w-xs mt-1">
+                  <p className="text-xs text-slate-300 max-w-xs mt-1">
                     Hold student pass in front of lens. Authenticates seat reservation & anti-replay protection.
                   </p>
                 </div>
@@ -498,8 +497,8 @@ export function QRPassScanner({
           </div>
 
           {cameraError && (
-            <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-400 font-semibold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 rounded-2xl text-xs text-amber-800 dark:text-amber-400 font-semibold flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
               <span>{cameraError}</span>
             </div>
           )}
@@ -510,23 +509,23 @@ export function QRPassScanner({
       {activeTab === "MANUAL" && (
         <form onSubmit={handleManualSubmit} className="space-y-3">
           <div className="space-y-1">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Enter Pass Booking Code / Roll No / Name
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
                   type="text"
                   value={manualInput}
                   onChange={e => setManualInput(e.target.value)}
                   placeholder="e.g. GEHU-PASS-01, GEHU/2023/1045, or student name"
-                  className="w-full text-xs pl-10 pr-4 py-3.5 rounded-2xl border border-slate-800 bg-slate-950 text-white outline-none focus:border-teal-500 font-mono shadow-inner"
+                  className="w-full text-xs pl-10 pr-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-teal-500 font-mono shadow-inner"
                 />
               </div>
               <button
                 type="submit"
-                className="px-5 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-blue-600/20 flex items-center gap-1.5"
+                className="px-5 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-2xl shadow-md shadow-blue-600/20 flex items-center gap-1.5"
               >
                 <UserCheck className="w-4 h-4" />
                 <span>Verify</span>
@@ -541,34 +540,34 @@ export function QRPassScanner({
         <div
           className={`p-4 rounded-3xl border transition-all animate-in fade-in ${
             lastResult.status === "APPROVED"
-              ? "bg-emerald-950/80 border-emerald-500/80 text-emerald-200 shadow-xl shadow-emerald-900/30"
+              ? "bg-emerald-50 dark:bg-emerald-950/80 border-emerald-300 dark:border-emerald-500/80 text-emerald-950 dark:text-emerald-200 shadow-md"
               : lastResult.status === "DUPLICATE"
-              ? "bg-amber-950/80 border-amber-500/80 text-amber-200 shadow-xl shadow-amber-900/30"
-              : "bg-rose-950/80 border-rose-500/80 text-rose-200 shadow-xl shadow-rose-900/30"
+              ? "bg-amber-50 dark:bg-amber-950/80 border-amber-300 dark:border-amber-500/80 text-amber-950 dark:text-amber-200 shadow-md"
+              : "bg-rose-50 dark:bg-rose-950/80 border-rose-300 dark:border-rose-500/80 text-rose-950 dark:text-rose-200 shadow-md"
           }`}
         >
           <div className="flex items-start gap-3">
             {lastResult.status === "APPROVED" ? (
-              <div className="w-9 h-9 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center flex-shrink-0 font-bold shadow-md shadow-emerald-500/30">
+              <div className="w-9 h-9 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 flex items-center justify-center flex-shrink-0 font-bold shadow-md">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
             ) : lastResult.status === "DUPLICATE" ? (
-              <div className="w-9 h-9 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center flex-shrink-0 font-bold shadow-md shadow-amber-500/30">
+              <div className="w-9 h-9 rounded-2xl bg-amber-600 dark:bg-amber-500 text-white dark:text-slate-950 flex items-center justify-center flex-shrink-0 font-bold shadow-md">
                 <AlertTriangle className="w-5 h-5" />
               </div>
             ) : (
-              <div className="w-9 h-9 rounded-2xl bg-rose-500 text-white flex items-center justify-center flex-shrink-0 font-bold shadow-md shadow-rose-500/30">
+              <div className="w-9 h-9 rounded-2xl bg-rose-600 dark:bg-rose-500 text-white flex items-center justify-center flex-shrink-0 font-bold shadow-md">
                 <XCircle className="w-5 h-5" />
               </div>
             )}
 
             <div className="space-y-1 flex-1">
               <div className="flex items-center justify-between">
-                <div className="font-black text-sm text-white">
+                <div className="font-black text-sm text-slate-900 dark:text-white">
                   {lastResult.studentName ? (
                     <span>
                       {lastResult.studentName}{" "}
-                      <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-white/15 ml-1 border border-white/20">
+                      <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-white/15 ml-1 border border-slate-300 dark:border-white/20 text-slate-800 dark:text-white">
                         Seat {lastResult.seatNumber}
                       </span>
                     </span>
@@ -584,7 +583,7 @@ export function QRPassScanner({
               <div className="text-xs font-semibold">{lastResult.message}</div>
 
               {lastResult.method && (
-                <div className="text-[10px] font-mono opacity-80 text-teal-300">
+                <div className="text-[10px] font-mono opacity-80 text-teal-700 dark:text-teal-300">
                   Verified via {lastResult.method} • Synchronized to university attendance database
                 </div>
               )}
@@ -594,16 +593,16 @@ export function QRPassScanner({
       )}
 
       {/* 1-Tap Passenger Quick Boarding Queue */}
-      <div className="space-y-2.5 pt-3 border-t border-slate-800">
-        <div className="flex items-center justify-between text-xs text-slate-400">
+      <div className="space-y-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span className="font-black uppercase tracking-wider text-[10px]">
             Passenger Queue ({pendingBookings.length} Awaiting Check-in)
           </span>
-          <span className="text-[10px] text-teal-400 font-semibold">1-Tap Boarding</span>
+          <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold">1-Tap Boarding</span>
         </div>
 
         {pendingBookings.length === 0 ? (
-          <div className="p-3 text-center text-xs text-slate-500 bg-slate-950/60 rounded-2xl border border-slate-800">
+          <div className="p-3 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800">
             ✓ All passengers on this vehicle are checked in.
           </div>
         ) : (
@@ -614,17 +613,17 @@ export function QRPassScanner({
                 <button
                   key={b.id}
                   onClick={() => verifyPassCode(b.bookingCode || b.id, "Manual Secure Entry")}
-                  className="p-2.5 rounded-2xl border border-slate-800 bg-slate-950/80 hover:bg-teal-950/60 hover:border-teal-600 text-left flex items-center justify-between transition-colors group"
+                  className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 hover:bg-slate-100 dark:hover:bg-teal-950/60 hover:border-teal-500 text-left flex items-center justify-between transition-colors group"
                 >
                   <div className="truncate">
-                    <div className="text-xs font-bold text-white truncate group-hover:text-teal-300">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-teal-600 dark:group-hover:text-teal-300">
                       {s?.fullName || "Commuter"}
                     </div>
-                    <div className="text-[10px] text-slate-400 font-mono">
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                       Seat {b.seatNumber || `WL-${b.waitlistPosition}`} • {b.bookingCode}
                     </div>
                   </div>
-                  <span className="text-[10px] font-black px-2.5 py-1 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 shadow-sm transition-transform active:scale-95">
+                  <span className="text-[10px] font-black px-2.5 py-1 rounded-xl bg-teal-600 dark:bg-teal-500 hover:bg-teal-500 text-white dark:text-slate-950 shadow-xs transition-transform active:scale-95">
                     Board ✓
                   </span>
                 </button>

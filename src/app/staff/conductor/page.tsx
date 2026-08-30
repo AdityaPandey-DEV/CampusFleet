@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  UserCheck,
   LogOut,
   QrCode,
   FileText,
@@ -22,15 +21,10 @@ import {
   LayoutGrid,
   MapPin,
   ChevronRight,
-  Filter,
   Shield,
   Radio,
-  RefreshCw,
-  Phone,
-  GraduationCap,
 } from "lucide-react";
 import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
-import { formatTime, formatDate } from "@/lib/utils";
 
 export default function ConductorConsolePage() {
   const [trips, setTrips] = useState(store.getTrips());
@@ -158,37 +152,37 @@ export default function ConductorConsolePage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-24 md:pb-12 font-sans selection:bg-teal-500 selection:text-slate-950">
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 md:pb-12 font-sans transition-colors duration-200 selection:bg-teal-500 selection:text-white">
       {/* Cockpit Top Bar */}
-      <header className="bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-40 px-4 py-3 sm:px-6 shadow-2xl">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <header className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-4 py-3 sm:px-6 shadow-sm dark:shadow-2xl">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
           {/* Vehicle & Trip Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-teal-600 via-emerald-600 to-teal-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-teal-500/20 flex-shrink-0">
-              <BusFront className="w-6 h-6 text-slate-950" />
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-teal-600 via-emerald-600 to-teal-500 flex items-center justify-center text-white font-black shadow-md shadow-teal-500/20 flex-shrink-0">
+              <BusFront className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-teal-500/20 border border-teal-500/30 text-teal-300">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-500/20 border border-teal-200 dark:border-teal-500/30 text-teal-800 dark:text-teal-300">
                   Conductor Command Terminal
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 font-mono">
-                  <Radio className="w-2.5 h-2.5 text-emerald-400 animate-pulse" /> Live Dispatch
+                <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                  <Radio className="w-2.5 h-2.5 text-emerald-500 animate-pulse" /> Live Dispatch
                 </span>
               </div>
-              <div className="text-sm sm:text-base font-black text-white truncate">
-                {activeTrip ? `${bus?.busNumber || "Bus"} • ${route?.name || "Academic Transit Corridor"}` : "Conductor Operations"}
+              <div className="text-xs sm:text-base font-black text-slate-900 dark:text-white truncate">
+                {activeTrip ? `${bus?.busNumber || "Bus"} • ${route?.name || "Corridor"}` : "Conductor Operations"}
               </div>
             </div>
           </div>
 
           {/* Trip Selector & Global Controls */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap min-w-0 justify-between sm:justify-end">
             {trips.length > 0 && (
               <select
                 value={activeTrip?.id || ""}
                 onChange={e => setSelectedTripId(e.target.value)}
-                className="text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl px-3 py-2 outline-none cursor-pointer flex-1 sm:flex-none shadow-sm"
+                className="text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 outline-none cursor-pointer flex-1 sm:flex-none max-w-full sm:max-w-xs truncate shadow-xs"
               >
                 {trips.map(t => {
                   const b = buses.find(busItem => busItem.id === t.busId);
@@ -201,11 +195,11 @@ export default function ConductorConsolePage() {
               </select>
             )}
 
-            <RolePortalSwitcher />
+            <RolePortalSwitcher align="right" />
             <ThemeToggle />
             <Link
               href="/"
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               title="Exit to Portal"
             >
               <LogOut className="w-4 h-4" />
@@ -215,74 +209,74 @@ export default function ConductorConsolePage() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+      <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6 min-w-0">
         {/* Toast Alert */}
         {toastMessage && (
-          <div className="p-3.5 bg-emerald-950/90 border border-emerald-500 rounded-2xl text-xs font-bold text-emerald-200 text-center animate-in fade-in shadow-xl flex items-center justify-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-400" />
+          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/90 border border-emerald-300 dark:border-emerald-500 rounded-2xl text-xs font-bold text-emerald-900 dark:text-emerald-200 text-center animate-in fade-in shadow-lg flex items-center justify-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>{toastMessage}</span>
           </div>
         )}
 
         {/* Live Manifest Metric Strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
           {/* Total Confirmed */}
-          <div className="bg-slate-900/80 backdrop-blur rounded-3xl p-4 border border-slate-800 flex items-center justify-between shadow-lg">
+          <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-sm dark:shadow-lg">
             <div>
-              <div className="text-[10px] uppercase font-black tracking-wider text-slate-400">Total Booked</div>
-              <div className="text-2xl sm:text-3xl font-black font-mono text-white mt-1">{totalConfirmed}</div>
-              <div className="text-[10px] text-slate-500 font-mono mt-0.5">Cap: {bus?.capacity || 32} seats</div>
+              <div className="text-[10px] uppercase font-black tracking-wider text-slate-500 dark:text-slate-400">Total Booked</div>
+              <div className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-white mt-1">{totalConfirmed}</div>
+              <div className="text-[10px] text-slate-400 font-mono mt-0.5">Cap: {bus?.capacity || 32} seats</div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-blue-950/60 border border-blue-800/60 text-blue-400 flex items-center justify-center font-black">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
               <Users className="w-5 h-5" />
             </div>
           </div>
 
           {/* Boarded / Present */}
-          <div className="bg-emerald-950/40 backdrop-blur rounded-3xl p-4 border border-emerald-800/60 flex items-center justify-between shadow-lg">
+          <div className="bg-emerald-50/70 dark:bg-emerald-950/40 rounded-3xl p-4 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between shadow-sm dark:shadow-lg">
             <div>
-              <div className="text-[10px] uppercase font-black tracking-wider text-emerald-400">Present / Boarded</div>
-              <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-300 mt-1">{boardedCount}</div>
-              <div className="text-[10px] text-emerald-400/80 font-mono mt-0.5">{occupancyRate}% filled</div>
+              <div className="text-[10px] uppercase font-black tracking-wider text-emerald-700 dark:text-emerald-400">Present / Boarded</div>
+              <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-900 dark:text-emerald-300 mt-1">{boardedCount}</div>
+              <div className="text-[10px] text-emerald-600 dark:text-emerald-400/80 font-mono mt-0.5">{occupancyRate}% filled</div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-emerald-900/60 border border-emerald-700/60 text-emerald-300 flex items-center justify-center font-black">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black">
               <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
 
           {/* Pending Boarding */}
-          <div className="bg-blue-950/40 backdrop-blur rounded-3xl p-4 border border-blue-800/60 flex items-center justify-between shadow-lg">
+          <div className="bg-sky-50/70 dark:bg-blue-950/40 rounded-3xl p-4 border border-sky-200 dark:border-blue-800/60 flex items-center justify-between shadow-sm dark:shadow-lg">
             <div>
-              <div className="text-[10px] uppercase font-black tracking-wider text-blue-400">Awaiting Check-in</div>
-              <div className="text-2xl sm:text-3xl font-black font-mono text-blue-300 mt-1">{pendingCount}</div>
-              <div className="text-[10px] text-blue-400/80 font-mono mt-0.5">WL: {waitlistCount} passengers</div>
+              <div className="text-[10px] uppercase font-black tracking-wider text-sky-700 dark:text-blue-400">Awaiting Check-in</div>
+              <div className="text-2xl sm:text-3xl font-black font-mono text-sky-900 dark:text-blue-300 mt-1">{pendingCount}</div>
+              <div className="text-[10px] text-sky-600 dark:text-blue-400/80 font-mono mt-0.5">WL: {waitlistCount} passengers</div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-blue-900/60 border border-blue-700/60 text-blue-300 flex items-center justify-center font-black">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-sky-100 dark:bg-blue-900/60 border border-sky-300 dark:border-blue-700/60 text-sky-700 dark:text-blue-300 flex items-center justify-center font-black">
               <Clock className="w-5 h-5" />
             </div>
           </div>
 
           {/* Absent / No-Show */}
-          <div className="bg-rose-950/40 backdrop-blur rounded-3xl p-4 border border-rose-800/60 flex items-center justify-between shadow-lg">
+          <div className="bg-rose-50/70 dark:bg-rose-950/40 rounded-3xl p-4 border border-rose-200 dark:border-rose-800/60 flex items-center justify-between shadow-sm dark:shadow-lg">
             <div>
-              <div className="text-[10px] uppercase font-black tracking-wider text-rose-400">Absent / No-Show</div>
-              <div className="text-2xl sm:text-3xl font-black font-mono text-rose-300 mt-1">{absentCount}</div>
-              <div className="text-[10px] text-rose-400/80 font-mono mt-0.5">Vacated Seats: {absentCount}</div>
+              <div className="text-[10px] uppercase font-black tracking-wider text-rose-700 dark:text-rose-400">Absent / No-Show</div>
+              <div className="text-2xl sm:text-3xl font-black font-mono text-rose-900 dark:text-rose-300 mt-1">{absentCount}</div>
+              <div className="text-[10px] text-rose-600 dark:text-rose-400/80 font-mono mt-0.5">Vacated Seats: {absentCount}</div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-rose-900/60 border border-rose-700/60 text-rose-300 flex items-center justify-center font-black">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700/60 text-rose-700 dark:text-rose-300 flex items-center justify-center font-black">
               <XCircle className="w-5 h-5" />
             </div>
           </div>
         </div>
 
         {/* Ergonomic Tab Selector Bar */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-200/80 dark:bg-slate-900/90 rounded-2xl border border-slate-300 dark:border-slate-800 overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveConsoleTab("SCANNER")}
             className={`flex-1 min-w-[120px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
               activeConsoleTab === "SCANNER"
-                ? "bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/20"
-                : "text-slate-400 hover:text-white"
+                ? "bg-teal-600 dark:bg-teal-500 text-white dark:text-slate-950 shadow-md"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <QrCode className="w-4 h-4" />
@@ -293,8 +287,8 @@ export default function ConductorConsolePage() {
             onClick={() => setActiveConsoleTab("MANIFEST")}
             className={`flex-1 min-w-[120px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
               activeConsoleTab === "MANIFEST"
-                ? "bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/20"
-                : "text-slate-400 hover:text-white"
+                ? "bg-teal-600 dark:bg-teal-500 text-white dark:text-slate-950 shadow-md"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -305,8 +299,8 @@ export default function ConductorConsolePage() {
             onClick={() => setActiveConsoleTab("SEAT_MAP")}
             className={`flex-1 min-w-[120px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
               activeConsoleTab === "SEAT_MAP"
-                ? "bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/20"
-                : "text-slate-400 hover:text-white"
+                ? "bg-teal-600 dark:bg-teal-500 text-white dark:text-slate-950 shadow-md"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <LayoutGrid className="w-4 h-4" />
@@ -317,8 +311,8 @@ export default function ConductorConsolePage() {
             onClick={() => setActiveConsoleTab("AUDIT")}
             className={`flex-1 min-w-[120px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
               activeConsoleTab === "AUDIT"
-                ? "bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/20"
-                : "text-slate-400 hover:text-white"
+                ? "bg-teal-600 dark:bg-teal-500 text-white dark:text-slate-950 shadow-md"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
@@ -328,9 +322,9 @@ export default function ConductorConsolePage() {
 
         {/* Tab 1: Pure Secure QR Optical Scanner */}
         {activeConsoleTab === "SCANNER" && activeTrip && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in min-w-0">
             {/* Left 2 Cols: The High-Speed Scanner */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 min-w-0">
               <QRPassScanner
                 trip={activeTrip}
                 bookings={bookings}
@@ -343,44 +337,44 @@ export default function ConductorConsolePage() {
             </div>
 
             {/* Right 1 Col: Quick Trip Manifest Overview & Live Stops */}
-            <div className="space-y-4">
-              <div className="bg-slate-900/90 rounded-3xl p-5 border border-slate-800 shadow-xl space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="font-black text-sm text-white flex items-center gap-2">
-                    <BusFront className="w-4 h-4 text-teal-400" />
+            <div className="space-y-4 min-w-0">
+              <div className="bg-white dark:bg-slate-900/90 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-md dark:shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <BusFront className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                     <span>Trip Information</span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                     {activeTrip.tripCode}
                   </span>
                 </div>
 
-                <div className="space-y-2.5 text-xs text-slate-300">
+                <div className="space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Vehicle:</span>
-                    <span className="font-bold text-white">{bus.busNumber} ({bus.registrationNo})</span>
+                    <span className="text-slate-400 dark:text-slate-500">Vehicle:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{bus.busNumber} ({bus.registrationNo})</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Route:</span>
-                    <span className="font-bold text-teal-300">{route.name}</span>
+                    <span className="text-slate-400 dark:text-slate-500">Route:</span>
+                    <span className="font-bold text-teal-600 dark:text-teal-300">{route.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Scheduled Departure:</span>
-                    <span className="font-bold font-mono text-white">{shift?.startTime || "07:30 AM"}</span>
+                    <span className="text-slate-400 dark:text-slate-500">Scheduled Departure:</span>
+                    <span className="font-bold font-mono text-slate-900 dark:text-white">{shift?.startTime || "07:30 AM"}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Total Capacity:</span>
-                    <span className="font-bold font-mono text-white">{bus.capacity} Seats</span>
+                    <span className="text-slate-400 dark:text-slate-500">Total Capacity:</span>
+                    <span className="font-bold font-mono text-slate-900 dark:text-white">{bus.capacity} Seats</span>
                   </div>
                 </div>
 
                 {/* Progress bar */}
-                <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex justify-between text-[11px]">
-                    <span className="text-slate-400">Boarding Progress</span>
-                    <span className="font-bold text-teal-300">{boardedCount} / {totalConfirmed}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Boarding Progress</span>
+                    <span className="font-bold text-teal-600 dark:text-teal-300">{boardedCount} / {totalConfirmed}</span>
                   </div>
-                  <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                  <div className="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-500"
                       style={{ width: `${totalConfirmed > 0 ? (boardedCount / totalConfirmed) * 100 : 0}%` }}
@@ -390,20 +384,20 @@ export default function ConductorConsolePage() {
               </div>
 
               {/* Fast Action Buttons */}
-              <div className="bg-slate-900/90 rounded-3xl p-5 border border-slate-800 shadow-xl space-y-3">
-                <div className="text-xs font-black uppercase tracking-wider text-slate-400">
+              <div className="bg-white dark:bg-slate-900/90 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-md dark:shadow-xl space-y-3">
+                <div className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Quick Operations
                 </div>
                 <button
                   onClick={() => setActiveConsoleTab("MANIFEST")}
-                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-2xl flex items-center justify-between px-4 transition-colors"
+                  className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold text-xs rounded-2xl flex items-center justify-between px-4 transition-colors"
                 >
                   <span>View Full Manifest List</span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </button>
                 <button
                   onClick={() => setActiveConsoleTab("SEAT_MAP")}
-                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-2xl flex items-center justify-between px-4 transition-colors"
+                  className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold text-xs rounded-2xl flex items-center justify-between px-4 transition-colors"
                 >
                   <span>Open Visual Bus Seat Map</span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -415,17 +409,17 @@ export default function ConductorConsolePage() {
 
         {/* Tab 2: Passenger Manifest & Roster */}
         {activeConsoleTab === "MANIFEST" && (
-          <div className="bg-slate-900/90 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-5 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900/90 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md dark:shadow-xl space-y-5 animate-in fade-in min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-400 flex items-center justify-center font-bold">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-white">
+                  <h3 className="font-black text-base text-slate-900 dark:text-white">
                     Passenger Manifest Roster
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Real-time list of all students booked on {bus?.busNumber || "this vehicle"}.
                   </p>
                 </div>
@@ -433,25 +427,25 @@ export default function ConductorConsolePage() {
 
               {/* Search Box */}
               <div className="relative max-w-xs w-full">
-                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search name, roll no, seat..."
-                  className="w-full text-xs pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white outline-none focus:border-teal-500 font-mono shadow-inner"
+                  className="w-full text-xs pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white outline-none focus:border-teal-500 font-mono shadow-inner"
                 />
               </div>
             </div>
 
             {/* Filter Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
               <button
                 onClick={() => setManifestFilter("ALL")}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-colors ${
                   manifestFilter === "ALL"
-                    ? "bg-teal-500 text-slate-950"
-                    : "bg-slate-800 text-slate-400 hover:text-white"
+                    ? "bg-teal-600 dark:bg-teal-500 text-white dark:text-slate-950"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 All ({tripBookings.length})
@@ -461,7 +455,7 @@ export default function ConductorConsolePage() {
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-colors ${
                   manifestFilter === "PENDING"
                     ? "bg-blue-600 text-white"
-                    : "bg-slate-800 text-slate-400 hover:text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 Awaiting ({pendingCount})
@@ -471,7 +465,7 @@ export default function ConductorConsolePage() {
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-colors ${
                   manifestFilter === "BOARDED"
                     ? "bg-emerald-600 text-white"
-                    : "bg-slate-800 text-slate-400 hover:text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 Boarded ({boardedCount})
@@ -481,7 +475,7 @@ export default function ConductorConsolePage() {
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-colors ${
                   manifestFilter === "WAITLIST"
                     ? "bg-amber-600 text-white"
-                    : "bg-slate-800 text-slate-400 hover:text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 Waitlist ({waitlistCount})
@@ -489,10 +483,10 @@ export default function ConductorConsolePage() {
             </div>
 
             {/* Manifest List Table */}
-            <div className="divide-y divide-slate-800/80 overflow-hidden">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden">
               {filteredBookings.length === 0 ? (
-                <div className="p-12 text-center text-xs text-slate-500 font-mono space-y-2">
-                  <Users className="w-8 h-8 mx-auto text-slate-600" />
+                <div className="p-12 text-center text-xs text-slate-400 font-mono space-y-2">
+                  <Users className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
                   <div>No passengers match the selected filter.</div>
                 </div>
               ) : (
@@ -508,44 +502,44 @@ export default function ConductorConsolePage() {
                       key={b.id}
                       className={`p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
                         isBoarded
-                          ? "bg-emerald-950/25 border border-emerald-800/30"
+                          ? "bg-emerald-50/80 dark:bg-emerald-950/25 border border-emerald-200 dark:border-emerald-800/30"
                           : isAbsent
-                          ? "bg-rose-950/25 border border-rose-800/30 opacity-70"
-                          : "hover:bg-slate-800/40"
+                          ? "bg-rose-50/80 dark:bg-rose-950/25 border border-rose-200 dark:border-rose-800/30 opacity-70"
+                          : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                       }`}
                     >
-                      <div className="flex items-center gap-3.5">
+                      <div className="flex items-center gap-3.5 min-w-0">
                         <div
                           className={`w-11 h-11 rounded-2xl flex items-center justify-center font-mono font-black text-sm flex-shrink-0 ${
                             isBoarded
-                              ? "bg-emerald-500 text-slate-950 ring-2 ring-emerald-400/40"
+                              ? "bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950"
                               : isWaitlisted
-                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                              : "bg-blue-600/20 text-blue-300 border border-blue-500/30"
+                              ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30"
+                              : "bg-blue-100 dark:bg-blue-600/20 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30"
                           }`}
                         >
                           {b.seatNumber || `WL-${b.waitlistPosition}`}
                         </div>
 
-                        <div>
-                          <div className="font-bold text-sm text-white flex items-center gap-2">
-                            <span>{s?.fullName || "Student Passenger"}</span>
+                        <div className="min-w-0">
+                          <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2 truncate">
+                            <span className="truncate">{s?.fullName || "Student Passenger"}</span>
                             {s?.campus && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-normal">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-normal flex-shrink-0">
                                 {s.campus.split(",")[0]}
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-slate-400 font-mono mt-0.5 flex items-center gap-2 flex-wrap">
-                            <span>Roll: <strong className="text-slate-300">{s?.enrollmentNo || "Pending"}</strong></span>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+                            <span>Roll: <strong className="text-slate-700 dark:text-slate-300">{s?.enrollmentNo || "Pending"}</strong></span>
                             <span>•</span>
-                            <span className="flex items-center gap-1 text-teal-300">
+                            <span className="flex items-center gap-1 text-teal-600 dark:text-teal-300">
                               <MapPin className="w-3 h-3" /> {stop?.name || "Boarding Stop"}
                             </span>
                             {b.boardedAt && (
                               <>
                                 <span>•</span>
-                                <span className="text-emerald-400 font-bold">
+                                <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                                   Boarded at {new Date(b.boardedAt).toLocaleTimeString()}
                                 </span>
                               </>
@@ -555,29 +549,29 @@ export default function ConductorConsolePage() {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-2 self-end sm:self-center">
+                      <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
                         {isBoarded ? (
-                          <span className="px-3.5 py-1.5 bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <span className="px-3.5 py-1.5 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/80 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                             Boarded ✓
                           </span>
                         ) : isAbsent ? (
-                          <span className="px-3.5 py-1.5 bg-rose-950/80 text-rose-300 border border-rose-700/80 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
-                            <XCircle className="w-4 h-4 text-rose-400" />
+                          <span className="px-3.5 py-1.5 bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-700/80 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs">
+                            <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                             Marked Absent
                           </span>
                         ) : (
                           <>
                             <button
                               onClick={() => handleMarkAttendance(b.studentId, "BOARDED")}
-                              className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 text-xs font-black rounded-xl flex items-center gap-1.5 shadow-md shadow-teal-500/20 transition-transform active:scale-95"
+                              className="px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                               Board Present
                             </button>
                             <button
                               onClick={() => handleMarkAttendance(b.studentId, "ABSENT")}
-                              className="px-3 py-2 bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-300 text-xs font-bold rounded-xl transition-colors"
+                              className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-600 dark:text-slate-400 hover:text-rose-700 dark:hover:text-rose-300 text-xs font-bold rounded-xl transition-colors"
                               title="Mark as absent / no show"
                             >
                               Absent
@@ -591,7 +585,7 @@ export default function ConductorConsolePage() {
                                   bookingId: b.id,
                                 })
                               }
-                              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-400 text-xs font-bold rounded-xl transition-colors"
+                              className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 text-xs font-bold rounded-xl transition-colors"
                               title="Manual Conductor Override"
                             >
                               <Shield className="w-4 h-4" />
@@ -609,15 +603,15 @@ export default function ConductorConsolePage() {
 
         {/* Tab 3: Interactive Bus Chassis Seat Map */}
         {activeConsoleTab === "SEAT_MAP" && (
-          <div className="bg-slate-900/90 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-6 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900/90 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md dark:shadow-xl space-y-6 animate-in fade-in min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="font-black text-base text-white flex items-center gap-2">
-                  <LayoutGrid className="w-5 h-5 text-teal-400" />
+                <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <LayoutGrid className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                   <span>Interactive Bus Chassis Floorplan</span>
                 </h3>
-                <p className="text-xs text-slate-400">
-                  Visual 2x2 redBus-style floorplan. Tap any seat to view passenger profile or mark boarded.
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Visual 2x2 floorplan. Tap any seat to view passenger profile or mark boarded.
                 </p>
               </div>
 
@@ -632,20 +626,20 @@ export default function ConductorConsolePage() {
                   <span>Awaiting ({pendingCount})</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-3.5 h-3.5 rounded bg-slate-800 border border-slate-700" />
+                  <div className="w-3.5 h-3.5 rounded bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700" />
                   <span>Available</span>
                 </div>
               </div>
             </div>
 
             {/* Bus Chassis Layout */}
-            <div className="max-w-md mx-auto bg-slate-950 p-6 rounded-3xl border-2 border-slate-800 shadow-2xl space-y-4">
+            <div className="max-w-md mx-auto bg-slate-100 dark:bg-slate-950 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-md dark:shadow-2xl space-y-4">
               {/* Driver & Front Door Strip */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800 text-xs font-bold text-slate-500">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400">
                   <span>🚪 Front Entry Door</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-400">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 text-amber-800 dark:text-amber-400">
                   <span>👨‍✈️ Driver Cockpit</span>
                 </div>
               </div>
@@ -659,10 +653,10 @@ export default function ConductorConsolePage() {
                       onClick={() => setSelectedSeatForModal(row[0])}
                       className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all ${
                         row[0].isBoarded
-                          ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
+                          ? "bg-emerald-500 text-white dark:text-slate-950 shadow-md"
                           : row[0].isConfirmed
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                          : "bg-slate-900 border border-slate-800 text-slate-500 hover:border-slate-700"
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:border-slate-400"
                       }`}
                     >
                       <span>{row[0].seatCode}</span>
@@ -672,17 +666,17 @@ export default function ConductorConsolePage() {
                       onClick={() => setSelectedSeatForModal(row[1])}
                       className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all ${
                         row[1].isBoarded
-                          ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
+                          ? "bg-emerald-500 text-white dark:text-slate-950 shadow-md"
                           : row[1].isConfirmed
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                          : "bg-slate-900 border border-slate-800 text-slate-500 hover:border-slate-700"
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:border-slate-400"
                       }`}
                     >
                       <span>{row[1].seatCode}</span>
                     </button>
 
                     {/* Center Aisle Walkway */}
-                    <div className="text-center text-[10px] text-slate-700 font-mono">
+                    <div className="text-center text-[10px] text-slate-400 dark:text-slate-700 font-mono">
                       ||
                     </div>
 
@@ -691,10 +685,10 @@ export default function ConductorConsolePage() {
                       onClick={() => setSelectedSeatForModal(row[2])}
                       className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all ${
                         row[2].isBoarded
-                          ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
+                          ? "bg-emerald-500 text-white dark:text-slate-950 shadow-md"
                           : row[2].isConfirmed
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                          : "bg-slate-900 border border-slate-800 text-slate-500 hover:border-slate-700"
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:border-slate-400"
                       }`}
                     >
                       <span>{row[2].seatCode}</span>
@@ -704,10 +698,10 @@ export default function ConductorConsolePage() {
                       onClick={() => setSelectedSeatForModal(row[3])}
                       className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all ${
                         row[3].isBoarded
-                          ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
+                          ? "bg-emerald-500 text-white dark:text-slate-950 shadow-md"
                           : row[3].isConfirmed
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                          : "bg-slate-900 border border-slate-800 text-slate-500 hover:border-slate-700"
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:border-slate-400"
                       }`}
                     >
                       <span>{row[3].seatCode}</span>
@@ -721,24 +715,24 @@ export default function ConductorConsolePage() {
 
         {/* Tab 4: Audit & Override Log */}
         {activeConsoleTab === "AUDIT" && (
-          <div className="bg-slate-900/90 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-5 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900/90 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md dark:shadow-xl space-y-5 animate-in fade-in min-w-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-2xl bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-400 flex items-center justify-center font-bold">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-black text-base text-white">
+                <h3 className="font-black text-base text-slate-900 dark:text-white">
                   Institutional Attendance Audit Log
                 </h3>
-                <p className="text-xs text-slate-400">
-                  Signed cryptographic records of all optical QR scans and conductor overrides.
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Signed records of all optical QR scans and conductor overrides.
                 </p>
               </div>
             </div>
 
-            <div className="divide-y divide-slate-800/80 overflow-hidden">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden">
               {attendanceRecords.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-500 font-mono">
+                <div className="p-8 text-center text-xs text-slate-400 font-mono">
                   No attendance records logged yet today.
                 </div>
               ) : (
@@ -747,19 +741,19 @@ export default function ConductorConsolePage() {
                   return (
                     <div key={record.id} className="p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                       <div>
-                        <div className="font-bold text-white">
-                          {s?.fullName || record.studentId} • <span className="text-teal-400">{record.status}</span>
+                        <div className="font-bold text-slate-900 dark:text-white">
+                          {s?.fullName || record.studentId} • <span className="text-teal-600 dark:text-teal-400">{record.status}</span>
                         </div>
-                        <div className="text-[11px] text-slate-400 font-mono">
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                           Method: {record.method} • Verified by: {record.verifiedBy} • Token: {record.signatureToken}
                         </div>
                         {record.notes && (
-                          <div className="text-[11px] text-slate-500 italic mt-0.5">
+                          <div className="text-[11px] text-slate-400 italic mt-0.5">
                             Note: {record.notes}
                           </div>
                         )}
                       </div>
-                      <span className="text-[10px] font-mono text-slate-500 self-start sm:self-center">
+                      <span className="text-[10px] font-mono text-slate-400 self-start sm:self-center">
                         {new Date(record.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
@@ -771,19 +765,19 @@ export default function ConductorConsolePage() {
         )}
       </main>
 
-      {/* Seat Inspector Modal (When tapping a seat on chassis map) */}
+      {/* Seat Inspector Modal */}
       {selectedSeatForModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 text-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="font-black text-lg flex items-center gap-2">
-                <span className="px-3 py-1 rounded-xl bg-teal-500 text-slate-950 font-mono">
+                <span className="px-3 py-1 rounded-xl bg-teal-600 dark:bg-teal-500 text-white dark:text-slate-950 font-mono">
                   Seat {selectedSeatForModal.seatCode}
                 </span>
               </div>
               <button
                 onClick={() => setSelectedSeatForModal(null)}
-                className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white"
               >
                 ✕
               </button>
@@ -793,22 +787,22 @@ export default function ConductorConsolePage() {
               <div className="space-y-3">
                 <div>
                   <div className="text-xs text-slate-400">Reserved Passenger:</div>
-                  <div className="text-base font-black text-white">
+                  <div className="text-base font-black text-slate-900 dark:text-white">
                     {selectedSeatForModal.student?.fullName || "University Commuter"}
                   </div>
-                  <div className="text-xs text-slate-400 font-mono">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                     ID: {selectedSeatForModal.student?.enrollmentNo || "Pending"}
                   </div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-1 text-xs">
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Status:</span>
-                    <span className="font-bold text-teal-400">{selectedSeatForModal.booking.status}</span>
+                    <span className="font-bold text-teal-600 dark:text-teal-400">{selectedSeatForModal.booking.status}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Booking Code:</span>
-                    <span className="font-mono text-slate-300">{selectedSeatForModal.booking.bookingCode}</span>
+                    <span className="font-mono text-slate-700 dark:text-slate-300">{selectedSeatForModal.booking.bookingCode}</span>
                   </div>
                 </div>
 
@@ -820,7 +814,7 @@ export default function ConductorConsolePage() {
                       }
                       setSelectedSeatForModal(null);
                     }}
-                    className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-md flex items-center justify-center gap-2"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Confirm Boarding for Seat {selectedSeatForModal.seatCode}</span>
@@ -838,28 +832,28 @@ export default function ConductorConsolePage() {
         </div>
       )}
 
-      {/* Manual Conductor Override Reason Modal */}
+      {/* Manual Override Modal */}
       {overrideModal?.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 text-white shadow-2xl">
-            <h3 className="font-bold text-base flex items-center gap-2 text-amber-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl">
+            <h3 className="font-bold text-base flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <Shield className="w-5 h-5" />
               Manual Conductor Override
             </h3>
-            <p className="text-xs text-slate-400">
-              Manually approving boarding for <strong>{overrideModal.studentName}</strong> without QR scan. A justification reason must be provided and will be permanently recorded in institutional audit logs.
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              Manually approving boarding for <strong>{overrideModal.studentName}</strong> without QR scan. A justification reason must be provided.
             </p>
             <textarea
               rows={3}
               value={overrideReason}
               onChange={e => setOverrideReason(e.target.value)}
               placeholder="State justification (e.g. Passenger phone out of battery, university physical ID checked by conductor)..."
-              className="w-full text-xs p-3 rounded-2xl bg-slate-950 border border-slate-800 text-white outline-none focus:border-amber-500"
+              className="w-full text-xs p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white outline-none focus:border-amber-500"
             />
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setOverrideModal(null)}
-                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl"
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300"
               >
                 Cancel
               </button>
@@ -876,13 +870,13 @@ export default function ConductorConsolePage() {
       )}
 
       {/* Sticky Mobile Bottom Ergonomic Action Bar */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800 p-2 flex items-center justify-around shadow-2xl">
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 p-2 flex items-center justify-around shadow-2xl">
         <button
           onClick={() => setActiveConsoleTab("SCANNER")}
           className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
             activeConsoleTab === "SCANNER"
-              ? "text-teal-400 font-bold scale-105"
-              : "text-slate-500 hover:text-slate-300"
+              ? "text-teal-600 dark:text-teal-400 font-bold scale-105"
+              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
           }`}
         >
           <QrCode className="w-5 h-5" />
@@ -893,8 +887,8 @@ export default function ConductorConsolePage() {
           onClick={() => setActiveConsoleTab("MANIFEST")}
           className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
             activeConsoleTab === "MANIFEST"
-              ? "text-teal-400 font-bold scale-105"
-              : "text-slate-500 hover:text-slate-300"
+              ? "text-teal-600 dark:text-teal-400 font-bold scale-105"
+              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
           }`}
         >
           <FileText className="w-5 h-5" />
@@ -905,8 +899,8 @@ export default function ConductorConsolePage() {
           onClick={() => setActiveConsoleTab("SEAT_MAP")}
           className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
             activeConsoleTab === "SEAT_MAP"
-              ? "text-teal-400 font-bold scale-105"
-              : "text-slate-500 hover:text-slate-300"
+              ? "text-teal-600 dark:text-teal-400 font-bold scale-105"
+              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
           }`}
         >
           <LayoutGrid className="w-5 h-5" />
@@ -917,8 +911,8 @@ export default function ConductorConsolePage() {
           onClick={() => setActiveConsoleTab("AUDIT")}
           className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
             activeConsoleTab === "AUDIT"
-              ? "text-teal-400 font-bold scale-105"
-              : "text-slate-500 hover:text-slate-300"
+              ? "text-teal-600 dark:text-teal-400 font-bold scale-105"
+              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
           }`}
         >
           <ShieldCheck className="w-5 h-5" />

@@ -344,7 +344,7 @@ export default function StudentPortalLayout({
                 </div>
 
                 <div className="px-3">
-                  <RolePortalSwitcher />
+                  <RolePortalSwitcher align="left" />
                 </div>
               </div>
             </div>

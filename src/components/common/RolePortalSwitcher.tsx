@@ -65,7 +65,11 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
   },
 ];
 
-export function RolePortalSwitcher() {
+interface RolePortalSwitcherProps {
+  align?: "left" | "right" | "auto";
+}
+
+export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -124,6 +128,12 @@ export function RolePortalSwitcher() {
     router.push(option.path);
   };
 
+  const getDropdownAlignmentClass = () => {
+    if (align === "left") return "left-0";
+    if (align === "right") return "right-0";
+    return "left-0 sm:left-auto sm:right-0";
+  };
+
   return (
     <div className="relative inline-block" ref={dropdownRef}>
       <button
@@ -141,7 +151,7 @@ export function RolePortalSwitcher() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 sm:right-auto sm:left-0 mt-2 w-72 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-2.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 space-y-1 text-slate-900 dark:text-white">
+        <div className={`absolute ${getDropdownAlignmentClass()} mt-2 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-2.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 space-y-1 text-slate-900 dark:text-white`}>
           <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
               <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
