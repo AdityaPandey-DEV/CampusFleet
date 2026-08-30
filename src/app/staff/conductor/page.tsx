@@ -102,47 +102,51 @@ export default function ConductorConsolePage() {
   return (
     <div className="min-h-screen bg-slate-900 text-white pb-20 font-sans">
       {/* Header */}
-      <header className="bg-slate-950/80 backdrop-blur border-b border-slate-800 p-4 sticky top-0 z-40 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-teal-600 flex items-center justify-center font-bold">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs uppercase font-bold text-slate-400">Conductor Manifest Desk</div>
-            <div className="text-sm font-bold truncate">
-              {activeTrip ? `Trip: ${activeTrip.tripCode} (${bus?.busNumber || "Active Bus"})` : "Conductor Operations Console"}
+      <header className="bg-slate-950/90 backdrop-blur border-b border-slate-800 p-4 sticky top-0 z-40">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-teal-600 flex items-center justify-center font-bold flex-shrink-0">
+              <ShieldCheck className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-teal-400 tracking-wider">
+                University Conductor Desk
+              </div>
+              <div className="text-sm font-black truncate text-white">
+                {activeTrip ? `${activeTrip.tripCode} (${bus?.busNumber || "Active Fleet Shuttle"})` : "Attendance & Manifest Desk"}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {/* Trip Selector Dropdown */}
-          {trips.length > 0 && (
-            <select
-              value={activeTrip?.id || ""}
-              onChange={e => setSelectedTripId(e.target.value)}
-              className="text-xs font-bold bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 outline-none cursor-pointer text-white"
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Trip Selector Dropdown */}
+            {trips.length > 0 && (
+              <select
+                value={activeTrip?.id || ""}
+                onChange={e => setSelectedTripId(e.target.value)}
+                className="text-xs font-bold bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 outline-none cursor-pointer text-white flex-1 sm:flex-none"
+              >
+                {trips.map(t => {
+                  const b = buses.find(busItem => busItem.id === t.busId);
+                  return (
+                    <option key={t.id} value={t.id}>
+                      {t.tripCode} • {b?.busNumber || "Bus"}
+                    </option>
+                  );
+                })}
+              </select>
+            )}
+
+            <RolePortalSwitcher />
+            <ThemeToggle />
+            <Link
+              href="/"
+              className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
+              title="Exit"
             >
-              {trips.map(t => {
-                const b = buses.find(busItem => busItem.id === t.busId);
-                return (
-                  <option key={t.id} value={t.id}>
-                    {t.tripCode} • {b?.busNumber || "Bus"}
-                  </option>
-                );
-              })}
-            </select>
-          )}
-
-          <RolePortalSwitcher />
-          <ThemeToggle />
-          <Link
-            href="/"
-            className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
-            title="Exit"
-          >
-            <LogOut className="w-4 h-4" />
-          </Link>
+              <LogOut className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </header>
 

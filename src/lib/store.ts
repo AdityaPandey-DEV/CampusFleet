@@ -1047,23 +1047,46 @@ class CampusRideStore {
   }
 
   public recordAttendance(studentId: string, tripId: string, method: "QR_SCAN" | "BIOMETRIC_DEVICE" | "MANUAL_OVERRIDE", status: "BOARDED" | "ABSENT" | "NO_SHOW" = "BOARDED", notes?: string) {
+    const student = this.students.find(s => s.id === studentId || s.userId === studentId || s.enrollmentNo?.toLowerCase() === studentId.toLowerCase() || s.email?.toLowerCase() === studentId.toLowerCase());
+    const resolvedStudentId = student?.id || studentId;
+
+    const matchedBooking = this.bookings.find(
+      b => (b.studentId === resolvedStudentId || b.studentId === studentId || b.id === studentId) && (tripId ? b.tripId === tripId : true)
+    );
+    const bookingId = matchedBooking?.id || `bk-${resolvedStudentId}`;
+
     const newRecord: AttendanceRecord = {
       id: `att-${Date.now()}`,
-      studentId,
+      studentId: resolvedStudentId,
+      bookingId,
       tripId,
-      bookingId: `bk-${studentId}`,
       method,
-      verifiedBy: this.currentUser?.fullName || "Conductor",
+      verifiedBy: this.currentUser?.fullName || "University Conductor",
       signatureToken: `SIG-${Date.now().toString(36).toUpperCase()}`,
       status,
       notes: notes || "Recorded via Conductor Console",
       timestamp: new Date().toISOString(),
     };
     this.attendanceRecords = [newRecord, ...this.attendanceRecords];
-    this.bookings = this.bookings.map(b => (b.studentId === studentId && b.tripId === tripId) ? { ...b, status, boardedAt: status === "BOARDED" ? new Date().toISOString() : undefined } : b);
+    this.bookings = this.bookings.map(b => {
+      const isMatch = (
+        b.studentId === resolvedStudentId ||
+        b.studentId === studentId ||
+        (student && (b.studentId === student.userId || b.studentId === student.id)) ||
+        b.id === studentId
+      ) && (tripId ? b.tripId === tripId : true);
+
+      if (isMatch) {
+        return {
+          ...b,
+          status,
+          boardedAt: status === "BOARDED" ? new Date().toISOString() : undefined,
+        };
+      }
+      return b;
+    });
     
     // Dispatch student notification
-    const student = this.students.find(s => s.id === studentId);
     const trip = this.trips.find(t => t.id === tripId);
     const bus = this.buses.find(b => b.id === trip?.busId);
 
@@ -1072,7 +1095,7 @@ class CampusRideStore {
         userId: student.userId || student.id,
         title: status === "BOARDED" ? "Boarding Verified ✓" : `Attendance Status: ${status}`,
         message: status === "BOARDED"
-          ? `Your QR boarding pass was scanned by the conductor. You are marked Present on ${bus?.busNumber || "the bus"}.`
+          ? `Your QR boarding pass was verified by the conductor. You are marked Present on ${bus?.busNumber || "the campus shuttle"}.`
           : `Attendance updated to ${status}.`,
         type: "BOARDING",
         isRead: false,
@@ -1083,7 +1106,7 @@ class CampusRideStore {
     try {
       supabase.from("attendance_records").insert({
         id: newRecord.id,
-        student_id: studentId,
+        student_id: resolvedStudentId,
         trip_id: tripId,
         method,
         status,
@@ -1095,11 +1118,12 @@ class CampusRideStore {
 
       supabase.from("bookings").update({
         status,
-      }).eq("student_id", studentId).eq("trip_id", tripId).then(() => {});
+      }).or(`student_id.eq.${resolvedStudentId},id.eq.${studentId}`).then(() => {});
     } catch (e) {
       console.warn("DB recordAttendance sync notice:", e);
     }
 
+    this.saveToLocalStorage();
     this.notify();
     return { success: true, message: `Passenger attendance marked as ${status}` };
   }
