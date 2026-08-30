@@ -130,120 +130,153 @@ export default function StudentPortalDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Live Status & Today's Bus Card */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Real-Time ETA Card (Delhi Metro / Transit style visual indicator) */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-                  <BusFront className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Today&apos;s Scheduled Transit
-                  </div>
-                  <div className="text-lg font-black text-slate-900 dark:text-white">
-                    {assignedBus.busNumber}
-                  </div>
-                  <div className="text-xs text-slate-500 font-mono">
-                    Reg: {assignedBus.registrationNo} • Route {assignedRoute.code}
-                  </div>
-                </div>
+          {/* If No Active Booking */}
+          {!activeBooking ? (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm text-center space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto shadow-inner">
+                <BusFront className="w-8 h-8" />
               </div>
-
-              {/* Status Badge */}
-              <div className="flex items-center gap-2">
-                <span
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-black tracking-wide uppercase shadow-sm ${
-                    isConfirmed
-                      ? "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                      : isBoarded
-                      ? "bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800"
-                      : isWaitlisted
-                      ? "bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                  }`}
+              <div className="space-y-1">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                  No Active Shift Booked for Today
+                </h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Ready to commute? Select your assigned campus stop, pick your physical seat on the interactive bus chassis, and generate your live boarding QR pass.
+                </p>
+              </div>
+              <div className="pt-2 flex items-center justify-center gap-3">
+                <Link
+                  href="/portal/booking"
+                  className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-blue-600/20 flex items-center gap-2 transition-transform active:scale-95"
                 >
-                  {isWaitlisted
-                    ? `Waitlisted (WL-${String(activeBooking?.waitlistPosition).padStart(2, "0")})`
-                    : activeBooking?.status || "NOT BOOKED"}
-                </span>
+                  <CalendarCheck className="w-4 h-4" />
+                  <span>Book Shift & Pick Seat →</span>
+                </Link>
+                <Link
+                  href="/portal/tracker"
+                  className="px-5 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-2xl flex items-center gap-2"
+                >
+                  <Compass className="w-4 h-4" />
+                  <span>Live GPS Radar</span>
+                </Link>
               </div>
             </div>
-
-            {/* Large ETA Callout */}
-            <div className="py-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center sm:text-left items-center">
-              <div className="sm:col-span-2">
-                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Estimated Arrival at <span className="text-slate-900 dark:text-white font-bold">{pickupStop.name}</span>
-                </div>
-                <div className="text-3xl sm:text-4xl font-black text-blue-600 dark:text-blue-400 tracking-tight mt-1 flex items-center justify-center sm:justify-start gap-2">
-                  <span>~{liveLocation.estimatedArrivalNextStopMins} mins</span>
-                  {liveLocation.delayMinutes > 0 && (
-                    <span className="text-xs font-bold px-2 py-1 bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 rounded-lg">
-                      +{liveLocation.delayMinutes}m delay
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-slate-500 mt-1 flex items-center justify-center sm:justify-start gap-2 font-mono">
-                  <span>Current Speed: {liveLocation.speedKmh} km/h</span>
-                  <span>•</span>
-                  <span>Trip Status: {activeTrip.status}</span>
-                </div>
-              </div>
-
-              {/* Physical Seat Box */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 text-center">
-                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  Allocated Physical Seat
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
-                  {activeBooking?.seatNumber || (isWaitlisted ? `WL-${activeBooking?.waitlistPosition}` : "--")}
-                </div>
-                <div className="text-[11px] text-teal-600 dark:text-teal-400 font-semibold mt-0.5">
-                  {isConfirmed ? "Confirmed Seat" : isWaitlisted ? "Queue Waiting" : "Enroll for Seat"}
-                </div>
-              </div>
-            </div>
-
-            {/* Crew Contacts Strip */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-blue-600" />
+          ) : (
+            /* Active Booking Card */
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                    <BusFront className="w-6 h-6" />
+                  </div>
                   <div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">
-                      {driver?.fullName || "Rajesh Kumar (Driver)"}
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      Today&apos;s Scheduled Transit
                     </div>
-                    <div className="text-[10px] text-slate-400">Assigned Campus Driver</div>
+                    <div className="text-lg font-black text-slate-900 dark:text-white">
+                      {assignedBus.busNumber}
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono">
+                      Reg: {assignedBus.registrationNo} • Route {assignedRoute.code}
+                    </div>
                   </div>
                 </div>
-                <a
-                  href={`tel:${driver?.phone || "+919811044219"}`}
-                  className="p-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                </a>
+
+                {/* Status Badge */}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-black tracking-wide uppercase shadow-sm ${
+                      isConfirmed
+                        ? "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                        : isBoarded
+                        ? "bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800"
+                        : isWaitlisted
+                        ? "bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    }`}
+                  >
+                    {isWaitlisted
+                      ? `Waitlisted (WL-${String(activeBooking?.waitlistPosition).padStart(2, "0")})`
+                      : activeBooking?.status || "NOT BOOKED"}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-teal-600" />
-                  <div>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">
-                      {conductor?.fullName || "Manoj Verma (Conductor)"}
-                    </div>
-                    <div className="text-[10px] text-slate-400">Boarding & Verification</div>
+              {/* Large ETA Callout */}
+              <div className="py-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center sm:text-left items-center">
+                <div className="sm:col-span-2">
+                  <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    Estimated Arrival at <span className="text-slate-900 dark:text-white font-bold">{pickupStop.name}</span>
+                  </div>
+                  <div className="text-3xl sm:text-4xl font-black text-blue-600 dark:text-blue-400 tracking-tight mt-1 flex items-center justify-center sm:justify-start gap-2">
+                    <span>~{liveLocation.estimatedArrivalNextStopMins} mins</span>
+                    {liveLocation.delayMinutes > 0 && (
+                      <span className="text-xs font-bold px-2 py-1 bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 rounded-lg">
+                        +{liveLocation.delayMinutes}m delay
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1 flex items-center justify-center sm:justify-start gap-2 font-mono">
+                    <span>Current Speed: {liveLocation.speedKmh} km/h</span>
+                    <span>•</span>
+                    <span>Trip Status: {activeTrip.status}</span>
                   </div>
                 </div>
-                <a
-                  href={`tel:${conductor?.phone || "+919873188402"}`}
-                  className="p-1.5 bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 rounded-lg hover:bg-teal-200"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                </a>
+
+                {/* Physical Seat Box */}
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 text-center">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                    Allocated Physical Seat
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
+                    {activeBooking?.seatNumber || (isWaitlisted ? `WL-${activeBooking?.waitlistPosition}` : "--")}
+                  </div>
+                  <div className="text-[11px] text-teal-600 dark:text-teal-400 font-semibold mt-0.5">
+                    {isConfirmed ? "Confirmed Seat" : isWaitlisted ? "Queue Waiting" : "Enroll for Seat"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Crew Contacts Strip */}
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-blue-600" />
+                    <div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">
+                        {driver?.fullName || "Rajesh Kumar (Driver)"}
+                      </div>
+                      <div className="text-[10px] text-slate-400">Assigned Campus Driver</div>
+                    </div>
+                  </div>
+                  <a
+                    href={`tel:${driver?.phone || "+919811044219"}`}
+                    className="p-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-teal-600" />
+                    <div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">
+                        {conductor?.fullName || "Manoj Verma (Conductor)"}
+                      </div>
+                      <div className="text-[10px] text-slate-400">Boarding & Verification</div>
+                    </div>
+                  </div>
+                  <a
+                    href={`tel:${conductor?.phone || "+919873188402"}`}
+                    className="p-1.5 bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 rounded-lg hover:bg-teal-200"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Metro-style Route Line Progression */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">

@@ -248,16 +248,16 @@ export const INITIAL_STUDENTS: Student[] = [
     id: "stud-1",
     userId: "u-stud-1",
     enrollmentNo: "2023-CS-084",
-    fullName: "Aarav Sharma",
-    email: "aarav.sharma@campus.edu",
-    phone: "+91 98101 23456",
+    fullName: "Aditya Pandey",
+    email: "adityapandey.dev.in@gmail.com",
+    phone: "+91 98765 43210",
     department: "Computer Science & Engineering",
-    semester: "4th Semester",
+    semester: "8th Semester",
     primaryStopId: "stop-2",
     primaryRouteId: "route-1",
     emergencyContact: {
-      name: "Sanjay Sharma",
-      relationship: "Father",
+      name: "Emergency Support Desk",
+      relationship: "Campus Dispatch",
       phone: "+91 98101 99881",
     },
     medicalNote: "No known allergies. Asthmatic (inhaler in backpack).",
@@ -372,51 +372,7 @@ export const INITIAL_TRIPS: Trip[] = [
   },
 ];
 
-export const INITIAL_BOOKINGS: Booking[] = [
-  {
-    id: "bk-101",
-    bookingCode: "BS-TRIP-101-M1-4821",
-    studentId: "stud-1",
-    tripId: "trip-1",
-    boardingStopId: "stop-2",
-    status: "CONFIRMED",
-    seatNumber: "12A",
-    confirmedAt: "2026-08-30T06:15:00Z",
-    createdAt: "2026-08-30T06:15:00Z",
-  },
-  {
-    id: "bk-102",
-    bookingCode: "BS-TRIP-101-M1-4822",
-    studentId: "stud-3",
-    tripId: "trip-1",
-    boardingStopId: "stop-3",
-    status: "BOARDED",
-    seatNumber: "12B",
-    confirmedAt: "2026-08-30T06:20:00Z",
-    boardedAt: "2026-08-30T07:42:00Z",
-    createdAt: "2026-08-30T06:20:00Z",
-  },
-  {
-    id: "bk-103",
-    bookingCode: "BS-TRIP-101-M1-4823",
-    studentId: "stud-4",
-    tripId: "trip-1",
-    boardingStopId: "stop-1",
-    status: "WAITLISTED",
-    waitlistPosition: 1, // WL-01
-    createdAt: "2026-08-30T06:45:00Z",
-  },
-  {
-    id: "bk-104",
-    bookingCode: "BS-TRIP-101-M1-4824",
-    studentId: "stud-2",
-    tripId: "trip-1",
-    boardingStopId: "stop-2",
-    status: "WAITLISTED",
-    waitlistPosition: 2, // WL-02
-    createdAt: "2026-08-30T06:50:00Z",
-  },
-];
+export const INITIAL_BOOKINGS: Booking[] = [];
 
 export const INITIAL_LIVE_LOCATION: LiveBusLocation = {
   busId: "bus-1",
@@ -612,8 +568,8 @@ class CampusRideStore {
     studentId?: string;
   } = {
     id: "u-stud-1",
-    email: "aarav.sharma@campus.edu",
-    fullName: "Aarav Sharma",
+    email: "adityapandey.dev.in@gmail.com",
+    fullName: "Aditya Pandey",
     role: "student" as UserRole,
     studentId: "stud-1",
   };
