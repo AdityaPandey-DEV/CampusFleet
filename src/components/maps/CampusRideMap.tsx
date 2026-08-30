@@ -9,6 +9,7 @@ interface CampusRideMapProps {
   routeCoordinates?: [number, number][];
   activeStopIndex?: number;
   shortestPathStopIds?: string[];
+  selectedStopId?: string;
   height?: string;
   zoom?: number;
 }
@@ -44,6 +45,7 @@ export default function CampusRideMap({
   routeCoordinates = [],
   activeStopIndex = 0,
   shortestPathStopIds = [],
+  selectedStopId,
   height = "400px",
   zoom = 13,
 }: CampusRideMapProps) {
@@ -183,12 +185,15 @@ export default function CampusRideMap({
       stops.forEach((stop, idx) => {
         const isPassed = idx < activeStopIndex;
         const isNext = idx === activeStopIndex;
+        const isStudentPickup = selectedStopId && stop.id === selectedStopId;
         const isOnShortestPath = shortestPathSet.has(stop.id);
         const isStartOfPath = shortestPathStopIds[0] === stop.id;
         const isEndOfPath = shortestPathStopIds[shortestPathStopIds.length - 1] === stop.id;
 
         let iconBgClass = "bg-teal-600 border-white text-white";
-        if (isStartOfPath) {
+        if (isStudentPickup) {
+          iconBgClass = "bg-emerald-600 border-white text-white ring-4 ring-emerald-400/60 animate-pulse shadow-lg";
+        } else if (isStartOfPath) {
           iconBgClass = "bg-emerald-500 border-white text-white ring-4 ring-emerald-400/40 animate-pulse";
         } else if (isEndOfPath) {
           iconBgClass = "bg-blue-600 border-white text-white ring-4 ring-blue-400/40";
@@ -203,18 +208,19 @@ export default function CampusRideMap({
         const stopIcon = L.divIcon({
           className: "custom-stop-icon",
           html: `<div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-md border-2 ${iconBgClass}">
-            ${isStartOfPath ? "🚏" : isEndOfPath ? "🏫" : idx + 1}
+            ${isStudentPickup ? "📍" : isStartOfPath ? "🚏" : isEndOfPath ? "🏫" : idx + 1}
           </div>`,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
+          iconSize: isStudentPickup ? [32, 32] : [28, 28],
+          iconAnchor: isStudentPickup ? [16, 16] : [14, 14],
         });
 
         const marker = L.marker([stop.latitude, stop.longitude], { icon: stopIcon }).addTo(markersGroupRef.current);
         marker.bindPopup(`
           <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
+            ${isStudentPickup ? '<div style="color: #059669; font-weight: 900; font-size: 12px; margin-bottom: 2px;">★ Your Allocated Boarding Point</div>' : ""}
             <strong style="color: #0f172a; font-size: 13px;">${stop.name} (${stop.code})</strong><br/>
             <span>Landmark: <strong>${stop.landmark || "Campus Stop"}</strong></span><br/>
-            <span>Corridor Sequence: Stop #${idx + 1}</span>
+            <span>Route Sequence: Stop #${idx + 1}</span>
             ${isOnShortestPath ? '<br/><span style="color: #7c3aed; font-weight: bold;">★ On Shortest Route to Campus</span>' : ""}
           </div>
         `);
@@ -222,11 +228,11 @@ export default function CampusRideMap({
         // Draw Geofence circle
         L.circle([stop.latitude, stop.longitude], {
           radius: stop.geofenceRadiusMeters || 80,
-          color: isStartOfPath ? "#10b981" : isOnShortestPath ? "#8b5cf6" : isNext ? "#f59e0b" : "#0d9488",
-          weight: 1.5,
-          opacity: 0.6,
-          fillColor: isStartOfPath ? "#d1fae5" : isOnShortestPath ? "#ede9fe" : isNext ? "#fef3c7" : "#ccfbf1",
-          fillOpacity: 0.25,
+          color: isStudentPickup ? "#059669" : isStartOfPath ? "#10b981" : isOnShortestPath ? "#8b5cf6" : isNext ? "#f59e0b" : "#0d9488",
+          weight: isStudentPickup ? 2.5 : 1.5,
+          opacity: 0.8,
+          fillColor: isStudentPickup ? "#a7f3d0" : isStartOfPath ? "#d1fae5" : isOnShortestPath ? "#ede9fe" : isNext ? "#fef3c7" : "#ccfbf1",
+          fillOpacity: isStudentPickup ? 0.35 : 0.25,
         }).addTo(markersGroupRef.current);
       });
 

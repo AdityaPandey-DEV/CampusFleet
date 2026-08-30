@@ -188,6 +188,7 @@ export default function LiveTrackerPage() {
               stops={currentRouteStops}
               shortestPathStopIds={shortestPath?.path || []}
               routeCoordinates={currentRouteStops.map(s => [s.latitude, s.longitude])}
+              selectedStopId={pickupStop?.id}
               height="480px"
               zoom={13}
             />

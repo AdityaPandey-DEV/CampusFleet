@@ -187,7 +187,7 @@ export default function CampusRideLandingPage() {
           </h1>
 
           <p className="text-xs sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
-            Inspired by the operational clarity and passenger safety of modern rapid transit systems. Featuring atomic seat allocation, automatic waitlist promotion, live GPS telematics, and biometric boarding verification.
+            Inspired by the operational clarity and passenger safety of modern rapid transit systems. Featuring atomic seat allocation, automatic waitlist promotion, live GPS telematics, and cryptographic QR pass boarding verification.
           </p>
 
           {/* Live System Telematics Strip */}

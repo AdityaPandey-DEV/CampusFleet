@@ -94,6 +94,19 @@ export default function StudentPortalDashboard() {
   const isConfirmed = activeBooking?.status === "CONFIRMED";
   const isWaitlisted = activeBooking?.status === "WAITLISTED";
   const isBoarded = activeBooking?.status === "BOARDED";
+  const isBookingActive = Boolean(activeBooking && (isConfirmed || isBoarded));
+
+  // Filter stops to only include the stops on the student's assigned route
+  const confirmedRouteStops = React.useMemo(() => {
+    if (!assignedRoute || !assignedRoute.stops || assignedRoute.stops.length === 0) {
+      return pickupStop ? [pickupStop] : stops.slice(0, 3);
+    }
+    return assignedRoute.stops.map(rs => rs.stop).filter(Boolean);
+  }, [assignedRoute, pickupStop, stops]);
+
+  const confirmedRouteCoordinates = React.useMemo(() => {
+    return confirmedRouteStops.map(s => [s.latitude, s.longitude] as [number, number]);
+  }, [confirmedRouteStops]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -303,14 +316,19 @@ export default function StudentPortalDashboard() {
             </div>
           )}
 
-          {/* Metro-style Route Line Progression */}
-          {assignedRoute && assignedRoute.stops && assignedRoute.stops.length > 0 && (
+          {/* Metro-style Route Line Progression (Only when booking is active) */}
+          {isBookingActive && assignedRoute && assignedRoute.stops && assignedRoute.stops.length > 0 && (
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-              <h3 className="text-base font-black text-slate-900 dark:text-white mb-2">
-                Route Stop Sequence & Live Progression
-              </h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  Route Stop Sequence & Live Progression
+                </h3>
+                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/80 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                  {assignedRoute.code}
+                </span>
+              </div>
               <p className="text-xs text-slate-500 mb-4">
-                Real-time station tracking modeled after rapid transit displays.
+                Real-time station tracking for your confirmed shuttle shift.
               </p>
               <StationLineProgress
                 route={assignedRoute}
@@ -328,30 +346,73 @@ export default function StudentPortalDashboard() {
             <div className="flex items-center justify-between">
               <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Compass className="w-4 h-4 text-blue-600" />
-                Live Bus Location
+                Live Bus Radar
               </div>
-              <Link
-                href="/portal/tracker"
-                className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1"
-              >
-                Expand <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
+              {isBookingActive && (
+                <Link
+                  href="/portal/tracker"
+                  className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1"
+                >
+                  Full Tracker <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              )}
             </div>
 
-            <CampusRideMap
-              busLocation={liveLocation}
-              stops={stops}
-              routeCoordinates={stops.map(s => [s.latitude, s.longitude])}
-              height="320px"
-            />
+            {isBookingActive ? (
+              <>
+                <CampusRideMap
+                  busLocation={liveLocation}
+                  stops={confirmedRouteStops}
+                  routeCoordinates={confirmedRouteCoordinates}
+                  activeStopIndex={activeTrip?.currentStopIndex || 0}
+                  selectedStopId={pickupStop?.id}
+                  height="300px"
+                />
 
-            <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
-              <span>Ping: {new Date(liveLocation.lastPingAt).toLocaleTimeString()}</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                Live GPS Connected
-              </span>
-            </div>
+                {/* Route & Allocated Stop Info Strip */}
+                <div className="p-3 bg-blue-50/70 dark:bg-blue-950/50 rounded-2xl border border-blue-200 dark:border-blue-900/60 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
+                    <span className="truncate">{assignedRoute?.name || "Campus Route"}</span>
+                    <span className="text-blue-600 dark:text-blue-400 text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                      {assignedBus?.busNumber}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Your Allocated Stop:</span>
+                    <span className="font-bold text-emerald-900 dark:text-emerald-200">{pickupStop?.name}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                  <span>Ping: {new Date(liveLocation.lastPingAt).toLocaleTimeString()}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    Live GPS Telematics Active
+                  </span>
+                </div>
+              </>
+            ) : (
+              /* Inactive Radar Standby Card */
+              <div className="p-6 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
+                  <Compass className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <div className="font-black text-sm text-slate-900 dark:text-white">Live Radar Inactive</div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                    Live GPS location, route path, and your designated student boarding stop will activate once you confirm a seat booking.
+                  </p>
+                </div>
+                <Link
+                  href="/portal/booking"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-all active:scale-95"
+                >
+                  <CalendarCheck className="w-4 h-4" />
+                  <span>Book Shift to Activate Radar →</span>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Quick Actions Grid */}
