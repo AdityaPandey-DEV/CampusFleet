@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { Route, Stop, Bus } from "@/lib/types";
 
 // Dynamic import for Leaflet map with no SSR
-const CampusRideMap = dynamic(() => import("@/components/maps/CampusRideMap"), {
+const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-80 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
@@ -377,7 +377,7 @@ export default function RouteAndStopManagementPage() {
                     </div>
                   </div>
 
-                  <CampusRideMap
+                  <CampusFleetMap
                     stops={activeRoute.stops.map(rs => rs.stop)}
                     routeCoordinates={routeCoordinates}
                     height="400px"

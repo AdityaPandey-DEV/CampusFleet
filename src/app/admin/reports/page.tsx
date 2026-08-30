@@ -19,7 +19,7 @@ export default function ReportsAndExportsPage() {
     setIsExporting(true);
     setTimeout(() => {
       let csvContent = "";
-      let filename = `campusride_${reportType.toLowerCase()}_report.csv`;
+      let filename = `campusfleet_${reportType.toLowerCase()}_report.csv`;
 
       if (reportType === "ATTENDANCE") {
         csvContent = "BookingCode,StudentName,EnrollmentNo,Seat,Status,Date\n";

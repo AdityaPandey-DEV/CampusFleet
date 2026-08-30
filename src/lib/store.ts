@@ -71,7 +71,7 @@ export const INITIAL_LIVE_LOCATION: LiveBusLocation = {
 };
 
 // Reactive Client-Side Store Class with Supabase Database Sync & Local Storage
-class CampusRideStore {
+class CampusFleetStore {
   private buses: Bus[] = [];
   private routes: Route[] = [];
   private stops: Stop[] = [];
@@ -469,22 +469,22 @@ class CampusRideStore {
   private saveToLocalStorage() {
     if (typeof window === "undefined") return;
     try {
-      localStorage.setItem("campusride_buses", JSON.stringify(this.buses));
-      localStorage.setItem("campusride_routes", JSON.stringify(this.routes));
-      localStorage.setItem("campusride_stops", JSON.stringify(this.stops));
-      localStorage.setItem("campusride_shifts", JSON.stringify(this.shifts));
-      localStorage.setItem("campusride_trips", JSON.stringify(this.trips));
-      localStorage.setItem("campusride_bookings", JSON.stringify(this.bookings));
-      localStorage.setItem("campusride_location", JSON.stringify(this.liveLocation));
-      localStorage.setItem("campusride_notifications", JSON.stringify(this.notifications));
+      localStorage.setItem("campusfleet_buses", JSON.stringify(this.buses));
+      localStorage.setItem("campusfleet_routes", JSON.stringify(this.routes));
+      localStorage.setItem("campusfleet_stops", JSON.stringify(this.stops));
+      localStorage.setItem("campusfleet_shifts", JSON.stringify(this.shifts));
+      localStorage.setItem("campusfleet_trips", JSON.stringify(this.trips));
+      localStorage.setItem("campusfleet_bookings", JSON.stringify(this.bookings));
+      localStorage.setItem("campusfleet_location", JSON.stringify(this.liveLocation));
+      localStorage.setItem("campusfleet_notifications", JSON.stringify(this.notifications));
       if (this.currentUser) {
-        localStorage.setItem("campusride_user", JSON.stringify(this.currentUser));
+        localStorage.setItem("campusfleet_user", JSON.stringify(this.currentUser));
       } else {
-        localStorage.removeItem("campusride_user");
+        localStorage.removeItem("campusfleet_user");
       }
-      localStorage.setItem("campusride_active_child", this.activeChildId);
-      localStorage.setItem("campusride_students", JSON.stringify(this.students));
-      localStorage.setItem("campusride_staff", JSON.stringify(this.staff));
+      localStorage.setItem("campusfleet_active_child", this.activeChildId);
+      localStorage.setItem("campusfleet_students", JSON.stringify(this.students));
+      localStorage.setItem("campusfleet_staff", JSON.stringify(this.staff));
     } catch (e) {
       console.warn("Could not save to localStorage", e);
     }
@@ -492,29 +492,29 @@ class CampusRideStore {
 
   private loadFromLocalStorage() {
     try {
-      const b = localStorage.getItem("campusride_buses");
+      const b = localStorage.getItem("campusfleet_buses") || localStorage.getItem("campusride_buses");
       if (b) this.buses = JSON.parse(b);
-      const r = localStorage.getItem("campusride_routes");
+      const r = localStorage.getItem("campusfleet_routes") || localStorage.getItem("campusride_routes");
       if (r) this.routes = JSON.parse(r);
-      const st = localStorage.getItem("campusride_stops");
+      const st = localStorage.getItem("campusfleet_stops") || localStorage.getItem("campusride_stops");
       if (st) this.stops = JSON.parse(st);
-      const sh = localStorage.getItem("campusride_shifts");
+      const sh = localStorage.getItem("campusfleet_shifts") || localStorage.getItem("campusride_shifts");
       if (sh) this.shifts = JSON.parse(sh);
-      const t = localStorage.getItem("campusride_trips");
+      const t = localStorage.getItem("campusfleet_trips") || localStorage.getItem("campusride_trips");
       if (t) this.trips = JSON.parse(t);
-      const bk = localStorage.getItem("campusride_bookings");
+      const bk = localStorage.getItem("campusfleet_bookings") || localStorage.getItem("campusride_bookings");
       if (bk) this.bookings = JSON.parse(bk);
-      const loc = localStorage.getItem("campusride_location");
+      const loc = localStorage.getItem("campusfleet_location") || localStorage.getItem("campusride_location");
       if (loc) this.liveLocation = JSON.parse(loc);
-      const notif = localStorage.getItem("campusride_notifications");
+      const notif = localStorage.getItem("campusfleet_notifications") || localStorage.getItem("campusride_notifications");
       if (notif) this.notifications = JSON.parse(notif);
-      const u = localStorage.getItem("campusride_user");
+      const u = localStorage.getItem("campusfleet_user") || localStorage.getItem("campusride_user");
       if (u) this.currentUser = JSON.parse(u);
-      const ch = localStorage.getItem("campusride_active_child");
+      const ch = localStorage.getItem("campusfleet_active_child") || localStorage.getItem("campusride_active_child");
       if (ch) this.activeChildId = ch;
-      const std = localStorage.getItem("campusride_students");
+      const std = localStorage.getItem("campusfleet_students") || localStorage.getItem("campusride_students");
       if (std) this.students = JSON.parse(std);
-      const stf = localStorage.getItem("campusride_staff");
+      const stf = localStorage.getItem("campusfleet_staff") || localStorage.getItem("campusride_staff");
       if (stf) this.staff = JSON.parse(stf);
     } catch (e) {
       console.warn("Could not load from localStorage", e);
@@ -1283,4 +1283,4 @@ class CampusRideStore {
   }
 }
 
-export const store = new CampusRideStore();
+export const store = new CampusFleetStore();

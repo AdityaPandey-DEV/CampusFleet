@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/common/ThemeProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CampusRide | Smart Campus Transport & Bus Management System",
+  title: "CampusFleet | Smart Campus Transport & Fleet Management System",
   description:
     "Production-quality academic transport and fleet management system inspired by modern rapid transit operations, featuring railway seat reservations, live GPS tracking, and cryptographic digital QR pass validation.",
 };

@@ -1,23 +1,23 @@
-# 🚌 CampusRide — Smart Campus Transport and Bus Management System
+# 🚌 CampusFleet — Smart Campus Transport and Fleet Management System
 
 > **Production-Quality Full-Stack Academic Project**  
 > Built with **Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui patterns, Supabase PostgreSQL, and Leaflet**.  
 > Inspired by the operational clarity, route progression, and passenger safety of modern rapid transit systems.
 
 [![Production Deployment](https://img.shields.io/badge/Vercel-Live%20Demo-black?style=for-the-badge&logo=vercel)](https://ridx.vercel.app)
-[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/AdityaPandey-DEV/campusride)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/AdityaPandey-DEV/campusfleet)
 
 🌐 **Official Production URL**: [**https://ridx.vercel.app**](https://ridx.vercel.app)
 
 * 🚀 **Main Live Web App**: [https://ridx.vercel.app](https://ridx.vercel.app)
-* ⚡ **High-Availability Mirrors**: [https://campusride-live.vercel.app](https://campusride-live.vercel.app) • [https://campustransit.vercel.app](https://campustransit.vercel.app)
+* ⚡ **High-Availability Mirrors**: [https://campusfleet-live.vercel.app](https://campusfleet-live.vercel.app) • [https://campustransit.vercel.app](https://campustransit.vercel.app)
 
 ---
 
 ## 📸 Application Interface & Visual Tour
 
 ### 1. Unified Gateway & Role Portal Launchers
-![CampusRide Gateway](./docs/screenshots/landing.png)
+![CampusFleet Gateway](./docs/screenshots/landing.png)
 
 ### 2. Student & Parent Live Transit Radar (`/portal`)
 ![Student Portal](./docs/screenshots/student_portal.png)

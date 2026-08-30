@@ -305,7 +305,7 @@ export default function UnifiedLoginPage() {
             <BusFront className="w-5 h-5" />
           </div>
           <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-            Campus<span className="text-blue-600 dark:text-blue-400">Ride</span>
+            Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
           </span>
         </Link>
 
@@ -621,7 +621,7 @@ export default function UnifiedLoginPage() {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500">
-        CampusRide © 2026 Smart Transit System • Graphic Era Hill University Network
+        CampusFleet © 2026 Smart Transit System • Graphic Era Hill University Network
       </footer>
     </div>
   );

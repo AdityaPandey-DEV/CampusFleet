@@ -29,7 +29,7 @@ import {
 import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function CampusRideLandingPage() {
+export default function CampusFleetLandingPage() {
   const [buses, setBuses] = useState(store.getBuses());
   const [stops, setStops] = useState(store.getStops());
   const [routes, setRoutes] = useState(store.getRoutes());
@@ -122,7 +122,7 @@ export default function CampusRideLandingPage() {
             </div>
             <div className="min-w-0">
               <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white truncate block">
-                Campus<span className="text-blue-600 dark:text-blue-400">Ride</span>
+                Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
               </span>
               <span className="hidden md:inline-block text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
                 Academic Transit Platform
@@ -364,7 +364,7 @@ export default function CampusRideLandingPage() {
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div>
-            CampusRide © 2026 Smart Campus Transport Management System • Academic Major Project
+            CampusFleet © 2026 Smart Campus Transport Management System • Academic Major Project
           </div>
           <div className="flex items-center gap-4">
             <span>Next.js 14 App Router</span>

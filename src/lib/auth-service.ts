@@ -125,7 +125,7 @@ class AuthService {
     if (typeof window === "undefined") return;
     try {
       if (this.currentUser) {
-        localStorage.setItem("campusride_auth_user", JSON.stringify(this.currentUser));
+        localStorage.setItem("campusfleet_auth_user", JSON.stringify(this.currentUser));
       }
     } catch (e) {
       console.warn("Failed to save session", e);
@@ -134,7 +134,7 @@ class AuthService {
 
   private restoreLocalSession() {
     try {
-      const stored = localStorage.getItem("campusride_auth_user");
+      const stored = localStorage.getItem("campusfleet_auth_user") || localStorage.getItem("campusride_auth_user");
       if (stored) {
         this.currentUser = JSON.parse(stored);
         this.notify();
@@ -147,6 +147,7 @@ class AuthService {
   private clearLocalSession() {
     if (typeof window === "undefined") return;
     try {
+      localStorage.removeItem("campusfleet_auth_user");
       localStorage.removeItem("campusride_auth_user");
     } catch (e) {
       console.warn("Failed to clear session", e);

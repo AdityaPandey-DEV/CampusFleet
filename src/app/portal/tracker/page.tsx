@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 // Dynamic import for Leaflet GIS Map with no SSR
-const CampusRideMap = dynamic(() => import("@/components/maps/CampusRideMap"), {
+const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-[450px] rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
@@ -193,7 +193,7 @@ export default function LiveTrackerPage() {
         {/* Left 7-8 Cols: Full interactive map & Telemetry HUD */}
         <div className="lg:col-span-8 space-y-4">
           <div className="relative">
-            <CampusRideMap
+            <CampusFleetMap
               busLocation={liveLocation || undefined}
               stops={currentRouteStops}
               shortestPathStopIds={shortestPath?.path || []}

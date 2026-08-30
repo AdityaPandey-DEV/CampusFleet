@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 // Dynamic import for Leaflet map with no SSR
-const CampusRideMap = dynamic(() => import("@/components/maps/CampusRideMap"), {
+const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-72 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
@@ -374,7 +374,7 @@ export default function StudentPortalDashboard() {
 
             {isBookingActive ? (
               <>
-                <CampusRideMap
+                <CampusFleetMap
                   busLocation={liveLocation}
                   stops={confirmedRouteStops}
                   routeCoordinates={confirmedRouteCoordinates}

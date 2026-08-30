@@ -91,7 +91,7 @@ export default function AdminLayout({
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-          <span className="font-black text-lg">Campus<span className="text-blue-600">Ride</span> Admin</span>
+          <span className="font-black text-lg">Campus<span className="text-blue-600">Fleet</span> Admin</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export default function AdminLayout({
               {(isSidebarOpen || isMobileMenuOpen) && (
                 <div>
                   <div className="font-black text-lg tracking-tight">
-                    Campus<span className="text-blue-600 dark:text-blue-400">Ride</span>
+                    Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
                   </div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     Operations Center
