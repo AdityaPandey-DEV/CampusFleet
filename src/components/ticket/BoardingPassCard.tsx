@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { Booking, Student, Bus, Stop, Shift, Trip } from "@/lib/types";
 import { formatTime, formatDate } from "@/lib/utils";
@@ -158,12 +159,20 @@ export function BoardingPassCard({
         {/* QR Code Section */}
         <div className="flex flex-col items-center justify-center py-2">
           {isCancelled ? (
-            <div className="p-6 text-center text-rose-500 bg-rose-50 dark:bg-rose-950/30 rounded-2xl border border-rose-200 dark:border-rose-900 w-full">
-              <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-              <div className="font-bold">Booking Cancelled</div>
-              <div className="text-xs mt-1 text-rose-600/80">
-                This digital pass has been invalidated.
+            <div className="p-6 text-center text-rose-500 bg-rose-50 dark:bg-rose-950/30 rounded-2xl border border-rose-200 dark:border-rose-900 w-full space-y-3">
+              <AlertCircle className="w-8 h-8 mx-auto" />
+              <div>
+                <div className="font-bold text-sm">Seat Reservation Cancelled</div>
+                <div className="text-xs text-rose-600/80 mt-0.5">
+                  Your seat has been released and made available to other commuters.
+                </div>
               </div>
+              <Link
+                href="/portal/booking"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md"
+              >
+                Book Remaining Available Seat →
+              </Link>
             </div>
           ) : (
             <>

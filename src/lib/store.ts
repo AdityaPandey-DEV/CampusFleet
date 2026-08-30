@@ -987,6 +987,7 @@ class CampusRideStore {
           status: res.booking.status,
           waitlist_position: res.booking.waitlistPosition,
           seat_number: res.booking.seatNumber,
+          booking_date: new Date().toISOString().split("T")[0],
           created_at: res.booking.createdAt,
         }).then(() => {});
       } catch (e) {
@@ -1023,6 +1024,23 @@ class CampusRideStore {
       if (waitlistUpdated) return waitlistUpdated;
       return b;
     });
+
+    // Update Supabase cancellation
+    try {
+      supabase.from("bookings").update({
+        status: "CANCELLED",
+      }).eq("id", cancelledBooking.id).then(() => {});
+
+      if (promotedBooking) {
+        supabase.from("bookings").update({
+          status: "CONFIRMED",
+          seat_number: promotedBooking.seatNumber,
+          waitlist_position: null,
+        }).eq("id", promotedBooking.id).then(() => {});
+      }
+    } catch (e) {
+      console.warn("DB cancelBooking sync notice:", e);
+    }
 
     this.notify();
     return {

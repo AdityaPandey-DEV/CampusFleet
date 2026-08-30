@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
@@ -43,6 +44,7 @@ const CampusRideMap = dynamic(() => import("@/components/maps/CampusRideMap"), {
 });
 
 export default function ShiftBookingPage() {
+  const router = useRouter();
   const [students, setStudents] = useState(store.getStudents());
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
   const [shifts, setShifts] = useState(store.getShifts());
