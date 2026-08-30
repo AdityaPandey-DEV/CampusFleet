@@ -14,28 +14,54 @@ interface CampusRideMapProps {
   zoom?: number;
 }
 
-// Fetches actual road-snapped geometry via Open-Source Routing Machine (OSRM)
+// Fetches actual road-snapped geometry via Open-Source Routing Machine (OSRM) with multi-mirror fallback
 async function fetchRoadSnappedRoute(coordinates: [number, number][]): Promise<[number, number][]> {
   if (coordinates.length < 2) return coordinates;
-  try {
-    const coordString = coordinates.map(([lat, lng]) => `${lng},${lat}`).join(";");
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
 
-    const res = await fetch(
-      `https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`,
-      { signal: controller.signal }
-    );
-    clearTimeout(timeoutId);
+  const coordString = coordinates.map(([lat, lng]) => `${lng},${lat}`).join(";");
+  const endpoints = [
+    `https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`,
+    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordString}?overview=full&geometries=geojson`,
+  ];
 
-    if (!res.ok) return coordinates;
-    const data = await res.json();
-    if (data.routes && data.routes[0]?.geometry?.coordinates) {
-      return data.routes[0].geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng]);
+  for (const url of endpoints) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.routes && data.routes[0]?.geometry?.coordinates) {
+          return data.routes[0].geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng]);
+        }
+      }
+    } catch {
+      // Continue to next mirror
     }
-  } catch (err) {
-    console.warn("OSRM road snapping fallback to direct waypoint line:", err);
   }
+
+  // Segment-by-segment fallback for high reliability
+  try {
+    const fullSnapped: [number, number][] = [];
+    for (let i = 0; i < coordinates.length - 1; i++) {
+      const segmentStr = `${coordinates[i][1]},${coordinates[i][0]};${coordinates[i + 1][1]},${coordinates[i + 1][0]}`;
+      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${segmentStr}?overview=full&geometries=geojson`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.routes && data.routes[0]?.geometry?.coordinates) {
+          const segCoords = data.routes[0].geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]);
+          fullSnapped.push(...segCoords);
+        }
+      }
+    }
+    if (fullSnapped.length > 0) return fullSnapped;
+  } catch {
+    // Fallback to straight lines
+  }
+
   return coordinates;
 }
 
@@ -52,7 +78,8 @@ export default function CampusRideMap({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const busMarkerRef = useRef<any>(null);
-  const polylineRef = useRef<any>(null);
+  const polylineBorderRef = useRef<any>(null);
+  const polylineCoreRef = useRef<any>(null);
   const polylineGlowRef = useRef<any>(null);
   const shortestPathPolylineRef = useRef<any>(null);
   const markersGroupRef = useRef<any>(null);
@@ -121,30 +148,43 @@ export default function CampusRideMap({
         if (isMounted) {
           // Remove previous polylines if exist
           if (polylineGlowRef.current) map.removeLayer(polylineGlowRef.current);
-          if (polylineRef.current) map.removeLayer(polylineRef.current);
+          if (polylineBorderRef.current) map.removeLayer(polylineBorderRef.current);
+          if (polylineCoreRef.current) map.removeLayer(polylineCoreRef.current);
 
-          // Outer glowing shadow line
+          // 1. Google Maps Outer Glow/Shadow
           polylineGlowRef.current = L.polyline(roadSnappedCoords, {
-            color: "#3B82F6",
-            weight: 8,
-            opacity: 0.35,
+            color: "#2563EB",
+            weight: 12,
+            opacity: 0.25,
             lineJoin: "round",
             lineCap: "round",
           }).addTo(map);
 
-          // Inner crisp road line
-          polylineRef.current = L.polyline(roadSnappedCoords, {
+          // 2. Google Maps Dark Blue Outline Casing
+          polylineBorderRef.current = L.polyline(roadSnappedCoords, {
             color: "#1D4ED8",
-            weight: 4.5,
+            weight: 7,
             opacity: 0.95,
             lineJoin: "round",
             lineCap: "round",
           }).addTo(map);
 
-          // Fit bounds to entire route if not focused on bus and no shortest path
-          if (!busLocation && shortestPathStopIds.length === 0) {
+          // 3. Google Maps Vibrant Navigation Blue Line (#4285F4)
+          polylineCoreRef.current = L.polyline(roadSnappedCoords, {
+            color: "#38BDF8", // Bright Sky/Google Navigation Blue
+            weight: 4.5,
+            opacity: 1.0,
+            lineJoin: "round",
+            lineCap: "round",
+          }).addTo(map);
+
+          // Auto-fit bounds so the entire road path is visible
+          if (roadSnappedCoords.length >= 2) {
             const bounds = L.latLngBounds(roadSnappedCoords);
-            map.fitBounds(bounds, { padding: [40, 40] });
+            if (busLocation) {
+              bounds.extend([busLocation.latitude, busLocation.longitude]);
+            }
+            map.fitBounds(bounds, { padding: [35, 35], maxZoom: 15 });
           }
         }
       }
