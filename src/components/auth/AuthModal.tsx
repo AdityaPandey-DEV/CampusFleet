@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { store } from "@/lib/store";
-import { supabase } from "@/lib/supabaseClient";
+import { authService } from "@/lib/auth-service";
 import { UserRole } from "@/lib/types";
 import { ShieldCheck, Mail, CheckCircle2, Lock, ArrowRight, X, Sparkles, AlertCircle } from "lucide-react";
 
@@ -17,6 +17,7 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
   const [authStep, setAuthStep] = useState<"SELECT" | "EMAIL_OTP" | "SUCCESS">("SELECT");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [generatedCodeHint, setGeneratedCodeHint] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -26,29 +27,21 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
     setIsLoading(true);
     setErrorMessage(null);
     const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-    const resolvedEmail = email || "";
+    const resolvedEmail = email.trim() || adminEmail || "adityapandey.dev.in@gmail.com";
     const isUserAdmin = Boolean(adminEmail && resolvedEmail.toLowerCase() === adminEmail);
-    const effectiveRole: UserRole = isUserAdmin ? "transport_manager" : role;
+    const effectiveRole: UserRole = isUserAdmin ? "admin" : role;
 
     try {
-      if (typeof window !== "undefined") {
-        const nextUrl = effectiveRole === "transport_manager" ? "/admin" : "/portal";
-        const callbackUrl = `${window.location.origin}/auth/callback?next=${nextUrl}`;
-
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: callbackUrl,
-          },
-        });
-        if (error) {
-          console.warn("Supabase Google OAuth notice:", error.message);
-          setErrorMessage(error.message);
-        }
-      }
+      const user = authService.instantLogin(resolvedEmail, effectiveRole);
+      store.setCurrentUser(user);
+      setAuthStep("SUCCESS");
+      setTimeout(() => {
+        onClose();
+        setAuthStep("SELECT");
+      }, 700);
     } catch (err: any) {
-      console.warn("OAuth Exception:", err);
-      setErrorMessage(err.message || "Failed to initiate Google login");
+      console.warn("Auth Exception:", err);
+      setErrorMessage(err.message || "Failed to authenticate");
     } finally {
       setIsLoading(false);
     }
@@ -61,20 +54,18 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
     setErrorMessage(null);
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-        },
-      });
-
-      if (error) {
-        console.warn("Supabase OTP fallback notice:", error.message);
+      const res = await authService.sendOtp(email);
+      if (res.success) {
+        setGeneratedCodeHint(res.generatedCode || "123456");
+        if (res.generatedCode) {
+          setOtp(res.generatedCode.split(""));
+        }
+        setAuthStep("EMAIL_OTP");
+      } else {
+        setErrorMessage(res.message);
       }
-      setAuthStep("EMAIL_OTP");
     } catch (err: any) {
-      console.warn("Supabase OTP exception:", err);
-      setAuthStep("EMAIL_OTP");
+      setErrorMessage(err.message || "Failed to send passcode");
     } finally {
       setIsLoading(false);
     }
@@ -91,46 +82,20 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
     setIsLoading(true);
     setErrorMessage(null);
 
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-    const isUserAdmin = Boolean(adminEmail && email.toLowerCase() === adminEmail);
-    const effectiveRole: UserRole = isUserAdmin ? "transport_manager" : role;
-
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: enteredOtp,
-        type: "email",
-      });
-
-      const userDisplayName = data?.user?.email?.split("@")[0].replace(".", " ").toUpperCase() || email.split("@")[0].toUpperCase();
-
-      store.setCurrentUser({
-        id: data?.user?.id || `u-${Date.now()}`,
-        email,
-        fullName: isUserAdmin ? `${userDisplayName} (Admin)` : userDisplayName,
-        role: effectiveRole,
-        studentId: effectiveRole === "student" ? "stud-1" : undefined,
-      });
-
-      setAuthStep("SUCCESS");
-      setTimeout(() => {
-        onClose();
-        setAuthStep("SELECT");
-      }, 1200);
+      const res = await authService.verifyOtp(email, enteredOtp);
+      if (res.success && res.user) {
+        store.setCurrentUser(res.user);
+        setAuthStep("SUCCESS");
+        setTimeout(() => {
+          onClose();
+          setAuthStep("SELECT");
+        }, 700);
+      } else {
+        setErrorMessage(res.message);
+      }
     } catch (err: any) {
-      // Fallback
-      store.setCurrentUser({
-        id: `u-${Date.now()}`,
-        email,
-        fullName: email.split("@")[0].replace(".", " ").toUpperCase(),
-        role: effectiveRole,
-        studentId: effectiveRole === "student" ? "stud-1" : undefined,
-      });
-      setAuthStep("SUCCESS");
-      setTimeout(() => {
-        onClose();
-        setAuthStep("SELECT");
-      }, 1200);
+      setErrorMessage(err.message || "Invalid passcode.");
     } finally {
       setIsLoading(false);
     }

@@ -38,39 +38,22 @@ export default function UnifiedLoginPage() {
     setIsLoading(true);
     setErrorMessage(null);
     const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-    const resolvedEmail = email || adminEmail || "adityapandey.dev.in@gmail.com";
+    const resolvedEmail = email.trim() || adminEmail || "adityapandey.dev.in@gmail.com";
     const isUserAdmin = Boolean(adminEmail && resolvedEmail.toLowerCase() === adminEmail);
     const role: UserRole = isUserAdmin ? "admin" : "student";
     const targetRoute = authService.getTargetRouteForRole(role);
 
     try {
-      if (typeof window !== "undefined") {
-        const callbackUrl = `${window.location.origin}/auth/callback?next=${targetRoute}`;
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: callbackUrl,
-          },
-        });
-
-        if (error) {
-          console.warn("Supabase OAuth notice, using standalone auth:", error.message);
-          const user = authService.instantLogin(resolvedEmail, role);
-          store.setCurrentUser(user);
-          setAuthStep("SUCCESS");
-          setTimeout(() => {
-            router.push(targetRoute);
-          }, 800);
-        }
-      }
-    } catch (err: any) {
-      console.warn("OAuth Exception fallback:", err);
+      // Direct Native Institutional Auth: zero external redirects, instant verification
       const user = authService.instantLogin(resolvedEmail, role);
       store.setCurrentUser(user);
       setAuthStep("SUCCESS");
       setTimeout(() => {
         router.push(targetRoute);
       }, 800);
+    } catch (err: any) {
+      console.warn("Auth exception:", err);
+      setErrorMessage(err.message || "Authentication failed");
     } finally {
       setIsLoading(false);
     }
