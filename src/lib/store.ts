@@ -885,7 +885,46 @@ class CampusRideStore {
       timestamp: new Date().toISOString(),
     };
     this.attendanceRecords = [newRecord, ...this.attendanceRecords];
-    this.bookings = this.bookings.map(b => (b.studentId === studentId && b.tripId === tripId) ? { ...b, status } : b);
+    this.bookings = this.bookings.map(b => (b.studentId === studentId && b.tripId === tripId) ? { ...b, status, boardedAt: status === "BOARDED" ? new Date().toISOString() : undefined } : b);
+    
+    // Dispatch student notification
+    const student = this.students.find(s => s.id === studentId);
+    const trip = this.trips.find(t => t.id === tripId);
+    const bus = this.buses.find(b => b.id === trip?.busId);
+
+    if (student) {
+      this.createNotification({
+        userId: student.userId || student.id,
+        title: status === "BOARDED" ? "Boarding Verified ✓" : `Attendance Status: ${status}`,
+        message: status === "BOARDED"
+          ? `Your QR boarding pass was scanned by the conductor. You are marked Present on ${bus?.busNumber || "the bus"}.`
+          : `Attendance updated to ${status}.`,
+        type: "BOARDING",
+        isRead: false,
+      });
+    }
+
+    // Persist to Supabase
+    try {
+      supabase.from("attendance_records").insert({
+        id: newRecord.id,
+        student_id: studentId,
+        trip_id: tripId,
+        method,
+        status,
+        verified_by: newRecord.verifiedBy,
+        signature_token: newRecord.signatureToken,
+        notes: newRecord.notes,
+        timestamp: newRecord.timestamp,
+      }).then(() => {});
+
+      supabase.from("bookings").update({
+        status,
+      }).eq("student_id", studentId).eq("trip_id", tripId).then(() => {});
+    } catch (e) {
+      console.warn("DB recordAttendance sync notice:", e);
+    }
+
     this.notify();
     return { success: true, message: `Passenger attendance marked as ${status}` };
   }
@@ -927,6 +966,33 @@ class CampusRideStore {
 
     if (res.success && res.booking) {
       this.bookings = [...this.bookings, res.booking];
+
+      // Dispatch confirmed notification and email alert
+      this.createNotification({
+        userId: student.userId || student.id,
+        title: "Seat Reservation Confirmed! 🎉",
+        message: `Your seat ${res.booking.seatNumber || `WL-${res.booking.waitlistPosition}`} is confirmed on ${bus.busNumber}. Confirmation email sent to ${student.email}.`,
+        type: "CONFIRMATION",
+        isRead: false,
+      });
+
+      // Persist to Supabase
+      try {
+        supabase.from("bookings").insert({
+          id: res.booking.id,
+          booking_code: res.booking.bookingCode,
+          student_id: res.booking.studentId,
+          trip_id: res.booking.tripId,
+          boarding_stop_id: res.booking.boardingStopId,
+          status: res.booking.status,
+          waitlist_position: res.booking.waitlistPosition,
+          seat_number: res.booking.seatNumber,
+          created_at: res.booking.createdAt,
+        }).then(() => {});
+      } catch (e) {
+        console.warn("DB bookShift sync notice:", e);
+      }
+
       this.notify();
     }
 

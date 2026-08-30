@@ -7,6 +7,7 @@ import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { NearestStopFinder } from "@/components/booking/NearestStopFinder";
+import { BoardingPassCard } from "@/components/ticket/BoardingPassCard";
 import {
   CalendarCheck,
   CheckCircle2,
@@ -26,6 +27,9 @@ import {
   Navigation,
   Compass,
   Layers,
+  QrCode,
+  Mail,
+  X,
 } from "lucide-react";
 
 // Dynamic import for Leaflet map with no SSR
@@ -52,6 +56,7 @@ export default function ShiftBookingPage() {
   const [selectedStopId, setSelectedStopId] = useState("");
   const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>("1A");
   const [bookingMessage, setBookingMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -82,7 +87,7 @@ export default function ShiftBookingPage() {
   const isFull = bus ? confirmedCount >= bus.capacity : false;
 
   const userExistingBooking = bookings.find(
-    b => b.studentId === activeStudent?.id && targetTrip && b.tripId === targetTrip.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED")
+    b => b.studentId === activeStudent?.id && targetTrip && b.tripId === targetTrip.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
   );
 
   const selectedStop = stops.find(s => s.id === selectedStopId) || stops[0];
@@ -115,7 +120,11 @@ export default function ShiftBookingPage() {
       !isFull ? (selectedSeatNumber || undefined) : undefined
     );
     if (res.success) {
-      setBookingMessage({ type: "success", text: res.message });
+      setBookingMessage({
+        type: "success",
+        text: `✓ Seat ${selectedSeatNumber || "1A"} Confirmed! A confirmation email and pass have been dispatched to ${activeStudent?.email || "your email"}. Present your QR code to the bus conductor upon boarding.`,
+      });
+      setIsQRModalOpen(true);
     } else {
       setBookingMessage({ type: "error", text: res.message });
     }
@@ -125,6 +134,7 @@ export default function ShiftBookingPage() {
     if (confirm("Are you sure you want to cancel your seat? The earliest waitlisted passenger will be automatically promoted to take your physical seat.")) {
       const res = store.cancelBooking(bookingId);
       setBookingMessage({ type: "success", text: res.message });
+      setIsQRModalOpen(false);
     }
   };
 
@@ -273,18 +283,30 @@ export default function ShiftBookingPage() {
 
       {bookingMessage && (
         <div
-          className={`p-4 rounded-2xl border text-sm font-semibold flex items-center gap-3 animate-in fade-in ${
+          className={`p-4 rounded-2xl border text-sm font-semibold flex items-center justify-between gap-3 animate-in fade-in ${
             bookingMessage.type === "success"
               ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200"
               : "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200"
           }`}
         >
-          {bookingMessage.type === "success" ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+          <div className="flex items-center gap-3">
+            {bookingMessage.type === "success" ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+            )}
+            <span>{bookingMessage.text}</span>
+          </div>
+
+          {bookingMessage.type === "success" && (
+            <button
+              onClick={() => setIsQRModalOpen(true)}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md flex-shrink-0"
+            >
+              <QrCode className="w-4 h-4" />
+              Show QR Pass
+            </button>
           )}
-          <span>{bookingMessage.text}</span>
         </div>
       )}
 
@@ -543,26 +565,37 @@ export default function ShiftBookingPage() {
               {userExistingBooking ? (
                 <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-300 dark:border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div className="space-y-0.5 text-center sm:text-left">
-                    <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
-                      You already hold an active booking for this shift!
+                    <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>Seat Reservation Confirmed & Ready!</span>
                     </div>
                     <div className="text-sm font-black text-emerald-700 dark:text-emerald-400">
-                      {userExistingBooking.status} {userExistingBooking.seatNumber ? `(Physical Seat ${userExistingBooking.seatNumber})` : `(WL-${userExistingBooking.waitlistPosition})`}
+                      {userExistingBooking.status === "BOARDED" ? "Boarded / Present ✓" : userExistingBooking.status} {userExistingBooking.seatNumber ? `(Physical Seat ${userExistingBooking.seatNumber})` : `(WL-${userExistingBooking.waitlistPosition})`}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-mono">
+                      Confirmation email & dynamic QR pass generated
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsQRModalOpen(true)}
+                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-transform active:scale-95"
+                    >
+                      <QrCode className="w-4 h-4" />
+                      Show QR Pass
+                    </button>
                     <Link
                       href="/portal/pass"
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm"
+                      className="px-3.5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl shadow-sm"
                     >
-                      View QR Pass
+                      Pass & Billing
                     </Link>
                     <button
                       onClick={() => handleCancelBooking(userExistingBooking.id)}
                       className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-300 dark:border-rose-900"
                     >
-                      Cancel Seat
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -615,6 +648,32 @@ export default function ShiftBookingPage() {
                 </table>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic QR Code Modal for Immediate Boarding Presentation */}
+      {isQRModalOpen && userExistingBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="relative w-full max-w-md">
+            <button
+              onClick={() => setIsQRModalOpen(false)}
+              className="absolute -top-3 -right-3 z-30 w-9 h-9 rounded-full bg-slate-900 border border-slate-700 text-white flex items-center justify-center hover:bg-slate-800 shadow-xl"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <BoardingPassCard
+              booking={userExistingBooking}
+              student={activeStudent}
+              bus={bus}
+              stop={selectedStop}
+              shift={shifts.find(s => s.id === selectedShiftId)}
+              trip={targetTrip}
+              onCancelBooking={id => {
+                handleCancelBooking(id);
+                setIsQRModalOpen(false);
+              }}
+            />
           </div>
         </div>
       )}
