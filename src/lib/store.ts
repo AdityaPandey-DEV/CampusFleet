@@ -1225,6 +1225,7 @@ class CampusRideStore {
       console.warn("DB cancelBooking sync notice:", e);
     }
 
+    this.saveToLocalStorage();
     this.notify();
     return {
       success: true,
