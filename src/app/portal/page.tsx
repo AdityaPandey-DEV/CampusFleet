@@ -56,10 +56,30 @@ export default function StudentPortalDashboard() {
     b => b.studentId === activeStudent?.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
   );
 
-  const activeTrip = trips.find(t => t.id === activeBooking?.tripId) || trips[0];
-  const assignedBus = buses.find(b => b.id === activeTrip?.busId) || buses[0];
-  const assignedRoute = routes.find(r => r.id === activeTrip?.routeId) || routes[0];
-  const pickupStop = stops.find(s => s.id === activeStudent?.primaryStopId) || stops[1];
+  const activeTrip = trips.find(t => t.id === activeBooking?.tripId) || trips[0] || {
+    id: "default-trip",
+    tripCode: "TRIP-001",
+    status: "SCHEDULED",
+    currentStopIndex: 0,
+  };
+  const assignedBus = buses.find(b => b.id === activeTrip?.busId) || buses[0] || {
+    id: "default-bus",
+    busNumber: "Campus Shuttle",
+    registrationNo: "CAMPUS-01",
+    capacity: 40,
+    seatLayout: "2x2",
+  };
+  const assignedRoute = routes.find(r => r.id === activeTrip?.routeId) || routes[0] || {
+    id: "default-route",
+    name: "Main Campus Direct",
+    code: "RT-101",
+    stops: [],
+  };
+  const pickupStop = stops.find(s => s.id === activeStudent?.primaryStopId) || stops[0] || {
+    id: "default-stop",
+    name: "Main Campus Station",
+    code: "MC-01",
+  };
   const driver = staff.find(s => s.id === activeTrip?.driverId);
   const conductor = staff.find(s => s.id === activeTrip?.conductorId);
 

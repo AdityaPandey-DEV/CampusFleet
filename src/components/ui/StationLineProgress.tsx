@@ -19,7 +19,15 @@ export function StationLineProgress({
   onSelectStop,
   compact = false,
 }: StationLineProgressProps) {
-  const stops = route.stops;
+  const stops = route?.stops || [];
+
+  if (stops.length === 0) {
+    return (
+      <div className="p-6 text-center text-xs text-slate-400 font-mono bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+        No station stops mapped to this corridor yet.
+      </div>
+    );
+  }
 
   return (
     <div className="w-full py-3">

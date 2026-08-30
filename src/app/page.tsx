@@ -1,8 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { store } from "@/lib/store";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { AuthModal } from "@/components/auth/AuthModal";
 import {
   BusFront,
   Navigation,
@@ -17,18 +19,38 @@ import {
   Users,
   CheckCircle2,
   Lock,
+  Radio,
+  MapPin,
+  Clock,
+  Key,
 } from "lucide-react";
 
 export default function CampusRideLandingPage() {
+  const [buses, setBuses] = useState(store.getBuses());
+  const [stops, setStops] = useState(store.getStops());
+  const [routes, setRoutes] = useState(store.getRoutes());
+  const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    const unsub = store.subscribe(() => {
+      setBuses(store.getBuses());
+      setStops(store.getStops());
+      setRoutes(store.getRoutes());
+      setCurrentUser(store.getCurrentUser());
+    });
+    return unsub;
+  }, []);
+
   const rolePortals = [
     {
       title: "Student & Parent Portal",
-      description: "Live bus radar, Delhi Metro-style route tracker, railway seat booking, digital QR pass, and SOS alert button.",
+      description: "Live bus radar, Delhi Metro-style route tracker, redBus seat selector, and anti-fraud digital QR pass.",
       href: "/portal",
       icon: BusFront,
       badge: "Mobile-First",
       color: "from-blue-600 to-indigo-600",
-      features: ["Live ETA & Station Radar", "Digital QR Boarding Pass", "Railway Confirmed vs Waitlist WL-01", "Multi-Child Switcher"],
+      features: ["Live ETA & Station Radar", "redBus Seat Selection", "Railway Confirmed vs Waitlist WL-01", "Digital QR Boarding Pass"],
     },
     {
       title: "Driver Console",
@@ -55,7 +77,7 @@ export default function CampusRideLandingPage() {
       icon: LayoutDashboard,
       badge: "Full Command Suite",
       color: "from-slate-900 via-blue-900 to-slate-900 dark:from-slate-800 dark:to-slate-900",
-      features: ["Fleet & GPS Telematics HUD", "Interactive Route Builder", "Railway Waitlist Promotion Engine", "Recharts Analytics & CSV Exports"],
+      features: ["Dynamic Bus & Stop Allocation", "Interactive Route Builder", "Railway Waitlist Promotion Engine", "Recharts Analytics & CSV Exports"],
     },
   ];
 
@@ -78,20 +100,31 @@ export default function CampusRideLandingPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
+
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-colors"
+            >
+              <Key className="w-3.5 h-3.5 text-blue-600" />
+              <span>{currentUser ? currentUser.fullName : "Google / OTP Login"}</span>
+            </button>
+
             <Link
               href="/portal"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-transform active:scale-95"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-transform active:scale-95 flex items-center gap-1.5"
             >
-              Launch Demo Portal →
+              <span>Launch Portal</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16 flex-1">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-12 sm:space-y-16 flex-1">
+        {/* Main Headline */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 text-xs font-bold text-blue-700 dark:text-blue-300 shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-blue-500" />
@@ -105,9 +138,30 @@ export default function CampusRideLandingPage() {
             </span>
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
-            Inspired by the operational clarity, route progression, and passenger trust of rapid transit systems. Featuring atomic seat allocation, automatic waitlist promotion, live GPS telematics, and QR/Biometric boarding verification.
+          <p className="text-xs sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
+            Inspired by the operational clarity and passenger safety of modern rapid transit systems. Featuring atomic seat allocation, automatic waitlist promotion, live GPS telematics, and biometric boarding verification.
           </p>
+
+          {/* Live System Telematics Strip */}
+          <div className="pt-4 flex flex-wrap items-center justify-center gap-3 text-xs font-mono">
+            <div className="px-3.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center gap-2">
+              <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+              <span className="text-slate-500">Fleet Size:</span>
+              <strong className="text-slate-900 dark:text-white">{buses.length} Vehicles</strong>
+            </div>
+
+            <div className="px-3.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center gap-2">
+              <MapPin className="w-3.5 h-3.5 text-blue-500" />
+              <span className="text-slate-500">Stops:</span>
+              <strong className="text-slate-900 dark:text-white">{stops.length} Stations</strong>
+            </div>
+
+            <div className="px-3.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center gap-2">
+              <Navigation className="w-3.5 h-3.5 text-teal-500" />
+              <span className="text-slate-500">Corridors:</span>
+              <strong className="text-slate-900 dark:text-white">{routes.length} Active</strong>
+            </div>
+          </div>
         </div>
 
         {/* Role Panels Grid */}
@@ -159,7 +213,7 @@ export default function CampusRideLandingPage() {
           })}
         </div>
 
-        {/* Feature Highlights Grid */}
+        {/* Architectural Highlights */}
         <div className="bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-950 rounded-3xl p-8 text-white shadow-xl space-y-6">
           <div className="text-center space-y-1">
             <h3 className="text-xl font-black">Architectural Excellence & Safety Highlights</h3>
@@ -173,17 +227,17 @@ export default function CampusRideLandingPage() {
                 Railway Reservation Engine
               </div>
               <p className="text-slate-300 leading-relaxed">
-                Atomic capacity locking, numbered waitlists (WL-01..), and instant auto-promotion of waitlisted students upon cancellation.
+                Atomic capacity locking, numbered waitlists (WL-01..), and instant auto-promotion of waitlisted students upon seat cancellation.
               </p>
             </div>
 
             <div className="space-y-2 p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur">
               <div className="font-bold text-sm text-blue-300 flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                Biometric Hardware Adapter
+                Biometric & QR Security
               </div>
               <p className="text-slate-300 leading-relaxed">
-                Zero raw biometric templates stored in database. On-chip fingerprint verification with signed cryptographic tokens & fallback check-in.
+                Zero raw biometric templates stored. On-chip fingerprint verification with rotating TOTP cryptographic digital passes.
               </p>
             </div>
 
@@ -199,6 +253,9 @@ export default function CampusRideLandingPage() {
           </div>
         </div>
       </main>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
       {/* Footer */}
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6">
