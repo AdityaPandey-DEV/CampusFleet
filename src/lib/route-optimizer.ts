@@ -8,7 +8,7 @@
  * 4. Route Recommendation Engine — Combines both for optimal bus selection
  */
 
-import { Stop, Route, RouteStop } from "./types";
+import { Stop, Route, RouteStop, Booking } from "./types";
 import { calculateHaversineDistanceKm } from "./eta-calculator";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -1038,6 +1038,103 @@ export function computeNetworkStats(graph: StopGraph): NetworkStats {
     hubStopId,
     mstTotalKm: mst.totalWeightKm,
     disconnectedComponents: mst.components,
+  };
+}
+
+// ─── Direct Express to Campus Engine (Full-Capacity Bypass) ──────────────────
+
+export interface DirectExpressRouteResult {
+  /** True if the bus is bypassing remaining empty stops directly to campus */
+  isExpressDirect: boolean;
+  /** Human-readable explanation */
+  reason: string;
+  /** Active sequence of stops the bus will actually serve */
+  activeStops: Stop[];
+  /** The last stop where a student is scheduled to be picked up */
+  lastPassengerStop: Stop | null;
+  /** Final destination campus stop */
+  campusStop: Stop | null;
+  /** Number of empty intermediate stops skipped */
+  bypassedStopsCount: number;
+  /** Whether the bus has reached physical seating capacity */
+  isFullyBooked: boolean;
+}
+
+/**
+ * Computes whether a shuttle should bypass remaining empty intermediate stops
+ * and head directly non-stop to the university campus once full or past all passenger pickups.
+ */
+export function computeDirectExpressRoute(
+  route?: Route | null,
+  tripBookings: Booking[] = [],
+  busCapacity: number = 32
+): DirectExpressRouteResult {
+  const allRouteStops = (route?.stops || []).map(rs => rs.stop).filter(Boolean);
+  
+  if (allRouteStops.length <= 2) {
+    return {
+      isExpressDirect: false,
+      reason: "Standard direct corridor",
+      activeStops: allRouteStops,
+      lastPassengerStop: allRouteStops[0] || null,
+      campusStop: allRouteStops[allRouteStops.length - 1] || null,
+      bypassedStopsCount: 0,
+      isFullyBooked: false,
+    };
+  }
+
+  const campusStop = allRouteStops[allRouteStops.length - 1];
+  const confirmedBookings = tripBookings.filter(
+    b => b.status === "CONFIRMED" || b.status === "BOARDED"
+  );
+  const isFullyBooked = confirmedBookings.length >= busCapacity;
+
+  // Identify all stops along this route that have passenger reservations
+  const bookedStopIds = new Set(
+    confirmedBookings.map(b => b.boardingStopId).filter(Boolean)
+  );
+
+  let maxBookedStopIdx = -1;
+  allRouteStops.forEach((stop, idx) => {
+    if (bookedStopIds.has(stop.id)) {
+      maxBookedStopIdx = Math.max(maxBookedStopIdx, idx);
+    }
+  });
+
+  // If there are bookings and stops between the last passenger pickup and the campus:
+  const hasIntermediateStopsToBypass =
+    maxBookedStopIdx >= 0 && maxBookedStopIdx < allRouteStops.length - 2;
+
+  if (isFullyBooked || (confirmedBookings.length > 0 && hasIntermediateStopsToBypass)) {
+    // Take all stops up to the last passenger pickup stop, then head DIRECTLY to the campus!
+    const effectiveStops = allRouteStops.slice(0, maxBookedStopIdx + 1);
+    if (!effectiveStops.some(s => s.id === campusStop.id)) {
+      effectiveStops.push(campusStop);
+    }
+
+    const bypassedStopsCount = Math.max(0, allRouteStops.length - effectiveStops.length);
+
+    return {
+      isExpressDirect: bypassedStopsCount > 0,
+      reason: isFullyBooked
+        ? `⚡ Full Capacity Reached (${confirmedBookings.length}/${busCapacity} seats filled). Bypassing ${bypassedStopsCount} empty stops directly to GEHU Campus!`
+        : `⚡ All confirmed passengers picked up by stop #${maxBookedStopIdx + 1}. Bypassing ${bypassedStopsCount} empty stops direct to Campus!`,
+      activeStops: effectiveStops,
+      lastPassengerStop: allRouteStops[maxBookedStopIdx] || null,
+      campusStop,
+      bypassedStopsCount,
+      isFullyBooked,
+    };
+  }
+
+  return {
+    isExpressDirect: false,
+    reason: "Standard route sequence",
+    activeStops: allRouteStops,
+    lastPassengerStop: maxBookedStopIdx >= 0 ? allRouteStops[maxBookedStopIdx] : null,
+    campusStop,
+    bypassedStopsCount: 0,
+    isFullyBooked,
   };
 }
 

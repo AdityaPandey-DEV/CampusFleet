@@ -23,8 +23,10 @@ import {
   ChevronRight,
   Shield,
   Radio,
+  Zap,
 } from "lucide-react";
 import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
+import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 
 export default function ConductorConsolePage() {
   const [trips, setTrips] = useState(store.getTrips());
@@ -86,6 +88,10 @@ export default function ConductorConsolePage() {
   const absentCount = tripBookings.filter(b => b.status === "ABSENT" || b.status === "NO_SHOW").length;
 
   const occupancyRate = bus && bus.capacity > 0 ? Math.round((boardedCount / bus.capacity) * 100) : 0;
+
+  const directExpressResult = React.useMemo(() => {
+    return computeDirectExpressRoute(route, tripBookings, bus?.capacity || 32);
+  }, [route, tripBookings, bus]);
 
   // Filtered bookings for manifest
   const filteredBookings = tripBookings.filter(b => {
@@ -268,6 +274,24 @@ export default function ConductorConsolePage() {
             </div>
           </div>
         </div>
+
+        {/* Full-Capacity Direct Express Callout */}
+        {directExpressResult.isExpressDirect && (
+          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700/80 rounded-2xl text-xs space-y-1 animate-in fade-in">
+            <div className="flex items-center justify-between font-black text-emerald-900 dark:text-emerald-200">
+              <span className="flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-emerald-500 fill-current" />
+                <span>⚡ Full Capacity Direct Express Active</span>
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                Non-Stop to Campus
+              </span>
+            </div>
+            <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+              {directExpressResult.reason}
+            </div>
+          </div>
+        )}
 
         {/* Ergonomic Tab Selector Bar */}
         <div className="flex items-center gap-1.5 p-1 bg-slate-200/80 dark:bg-slate-900/90 rounded-2xl border border-slate-300 dark:border-slate-800 overflow-x-auto max-w-full">

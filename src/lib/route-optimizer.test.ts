@@ -10,8 +10,9 @@ import {
   reconstructFloydPath,
   kruskalMST,
   computeNetworkStats,
+  computeDirectExpressRoute,
 } from "./route-optimizer";
-import { Stop, Route, RouteStop } from "./types";
+import { Stop, Route, RouteStop, Booking } from "./types";
 
 // ─── Generic Test Fixtures (No hardcoded real data) ──────────────────────────
 
@@ -355,5 +356,95 @@ describe("Network Stats", () => {
       if (conn > maxConn) { maxConn = conn; expectedHub = stopId; }
     }
     expect(stats.hubStopId).toBe(expectedHub);
+  });
+});
+
+describe("Direct Express Route to Campus (Full-Capacity Bypass)", () => {
+  it("bypasses remaining empty stops when all passengers are boarded by an earlier stop", () => {
+    // routeA stops: s4 (stop 1) -> s3 (stop 2) -> s2 (stop 3) -> s1 (campus terminal)
+    // Bookings only at s4 (stop 1) and s3 (stop 2)
+    const testBookings: Booking[] = [
+      {
+        id: "b1",
+        studentId: "stud1",
+        tripId: "t1",
+        shiftId: "sh1",
+        boardingStopId: "s4",
+        seatNumber: "1A",
+        status: "CONFIRMED",
+        bookingCode: "GEHU-1",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "b2",
+        studentId: "stud2",
+        tripId: "t1",
+        shiftId: "sh1",
+        boardingStopId: "s3",
+        seatNumber: "1B",
+        status: "CONFIRMED",
+        bookingCode: "GEHU-2",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    const result = computeDirectExpressRoute(routeA, testBookings, 40);
+    expect(result.isExpressDirect).toBe(true);
+    expect(result.bypassedStopsCount).toBe(1); // s2 was bypassed
+    expect(result.activeStops.map(s => s.id)).toEqual(["s4", "s3", "s1"]);
+    expect(result.lastPassengerStop?.id).toBe("s3");
+    expect(result.campusStop?.id).toBe("s1");
+  });
+
+  it("handles full capacity bus bypassing empty downstream stops", () => {
+    const fullBookings: Booking[] = Array.from({ length: 4 }, (_, i) => ({
+      id: `bf-${i}`,
+      studentId: `stud-${i}`,
+      tripId: "t1",
+      shiftId: "sh1",
+      boardingStopId: "s4",
+      seatNumber: `${i + 1}A`,
+      status: "CONFIRMED",
+      bookingCode: `FULL-${i}`,
+      createdAt: new Date().toISOString(),
+    }));
+
+    const result = computeDirectExpressRoute(routeA, fullBookings, 4);
+    expect(result.isFullyBooked).toBe(true);
+    expect(result.isExpressDirect).toBe(true);
+    expect(result.bypassedStopsCount).toBe(2); // s3 and s2 bypassed
+    expect(result.activeStops.map(s => s.id)).toEqual(["s4", "s1"]);
+  });
+
+  it("retains all stops if passengers are booked throughout all stops including last intermediate stop", () => {
+    const spreadBookings: Booking[] = [
+      {
+        id: "b1",
+        studentId: "stud1",
+        tripId: "t1",
+        shiftId: "sh1",
+        boardingStopId: "s4",
+        seatNumber: "1A",
+        status: "CONFIRMED",
+        bookingCode: "GEHU-1",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "b2",
+        studentId: "stud2",
+        tripId: "t1",
+        shiftId: "sh1",
+        boardingStopId: "s2", // right before campus
+        seatNumber: "1B",
+        status: "CONFIRMED",
+        bookingCode: "GEHU-2",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    const result = computeDirectExpressRoute(routeA, spreadBookings, 40);
+    expect(result.isExpressDirect).toBe(false);
+    expect(result.bypassedStopsCount).toBe(0);
+    expect(result.activeStops.length).toBe(4);
   });
 });

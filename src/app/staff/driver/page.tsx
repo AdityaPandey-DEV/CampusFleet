@@ -22,8 +22,10 @@ import {
   Sparkles,
   Users,
   Shield,
+  Zap,
 } from "lucide-react";
 import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
+import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 
 export default function DriverConsolePage() {
   const [trips, setTrips] = useState(store.getTrips());
@@ -55,6 +57,10 @@ export default function DriverConsolePage() {
   const route = routes.find(r => r.id === activeTrip?.routeId) || routes[0];
   const tripBookings = bookings.filter(b => b.tripId === activeTrip?.id);
   const confirmedCount = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
+
+  const directExpressResult = React.useMemo(() => {
+    return computeDirectExpressRoute(route, tripBookings, bus?.capacity || 32);
+  }, [route, tripBookings, bus]);
 
   // Simulate periodic GPS coordinate update when broadcasting is on
   useEffect(() => {
@@ -93,7 +99,23 @@ export default function DriverConsolePage() {
 
   const handleAdvanceStop = () => {
     if (!activeTrip || !route?.stops) return;
-    const nextIdx = (activeTrip.currentStopIndex || 0) + 1;
+    const currentIdx = activeTrip.currentStopIndex || 0;
+    const currentStop = route.stops[currentIdx]?.stop;
+
+    // In Express Direct mode, once the last booked passenger stop is passed, jump straight to Campus
+    if (directExpressResult.isExpressDirect && currentStop?.id === directExpressResult.lastPassengerStop?.id) {
+      const campusIdx = route.stops.length - 1;
+      activeTrip.currentStopIndex = campusIdx;
+      store.updateLiveLocation({
+        currentStopId: route.stops[campusIdx].stopId,
+        estimatedArrivalNextStopMins: 2,
+      });
+      setToastMessage(`⚡ Express Non-Stop: Arrived directly at ${route.stops[campusIdx].stop.name}`);
+      setTimeout(() => setToastMessage(null), 3500);
+      return;
+    }
+
+    const nextIdx = currentIdx + 1;
     if (nextIdx < route.stops.length) {
       activeTrip.currentStopIndex = nextIdx;
       store.updateLiveLocation({
@@ -190,6 +212,19 @@ export default function DriverConsolePage() {
             </div>
           </div>
 
+          {/* Direct Express Callout Banner */}
+          {directExpressResult.isExpressDirect && (
+            <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700/80 rounded-2xl text-xs space-y-1 animate-in fade-in">
+              <div className="flex items-center gap-1.5 font-black text-emerald-900 dark:text-emerald-200">
+                <Zap className="w-4 h-4 text-emerald-500 fill-current" />
+                <span>⚡ Direct Express to Campus Activated</span>
+              </div>
+              <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+                {directExpressResult.reason}
+              </div>
+            </div>
+          )}
+
           {/* Big Action Buttons */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             {activeTrip?.status !== "IN_PROGRESS" ? (
@@ -212,10 +247,14 @@ export default function DriverConsolePage() {
 
             <button
               onClick={handleAdvanceStop}
-              className="py-4 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
+              className={`py-4 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
+                directExpressResult.isExpressDirect
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/25"
+                  : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/20"
+              }`}
             >
-              <Navigation className="w-5 h-5" />
-              <span>ARRIVED AT STOP</span>
+              {directExpressResult.isExpressDirect ? <Zap className="w-5 h-5 fill-current" /> : <Navigation className="w-5 h-5" />}
+              <span>{directExpressResult.isExpressDirect ? "EXPRESS TO CAMPUS" : "ARRIVED AT STOP"}</span>
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { store } from "@/lib/store";
 import dynamic from "next/dynamic";
 import { formatTime, formatDate } from "@/lib/utils";
 import { StationLineProgress } from "@/components/ui/StationLineProgress";
+import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 import {
   BusFront,
   Clock,
@@ -21,6 +22,7 @@ import {
   Sparkles,
   AlertCircle,
   Bell,
+  Zap,
 } from "lucide-react";
 
 // Dynamic import for Leaflet map with no SSR
@@ -96,13 +98,24 @@ export default function StudentPortalDashboard() {
   const isBoarded = activeBooking?.status === "BOARDED";
   const isBookingActive = Boolean(activeBooking && (isConfirmed || isBoarded));
 
-  // Filter stops to only include the stops on the student's assigned route
+  const tripBookings = React.useMemo(() => {
+    return bookings.filter(b => b.tripId === activeTrip?.id);
+  }, [bookings, activeTrip]);
+
+  const directExpressResult = React.useMemo(() => {
+    return computeDirectExpressRoute(assignedRoute, tripBookings, assignedBus?.capacity || 32);
+  }, [assignedRoute, tripBookings, assignedBus]);
+
+  // Filter stops: if bus is fully loaded or past last passenger stop, route heads directly to campus!
   const confirmedRouteStops = React.useMemo(() => {
+    if (directExpressResult.isExpressDirect && directExpressResult.activeStops.length > 0) {
+      return directExpressResult.activeStops;
+    }
     if (!assignedRoute || !assignedRoute.stops || assignedRoute.stops.length === 0) {
       return pickupStop ? [pickupStop] : stops.slice(0, 3);
     }
     return assignedRoute.stops.map(rs => rs.stop).filter(Boolean);
-  }, [assignedRoute, pickupStop, stops]);
+  }, [directExpressResult, assignedRoute, pickupStop, stops]);
 
   const confirmedRouteCoordinates = React.useMemo(() => {
     return confirmedRouteStops.map(s => [s.latitude, s.longitude] as [number, number]);
@@ -366,23 +379,42 @@ export default function StudentPortalDashboard() {
                   routeCoordinates={confirmedRouteCoordinates}
                   activeStopIndex={activeTrip?.currentStopIndex || 0}
                   selectedStopId={pickupStop?.id}
+                  isExpressDirect={directExpressResult.isExpressDirect}
+                  expressReason={directExpressResult.reason}
                   height="300px"
                 />
 
                 {/* Route & Allocated Stop Info Strip */}
-                <div className="p-3 bg-blue-50/70 dark:bg-blue-950/50 rounded-2xl border border-blue-200 dark:border-blue-900/60 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
-                    <span className="truncate">{assignedRoute?.name || "Campus Route"}</span>
-                    <span className="text-blue-600 dark:text-blue-400 text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                      {assignedBus?.busNumber}
-                    </span>
+                {directExpressResult.isExpressDirect ? (
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-950/70 rounded-2xl border border-emerald-300 dark:border-emerald-700/80 text-xs space-y-1">
+                    <div className="flex items-center justify-between font-black text-emerald-900 dark:text-emerald-200">
+                      <span className="flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-emerald-500 fill-current" />
+                        <span>Direct Express Non-Stop to Campus</span>
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                        {assignedBus?.busNumber}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+                      {directExpressResult.reason}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Your Allocated Stop:</span>
-                    <span className="font-bold text-emerald-900 dark:text-emerald-200">{pickupStop?.name}</span>
+                ) : (
+                  <div className="p-3 bg-blue-50/70 dark:bg-blue-950/50 rounded-2xl border border-blue-200 dark:border-blue-900/60 text-xs space-y-1.5">
+                    <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
+                      <span className="truncate">{assignedRoute?.name || "Campus Route"}</span>
+                      <span className="text-blue-600 dark:text-blue-400 text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                        {assignedBus?.busNumber}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Your Allocated Stop:</span>
+                      <span className="font-bold text-emerald-900 dark:text-emerald-200">{pickupStop?.name}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
                   <span>Ping: {new Date(liveLocation.lastPingAt).toLocaleTimeString()}</span>

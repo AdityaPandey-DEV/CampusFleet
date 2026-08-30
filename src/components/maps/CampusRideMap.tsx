@@ -10,6 +10,8 @@ interface CampusRideMapProps {
   activeStopIndex?: number;
   shortestPathStopIds?: string[];
   selectedStopId?: string;
+  isExpressDirect?: boolean;
+  expressReason?: string;
   height?: string;
   zoom?: number;
 }
@@ -72,6 +74,8 @@ export default function CampusRideMap({
   activeStopIndex = 0,
   shortestPathStopIds = [],
   selectedStopId,
+  isExpressDirect,
+  expressReason,
   height = "400px",
   zoom = 13,
 }: CampusRideMapProps) {
@@ -153,25 +157,25 @@ export default function CampusRideMap({
 
           // 1. Google Maps Outer Glow/Shadow
           polylineGlowRef.current = L.polyline(roadSnappedCoords, {
-            color: "#2563EB",
+            color: isExpressDirect ? "#10B981" : "#2563EB",
             weight: 12,
             opacity: 0.25,
             lineJoin: "round",
             lineCap: "round",
           }).addTo(map);
 
-          // 2. Google Maps Dark Blue Outline Casing
+          // 2. Google Maps Dark Blue/Teal Outline Casing
           polylineBorderRef.current = L.polyline(roadSnappedCoords, {
-            color: "#1D4ED8",
+            color: isExpressDirect ? "#065F46" : "#1D4ED8",
             weight: 7,
             opacity: 0.95,
             lineJoin: "round",
             lineCap: "round",
           }).addTo(map);
 
-          // 3. Google Maps Vibrant Navigation Blue Line (#4285F4)
+          // 3. Google Maps Vibrant Navigation Blue/Emerald Line
           polylineCoreRef.current = L.polyline(roadSnappedCoords, {
-            color: "#38BDF8", // Bright Sky/Google Navigation Blue
+            color: isExpressDirect ? "#34D399" : "#38BDF8", // Green for express or electric blue
             weight: 4.5,
             opacity: 1.0,
             lineJoin: "round",
@@ -228,15 +232,15 @@ export default function CampusRideMap({
         const isStudentPickup = selectedStopId && stop.id === selectedStopId;
         const isOnShortestPath = shortestPathSet.has(stop.id);
         const isStartOfPath = shortestPathStopIds[0] === stop.id;
-        const isEndOfPath = shortestPathStopIds[shortestPathStopIds.length - 1] === stop.id;
+        const isEndOfPath = shortestPathStopIds[shortestPathStopIds.length - 1] === stop.id || idx === stops.length - 1;
 
         let iconBgClass = "bg-teal-600 border-white text-white";
         if (isStudentPickup) {
           iconBgClass = "bg-emerald-600 border-white text-white ring-4 ring-emerald-400/60 animate-pulse shadow-lg";
+        } else if (isEndOfPath) {
+          iconBgClass = "bg-blue-600 border-white text-white ring-4 ring-blue-400/50 shadow-md";
         } else if (isStartOfPath) {
           iconBgClass = "bg-emerald-500 border-white text-white ring-4 ring-emerald-400/40 animate-pulse";
-        } else if (isEndOfPath) {
-          iconBgClass = "bg-blue-600 border-white text-white ring-4 ring-blue-400/40";
         } else if (isOnShortestPath) {
           iconBgClass = "bg-purple-600 border-white text-white ring-2 ring-purple-400/30";
         } else if (isNext) {
@@ -248,7 +252,7 @@ export default function CampusRideMap({
         const stopIcon = L.divIcon({
           className: "custom-stop-icon",
           html: `<div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-md border-2 ${iconBgClass}">
-            ${isStudentPickup ? "📍" : isStartOfPath ? "🚏" : isEndOfPath ? "🏫" : idx + 1}
+            ${isStudentPickup ? "📍" : isEndOfPath ? "🏫" : isStartOfPath ? "🚏" : idx + 1}
           </div>`,
           iconSize: isStudentPickup ? [32, 32] : [28, 28],
           iconAnchor: isStudentPickup ? [16, 16] : [14, 14],
@@ -258,6 +262,7 @@ export default function CampusRideMap({
         marker.bindPopup(`
           <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
             ${isStudentPickup ? '<div style="color: #059669; font-weight: 900; font-size: 12px; margin-bottom: 2px;">★ Your Allocated Boarding Point</div>' : ""}
+            ${isEndOfPath ? '<div style="color: #1d4ed8; font-weight: 900; font-size: 12px; margin-bottom: 2px;">🏫 Destination University Campus</div>' : ""}
             <strong style="color: #0f172a; font-size: 13px;">${stop.name} (${stop.code})</strong><br/>
             <span>Landmark: <strong>${stop.landmark || "Campus Stop"}</strong></span><br/>
             <span>Route Sequence: Stop #${idx + 1}</span>
@@ -268,11 +273,11 @@ export default function CampusRideMap({
         // Draw Geofence circle
         L.circle([stop.latitude, stop.longitude], {
           radius: stop.geofenceRadiusMeters || 80,
-          color: isStudentPickup ? "#059669" : isStartOfPath ? "#10b981" : isOnShortestPath ? "#8b5cf6" : isNext ? "#f59e0b" : "#0d9488",
-          weight: isStudentPickup ? 2.5 : 1.5,
+          color: isStudentPickup ? "#059669" : isEndOfPath ? "#1d4ed8" : isStartOfPath ? "#10b981" : isOnShortestPath ? "#8b5cf6" : isNext ? "#f59e0b" : "#0d9488",
+          weight: isStudentPickup || isEndOfPath ? 2.5 : 1.5,
           opacity: 0.8,
-          fillColor: isStudentPickup ? "#a7f3d0" : isStartOfPath ? "#d1fae5" : isOnShortestPath ? "#ede9fe" : isNext ? "#fef3c7" : "#ccfbf1",
-          fillOpacity: isStudentPickup ? 0.35 : 0.25,
+          fillColor: isStudentPickup ? "#a7f3d0" : isEndOfPath ? "#bfdbfe" : isStartOfPath ? "#d1fae5" : isOnShortestPath ? "#ede9fe" : isNext ? "#fef3c7" : "#ccfbf1",
+          fillOpacity: isStudentPickup || isEndOfPath ? 0.35 : 0.25,
         }).addTo(markersGroupRef.current);
       });
 
@@ -318,13 +323,20 @@ export default function CampusRideMap({
     return () => {
       isMounted = false;
     };
-  }, [busLocation, stops, routeCoordinates, activeStopIndex, shortestPathStopIds, zoom]);
+  }, [busLocation, stops, routeCoordinates, activeStopIndex, shortestPathStopIds, selectedStopId, isExpressDirect, zoom]);
 
   return (
-    <div
-      ref={mapContainerRef}
-      style={{ height, width: "100%" }}
-      className="rounded-3xl overflow-hidden shadow-inner border border-slate-200 dark:border-slate-800 z-0"
-    />
+    <div className="relative w-full rounded-3xl overflow-hidden shadow-inner border border-slate-200 dark:border-slate-800 z-0">
+      <div
+        ref={mapContainerRef}
+        style={{ height, width: "100%" }}
+      />
+
+      {isExpressDirect && (
+        <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-white/40 animate-pulse">
+          <span>⚡ Direct Non-Stop to Campus</span>
+        </div>
+      )}
+    </div>
   );
 }
