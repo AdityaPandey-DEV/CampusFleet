@@ -154,10 +154,54 @@ export default function ShiftBookingPage() {
           </div>
         </div>
 
+        {/* Corridor Category Selector: Daily Commute vs Special Occasion */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-bold text-slate-400">Transit Category:</span>
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => {
+                  const dailyShift = shifts.find(s => s.shiftType === "MORNING" || s.shiftType === "EVENING");
+                  if (dailyShift) setSelectedShiftId(dailyShift.id);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  shifts.find(s => s.id === selectedShiftId)?.shiftType !== "CUSTOM"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                🏫 Daily Academic Commute
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const customShift = shifts.find(s => s.shiftType === "CUSTOM");
+                  if (customShift) setSelectedShiftId(customShift.id);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  shifts.find(s => s.id === selectedShiftId)?.shiftType === "CUSTOM"
+                    ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                🎯 Special Placement & Campus Events
+              </button>
+            </div>
+          </div>
+
+          <div className="text-[11px] text-slate-500 italic">
+            {shifts.find(s => s.id === selectedShiftId)?.shiftType === "CUSTOM"
+              ? "⚡ Inter-campus express for Placement Drives & Events"
+              : "🏠 Routine daily route to enrolled GEHU Bhimtal Campus"}
+          </div>
+        </div>
+
         {/* Shift Selection Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pt-1">
           {shifts.map(sh => {
             const isSelected = sh.id === selectedShiftId;
+            const isSpecial = sh.shiftType === "CUSTOM";
             return (
               <button
                 key={sh.id}
@@ -168,13 +212,22 @@ export default function ShiftBookingPage() {
                 }}
                 className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all flex-shrink-0 ${
                   isSelected
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                    ? isSpecial
+                      ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-600/20"
+                      : "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                    : isSpecial
+                    ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100"
                     : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
                 <span>{sh.name}</span>
                 <span className="font-mono opacity-80 font-normal">({formatTime(sh.startTime)})</span>
+                {isSpecial && (
+                  <span className="text-[9px] uppercase px-1.5 py-0.5 bg-black/20 text-white rounded-md font-extrabold">
+                    Special
+                  </span>
+                )}
               </button>
             );
           })}
