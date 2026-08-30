@@ -5,6 +5,7 @@ import Link from "next/link";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
+import { NearestStopFinder } from "@/components/booking/NearestStopFinder";
 import {
   CalendarCheck,
   CheckCircle2,
@@ -243,6 +244,16 @@ export default function ShiftBookingPage() {
           <span>{bookingMessage.text}</span>
         </div>
       )}
+
+      {/* AI Nearest Stop Finder & Location Suggestion */}
+      <NearestStopFinder
+        stops={stops}
+        selectedStopId={selectedStopId}
+        onSelectStop={stop => {
+          setSelectedStopId(stop.id);
+          setBookingMessage({ type: "success", text: `Selected pickup stop: ${stop.name} (${stop.code})` });
+        }}
+      />
 
       {/* Main Multi-Column Experience */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
