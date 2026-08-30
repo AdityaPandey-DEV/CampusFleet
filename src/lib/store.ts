@@ -22,6 +22,24 @@ import {
 import { createBooking, cancelBookingAndPromoteWaitlist, lockFinalManifest } from "./reservation-engine";
 import { supabase } from "./supabaseClient";
 import { authService } from "./auth-service";
+import {
+  buildStopGraph,
+  dijkstraShortestPath,
+  bellmanFordNearestStops,
+  recommendBestRoute,
+  aStarSearch,
+  floydWarshallAllPairs,
+  reconstructFloydPath,
+  kruskalMST,
+  computeNetworkStats,
+  StopGraph,
+  ShortestPathResult,
+  NearestStopResult,
+  RouteRecommendation,
+  AllPairsResult,
+  MSTResult,
+  NetworkStats,
+} from "./route-optimizer";
 
 // Zero Hardcoded Constants — All Data is Stored and Sourced Exclusively from Database
 export const INITIAL_STOPS: Stop[] = [];
@@ -72,6 +90,7 @@ class CampusRideStore {
   private attendanceRecords: AttendanceRecord[] = [];
   private users: UserAccount[] = [];
   private stopRoutes: { stopId: string; routeId: string; busId: string; stopOrder: number }[] = [];
+  private cachedGraph: StopGraph | null = null;
 
   // Active session state: strictly null by default until user logs in
   private currentUser: {
@@ -509,6 +528,99 @@ class CampusRideStore {
     return this.routes.filter(r => routeIds.includes(r.id));
   }
 
+  // ─── Graph-Based Routing (Dijkstra + Bellman-Ford) ──────────────────────
+
+  /** Get or rebuild the stop network graph (cached, invalidated on data change) */
+  public getStopGraph(): StopGraph {
+    if (!this.cachedGraph) {
+      this.cachedGraph = buildStopGraph(this.routes, this.stops);
+    }
+    return this.cachedGraph;
+  }
+
+  /** Invalidate graph cache (called when routes or stops change) */
+  private invalidateGraphCache(): void {
+    this.cachedGraph = null;
+  }
+
+  /** Dijkstra: Find shortest path between two stops */
+  public findShortestPath(fromStopId: string, toStopId: string): ShortestPathResult | null {
+    const graph = this.getStopGraph();
+    return dijkstraShortestPath(graph, fromStopId, toStopId);
+  }
+
+  /** Bellman-Ford: Find nearest stops from home GPS with connectivity scoring */
+  public findNearestStops(homeLat: number, homeLng: number, maxResults: number = 5): NearestStopResult[] {
+    const graph = this.getStopGraph();
+    return bellmanFordNearestStops(homeLat, homeLng, this.stops, graph, maxResults);
+  }
+
+  /** Combined: Best route recommendation (nearest stop + shortest path to campus) */
+  public recommendRoute(
+    homeLat: number,
+    homeLng: number,
+    campusStopId?: string
+  ): RouteRecommendation[] {
+    const graph = this.getStopGraph();
+    // Dynamically resolve campus terminal stop if not provided
+    const resolvedCampusId = campusStopId || this.resolveCampusStopId();
+    if (!resolvedCampusId) return [];
+    return recommendBestRoute(homeLat, homeLng, resolvedCampusId, this.stops, this.routes, graph);
+  }
+
+  /** Dynamically find the campus terminal stop (admin can rename/recreate stops) */
+  private resolveCampusStopId(): string | null {
+    // Priority 1: stop name contains "campus" (case-insensitive)
+    const campusStop = this.stops.find(s =>
+      s.name.toLowerCase().includes("campus") ||
+      s.name.toLowerCase().includes("gehu") ||
+      s.code?.toLowerCase().includes("campus")
+    );
+    if (campusStop) return campusStop.id;
+    // Priority 2: first stop in the first active route's last position (terminal)
+    const activeRoute = this.routes.find(r => r.isActive && r.stops.length > 0);
+    if (activeRoute) {
+      const sorted = [...activeRoute.stops].sort((a, b) => b.stopOrder - a.stopOrder);
+      return sorted[0]?.stopId || null;
+    }
+    // Priority 3: first stop
+    return this.stops[0]?.id || null;
+  }
+
+  /** A* Search: Heuristic-guided shortest path (faster than Dijkstra for point-to-point) */
+  public findShortestPathAStar(fromStopId: string, toStopId: string): ShortestPathResult | null {
+    const graph = this.getStopGraph();
+    return aStarSearch(graph, fromStopId, toStopId, this.stops);
+  }
+
+  /** Floyd-Warshall: Precompute all-pairs shortest distances (O(1) lookup after) */
+  public getAllPairsDistances(): AllPairsResult {
+    const graph = this.getStopGraph();
+    return floydWarshallAllPairs(graph);
+  }
+
+  /** Floyd-Warshall: Get distance between any two stops from precomputed matrix */
+  public getPrecomputedDistance(allPairs: AllPairsResult, fromId: string, toId: string): number {
+    return allPairs.distances.get(fromId)?.get(toId) ?? Infinity;
+  }
+
+  /** Floyd-Warshall: Reconstruct path between two stops from precomputed matrix */
+  public getPrecomputedPath(allPairs: AllPairsResult, fromId: string, toId: string): string[] | null {
+    return reconstructFloydPath(allPairs, fromId, toId);
+  }
+
+  /** Kruskal's MST: Minimum spanning tree of the stop network */
+  public getMinimumSpanningTree(): MSTResult {
+    const graph = this.getStopGraph();
+    return kruskalMST(graph);
+  }
+
+  /** Network Analytics: Comprehensive stats combining Floyd-Warshall + MST */
+  public getNetworkStats(): NetworkStats {
+    const graph = this.getStopGraph();
+    return computeNetworkStats(graph);
+  }
+
   public async updateUserRole(userId: string, newRole: UserRole) {
     this.users = this.users.map(u => (u.id === userId ? { ...u, role: newRole } : u));
     if (this.currentUser && this.currentUser.id === userId) {
@@ -637,6 +749,7 @@ class CampusRideStore {
       id: `stop-${Date.now()}`,
     };
     this.stops = [...this.stops, newStop];
+    this.invalidateGraphCache();
     this.notify();
 
     try {
@@ -652,6 +765,7 @@ class CampusRideStore {
 
   public async updateStop(id: string, updates: Partial<Stop>) {
     this.stops = this.stops.map(s => s.id === id ? { ...s, ...updates } : s);
+    this.invalidateGraphCache();
     this.notify();
     try {
       const dbUpdates: Record<string, unknown> = {};
@@ -668,6 +782,7 @@ class CampusRideStore {
 
   public async deleteStop(id: string) {
     this.stops = this.stops.filter(s => s.id !== id);
+    this.invalidateGraphCache();
     this.notify();
     try { await supabase.from("stops").delete().eq("id", id); } catch (e) { console.warn("DB deleteStop:", e); }
   }
@@ -678,6 +793,7 @@ class CampusRideStore {
       id: `route-${Date.now()}`,
     };
     this.routes = [...this.routes, newRoute];
+    this.invalidateGraphCache();
     this.notify();
 
     try {
@@ -693,6 +809,7 @@ class CampusRideStore {
 
   public async deleteRoute(id: string) {
     this.routes = this.routes.filter(r => r.id !== id);
+    this.invalidateGraphCache();
     this.notify();
     try { await supabase.from("routes").delete().eq("id", id); } catch (e) { console.warn("DB deleteRoute:", e); }
   }
