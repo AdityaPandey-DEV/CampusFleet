@@ -126,7 +126,6 @@ class AuthService {
     try {
       if (this.currentUser) {
         localStorage.setItem("campusride_auth_user", JSON.stringify(this.currentUser));
-        localStorage.setItem("campusride_user", JSON.stringify(this.currentUser));
       }
     } catch (e) {
       console.warn("Failed to save session", e);
@@ -149,7 +148,6 @@ class AuthService {
     if (typeof window === "undefined") return;
     try {
       localStorage.removeItem("campusride_auth_user");
-      localStorage.removeItem("campusride_user");
     } catch (e) {
       console.warn("Failed to clear session", e);
     }

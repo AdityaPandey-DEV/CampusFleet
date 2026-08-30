@@ -589,73 +589,135 @@ class CampusRideStore {
     this.notify();
   }
 
-  public createBus(busData: Omit<Bus, "id">) {
+  public async createBus(busData: Omit<Bus, "id">) {
     const newBus: Bus = {
       ...busData,
       id: `bus-${Date.now()}`,
     };
     this.buses = [...this.buses, newBus];
     this.notify();
+
+    try {
+      await supabase.from("buses").insert({
+        id: newBus.id, bus_number: newBus.busNumber, registration_no: newBus.registrationNo,
+        model: newBus.model, capacity: newBus.capacity, seat_layout: newBus.seatLayout,
+        status: newBus.status, gps_device_id: newBus.gpsDeviceId, current_route_id: newBus.currentRouteId,
+      });
+    } catch (e) { console.warn("DB createBus:", e); }
     return newBus;
   }
 
-  public updateBus(id: string, updates: Partial<Bus>) {
+  public async updateBus(id: string, updates: Partial<Bus>) {
     this.buses = this.buses.map(b => b.id === id ? { ...b, ...updates } : b);
     this.notify();
+
+    try {
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.busNumber) dbUpdates.bus_number = updates.busNumber;
+      if (updates.registrationNo) dbUpdates.registration_no = updates.registrationNo;
+      if (updates.model) dbUpdates.model = updates.model;
+      if (updates.capacity) dbUpdates.capacity = updates.capacity;
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.currentRouteId !== undefined) dbUpdates.current_route_id = updates.currentRouteId;
+      if (Object.keys(dbUpdates).length > 0) {
+        await supabase.from("buses").update(dbUpdates).eq("id", id);
+      }
+    } catch (e) { console.warn("DB updateBus:", e); }
   }
 
-  public deleteBus(id: string) {
+  public async deleteBus(id: string) {
     this.buses = this.buses.filter(b => b.id !== id);
     this.notify();
+    try { await supabase.from("buses").delete().eq("id", id); } catch (e) { console.warn("DB deleteBus:", e); }
   }
 
-  public createStop(stopData: Omit<Stop, "id">) {
+  public async createStop(stopData: Omit<Stop, "id">) {
     const newStop: Stop = {
       ...stopData,
       id: `stop-${Date.now()}`,
     };
     this.stops = [...this.stops, newStop];
     this.notify();
+
+    try {
+      await supabase.from("stops").insert({
+        id: newStop.id, name: newStop.name, code: newStop.code,
+        latitude: newStop.latitude, longitude: newStop.longitude,
+        landmark: newStop.landmark, geofence_radius: newStop.geofenceRadiusMeters,
+        campus: newStop.campus,
+      });
+    } catch (e) { console.warn("DB createStop:", e); }
     return newStop;
   }
 
-  public updateStop(id: string, updates: Partial<Stop>) {
+  public async updateStop(id: string, updates: Partial<Stop>) {
     this.stops = this.stops.map(s => s.id === id ? { ...s, ...updates } : s);
     this.notify();
+    try {
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.code) dbUpdates.code = updates.code;
+      if (updates.latitude) dbUpdates.latitude = updates.latitude;
+      if (updates.longitude) dbUpdates.longitude = updates.longitude;
+      if (updates.landmark) dbUpdates.landmark = updates.landmark;
+      if (Object.keys(dbUpdates).length > 0) {
+        await supabase.from("stops").update(dbUpdates).eq("id", id);
+      }
+    } catch (e) { console.warn("DB updateStop:", e); }
   }
 
-  public deleteStop(id: string) {
+  public async deleteStop(id: string) {
     this.stops = this.stops.filter(s => s.id !== id);
     this.notify();
+    try { await supabase.from("stops").delete().eq("id", id); } catch (e) { console.warn("DB deleteStop:", e); }
   }
 
-  public createRoute(routeData: Omit<Route, "id">) {
+  public async createRoute(routeData: Omit<Route, "id">) {
     const newRoute: Route = {
       ...routeData,
       id: `route-${Date.now()}`,
     };
     this.routes = [...this.routes, newRoute];
     this.notify();
+
+    try {
+      await supabase.from("routes").insert({
+        id: newRoute.id, code: newRoute.code, name: newRoute.name,
+        description: newRoute.description, direction: newRoute.direction,
+        color: newRoute.color, total_distance_km: newRoute.totalDistanceKm,
+        estimated_duration_mins: newRoute.estimatedDurationMins, is_active: newRoute.isActive,
+      });
+    } catch (e) { console.warn("DB createRoute:", e); }
     return newRoute;
   }
 
-  public deleteRoute(id: string) {
+  public async deleteRoute(id: string) {
     this.routes = this.routes.filter(r => r.id !== id);
     this.notify();
+    try { await supabase.from("routes").delete().eq("id", id); } catch (e) { console.warn("DB deleteRoute:", e); }
   }
 
-  public allocateBusToRoute(busId: string, routeId: string) {
+  public async allocateBusToRoute(busId: string, routeId: string) {
     this.buses = this.buses.map(b => (b.id === busId ? { ...b, currentRouteId: routeId } : b));
     this.notify();
+    try { await supabase.from("buses").update({ current_route_id: routeId }).eq("id", busId); } catch (e) { console.warn("DB allocate:", e); }
   }
 
-  public createTrip(tripData: Omit<Trip, "id">) {
+  public async createTrip(tripData: Omit<Trip, "id">) {
     const newTrip: Trip = {
       ...tripData,
       id: `trip-${Date.now()}`,
     };
     this.trips = [...this.trips, newTrip];
     this.notify();
+
+    try {
+      await supabase.from("trips").insert({
+        id: newTrip.id, trip_code: newTrip.tripCode, route_id: newTrip.routeId,
+        bus_id: newTrip.busId, shift_id: newTrip.shiftId, driver_id: newTrip.driverId,
+        conductor_id: newTrip.conductorId, trip_date: newTrip.tripDate, status: newTrip.status,
+      });
+    } catch (e) { console.warn("DB createTrip:", e); }
     return newTrip;
   }
 

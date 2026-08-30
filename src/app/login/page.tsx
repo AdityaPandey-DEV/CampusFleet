@@ -37,8 +37,7 @@ export default function UnifiedLoginPage() {
   const router = useRouter();
   const [authStep, setAuthStep] = useState<"LOGIN_FORM" | "EMAIL_OTP" | "ONBOARDING" | "SUCCESS">("LOGIN_FORM");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [generatedCodeHint, setGeneratedCodeHint] = useState<string | null>(null);
+  const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -184,7 +183,6 @@ export default function UnifiedLoginPage() {
     try {
       const res = await authService.sendOtp(email);
       if (res.success) {
-        setGeneratedCodeHint(null); // No more auto-displayed codes
         setAuthStep("EMAIL_OTP");
       } else {
         setErrorMessage(res.message);
@@ -421,11 +419,6 @@ export default function UnifiedLoginPage() {
                   Verification passcode sent to:
                 </p>
                 <p className="text-xs font-mono font-bold text-blue-900 dark:text-blue-200">{email}</p>
-                {generatedCodeHint && (
-                  <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/60 py-1 px-3 rounded-xl inline-block mt-1">
-                    Your One-Time Code: <span className="font-mono tracking-widest">{generatedCodeHint}</span>
-                  </p>
-                )}
               </div>
 
               <div className="flex justify-between gap-2">

@@ -83,7 +83,7 @@ export default function RouteAndStopManagementPage() {
   const activeRoute = routes.find(r => r.id === selectedRouteId) || routes[0];
 
   // Stop Handlers
-  const handleSaveStop = (e: React.FormEvent) => {
+  const handleSaveStop = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stopFormData.name || !stopFormData.code) {
       alert("Please fill Stop Name and Code");
@@ -91,10 +91,10 @@ export default function RouteAndStopManagementPage() {
     }
 
     if (editingStop) {
-      store.updateStop(editingStop.id, stopFormData);
+      await store.updateStop(editingStop.id, stopFormData);
       setEditingStop(null);
     } else {
-      store.createStop(stopFormData);
+      await store.createStop(stopFormData);
       setIsAddStopModalOpen(false);
     }
 
@@ -108,14 +108,14 @@ export default function RouteAndStopManagementPage() {
     });
   };
 
-  const handleDeleteStop = (stopId: string, stopName: string) => {
+  const handleDeleteStop = async (stopId: string, stopName: string) => {
     if (confirm(`Delete stop "${stopName}"? It will also be removed from any routes that use it.`)) {
-      store.deleteStop(stopId);
+      await store.deleteStop(stopId);
     }
   };
 
   // Route Handlers
-  const handleSaveRoute = (e: React.FormEvent) => {
+  const handleSaveRoute = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!routeFormData.name || !routeFormData.code || routeFormData.selectedStopIds.length < 2) {
       alert("Please enter Route name, code, and select at least 2 stops.");
@@ -134,7 +134,7 @@ export default function RouteAndStopManagementPage() {
       };
     });
 
-    const newRoute = store.createRoute({
+    const newRoute = await store.createRoute({
       name: routeFormData.name,
       code: routeFormData.code,
       description: routeFormData.description || "Main Academic Transit Corridor",
@@ -159,16 +159,16 @@ export default function RouteAndStopManagementPage() {
     });
   };
 
-  const handleDeleteRoute = (routeId: string, routeName: string) => {
+  const handleDeleteRoute = async (routeId: string, routeName: string) => {
     if (confirm(`Delete route "${routeName}"? Active schedules on this route will be unassigned.`)) {
-      store.deleteRoute(routeId);
+      await store.deleteRoute(routeId);
     }
   };
 
-  const handleAllocateBus = (e: React.FormEvent) => {
+  const handleAllocateBus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeRoute || !selectedBusToAllocate) return;
-    store.allocateBusToRoute(activeRoute.id, selectedBusToAllocate);
+    await store.allocateBusToRoute(activeRoute.id, selectedBusToAllocate);
     alert(`Successfully allocated bus to Route ${activeRoute.name}!`);
     setIsAllocateBusModalOpen(false);
   };

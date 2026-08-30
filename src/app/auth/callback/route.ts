@@ -10,11 +10,11 @@ export async function GET(request: Request) {
   const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
   const origin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : defaultOrigin;
 
-  const adminEmail = (process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+  const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
 
   if (code) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error("Missing Supabase environment variables in /auth/callback");
@@ -26,23 +26,35 @@ export async function GET(request: Request) {
 
     if (!error && data?.session?.user) {
       const userEmail = data.session.user.email?.toLowerCase() || "";
-      const userRole = data.session.user.user_metadata?.role;
 
-      // Smart RBAC destination router
-      if (userEmail === adminEmail.toLowerCase() || userRole === "transport_manager" || userRole === "admin") {
-        return NextResponse.redirect(`${origin}/admin`);
+      // Look up real role from the users table — single source of truth
+      let destination = "/portal";
+      try {
+        const { data: dbUser } = await supabase
+          .from("users")
+          .select("role")
+          .eq("email", userEmail)
+          .single();
+
+        const role = dbUser?.role || "student";
+        if (role === "admin" || role === "transport_manager" || userEmail === adminEmail) {
+          destination = "/admin";
+        } else if (role === "driver") {
+          destination = "/staff/driver";
+        } else if (role === "conductor") {
+          destination = "/staff/conductor";
+        }
+      } catch {
+        // If DB lookup fails, use admin email check as fallback
+        if (userEmail === adminEmail) {
+          destination = "/admin";
+        }
       }
-      if (userRole === "driver" || userEmail.includes("driver")) {
-        return NextResponse.redirect(`${origin}/staff/driver`);
-      }
-      if (userRole === "conductor" || userEmail.includes("conductor")) {
-        return NextResponse.redirect(`${origin}/staff/conductor`);
-      }
-      return NextResponse.redirect(`${origin}/portal`);
+
+      return NextResponse.redirect(`${origin}${destination}`);
     }
   }
 
-  // If next is specified, respect it; otherwise default to smart role check
   if (nextParam) {
     return NextResponse.redirect(`${origin}${nextParam}`);
   }

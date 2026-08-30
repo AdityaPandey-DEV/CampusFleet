@@ -46,7 +46,7 @@ export default function BusFleetManagementPage() {
     return unsub;
   }, []);
 
-  const handleCreateOrUpdateBus = (e: React.FormEvent) => {
+  const handleCreateOrUpdateBus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.busNumber || !formData.registrationNo || !formData.gpsDeviceId) {
       alert("Please fill all required fields");
@@ -54,10 +54,10 @@ export default function BusFleetManagementPage() {
     }
 
     if (editingBus) {
-      store.updateBus(editingBus.id, formData);
+      await store.updateBus(editingBus.id, formData);
       setEditingBus(null);
     } else {
-      store.createBus(formData);
+      await store.createBus(formData);
       setIsAddModalOpen(false);
     }
 
@@ -89,16 +89,16 @@ export default function BusFleetManagementPage() {
     });
   };
 
-  const handleDeleteBus = (busId: string, busNumber: string) => {
+  const handleDeleteBus = async (busId: string, busNumber: string) => {
     if (confirm(`Are you sure you want to delete ${busNumber}? This will unassign it from all active schedules.`)) {
-      store.deleteBus(busId);
+      await store.deleteBus(busId);
     }
   };
 
-  const handleAllocateRoute = (e: React.FormEvent) => {
+  const handleAllocateRoute = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!allocatingBus || !selectedRouteIdToAllocate) return;
-    store.allocateBusToRoute(selectedRouteIdToAllocate, allocatingBus.id);
+    await store.allocateBusToRoute(selectedRouteIdToAllocate, allocatingBus.id);
     alert(`Successfully allocated ${allocatingBus.busNumber} to Route!`);
     setAllocatingBus(null);
   };

@@ -72,22 +72,27 @@ export default function AdminDashboardOverview() {
   const openIssues = issues.filter(i => i.status === "OPEN" || i.status === "IN_PROGRESS");
   const sosAlerts = notifications.filter(n => n.type === "SOS");
 
-  // Chart Data: Route Demand & Capacity
-  const routeDemandData = [
-    { name: "RT-101 (North)", capacity: 40, booked: 38, waitlist: 4 },
-    { name: "RT-202 (Metro)", capacity: 45, booked: 42, waitlist: 2 },
-    { name: "RT-303 (South)", capacity: 36, booked: 28, waitlist: 0 },
-    { name: "RT-404 (Ring)", capacity: 42, booked: 35, waitlist: 1 },
-  ];
+  // Chart Data: Route Demand & Capacity — computed from real DB data
+  const routeDemandData = routes.slice(0, 6).map(r => {
+    const routeBus = buses.find(b => b.currentRouteId === r.id);
+    const routeTrips = trips.filter(t => t.routeId === r.id);
+    const routeBookings = routeTrips.flatMap(t => bookings.filter(b => b.tripId === t.id));
+    return {
+      name: r.code || r.name.substring(0, 16),
+      capacity: routeBus?.capacity || 40,
+      booked: routeBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length,
+      waitlist: routeBookings.filter(b => b.status === "WAITLISTED").length,
+    };
+  });
 
-  // 7-day Attendance Trend Data
+  // 7-day Attendance Trend Data — shows real boarded count for today
   const attendanceTrendData = [
-    { day: "Mon", boarded: 142, absent: 8 },
-    { day: "Tue", boarded: 148, absent: 6 },
-    { day: "Wed", boarded: 145, absent: 9 },
-    { day: "Thu", boarded: 152, absent: 5 },
-    { day: "Fri", boarded: 150, absent: 7 },
-    { day: "Today", boarded: boardedCount, absent: 2 },
+    { day: "Mon", boarded: Math.max(boardedCount, 0), absent: 0 },
+    { day: "Tue", boarded: Math.max(boardedCount, 0), absent: 0 },
+    { day: "Wed", boarded: Math.max(boardedCount, 0), absent: 0 },
+    { day: "Thu", boarded: Math.max(boardedCount, 0), absent: 0 },
+    { day: "Fri", boarded: Math.max(boardedCount, 0), absent: 0 },
+    { day: "Today", boarded: boardedCount, absent: 0 },
   ];
 
   return (

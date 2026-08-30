@@ -54,14 +54,14 @@ export default function TripsAndManifestPage() {
     }
   };
 
-  const handleCreateTrip = (e: React.FormEvent) => {
+  const handleCreateTrip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTrip.routeId || !newTrip.busId || !newTrip.shiftId) {
       alert("Please select a Route, Bus, and Shift");
       return;
     }
 
-    store.createTrip({
+    await store.createTrip({
       tripCode: `GEHU-TRIP-${Math.floor(100 + Math.random() * 900)}`,
       routeId: newTrip.routeId,
       busId: newTrip.busId,

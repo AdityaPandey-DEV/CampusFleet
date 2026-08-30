@@ -243,7 +243,7 @@ export default function StudentPortalLayout({
       <SOSModal
         isOpen={isSOSOpen}
         onClose={() => setIsSOSOpen(false)}
-        studentId={activeStudent?.id || "stud-1"}
+        studentId={activeStudent?.id || currentUser?.id || ""}
       />
 
       {/* Auth Modal */}
