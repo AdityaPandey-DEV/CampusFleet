@@ -192,7 +192,7 @@ export default function AdminDashboardOverview() {
             {boardedCount} <span className="text-xs text-slate-400 font-normal">Verified</span>
           </div>
           <div className="text-[11px] text-slate-500 font-semibold mt-1">
-            QR & Biometric Sensor Ready
+            High-Speed Optical QR Radar Active
           </div>
         </div>
 

@@ -61,7 +61,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     path: "/staff/conductor",
     icon: FileCheck2,
     color: "from-purple-600 to-pink-600 text-purple-400",
-    description: "Biometric and QR passenger validation & real-time manifest",
+    description: "High-speed optical QR radar passenger validation & real-time manifest",
   },
 ];
 
