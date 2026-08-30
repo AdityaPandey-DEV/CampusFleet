@@ -294,27 +294,37 @@ export function QRPassScanner({
         streamRef.current.getTracks().forEach(t => t.stop());
       }
 
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError("Camera stream not supported in this browser. Use Manual Code entry.");
+        return;
+      }
+
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: facing },
             width: { ideal: 1280 },
             height: { ideal: 720 },
           },
         });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute("playsinline", "true");
-          await videoRef.current.play();
-          setIsCameraActive(true);
-        }
-      } else {
-        setCameraError("Camera stream not supported in this browser. Use Manual Code entry.");
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+      }
+
+      streamRef.current = stream;
+      setIsCameraActive(true);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", "true");
+        await videoRef.current.play().catch(() => {});
       }
     } catch (err: any) {
       console.warn("Camera init error:", err);
-      setCameraError("Camera permission denied or unavailable. Use Code Entry or allow camera access.");
+      setCameraError(err?.message || "Camera permission denied or camera in use. Please allow camera permissions in browser.");
       setIsCameraActive(false);
     }
   };
@@ -341,6 +351,14 @@ export function QRPassScanner({
       startCamera(nextFacing);
     }
   };
+
+  useEffect(() => {
+    if (isCameraActive && streamRef.current && videoRef.current && videoRef.current.srcObject !== streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.setAttribute("playsinline", "true");
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isCameraActive]);
 
   useEffect(() => {
     if (isCameraActive) {
@@ -419,63 +437,65 @@ export function QRPassScanner({
       {/* Optical Camera Scanner Viewfinder */}
       {activeTab === "CAMERA" && (
         <div className="space-y-4">
-          {isCameraActive ? (
-            /* Active Live Camera Stream */
-            <div className="relative aspect-[4/3] sm:aspect-video min-h-[300px] sm:min-h-[360px] w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-slate-800 shadow-2xl text-white">
-              <video
-                ref={videoRef}
-                className="w-full h-full object-cover"
-                playsInline
-                muted
-              />
+          {/* Active Live Camera Stream (Always in DOM so videoRef is never null) */}
+          <div className={`relative aspect-[4/3] sm:aspect-video min-h-[300px] sm:min-h-[360px] w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-slate-800 shadow-2xl text-white ${isCameraActive ? "block" : "hidden"}`}>
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover"
+              playsInline
+              muted
+            />
 
-              <canvas ref={canvasRef} className="hidden" />
+            <canvas ref={canvasRef} className="hidden" />
 
-              {/* Glowing Laser Scan Beam */}
-              <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-teal-400 to-transparent shadow-[0_0_20px_#2dd4bf] animate-bounce z-20 pointer-events-none" />
+            {/* Glowing Laser Scan Beam */}
+            <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-teal-400 to-transparent shadow-[0_0_20px_#2dd4bf] animate-bounce z-20 pointer-events-none" />
 
-              {/* Viewfinder Overlay with Precision Reticle */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="w-52 h-52 sm:w-60 sm:h-60 border-2 border-dashed border-teal-400/80 rounded-3xl shadow-[0_0_40px_rgba(45,212,191,0.25)] flex flex-col items-center justify-between p-3.5">
-                  <div className="w-full flex justify-between">
-                    <div className="w-5 h-5 border-t-3 border-l-3 border-teal-400 rounded-tl-lg" />
-                    <div className="w-5 h-5 border-t-3 border-r-3 border-teal-400 rounded-tr-lg" />
-                  </div>
-                  <span className="text-[10px] text-teal-300 font-mono font-black tracking-wider bg-black/70 px-3 py-1 rounded-full backdrop-blur border border-teal-500/30">
-                    SCAN STUDENT QR PASS
-                  </span>
-                  <div className="w-full flex justify-between">
-                    <div className="w-5 h-5 border-b-3 border-l-3 border-teal-400 rounded-bl-lg" />
-                    <div className="w-5 h-5 border-b-3 border-r-3 border-teal-400 rounded-br-lg" />
-                  </div>
+            {/* Viewfinder Overlay with Precision Reticle */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="w-52 h-52 sm:w-60 sm:h-60 border-2 border-dashed border-teal-400/80 rounded-3xl shadow-[0_0_40px_rgba(45,212,191,0.25)] flex flex-col items-center justify-between p-3.5">
+                <div className="w-full flex justify-between">
+                  <div className="w-5 h-5 border-t-3 border-l-3 border-teal-400 rounded-tl-lg" />
+                  <div className="w-5 h-5 border-t-3 border-r-3 border-teal-400 rounded-tr-lg" />
                 </div>
-              </div>
-
-              {/* Floating Camera Controls Top Bar */}
-              <div className="absolute top-3 inset-x-3 flex items-center justify-between z-30">
-                <span className="text-[10px] font-bold text-teal-300 bg-black/70 px-3 py-1.5 rounded-xl backdrop-blur border border-slate-800 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-                  60 FPS Live Scanner
+                <span className="text-[10px] text-teal-300 font-mono font-black tracking-wider bg-black/70 px-3 py-1 rounded-full backdrop-blur border border-teal-500/30">
+                  SCAN STUDENT QR PASS
                 </span>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={toggleCameraFacing}
-                    className="text-[10px] font-bold text-teal-300 hover:text-white bg-black/70 px-3 py-1.5 rounded-xl backdrop-blur border border-slate-800 flex items-center gap-1.5 transition-colors"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" /> Flip Lens
-                  </button>
-                  <button
-                    onClick={stopCamera}
-                    className="text-[10px] font-bold text-rose-300 hover:text-white bg-rose-950/80 px-3 py-1.5 rounded-xl backdrop-blur border border-rose-800 flex items-center gap-1.5 transition-colors"
-                  >
-                    <CameraOff className="w-3.5 h-3.5" /> Stop
-                  </button>
+                <div className="w-full flex justify-between">
+                  <div className="w-5 h-5 border-b-3 border-l-3 border-teal-400 rounded-bl-lg" />
+                  <div className="w-5 h-5 border-b-3 border-r-3 border-teal-400 rounded-br-lg" />
                 </div>
               </div>
             </div>
-          ) : (
-            /* Standby State with Large Prominent Button (Never Cut Off on Mobile!) */
+
+            {/* Floating Camera Controls Top Bar */}
+            <div className="absolute top-3 inset-x-3 flex items-center justify-between z-30">
+              <span className="text-[10px] font-bold text-teal-300 bg-black/70 px-3 py-1.5 rounded-xl backdrop-blur border border-slate-800 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                60 FPS Live Scanner
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleCameraFacing}
+                  className="text-[10px] font-bold text-teal-300 hover:text-white bg-black/70 px-3 py-1.5 rounded-xl backdrop-blur border border-slate-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Flip Lens
+                </button>
+                <button
+                  type="button"
+                  onClick={stopCamera}
+                  className="text-[10px] font-bold text-rose-300 hover:text-white bg-rose-950/80 px-3 py-1.5 rounded-xl backdrop-blur border border-rose-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <CameraOff className="w-3.5 h-3.5" /> Stop
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Standby State with Large Prominent Button */}
+          {!isCameraActive && (
             <div className="w-full rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center space-y-4 text-white">
               <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-teal-400 shadow-inner">
                 <QrCode className="w-8 h-8" />
