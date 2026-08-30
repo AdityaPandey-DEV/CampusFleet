@@ -33,21 +33,21 @@ export default function UnifiedLoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const getTargetRouteForRole = (userRole: UserRole, userEmail: string): string => {
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com";
-    if (userEmail.toLowerCase() === adminEmail.toLowerCase() || userRole === "admin" || userRole === "transport_manager") {
+    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+    if ((adminEmail && userEmail.toLowerCase() === adminEmail) || userRole === "admin" || userRole === "transport_manager") {
       return "/admin";
     }
-    if (userRole === "driver") return "/staff/driver";
-    if (userRole === "conductor") return "/staff/conductor";
+    if (userRole === "driver" || userEmail.toLowerCase().includes("driver")) return "/staff/driver";
+    if (userRole === "conductor" || userEmail.toLowerCase().includes("conductor")) return "/staff/conductor";
     return "/portal";
   };
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com";
-    const resolvedEmail = email || "adityapandey.dev.in@gmail.com";
-    const isUserAdmin = resolvedEmail.toLowerCase() === adminEmail.toLowerCase();
+    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+    const resolvedEmail = email || "";
+    const isUserAdmin = Boolean(adminEmail && resolvedEmail.toLowerCase() === adminEmail);
     const effectiveRole: UserRole = isUserAdmin ? "admin" : role;
     const targetRoute = getTargetRouteForRole(effectiveRole, resolvedEmail);
 
@@ -62,33 +62,13 @@ export default function UnifiedLoginPage() {
         });
 
         if (error) {
-          console.warn("Supabase Google OAuth fallback:", error.message);
-          store.setCurrentUser({
-            id: "u-google-verified",
-            email: resolvedEmail,
-            fullName: isUserAdmin ? "Aditya Pandey (Admin)" : "Aditya Pandey",
-            role: effectiveRole,
-            studentId: effectiveRole === "student" ? "stud-1" : undefined,
-          });
-          setAuthStep("SUCCESS");
-          setTimeout(() => {
-            router.push(targetRoute);
-          }, 1200);
+          console.warn("Supabase Google OAuth notice:", error.message);
+          setErrorMessage(error.message);
         }
       }
     } catch (err: any) {
       console.warn("OAuth Exception:", err);
-      store.setCurrentUser({
-        id: "u-google-verified",
-        email: resolvedEmail,
-        fullName: isUserAdmin ? "Aditya Pandey (Admin)" : "Aditya Pandey",
-        role: effectiveRole,
-        studentId: effectiveRole === "student" ? "stud-1" : undefined,
-      });
-      setAuthStep("SUCCESS");
-      setTimeout(() => {
-        router.push(targetRoute);
-      }, 1200);
+      setErrorMessage(err.message || "Failed to initiate Google SSO");
     } finally {
       setIsLoading(false);
     }
@@ -131,9 +111,9 @@ export default function UnifiedLoginPage() {
     setIsLoading(true);
     setErrorMessage(null);
 
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com";
-    const isUserAdmin = email.toLowerCase() === adminEmail.toLowerCase();
-    const effectiveRole: UserRole = isUserAdmin ? "transport_manager" : role;
+    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+    const isUserAdmin = Boolean(adminEmail && email.toLowerCase() === adminEmail);
+    const effectiveRole: UserRole = isUserAdmin ? "admin" : role;
     const targetRoute = getTargetRouteForRole(effectiveRole, email);
 
     try {
@@ -281,7 +261,7 @@ export default function UnifiedLoginPage() {
                     <input
                       type="email"
                       required
-                      placeholder="adityapandey.dev.in@gmail.com or student@gehu.ac.in"
+                      placeholder="e.g. name@gehu.ac.in or admin@campus.edu"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       className="w-full text-xs pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none"

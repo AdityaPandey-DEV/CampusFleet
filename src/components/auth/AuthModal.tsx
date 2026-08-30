@@ -25,9 +25,9 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com";
-    const resolvedEmail = email || "adityapandey.dev.in@gmail.com";
-    const isUserAdmin = resolvedEmail.toLowerCase() === adminEmail.toLowerCase();
+    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+    const resolvedEmail = email || "";
+    const isUserAdmin = Boolean(adminEmail && resolvedEmail.toLowerCase() === adminEmail);
     const effectiveRole: UserRole = isUserAdmin ? "transport_manager" : role;
 
     try {
@@ -42,36 +42,13 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
           },
         });
         if (error) {
-          console.warn("Supabase Google OAuth fallback:", error.message);
-          // Seamless fallback for local/demo if Google credentials aren't set in Supabase console yet
-          store.setCurrentUser({
-            id: "u-google-verified",
-            email: resolvedEmail,
-            fullName: isUserAdmin ? "Aditya Pandey (Admin)" : "Aditya Pandey",
-            role: effectiveRole,
-            studentId: effectiveRole === "student" ? "stud-1" : undefined,
-          });
-          setAuthStep("SUCCESS");
-          setTimeout(() => {
-            onClose();
-            setAuthStep("SELECT");
-          }, 1200);
+          console.warn("Supabase Google OAuth notice:", error.message);
+          setErrorMessage(error.message);
         }
       }
     } catch (err: any) {
       console.warn("OAuth Exception:", err);
-      store.setCurrentUser({
-        id: "u-google-verified",
-        email: resolvedEmail,
-        fullName: isUserAdmin ? "Aditya Pandey (Admin)" : "Aditya Pandey",
-        role: effectiveRole,
-        studentId: effectiveRole === "student" ? "stud-1" : undefined,
-      });
-      setAuthStep("SUCCESS");
-      setTimeout(() => {
-        onClose();
-        setAuthStep("SELECT");
-      }, 1200);
+      setErrorMessage(err.message || "Failed to initiate Google login");
     } finally {
       setIsLoading(false);
     }
@@ -114,8 +91,8 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
     setIsLoading(true);
     setErrorMessage(null);
 
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com";
-    const isUserAdmin = email.toLowerCase() === adminEmail.toLowerCase();
+    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+    const isUserAdmin = Boolean(adminEmail && email.toLowerCase() === adminEmail);
     const effectiveRole: UserRole = isUserAdmin ? "transport_manager" : role;
 
     try {

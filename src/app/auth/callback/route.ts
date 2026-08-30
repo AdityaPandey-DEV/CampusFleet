@@ -10,11 +10,16 @@ export async function GET(request: Request) {
   const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
   const origin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : defaultOrigin;
 
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com";
+  const adminEmail = (process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
 
   if (code) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "https://hwawknnnolbxjvbylqkw.supabase.co";
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3YXdrbm5ub2xieGp2YnlscWt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwNzAyOTMsImV4cCI6MjEwMzY0NjI5M30.wl_8Q9o3KAmSRbOiBmTC9j-y3SjruqLKzh-EorLTpxk";
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Missing Supabase environment variables in /auth/callback");
+      return NextResponse.redirect(`${origin}/login?error=ConfigurationError`);
+    }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
