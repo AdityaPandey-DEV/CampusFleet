@@ -463,6 +463,7 @@ export function recommendBestRoute(
   topN: number = 8
 ): RouteRecommendation[] {
   const stopGraph = graph || buildStopGraph(routes, stops);
+  const stopMap = new Map(stops.map(s => [s.id, s]));
 
   // Step 1: Bellman-Ford — find nearest stops
   const nearestStops = bellmanFordNearestStops(
@@ -475,24 +476,69 @@ export function recommendBestRoute(
   const recommendations: RouteRecommendation[] = [];
 
   for (const candidate of nearestStops) {
-    const pathToCampus = dijkstraShortestPath(
+    let pathToCampus = dijkstraShortestPath(
       stopGraph, candidate.stopId, campusStopId
     );
+    let effectiveBusCount = candidate.busCount;
 
-    // Score calculation:
-    // Walking weight = 2x (walking is harder than bus)
-    // Transfer penalty = 5 per transfer
-    const walkScore = candidate.walkingDistanceKm * 2;
-    const busScore = pathToCampus ? pathToCampus.totalDistanceKm : 100; // 100 = unreachable penalty
-    const transferPenalty = pathToCampus?.requiresTransfer ? 5 : 0;
-    const totalScore = Math.round((walkScore + busScore + transferPenalty) * 100) / 100;
+    // Multimodal connection: if candidate stop is not directly on a campus-bound route,
+    // connect it seamlessly to the closest active transit corridor stop
+    if (!pathToCampus) {
+      const candidateStop = stopMap.get(candidate.stopId);
+      if (candidateStop) {
+        let bestConnectingStop: Stop | null = null;
+        let minConnectingDist = Infinity;
+        let bestConnectingPath: ShortestPathResult | null = null;
+
+        for (const s of stops) {
+          if (s.id === candidate.stopId) continue;
+          const sConn = getStopConnectivity(stopGraph, s.id);
+          if (sConn > 0) {
+            const p = dijkstraShortestPath(stopGraph, s.id, campusStopId);
+            if (p) {
+              const d = calculateHaversineDistanceKm(
+                candidateStop.latitude, candidateStop.longitude,
+                s.latitude, s.longitude
+              );
+              if (d < minConnectingDist && d <= 6.0) {
+                minConnectingDist = d;
+                bestConnectingStop = s;
+                bestConnectingPath = p;
+                effectiveBusCount = sConn;
+              }
+            }
+          }
+        }
+
+        if (bestConnectingPath && bestConnectingStop) {
+          pathToCampus = {
+            path: [candidate.stopId, ...bestConnectingPath.path],
+            totalDistanceKm: Math.round((minConnectingDist + bestConnectingPath.totalDistanceKm) * 100) / 100,
+            totalEstimatedMins: Math.round(minConnectingDist * 10 + bestConnectingPath.totalEstimatedMins),
+            routeIds: bestConnectingPath.routeIds,
+            requiresTransfer: true,
+            stopCount: bestConnectingPath.stopCount + 1,
+          };
+        }
+      }
+    }
+
+    // Score calculation (Standard Transit Gravity Model):
+    // Walking weight = 4x (walking is significantly more effort than riding in a bus)
+    // Doorstep bonus = -3 for stops <= 100m (0km away)
+    // Transfer penalty = 1.5 per transfer
+    const walkScore = candidate.walkingDistanceKm * 4;
+    const doorstepBonus = candidate.walkingDistanceKm <= 0.1 ? -3 : 0;
+    const busScore = pathToCampus ? pathToCampus.totalDistanceKm : 100;
+    const transferPenalty = pathToCampus?.requiresTransfer ? 1.5 : 0;
+    const totalScore = Math.round((walkScore + busScore + transferPenalty + doorstepBonus) * 100) / 100;
 
     recommendations.push({
       stopId: candidate.stopId,
       walkingDistanceKm: candidate.walkingDistanceKm,
       walkingTimeMins: candidate.walkingTimeMins,
       pathToCampus,
-      busCount: candidate.busCount,
+      busCount: effectiveBusCount,
       totalScore,
     });
   }
