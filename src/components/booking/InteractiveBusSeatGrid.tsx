@@ -20,6 +20,14 @@ export function InteractiveBusSeatGrid({
   onSelectSeat,
   disabled = false,
 }: InteractiveBusSeatGridProps) {
+  if (!bus) {
+    return (
+      <div className="p-12 text-center text-xs text-slate-400 font-mono bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+        No bus vehicle allocated to this schedule yet.
+      </div>
+    );
+  }
+
   const occupiedSeats = activeBookings
     .filter(b => b.status === "CONFIRMED" || b.status === "BOARDED")
     .map(b => b.seatNumber)

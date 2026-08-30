@@ -631,6 +631,9 @@ class CampusRideStore {
     if (typeof window === "undefined") return;
     try {
       localStorage.setItem("campusride_buses", JSON.stringify(this.buses));
+      localStorage.setItem("campusride_routes", JSON.stringify(this.routes));
+      localStorage.setItem("campusride_stops", JSON.stringify(this.stops));
+      localStorage.setItem("campusride_shifts", JSON.stringify(this.shifts));
       localStorage.setItem("campusride_trips", JSON.stringify(this.trips));
       localStorage.setItem("campusride_bookings", JSON.stringify(this.bookings));
       localStorage.setItem("campusride_location", JSON.stringify(this.liveLocation));
@@ -648,6 +651,12 @@ class CampusRideStore {
     try {
       const b = localStorage.getItem("campusride_buses") || localStorage.getItem("bussync_buses");
       if (b) this.buses = JSON.parse(b);
+      const r = localStorage.getItem("campusride_routes") || localStorage.getItem("bussync_routes");
+      if (r) this.routes = JSON.parse(r);
+      const st = localStorage.getItem("campusride_stops") || localStorage.getItem("bussync_stops");
+      if (st) this.stops = JSON.parse(st);
+      const sh = localStorage.getItem("campusride_shifts") || localStorage.getItem("bussync_shifts");
+      if (sh) this.shifts = JSON.parse(sh);
       const t = localStorage.getItem("campusride_trips") || localStorage.getItem("bussync_trips");
       if (t) this.trips = JSON.parse(t);
       const bk = localStorage.getItem("campusride_bookings") || localStorage.getItem("bussync_bookings");
@@ -904,6 +913,43 @@ class CampusRideStore {
     this.notify();
   }
 
+  public deleteBus(id: string) {
+    this.buses = this.buses.filter(b => b.id !== id);
+    // Unassign bus from trips
+    this.trips = this.trips.filter(t => t.busId !== id);
+    this.notify();
+  }
+
+  public createStop(stopData: Omit<Stop, "id">) {
+    const newStop: Stop = {
+      ...stopData,
+      id: `stop_${Date.now()}`,
+    };
+    this.stops.push(newStop);
+    this.notify();
+    return newStop;
+  }
+
+  public updateStop(id: string, stopData: Partial<Stop>) {
+    this.stops = this.stops.map(s => (s.id === id ? { ...s, ...stopData } : s));
+    // Also update embedded stop in routes
+    this.routes = this.routes.map(r => ({
+      ...r,
+      stops: r.stops.map(rs => (rs.stopId === id ? { ...rs, stop: { ...rs.stop, ...stopData } } : rs)),
+    }));
+    this.notify();
+  }
+
+  public deleteStop(id: string) {
+    this.stops = this.stops.filter(s => s.id !== id);
+    // Remove stop from routes
+    this.routes = this.routes.map(r => ({
+      ...r,
+      stops: r.stops.filter(rs => rs.stopId !== id),
+    }));
+    this.notify();
+  }
+
   public createRoute(routeData: Omit<Route, "id">) {
     const newRoute: Route = {
       ...routeData,
@@ -919,8 +965,68 @@ class CampusRideStore {
     this.notify();
   }
 
+  public deleteRoute(id: string) {
+    this.routes = this.routes.filter(r => r.id !== id);
+    this.trips = this.trips.filter(t => t.routeId !== id);
+    this.notify();
+  }
+
+  public allocateBusToRoute(routeId: string, busId: string, shiftId?: string) {
+    const targetShiftId = shiftId || this.shifts[0]?.id || "shift-1";
+    // Check if trip exists for this route and shift
+    const existingTrip = this.trips.find(t => t.routeId === routeId && t.shiftId === targetShiftId);
+    if (existingTrip) {
+      this.trips = this.trips.map(t => (t.id === existingTrip.id ? { ...t, busId } : t));
+    } else {
+      const newTrip: Trip = {
+        id: `trip_${Date.now()}`,
+        tripCode: `TRIP-${Math.floor(100 + Math.random() * 900)}`,
+        busId,
+        routeId,
+        shiftId: targetShiftId,
+        tripDate: new Date().toISOString().split("T")[0],
+        driverId: this.staff.find(s => s.role === "driver")?.id || "st-drv-1",
+        conductorId: this.staff.find(s => s.role === "conductor")?.id || "st-cnd-1",
+        status: "SCHEDULED",
+        delayMinutes: 0,
+        manifestLocked: false,
+        currentStopIndex: 0,
+      };
+      this.trips.push(newTrip);
+    }
+    this.notify();
+  }
+
+  public createTrip(tripData: Omit<Trip, "id">) {
+    const newTrip: Trip = {
+      ...tripData,
+      id: `trip_${Date.now()}`,
+    };
+    this.trips.push(newTrip);
+    this.notify();
+    return newTrip;
+  }
+
   public lockTripManifest(tripId: string) {
     this.trips = this.trips.map(t => (t.id === tripId ? lockFinalManifest(t) : t));
+    this.notify();
+  }
+
+  public deleteTrip(id: string) {
+    this.trips = this.trips.filter(t => t.id !== id);
+    this.bookings = this.bookings.filter(b => b.tripId !== id);
+    this.notify();
+  }
+
+  public clearAllProductionData() {
+    this.buses = [];
+    this.routes = [];
+    this.stops = [];
+    this.trips = [];
+    this.bookings = [];
+    this.attendanceRecords = [];
+    this.issues = [];
+    this.maintenance = [];
     this.notify();
   }
 

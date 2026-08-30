@@ -60,18 +60,22 @@ export default function ShiftBookingPage() {
 
   const targetTrip = trips.find(t => t.shiftId === selectedShiftId) || trips[0];
   const bus = buses.find(b => b.id === targetTrip?.busId) || buses[0];
-  const tripBookings = bookings.filter(b => b.tripId === targetTrip?.id);
+  const tripBookings = targetTrip ? bookings.filter(b => b.tripId === targetTrip.id) : [];
   const confirmedCount = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
   const waitlistCount = tripBookings.filter(b => b.status === "WAITLISTED").length;
-  const isFull = confirmedCount >= bus.capacity;
+  const isFull = bus ? confirmedCount >= bus.capacity : false;
 
   const userExistingBooking = bookings.find(
-    b => b.studentId === activeStudent?.id && b.tripId === targetTrip?.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED")
+    b => b.studentId === activeStudent?.id && targetTrip && b.tripId === targetTrip.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED")
   );
 
-  const selectedStop = stops.find(s => s.id === selectedStopId) || stops[1];
+  const selectedStop = stops.find(s => s.id === selectedStopId) || stops[0] || { id: "default", name: "Main Campus Station", code: "MC-01" };
 
   const handleBook = () => {
+    if (!bus || !targetTrip) {
+      setBookingMessage({ type: "error", text: "No active bus or trip scheduled for this shift yet. Please contact the Transport Admin." });
+      return;
+    }
     if (!selectedStopId) {
       setBookingMessage({ type: "error", text: "Please select a boarding pickup stop." });
       return;
