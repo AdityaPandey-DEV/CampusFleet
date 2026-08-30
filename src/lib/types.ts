@@ -131,6 +131,7 @@ export interface Student {
     relationship: string;
     phone: string;
   };
+  campus?: string;
   medicalNote?: string;
   transportAccessSuspended: boolean;
   hasActiveSubscription: boolean;

@@ -222,7 +222,9 @@ class CampusRideStore {
       // 5. Fetch Users
       const { data: dbUsers } = await supabase.from("users").select("*");
       if (dbUsers && dbUsers.length > 0) {
-        this.users = dbUsers.map(u => ({
+        // Filter out static mock placeholders if real users exist
+        const realUsers = dbUsers.filter(u => !["student@gehu.ac.in", "priya.bht@gehu.ac.in", "rahul.ddn@gehu.ac.in", "aayush.bht@gehu.ac.in"].includes(u.email));
+        this.users = (realUsers.length > 0 ? realUsers : dbUsers).map(u => ({
           id: u.id,
           email: u.email,
           fullName: u.full_name,
@@ -256,10 +258,12 @@ class CampusRideStore {
         }));
       }
 
-      // 7. Fetch Students
+      // 7. Fetch Students & Auto-Sync Real Signed-In Users
       const { data: dbStudents } = await supabase.from("students").select("*");
+      let mappedStudents: Student[] = [];
       if (dbStudents && dbStudents.length > 0) {
-        this.students = dbStudents.map(s => ({
+        const filtered = dbStudents.filter(s => !["student@gehu.ac.in", "priya.bht@gehu.ac.in", "rahul.ddn@gehu.ac.in", "aayush.bht@gehu.ac.in"].includes(s.email));
+        mappedStudents = (filtered.length > 0 ? filtered : dbStudents).map(s => ({
           id: s.id,
           userId: s.user_id,
           enrollmentNo: s.enrollment_no || "PENDING",
@@ -268,6 +272,7 @@ class CampusRideStore {
           phone: s.phone || "+91 0000000000",
           department: s.department || "B.Tech CSE",
           semester: s.semester || "5th",
+          campus: s.campus || "GEHU Bhimtal",
           primaryStopId: s.primary_stop_id || "",
           primaryRouteId: s.primary_route_id || "",
           emergencyContact: s.emergency_contact || { name: "Campus Desk", relationship: "Admin", phone: "+91 0000000000" },
@@ -276,6 +281,46 @@ class CampusRideStore {
           subscriptionExpiryDate: s.subscription_expiry_date,
         }));
       }
+
+      // Auto-register every real authenticated Google user as a Student if not yet in directory
+      for (const u of this.users) {
+        const alreadyExists = mappedStudents.some(s => s.email?.toLowerCase() === u.email?.toLowerCase());
+        if (!alreadyExists) {
+          const newStudent: Student = {
+            id: `stud-${u.id}`,
+            userId: u.id,
+            enrollmentNo: "PENDING",
+            fullName: u.fullName || "Student Commuter",
+            email: u.email,
+            phone: u.phone || "+91 0000000000",
+            department: "B.Tech CSE",
+            semester: "1st",
+            campus: u.campus || "GEHU Bhimtal",
+            primaryStopId: this.stops[0]?.id || "",
+            primaryRouteId: this.routes[0]?.id || "",
+            emergencyContact: { name: "Campus Desk", relationship: "Admin", phone: "+91 0000000000" },
+            transportAccessSuspended: false,
+            hasActiveSubscription: true,
+            subscriptionExpiryDate: "2027-12-31",
+          };
+          mappedStudents.push(newStudent);
+          supabase.from("students").upsert({
+            id: newStudent.id,
+            user_id: u.id,
+            full_name: newStudent.fullName,
+            email: newStudent.email,
+            phone: newStudent.phone,
+            department: newStudent.department,
+            semester: newStudent.semester,
+            campus: newStudent.campus,
+            enrollment_no: newStudent.enrollmentNo,
+            primary_stop_id: newStudent.primaryStopId,
+            has_active_subscription: true,
+          }).then(() => {});
+        }
+      }
+
+      this.students = mappedStudents;
 
       // 8. Fetch Staff (Drivers & Conductors)
       const { data: dbStaff } = await supabase.from("staff").select("*");
@@ -694,6 +739,86 @@ class CampusRideStore {
     } catch (e) {
       console.warn("Supabase user role update error:", e);
     }
+  }
+
+  public async updateStudentProfile(
+    studentId: string,
+    profileData: {
+      fullName?: string;
+      enrollmentNo?: string;
+      campus?: string;
+      department?: string;
+      semester?: string;
+      phone?: string;
+      primaryStopId?: string;
+      emergencyContact?: { name: string; relationship: string; phone: string };
+    }
+  ) {
+    const student = this.students.find(s => s.id === studentId || s.userId === studentId || s.email?.toLowerCase() === this.currentUser?.email?.toLowerCase());
+    if (!student) return { success: false, message: "Student profile not found." };
+
+    const updatedStudent: Student = {
+      ...student,
+      fullName: profileData.fullName || student.fullName,
+      enrollmentNo: profileData.enrollmentNo || student.enrollmentNo,
+      campus: profileData.campus || student.campus || "GEHU Bhimtal",
+      department: profileData.department || student.department,
+      semester: profileData.semester || student.semester,
+      phone: profileData.phone || student.phone,
+      primaryStopId: profileData.primaryStopId || student.primaryStopId,
+      emergencyContact: profileData.emergencyContact || student.emergencyContact,
+    };
+
+    this.students = this.students.map(s => s.id === student.id ? updatedStudent : s);
+    
+    // Also update users table entry
+    this.users = this.users.map(u => (u.id === student.userId || u.email?.toLowerCase() === student.email?.toLowerCase()) ? {
+      ...u,
+      fullName: updatedStudent.fullName,
+      phone: updatedStudent.phone,
+      campus: updatedStudent.campus,
+    } : u);
+
+    if (this.currentUser && (this.currentUser.id === student.userId || this.currentUser.email?.toLowerCase() === student.email?.toLowerCase())) {
+      this.currentUser = {
+        ...this.currentUser,
+        fullName: updatedStudent.fullName,
+        studentId: updatedStudent.id,
+      };
+    }
+
+    this.saveToLocalStorage();
+    this.notify();
+
+    // Persist to Supabase
+    try {
+      await supabase.from("students").upsert({
+        id: updatedStudent.id,
+        user_id: updatedStudent.userId,
+        full_name: updatedStudent.fullName,
+        email: updatedStudent.email,
+        phone: updatedStudent.phone,
+        department: updatedStudent.department,
+        semester: updatedStudent.semester,
+        campus: updatedStudent.campus,
+        enrollment_no: updatedStudent.enrollmentNo,
+        primary_stop_id: updatedStudent.primaryStopId,
+        emergency_contact: updatedStudent.emergencyContact,
+        has_active_subscription: updatedStudent.hasActiveSubscription,
+      });
+
+      if (updatedStudent.userId) {
+        await supabase.from("users").update({
+          full_name: updatedStudent.fullName,
+          phone: updatedStudent.phone,
+          campus: updatedStudent.campus,
+        }).eq("id", updatedStudent.userId);
+      }
+    } catch (e) {
+      console.warn("DB updateStudentProfile notice:", e);
+    }
+
+    return { success: true, message: "Profile successfully saved to institutional database." };
   }
 
   // Setters & Actions

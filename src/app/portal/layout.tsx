@@ -7,6 +7,7 @@ import { store } from "@/lib/store";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { SOSModal } from "@/components/common/SOSModal";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { StudentProfileModal } from "@/components/auth/StudentProfileModal";
 import {
   BusFront,
   Compass,
@@ -252,6 +253,9 @@ export default function StudentPortalLayout({
         onClose={() => setIsAuthOpen(false)}
         initialRole="student"
       />
+
+      {/* Incomplete Profile Completion Modal */}
+      <StudentProfileModal />
     </div>
   );
 }

@@ -69,11 +69,11 @@ export default function StudentManagementPage() {
             <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="p-3.5">Roll / ID</th>
-                <th className="p-3.5">Student Name</th>
-                <th className="p-3.5">Department & Semester</th>
-                <th className="p-3.5">Designated Stop</th>
+                <th className="p-3.5">Student Commuter</th>
+                <th className="p-3.5">Campus & Department</th>
+                <th className="p-3.5">Primary Pickup Stop</th>
                 <th className="p-3.5">Emergency Contact</th>
-                <th className="p-3.5">Subscription</th>
+                <th className="p-3.5">Transit Status</th>
                 <th className="p-3.5 text-right">Access Privileges</th>
               </tr>
             </thead>
@@ -85,30 +85,32 @@ export default function StudentManagementPage() {
                 return (
                   <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                     <td className="p-3.5 font-mono font-bold text-blue-600 dark:text-blue-400">
-                      {s.enrollmentNo}
+                      {s.enrollmentNo || "PENDING"}
                     </td>
                     <td className="p-3.5">
                       <div className="font-bold text-slate-900 dark:text-white">{s.fullName}</div>
-                      <div className="text-[10px] text-slate-400">{s.phone}</div>
+                      <div className="text-[10px] text-slate-500">{s.email}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{s.phone}</div>
                     </td>
                     <td className="p-3.5 text-slate-700 dark:text-slate-300">
-                      <div>{s.department}</div>
-                      <div className="text-[10px] text-slate-400">{s.semester}</div>
+                      <div className="font-semibold text-slate-900 dark:text-white">{s.campus || "GEHU Bhimtal"}</div>
+                      <div className="text-[10px] text-slate-500">{s.department} • {s.semester}</div>
                     </td>
                     <td className="p-3.5 text-slate-700 dark:text-slate-300">
-                      {stop?.name || "Campus Main"}
+                      <div className="font-semibold">{stop?.name || "Campus Main Corridor"}</div>
+                      <div className="text-[10px] text-slate-400">{stop?.landmark}</div>
                     </td>
                     <td className="p-3.5">
                       <div className="font-semibold text-slate-800 dark:text-slate-200">
-                        {s.emergencyContact.name} ({s.emergencyContact.relationship})
+                        {s.emergencyContact?.name || "Guardian"} ({s.emergencyContact?.relationship || "Family"})
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono">
-                        {s.emergencyContact.phone}
+                        {s.emergencyContact?.phone || s.phone}
                       </div>
                     </td>
                     <td className="p-3.5">
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold">
-                        ACTIVE
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-300 dark:border-emerald-800">
+                        ACTIVE PASS
                       </span>
                     </td>
                     <td className="p-3.5 text-right">
