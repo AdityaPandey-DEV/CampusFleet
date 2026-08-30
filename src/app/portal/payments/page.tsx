@@ -6,6 +6,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { CreditCard, CheckCircle2, ShieldCheck, Download, Sparkles, FileText, ArrowRight } from "lucide-react";
 
 export default function SubscriptionsAndBillingPage() {
+  const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [plans, setPlans] = useState(store.getPlans());
   const [payments, setPayments] = useState(store.getPayments());
   const [students, setStudents] = useState(store.getStudents());
@@ -15,6 +16,7 @@ export default function SubscriptionsAndBillingPage() {
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
+      setCurrentUser(store.getCurrentUser());
       setPlans(store.getPlans());
       setPayments(store.getPayments());
       setStudents(store.getStudents());
@@ -23,18 +25,30 @@ export default function SubscriptionsAndBillingPage() {
     return unsub;
   }, []);
 
-  const activeStudent = students.find(s => s.id === activeChildId) || students[0];
-  const studentPayments = payments.filter(p => p.studentId === activeStudent?.id);
+  const activeStudent = currentUser
+    ? students.find(
+        s =>
+          (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
+          (currentUser.studentId && s.id === currentUser.studentId) ||
+          s.userId === currentUser.id ||
+          s.email?.toLowerCase() === currentUser.email?.toLowerCase()
+      ) || null
+    : null;
+  const studentPayments = activeStudent ? payments.filter(p => p.studentId === activeStudent.id) : [];
 
   const handleSimulatePayment = (plan: any) => {
+    if (!currentUser) {
+      alert("Please sign in to complete subscription payment.");
+      return;
+    }
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
       const newReceipt = {
         id: `pay_${Date.now()}`,
         receiptNumber: `RCP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-        studentId: activeStudent.id,
-        studentName: activeStudent.fullName,
+        studentId: activeStudent?.id || `stud-${currentUser.id}`,
+        studentName: activeStudent?.fullName || currentUser.fullName,
         planName: plan.name,
         amount: plan.price,
         status: "PAID",

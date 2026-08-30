@@ -30,26 +30,30 @@ export default function DigitalPassPage() {
     return unsub;
   }, []);
 
-  const activeStudent =
-    students.find(
-      s =>
-        (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
-        (currentUser &&
-          ((currentUser.studentId && s.id === currentUser.studentId) ||
-            s.userId === currentUser.id ||
-            s.email?.toLowerCase() === currentUser.email?.toLowerCase()))
-    ) || students[0];
+  const activeStudent = currentUser
+    ? students.find(
+        s =>
+          (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
+          (currentUser.studentId && s.id === currentUser.studentId) ||
+          s.userId === currentUser.id ||
+          s.email?.toLowerCase() === currentUser.email?.toLowerCase()
+      ) || null
+    : null;
 
-  const userBookings = bookings.filter(
-    b =>
-      b.studentId === activeStudent?.id ||
-      b.studentId === activeStudent?.userId ||
-      (currentUser &&
-        (b.studentId === currentUser.id ||
+  const userBookings = currentUser && activeStudent
+    ? bookings.filter(
+        b =>
+          b.studentId === activeStudent.id ||
+          b.studentId === activeStudent.userId ||
+          b.studentId === currentUser.id ||
           b.studentId === currentUser.studentId ||
-          b.studentId === `stud-${currentUser.id}`))
-  );
-  const activeBooking = userBookings.find(b => b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED") || userBookings[0];
+          b.studentId === `stud-${currentUser.id}`
+      )
+    : [];
+
+  const activeBooking = userBookings.find(
+    b => b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED"
+  ) || null;
 
   const trip = trips.find(t => t.id === activeBooking?.tripId) || trips[0];
   const bus = buses.find(b => b.id === trip?.busId) || buses[0];
@@ -86,7 +90,25 @@ export default function DigitalPassPage() {
         </p>
       </div>
 
-      {activeBooking ? (
+      {!currentUser ? (
+        <div className="text-center py-12 p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+          <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/80 rounded-2xl flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400">
+            <QrCode className="w-8 h-8" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-lg font-black text-slate-900 dark:text-white">Sign In Required</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+              Please sign in with your university account to access your personalized Digital QR Boarding Pass.
+            </p>
+          </div>
+          <Link
+            href="/login?redirect=/portal/pass"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-blue-500/20 active:scale-95 transition-transform"
+          >
+            Sign In to View Pass →
+          </Link>
+        </div>
+      ) : activeBooking && activeStudent ? (
         <BoardingPassCard
           booking={activeBooking}
           student={activeStudent}

@@ -75,19 +75,36 @@ export default function ShiftBookingPage() {
     return unsub;
   }, []);
 
-  const activeStudent =
-    students.find(
-      s =>
-        (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
-        (currentUser &&
-          ((currentUser.studentId && s.id === currentUser.studentId) ||
-            s.userId === currentUser.id ||
-            s.email?.toLowerCase() === currentUser.email?.toLowerCase()))
-    ) || students[0];
+  const activeStudent = currentUser
+    ? students.find(
+        s =>
+          (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
+          (currentUser.studentId && s.id === currentUser.studentId) ||
+          s.userId === currentUser.id ||
+          s.email?.toLowerCase() === currentUser.email?.toLowerCase()
+      ) || {
+        id: `stud-${currentUser.id}`,
+        userId: currentUser.id,
+        enrollmentNo: "PENDING",
+        fullName: currentUser.fullName || "Student Commuter",
+        email: currentUser.email,
+        phone: "+91 0000000000",
+        department: "B.Tech CSE",
+        semester: "1st",
+        campus: "GEHU Bhimtal",
+        primaryStopId: stops[0]?.id || "",
+        primaryRouteId: "",
+        emergencyContact: { name: "Campus Desk", relationship: "Admin", phone: "+91 0000000000" },
+        transportAccessSuspended: false,
+        hasActiveSubscription: true,
+      }
+    : null;
 
   useEffect(() => {
     if (activeStudent && !selectedStopId) {
       setSelectedStopId(activeStudent.primaryStopId || stops[0]?.id || "");
+    } else if (!selectedStopId && stops.length > 0) {
+      setSelectedStopId(stops[0].id);
     }
   }, [activeStudent, selectedStopId, stops]);
 
@@ -98,40 +115,41 @@ export default function ShiftBookingPage() {
   const waitlistCount = tripBookings.filter(b => b.status === "WAITLISTED").length;
   const isFull = bus ? confirmedCount >= bus.capacity : false;
 
-  const userExistingBooking = bookings.find(
-    b =>
-      (b.studentId === activeStudent?.id ||
-        b.studentId === activeStudent?.userId ||
-        (currentUser &&
-          (b.studentId === currentUser.id ||
+  const userExistingBooking = currentUser && activeStudent
+    ? bookings.find(
+        b =>
+          (b.studentId === activeStudent.id ||
+            b.studentId === activeStudent.userId ||
+            b.studentId === currentUser.id ||
             b.studentId === currentUser.studentId ||
-            b.studentId === `stud-${currentUser.id}`))) &&
-      targetTrip &&
-      b.tripId === targetTrip.id &&
-      (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
-  );
+            b.studentId === `stud-${currentUser.id}`) &&
+          targetTrip &&
+          b.tripId === targetTrip.id &&
+          (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
+      )
+    : null;
 
   const selectedStop = stops.find(s => s.id === selectedStopId) || stops[0];
 
-  // Guaranteed QR Booking payload: active booking for this shift, any active booking, or active live pass
+  // Guaranteed QR Booking payload
   const displayBookingForQR = useMemo(() => {
     if (userExistingBooking) return userExistingBooking;
+    if (!currentUser || !activeStudent) return null;
     const anyActive = bookings.find(
       b =>
-        (b.studentId === activeStudent?.id ||
-          b.studentId === activeStudent?.userId ||
-          (currentUser &&
-            (b.studentId === currentUser.id ||
-              b.studentId === currentUser.studentId ||
-              b.studentId === `stud-${currentUser.id}`))) &&
+        (b.studentId === activeStudent.id ||
+          b.studentId === activeStudent.userId ||
+          b.studentId === currentUser.id ||
+          b.studentId === currentUser.studentId ||
+          b.studentId === `stud-${currentUser.id}`) &&
         (b.status === "CONFIRMED" || b.status === "BOARDED" || b.status === "WAITLISTED")
     );
     if (anyActive) return anyActive;
 
     return {
-      id: `bk-${activeStudent?.id || "student"}-preview`,
+      id: `bk-${activeStudent.id}-preview`,
       bookingCode: "GEHU-PASS-01",
-      studentId: activeStudent?.id || "student-1",
+      studentId: activeStudent.id,
       tripId: targetTrip?.id || trips[0]?.id || "trip-1",
       boardingStopId: selectedStopId || stops[0]?.id || "stop-1",
       status: "CONFIRMED" as const,
@@ -153,8 +171,8 @@ export default function ShiftBookingPage() {
   }, [selectedStopId]);
 
   const handleBook = () => {
-    if (!activeStudent) {
-      setBookingMessage({ type: "error", text: "Student profile is not active. Please select or initialize your profile." });
+    if (!currentUser || !activeStudent) {
+      router.push("/login?redirect=/portal/booking");
       return;
     }
     if (!bus || !targetTrip) {
@@ -174,7 +192,7 @@ export default function ShiftBookingPage() {
     if (res.success) {
       setBookingMessage({
         type: "success",
-        text: `✓ Seat ${selectedSeatNumber || "1A"} Confirmed! A confirmation email and pass have been dispatched to ${activeStudent?.email || "your email"}. Present your QR code to the bus conductor upon boarding.`,
+        text: `✓ Seat ${selectedSeatNumber || "1A"} Confirmed! A confirmation email and pass have been dispatched to ${activeStudent?.email || currentUser.email}. Present your QR code to the bus conductor upon boarding.`,
       });
       setIsQRModalOpen(true);
     } else {
@@ -602,14 +620,22 @@ export default function ShiftBookingPage() {
               <div className="grid grid-cols-2 gap-3 text-xs pt-1">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
                   <div className="text-[10px] uppercase font-bold text-slate-400">Passenger</div>
-                  <div className="font-bold text-slate-900 dark:text-white">{activeStudent?.fullName || "Student Passenger"}</div>
-                  <div className="text-[10px] text-slate-400 font-mono">{activeStudent?.enrollmentNo || "Pending Profile"}</div>
+                  <div className="font-bold text-slate-900 dark:text-white truncate">
+                    {currentUser ? (activeStudent?.fullName || currentUser.fullName) : "Guest Commuter"}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono truncate">
+                    {currentUser ? (activeStudent?.enrollmentNo || currentUser.email) : "Sign in required to book"}
+                  </div>
                 </div>
 
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
                   <div className="text-[10px] uppercase font-bold text-slate-400">Guardian / Emergency</div>
-                  <div className="font-bold text-slate-900 dark:text-white">{activeStudent?.emergencyContact?.name || "Campus Desk"}</div>
-                  <div className="text-[10px] text-slate-400 font-mono">{activeStudent?.emergencyContact?.phone || "+91 0000000000"}</div>
+                  <div className="font-bold text-slate-900 dark:text-white truncate">
+                    {activeStudent?.emergencyContact?.name || "Campus Desk"}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono truncate">
+                    {activeStudent?.emergencyContact?.phone || "+91 0000000000"}
+                  </div>
                 </div>
               </div>
 
@@ -651,6 +677,14 @@ export default function ShiftBookingPage() {
                     </button>
                   </div>
                 </div>
+              ) : !currentUser ? (
+                <Link
+                  href="/login?redirect=/portal/booking"
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 via-teal-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Sign In to Confirm Seat Reservation ({selectedSeatNumber || "1A"}) →</span>
+                </Link>
               ) : (
                 <button
                   onClick={handleBook}
@@ -716,7 +750,7 @@ export default function ShiftBookingPage() {
             </button>
             <BoardingPassCard
               booking={displayBookingForQR}
-              student={activeStudent}
+              student={activeStudent || undefined}
               bus={bus}
               stop={selectedStop}
               shift={shifts.find(s => s.id === selectedShiftId)}

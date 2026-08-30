@@ -35,6 +35,7 @@ const CampusRideMap = dynamic(() => import("@/components/maps/CampusRideMap"), {
 });
 
 export default function LiveTrackerPage() {
+  const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [buses, setBuses] = useState(store.getBuses());
   const [routes, setRoutes] = useState(store.getRoutes());
   const [stops, setStops] = useState(store.getStops());
@@ -48,6 +49,7 @@ export default function LiveTrackerPage() {
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
+      setCurrentUser(store.getCurrentUser());
       setBuses(store.getBuses());
       setRoutes(store.getRoutes());
       setStops(store.getStops());
@@ -60,7 +62,15 @@ export default function LiveTrackerPage() {
     return unsub;
   }, []);
 
-  const activeStudent = students.find(s => s.id === activeChildId) || students[0];
+  const activeStudent = currentUser
+    ? students.find(
+        s =>
+          (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
+          (currentUser.studentId && s.id === currentUser.studentId) ||
+          s.userId === currentUser.id ||
+          s.email?.toLowerCase() === currentUser.email?.toLowerCase()
+      ) || null
+    : null;
 
   // Resolve assigned route dynamically
   const assignedRoute = useMemo(() => {

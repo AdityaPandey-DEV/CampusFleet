@@ -58,7 +58,15 @@ export default function StudentPortalLayout({
     return unsub;
   }, []);
 
-  const activeStudent = students.find(s => s.id === activeChildId) || students[0];
+  const activeStudent = currentUser
+    ? students.find(
+        s =>
+          (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
+          (currentUser.studentId && s.id === currentUser.studentId) ||
+          s.userId === currentUser.id ||
+          s.email?.toLowerCase() === currentUser.email?.toLowerCase()
+      ) || null
+    : null;
   const unreadNotifs = notifications.filter(n => !n.isRead).length;
 
   const navLinks = [
