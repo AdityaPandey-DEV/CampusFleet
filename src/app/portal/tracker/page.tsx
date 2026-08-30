@@ -15,6 +15,7 @@ export default function LiveTrackerPage() {
   const [liveLocation, setLiveLocation] = useState(store.getLiveLocation());
   const [students, setStudents] = useState(store.getStudents());
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
+  const [selectedRouteId, setSelectedRouteId] = useState<string>("");
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -30,9 +31,10 @@ export default function LiveTrackerPage() {
   }, []);
 
   const activeStudent = students.find(s => s.id === activeChildId) || students[0];
-  const assignedRoute = routes.find(r => r.id === activeStudent?.primaryRouteId) || routes[0];
-  const pickupStop = stops.find(s => s.id === activeStudent?.primaryStopId) || stops[0];
+  const assignedRoute = routes.find(r => r.id === (selectedRouteId || activeStudent?.primaryRouteId || "route-bus-44")) || routes[0];
+  const pickupStop = stops.find(s => s.id === activeStudent?.primaryStopId) || stops.find(s => s.id === "stop-laldant") || stops[0];
   const activeTrip = trips.find(t => t.routeId === assignedRoute?.id) || trips[0];
+  const currentRouteStops = assignedRoute?.stops?.map(s => s.stop) || stops.slice(0, 6);
 
   if (stops.length === 0 || routes.length === 0) {
     return (
@@ -65,14 +67,28 @@ export default function LiveTrackerPage() {
             Live Fleet Tracking & Station Radar
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Real-time geospatial telemetry for {assignedRoute?.name || "Campus Network"}
+            Real-time geospatial telemetry for {assignedRoute?.name || "Official Campus Fleet"}
           </p>
         </div>
 
-        {/* Live Pulse Indicator */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-          <span>Telematics Active (Ping every 15s)</span>
+        {/* Route Selector Dropdown & Live Pulse */}
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={selectedRouteId || assignedRoute?.id || ""}
+            onChange={e => setSelectedRouteId(e.target.value)}
+            className="text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 outline-none shadow-sm cursor-pointer"
+          >
+            {routes.map(r => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+            <span>Telematics Active</span>
+          </div>
         </div>
       </div>
 
@@ -82,8 +98,8 @@ export default function LiveTrackerPage() {
         <div className="lg:col-span-2 space-y-4">
           <CampusRideMap
             busLocation={liveLocation}
-            stops={stops}
-            routeCoordinates={stops.map(s => [s.latitude, s.longitude])}
+            stops={currentRouteStops}
+            routeCoordinates={currentRouteStops.map(s => [s.latitude, s.longitude])}
             height="500px"
           />
 
@@ -96,9 +112,9 @@ export default function LiveTrackerPage() {
               </div>
             </div>
             <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400">ETA to Stop</div>
+              <div className="text-[10px] uppercase font-bold text-slate-400">ETA to Next Stop</div>
               <div className="text-xl font-black text-blue-600 dark:text-blue-400 font-mono mt-0.5">
-                {liveLocation?.estimatedArrivalNextStopMins || 0} <span className="text-xs font-normal">mins</span>
+                {liveLocation?.estimatedArrivalNextStopMins || 4} <span className="text-xs font-normal">mins</span>
               </div>
             </div>
             <div>
@@ -108,16 +124,16 @@ export default function LiveTrackerPage() {
               </div>
             </div>
             <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400">Active Bus</div>
+              <div className="text-[10px] uppercase font-bold text-slate-400">Allocated Bus</div>
               <div className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono mt-2 truncate">
-                {buses.find(b => b.id === liveLocation?.busId)?.registrationNo || "Live Bus"}
+                {buses.find(b => b.id === liveLocation?.busId)?.registrationNo || "UK04PA 2021 (Bus 44)"}
               </div>
             </div>
           </div>
 
           {/* Privacy Note */}
           <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-900/50 text-[11px] text-blue-800 dark:text-blue-300">
-            <span className="font-bold">Privacy Guard:</span> Bus location coordinates are shared with passengers and verified guardians exclusively while an assigned trip is actively running.
+            <span className="font-bold">Official Corridor:</span> Showing official stoppage timeline and GPS beacon for {assignedRoute?.name}.
           </div>
         </div>
 
@@ -126,14 +142,14 @@ export default function LiveTrackerPage() {
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                Station Route Progression
+                Route Stop Sequence & Progression
               </h3>
               <span className="text-[10px] font-mono font-bold text-slate-400">
                 {assignedRoute?.code}
               </span>
             </div>
             <p className="text-xs text-slate-500 mb-4">
-              Real-time progression along the configured stops.
+              Real-time station tracking along this corridor.
             </p>
 
             {assignedRoute ? (

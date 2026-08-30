@@ -205,16 +205,10 @@ class CampusRideStore {
           description: r.description,
           direction: r.direction || "HOME_TO_CAMPUS",
           color: r.color || "#2563EB",
-          totalDistanceKm: r.total_distance_km || 15.0,
-          estimatedDurationMins: r.estimated_duration_mins || 45,
+          totalDistanceKm: r.total_distance_km || 28.0,
+          estimatedDurationMins: r.estimated_duration_mins || 55,
           isActive: r.is_active ?? true,
-          stops: this.stops.map((st, idx) => ({
-            stopId: st.id,
-            stopOrder: idx + 1,
-            arrivalOffsetMinutes: idx * 10,
-            bufferTimeMinutes: 2,
-            stop: st,
-          })),
+          stops: this.buildRouteStops(r.id, r.description || "", this.stops),
         }));
       }
 
@@ -270,6 +264,70 @@ class CampusRideStore {
     } catch (e) {
       console.warn("Supabase database sync:", e);
     }
+  }
+
+  private buildRouteStops(routeId: string, description: string, allStops: Stop[]) {
+    let matchingStops: Stop[] = [];
+
+    const bhimtalTerm = allStops.find(s => s.id === "stop-bhimtal-campus") || allStops[0];
+    const bhowaliStop = allStops.find(s => s.id === "stop-bhowali");
+    const kathgodamStop = allStops.find(s => s.id === "stop-kathgodam");
+    const laldantStop = allStops.find(s => s.id === "stop-laldant");
+    const unchapulStop = allStops.find(s => s.id === "stop-unchapul");
+    const mukhaniStop = allStops.find(s => s.id === "stop-mukhani");
+    const kusumkheraStop = allStops.find(s => s.id === "stop-kusumkhera");
+    const panchakkiStop = allStops.find(s => s.id === "stop-panchakki");
+    const nainitalStop = allStops.find(s => s.id === "stop-nainital");
+    const lalkuanStop = allStops.find(s => s.id === "stop-lalkuan");
+    const pantnagarStop = allStops.find(s => s.id === "stop-pantnagar");
+    const naukuchiatalStop = allStops.find(s => s.id === "stop-naukuchiatal");
+    const tikoniaStop = allStops.find(s => s.id === "stop-tikonia" || s.id === "stop-hld-tikonia");
+    const isbtStop = allStops.find(s => s.id === "stop-hld-isbt");
+    const ranibaghStop = allStops.find(s => s.id === "stop-ranibagh");
+    const jyolikoteStop = allStops.find(s => s.id === "stop-jyolikote");
+    const ddnClockStop = allStops.find(s => s.id === "stop-ddn-clock");
+    const ddnIsbtStop = allStops.find(s => s.id === "stop-ddn-isbt");
+    const ddnCampusStop = allStops.find(s => s.id === "stop-gehu-ddn");
+
+    if (routeId.includes("bht-ddn-placement")) {
+      matchingStops = [bhimtalTerm, kathgodamStop, ddnIsbtStop, ddnCampusStop].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-44")) {
+      matchingStops = [laldantStop, unchapulStop, mukhaniStop, kusumkheraStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-8")) {
+      matchingStops = [pantnagarStop, lalkuanStop, tikoniaStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-11")) {
+      matchingStops = [nainitalStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-45")) {
+      matchingStops = [naukuchiatalStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-36")) {
+      matchingStops = [kusumkheraStop, laldantStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-37")) {
+      matchingStops = [unchapulStop, panchakkiStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-9")) {
+      matchingStops = [mukhaniStop, panchakkiStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-2")) {
+      matchingStops = [isbtStop, tikoniaStop, kathgodamStop, ranibaghStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-3")) {
+      matchingStops = [isbtStop, kathgodamStop, ranibaghStop, jyolikoteStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-50")) {
+      matchingStops = [tikoniaStop, panchakkiStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else if (routeId.includes("bus-49")) {
+      matchingStops = [mukhaniStop, kusumkheraStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    } else {
+      matchingStops = [laldantStop, kathgodamStop, bhowaliStop, bhimtalTerm].filter(Boolean) as Stop[];
+    }
+
+    if (matchingStops.length === 0) {
+      matchingStops = allStops.slice(0, 5);
+    }
+
+    return matchingStops.map((st, idx) => ({
+      stopId: st.id,
+      stopOrder: idx + 1,
+      arrivalOffsetMinutes: idx === 0 ? 0 : idx * 8 + (idx > 3 ? 10 : 0),
+      bufferTimeMinutes: 2,
+      stop: st,
+    }));
   }
 
   private saveToLocalStorage() {
