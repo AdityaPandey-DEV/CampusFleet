@@ -41,6 +41,8 @@ export default function StudentPortalLayout({
   const [isChildMenuOpen, setIsChildMenuOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
   const handleSignOut = async () => {
     await store.logout();
     router.push("/login");
@@ -68,9 +70,9 @@ export default function StudentPortalLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col pb-20 md:pb-0 overflow-x-hidden">
       {/* Top Universal Navbar */}
-      <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Brand Logo */}
           <div className="flex items-center gap-3">
@@ -111,8 +113,8 @@ export default function StudentPortalLayout({
             })}
           </nav>
 
-          {/* Right Header Actions */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Desktop Header Actions */}
+          <div className="hidden md:flex items-center gap-2.5 sm:gap-3">
             {/* User Profile / Multi-Child Selector or Sign In button */}
             {currentUser ? (
               <div className="relative">
@@ -121,7 +123,7 @@ export default function StudentPortalLayout({
                   className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold"
                 >
                   <Users className="w-3.5 h-3.5 text-blue-600" />
-                  <span className="hidden sm:inline max-w-[120px] truncate">
+                  <span className="max-w-[120px] truncate">
                     {currentUser.fullName.split(" ")[0]}
                   </span>
                   <ChevronDown className="w-3 h-3 text-slate-400" />
@@ -210,15 +212,179 @@ export default function StudentPortalLayout({
               <LogOut className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Mobile Clean Header Trigger (No Overflow!) */}
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={() => setIsSOSOpen(true)}
+              className="px-2.5 py-1.5 bg-rose-600 text-white rounded-xl text-xs font-extrabold flex items-center gap-1 shadow-sm active:scale-95"
+            >
+              <AlertOctagon className="w-3.5 h-3.5" />
+              <span>SOS</span>
+            </button>
+
+            <button
+              onClick={() => setIsMobileDrawerOpen(true)}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              aria-label="Open Navigation Drawer"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </header>
+
+      {/* Mobile Sliding Drawer Navbar (Off-Canvas Menu) */}
+      {isMobileDrawerOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex justify-end animate-in fade-in">
+          {/* Dark Overlay */}
+          <div
+            onClick={() => setIsMobileDrawerOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+          />
+
+          {/* Sliding Drawer Container */}
+          <div className="relative w-80 max-w-[85vw] h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-10 flex flex-col justify-between p-5 overflow-y-auto animate-in slide-in-from-right duration-300">
+            <div className="space-y-6">
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-blue-700 to-teal-500 flex items-center justify-center text-white font-bold">
+                    <BusFront className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-black text-sm text-slate-900 dark:text-white">CampusRide</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Mobile Portal</div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* User Identity Card */}
+              {currentUser ? (
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-1">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                    Logged In Commuter
+                  </div>
+                  <div className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                    {currentUser.fullName}
+                  </div>
+                  <div className="text-xs text-slate-500 truncate">{currentUser.email}</div>
+                  <span className="inline-block mt-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                    {currentUser.role}
+                  </span>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-blue-600/20"
+                >
+                  <Key className="w-4 h-4" />
+                  <span>Sign In with University Account</span>
+                </Link>
+              )}
+
+              {/* Navigation Links */}
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">
+                  Navigation
+                </div>
+                {navLinks.map(link => {
+                  const Icon = link.icon;
+                  const isActive = pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsMobileDrawerOpen(false)}
+                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+                        isActive
+                          ? "bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 font-black shadow-sm"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{link.label}</span>
+                    </Link>
+                  );
+                })}
+
+                {(currentUser?.role === "admin" || currentUser?.role === "transport_manager") && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span>Admin Operations Console →</span>
+                  </Link>
+                )}
+              </div>
+
+              {/* Controls Section */}
+              <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3">
+                  Settings & Controls
+                </div>
+
+                <div className="flex items-center justify-between px-3 py-1">
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Theme Mode</span>
+                  <ThemeToggle />
+                </div>
+
+                <div className="px-3">
+                  <RolePortalSwitcher />
+                </div>
+              </div>
+            </div>
+
+            {/* Drawer Footer Actions */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+              <button
+                onClick={() => {
+                  setIsMobileDrawerOpen(false);
+                  setIsSOSOpen(true);
+                }}
+                className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm"
+              >
+                <AlertOctagon className="w-4 h-4" />
+                <span>Emergency SOS Hotline</span>
+              </button>
+
+              {currentUser && (
+                <button
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    handleSignOut();
+                  }}
+                  className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950 text-slate-700 dark:text-slate-300 hover:text-rose-600 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation Bar (Delhi Metro / App First Ergonomics) */}
+      {/* Mobile Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-3 py-2 flex items-center justify-around shadow-2xl">
         {navLinks.map(link => {
           const Icon = link.icon;
