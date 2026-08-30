@@ -58,8 +58,6 @@ export function StudentProfileModal() {
 
     const isIncomplete =
       !activeStudent ||
-      !activeStudent.enrollmentNo ||
-      activeStudent.enrollmentNo === "PENDING" ||
       !activeStudent.phone ||
       activeStudent.phone === "+91 0000000000" ||
       !activeStudent.campus;
@@ -67,7 +65,7 @@ export function StudentProfileModal() {
     if (isIncomplete) {
       setIsOpen(true);
       setFullName(activeStudent?.fullName || currentUser.fullName || "");
-      setEnrollmentNo(activeStudent?.enrollmentNo !== "PENDING" ? (activeStudent?.enrollmentNo || "") : "");
+      setEnrollmentNo(activeStudent?.enrollmentNo && activeStudent?.enrollmentNo !== "PENDING" ? activeStudent.enrollmentNo : "");
       setPhone(activeStudent?.phone !== "+91 0000000000" ? (activeStudent?.phone || "") : "");
       setCampus(activeStudent?.campus || "Graphic Era Hill University (GEHU), Bhimtal Campus");
       setDepartment(activeStudent?.department || "B.Tech Computer Science & Engineering");
@@ -82,8 +80,8 @@ export function StudentProfileModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!enrollmentNo.trim() || !phone.trim()) {
-      alert("Please fill in your Enrollment Number and Contact Phone.");
+    if (!phone.trim()) {
+      alert("Please fill in your Contact Phone Number.");
       return;
     }
 
@@ -92,7 +90,7 @@ export function StudentProfileModal() {
 
     const res = await store.updateStudentProfile(targetStudentId, {
       fullName: fullName.trim() || currentUser?.fullName || "Student",
-      enrollmentNo: enrollmentNo.trim().toUpperCase(),
+      enrollmentNo: enrollmentNo.trim() ? enrollmentNo.trim().toUpperCase() : "NOT_SPECIFIED",
       campus,
       department,
       semester,
@@ -194,17 +192,17 @@ export function StudentProfileModal() {
               </select>
             </div>
 
-            {/* Enrollment / Roll No */}
+            {/* Enrollment / Roll No (Optional) */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Roll / Enrollment Number *
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>Roll / Enrollment No</span>
+                <span className="text-[10px] lowercase text-slate-400 font-normal">(optional)</span>
               </label>
               <input
                 type="text"
-                required
                 value={enrollmentNo}
                 onChange={e => setEnrollmentNo(e.target.value)}
-                placeholder="e.g. GEHU/2023/1045"
+                placeholder="e.g. GEHU/2023/1045 (optional)"
                 className="w-full text-xs font-mono font-bold p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 outline-none focus:border-blue-500"
               />
             </div>
