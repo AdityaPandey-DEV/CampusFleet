@@ -419,22 +419,23 @@ export function QRPassScanner({
       {/* Optical Camera Scanner Viewfinder */}
       {activeTab === "CAMERA" && (
         <div className="space-y-4">
-          <div className="relative aspect-video max-h-80 w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-slate-800 shadow-2xl text-white">
-            <video
-              ref={videoRef}
-              className={`w-full h-full object-cover ${isCameraActive ? "block" : "hidden"}`}
-              playsInline
-              muted
-            />
+          {isCameraActive ? (
+            /* Active Live Camera Stream */
+            <div className="relative aspect-[4/3] sm:aspect-video min-h-[300px] sm:min-h-[360px] w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-slate-800 shadow-2xl text-white">
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                playsInline
+                muted
+              />
 
-            <canvas ref={canvasRef} className="hidden" />
+              <canvas ref={canvasRef} className="hidden" />
 
-            {isCameraActive && (
+              {/* Glowing Laser Scan Beam */}
               <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-teal-400 to-transparent shadow-[0_0_20px_#2dd4bf] animate-bounce z-20 pointer-events-none" />
-            )}
 
-            {isCameraActive ? (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {/* Viewfinder Overlay with Precision Reticle */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                 <div className="w-52 h-52 sm:w-60 sm:h-60 border-2 border-dashed border-teal-400/80 rounded-3xl shadow-[0_0_40px_rgba(45,212,191,0.25)] flex flex-col items-center justify-between p-3.5">
                   <div className="w-full flex justify-between">
                     <div className="w-5 h-5 border-t-3 border-l-3 border-teal-400 rounded-tl-lg" />
@@ -449,52 +450,58 @@ export function QRPassScanner({
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
-                <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-teal-400 shadow-inner">
-                  <QrCode className="w-8 h-8" />
-                </div>
-                <div>
-                  <h4 className="font-black text-white text-base">High-Speed Optical QR Radar</h4>
-                  <p className="text-xs text-slate-300 max-w-xs mt-1">
-                    Hold student pass in front of lens. Authenticates seat reservation & anti-replay protection.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => startCamera(cameraFacing)}
-                  className="px-6 py-3.5 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-xs rounded-2xl shadow-xl shadow-teal-500/25 flex items-center gap-2 transition-transform active:scale-95"
-                >
-                  <Camera className="w-4 h-4" />
-                  <span>Start Live Camera Scanner</span>
-                </button>
-              </div>
-            )}
 
-            <div className="absolute bottom-2.5 inset-x-3 flex items-center justify-between text-[11px] text-slate-300 bg-black/70 px-3.5 py-2 rounded-2xl backdrop-blur border border-slate-800">
-              <span className="flex items-center gap-1.5 font-bold">
-                <ShieldCheck className="w-4 h-4 text-teal-400" />
-                {isCameraActive ? "Optical Sensor Online (60 FPS)" : "Radar Standby"}
-              </span>
+              {/* Floating Camera Controls Top Bar */}
+              <div className="absolute top-3 inset-x-3 flex items-center justify-between z-30">
+                <span className="text-[10px] font-bold text-teal-300 bg-black/70 px-3 py-1.5 rounded-xl backdrop-blur border border-slate-800 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                  60 FPS Live Scanner
+                </span>
 
-              {isCameraActive && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={toggleCameraFacing}
-                    className="text-[10px] font-bold text-teal-300 hover:text-white flex items-center gap-1"
+                    className="text-[10px] font-bold text-teal-300 hover:text-white bg-black/70 px-3 py-1.5 rounded-xl backdrop-blur border border-slate-800 flex items-center gap-1.5 transition-colors"
                   >
-                    <RefreshCw className="w-3 h-3" /> Flip Lens
+                    <RefreshCw className="w-3.5 h-3.5" /> Flip Lens
                   </button>
                   <button
                     onClick={stopCamera}
-                    className="text-[10px] font-bold text-rose-400 hover:text-rose-300 flex items-center gap-1"
+                    className="text-[10px] font-bold text-rose-300 hover:text-white bg-rose-950/80 px-3 py-1.5 rounded-xl backdrop-blur border border-rose-800 flex items-center gap-1.5 transition-colors"
                   >
-                    <CameraOff className="w-3 h-3" /> Stop
+                    <CameraOff className="w-3.5 h-3.5" /> Stop
                   </button>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Standby State with Large Prominent Button (Never Cut Off on Mobile!) */
+            <div className="w-full rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center space-y-4 text-white">
+              <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-teal-400 shadow-inner">
+                <QrCode className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-black text-white text-base sm:text-lg">High-Speed Optical QR Radar</h4>
+                <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                  Point device camera at student pass to authenticate seat reservation and verify attendance.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => startCamera(cameraFacing)}
+                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-sm rounded-2xl shadow-xl shadow-teal-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
+              >
+                <Camera className="w-5 h-5" />
+                <span>Start Live Camera Scanner</span>
+              </button>
+
+              <div className="flex items-center gap-2 text-xs text-slate-400 font-bold bg-slate-900/90 px-4 py-2 rounded-xl border border-slate-800">
+                <ShieldCheck className="w-4 h-4 text-teal-400" />
+                <span>Radar Standby • Anti-Replay Security Enabled</span>
+              </div>
+            </div>
+          )}
 
           {cameraError && (
             <div className="p-3.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 rounded-2xl text-xs text-amber-800 dark:text-amber-400 font-semibold flex items-center gap-2">
