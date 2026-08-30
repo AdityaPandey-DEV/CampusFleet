@@ -91,12 +91,12 @@ export default function CampusRideLandingPage() {
     },
     {
       title: "Conductor Manifest Desk",
-      description: "Final trip passenger manifest, camera QR scanner, and certified Biometric Hardware Adapter simulation with zero raw biometric storage.",
+      description: "Live optical camera QR scanner with cryptographic token verification, anti-counterfeit boarding checks, and passenger manifest.",
       href: "/staff/conductor",
       icon: ShieldCheck,
       badge: "Attendance & Manifest",
       color: "from-teal-600 to-cyan-600",
-      features: ["Anti-Fraud QR Pass Scanner", "Biometric Hardware Adapter", "Live Boarding Counters", "Audited Manual Override"],
+      features: ["Live Camera QR Pass Scanner", "Anti-Replay Security Check", "Live Boarding Counters", "Audited Manual Override"],
     },
     {
       title: "Admin Operations Center",

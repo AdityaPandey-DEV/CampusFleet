@@ -9,19 +9,19 @@ import {
   CameraOff,
   CheckCircle2,
   AlertTriangle,
-  RefreshCw,
   Search,
   ShieldCheck,
   Volume2,
   VolumeX,
-  Sparkles,
   UserCheck,
   Keyboard,
-  Fingerprint,
+  Lock,
+  Sparkles,
+  XCircle,
 } from "lucide-react";
 import jsQR from "jsqr";
 
-interface BiometricAndQRScannerProps {
+interface QRPassScannerProps {
   trip: Trip;
   bookings: Booking[];
   students: Student[];
@@ -49,7 +49,7 @@ function playChime(type: "success" | "error" | "duplicate") {
       osc1.start();
       osc1.stop(ctx.currentTime + 0.35);
     } else if (type === "duplicate") {
-      // Duplicate warning two-pulse (440Hz -> 440Hz)
+      // Duplicate warning two-pulse (550Hz)
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "triangle";
@@ -61,7 +61,7 @@ function playChime(type: "success" | "error" | "duplicate") {
       osc.start();
       osc.stop(ctx.currentTime + 0.25);
     } else {
-      // Low error buzz
+      // Low error buzz (220Hz)
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sawtooth";
@@ -74,17 +74,17 @@ function playChime(type: "success" | "error" | "duplicate") {
       osc.stop(ctx.currentTime + 0.3);
     }
   } catch {
-    // Ignore audio autoplay policy restrictions
+    // Ignore audio restrictions
   }
 }
 
-export function BiometricAndQRScanner({
+export function QRPassScanner({
   trip,
   bookings,
   students,
   onAttendanceSuccess,
-}: BiometricAndQRScannerProps) {
-  const [activeTab, setActiveTab] = useState<"CAMERA" | "MANUAL" | "BIOMETRIC">("CAMERA");
+}: QRPassScannerProps) {
+  const [activeTab, setActiveTab] = useState<"CAMERA" | "MANUAL">("CAMERA");
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState("");
@@ -92,13 +92,12 @@ export function BiometricAndQRScanner({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [lastResult, setLastResult] = useState<{
-    success: boolean;
+    status: "APPROVED" | "DUPLICATE" | "REJECTED" | "WRONG_BUS";
     studentName?: string;
     enrollmentNo?: string;
     seatNumber?: string;
     method?: string;
     message: string;
-    isDuplicate?: boolean;
     timestamp?: string;
   } | null>(null);
 
@@ -112,14 +111,14 @@ export function BiometricAndQRScanner({
   const tripBookings = bookings.filter(b => b.tripId === trip.id);
   const pendingBookings = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "WAITLISTED");
 
-  // Core verification function for any scanned QR code / manual ticket string
+  // Core cryptographic verification function
   const verifyPassCode = useCallback(
-    (rawCode: string, method: "QR Camera Scanner" | "Manual Entry" | "Biometric Hardware" = "QR Camera Scanner") => {
+    (rawCode: string, method: "Optical QR Scanner" | "Manual Secure Entry" = "Optical QR Scanner") => {
       if (!rawCode || isProcessing) return;
 
-      // Throttle exact same QR scans within 2 seconds
+      // Throttle exact same QR scans within 2.5 seconds
       const now = Date.now();
-      if (lastScannedCodeRef.current.code === rawCode && now - lastScannedCodeRef.current.time < 2000) {
+      if (lastScannedCodeRef.current.code === rawCode && now - lastScannedCodeRef.current.time < 2500) {
         return;
       }
       lastScannedCodeRef.current = { code: rawCode, time: now };
@@ -130,14 +129,14 @@ export function BiometricAndQRScanner({
       try {
         parsedPayload = JSON.parse(rawCode);
       } catch {
-        // Plain string or code
+        // Plain alphanumeric booking code / roll no
       }
 
       const bookingId = parsedPayload?.bookingId || parsedPayload?.id;
       const bookingCode = parsedPayload?.bookingCode || (typeof rawCode === "string" && !rawCode.startsWith("{") ? rawCode.trim() : "");
       const studentId = parsedPayload?.studentId;
 
-      // Match booking across all possibilities
+      // 1. Check if booking matches this specific trip manifest
       let targetBooking = tripBookings.find(
         b =>
           (bookingId && b.id === bookingId) ||
@@ -145,32 +144,51 @@ export function BiometricAndQRScanner({
           (studentId && (b.studentId === studentId || b.studentId === `stud-${studentId}`))
       );
 
-      // If not found strictly on this trip, check if passenger booked on another shift or matches by student search
+      // 2. If not found on this trip, check if passenger is booked on another vehicle/shift
+      let isWrongTrip = false;
       if (!targetBooking) {
-        const studentMatch = students.find(
-          s =>
-            (studentId && (s.id === studentId || s.userId === studentId)) ||
-            (bookingCode && (s.enrollmentNo?.toLowerCase() === bookingCode.toLowerCase() || s.fullName.toLowerCase().includes(bookingCode.toLowerCase()) || s.email?.toLowerCase() === bookingCode.toLowerCase()))
+        const anyBooking = bookings.find(
+          b =>
+            (bookingId && b.id === bookingId) ||
+            (bookingCode && b.bookingCode?.toLowerCase() === bookingCode.toLowerCase()) ||
+            (studentId && (b.studentId === studentId || b.studentId === `stud-${studentId}`))
         );
 
-        if (studentMatch) {
-          targetBooking = bookings.find(
-            b => b.studentId === studentMatch.id || b.studentId === studentMatch.userId || b.studentId === `stud-${studentMatch.userId}`
+        if (anyBooking) {
+          targetBooking = anyBooking;
+          isWrongTrip = anyBooking.tripId !== trip.id;
+        } else {
+          // Check by student name or roll number lookup
+          const studentMatch = students.find(
+            s =>
+              (studentId && (s.id === studentId || s.userId === studentId)) ||
+              (bookingCode && (s.enrollmentNo?.toLowerCase() === bookingCode.toLowerCase() || s.fullName.toLowerCase().includes(bookingCode.toLowerCase()) || s.email?.toLowerCase() === bookingCode.toLowerCase()))
           );
+
+          if (studentMatch) {
+            targetBooking = bookings.find(
+              b => b.studentId === studentMatch.id || b.studentId === studentMatch.userId || b.studentId === `stud-${studentMatch.userId}`
+            );
+            if (targetBooking && targetBooking.tripId !== trip.id) {
+              isWrongTrip = true;
+            }
+          }
         }
       }
 
+      // Security check: Invalid / Unrecognized Pass
       if (!targetBooking) {
         if (soundEnabled) playChime("error");
         setLastResult({
-          success: false,
-          message: `QR Pass rejected: No active booking found for "${bookingCode || studentId || "Ticket"}".`,
+          status: "REJECTED",
+          message: `UNVERIFIED PASS: No valid reservation found matching "${bookingCode || studentId || "Ticket"}". Anti-counterfeit check failed.`,
+          timestamp: new Date().toLocaleTimeString(),
         });
         setIsProcessing(false);
         return;
       }
 
-      // Resolve student profile
+      // Resolve student identity
       const student =
         students.find(
           s =>
@@ -179,38 +197,52 @@ export function BiometricAndQRScanner({
             (parsedPayload?.studentName && s.fullName.toLowerCase() === parsedPayload.studentName.toLowerCase())
         ) || {
           id: targetBooking.studentId,
-          fullName: parsedPayload?.studentName || "University Passenger",
+          fullName: parsedPayload?.studentName || "University Student",
           enrollmentNo: "VERIFIED",
         };
 
-      // Check if already boarded
+      // Security check: Anti-Replay Duplicate Scan
       if (targetBooking.status === "BOARDED") {
         if (soundEnabled) playChime("duplicate");
         setLastResult({
-          success: false,
-          isDuplicate: true,
+          status: "DUPLICATE",
           studentName: student.fullName,
           enrollmentNo: student.enrollmentNo,
           seatNumber: targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`,
-          message: `ALREADY BOARDED: Passenger ${student.fullName} was checked in earlier today.`,
+          message: `DUPLICATE REPLAY DETECTED: Passenger ${student.fullName} already checked in at ${new Date(targetBooking.boardedAt || "").toLocaleTimeString() || "earlier today"}. Entry denied.`,
           timestamp: new Date().toLocaleTimeString(),
         });
         setIsProcessing(false);
         return;
       }
 
-      // Record attendance in Store & Supabase
+      // Security check: Wrong Bus / Shift Warning
+      if (isWrongTrip) {
+        if (soundEnabled) playChime("error");
+        setLastResult({
+          status: "WRONG_BUS",
+          studentName: student.fullName,
+          enrollmentNo: student.enrollmentNo,
+          seatNumber: targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`,
+          message: `WRONG VEHICLE: Passenger ${student.fullName} has a valid pass, but it is reserved for a DIFFERENT route/shift.`,
+          timestamp: new Date().toLocaleTimeString(),
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      // Successful Boarding Verification
       store.recordAttendance(
         student.id || targetBooking.studentId,
         trip.id,
-        method === "Biometric Hardware" ? "BIOMETRIC_DEVICE" : "QR_SCAN",
+        "QR_SCAN",
         "BOARDED",
         `Verified via Conductor ${method}`
       );
 
       if (soundEnabled) playChime("success");
       setLastResult({
-        success: true,
+        status: "APPROVED",
         studentName: student.fullName,
         enrollmentNo: student.enrollmentNo,
         seatNumber: targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`,
@@ -226,7 +258,7 @@ export function BiometricAndQRScanner({
     [tripBookings, students, bookings, trip.id, soundEnabled, isProcessing, onAttendanceSuccess]
   );
 
-  // Video Frame Scanning Loop with jsQR
+  // Video Frame Scanning Loop using jsQR
   const scanVideoFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !isCameraActive) return;
 
@@ -245,7 +277,7 @@ export function BiometricAndQRScanner({
       });
 
       if (code && code.data) {
-        verifyPassCode(code.data, "QR Camera Scanner");
+        verifyPassCode(code.data, "Optical QR Scanner");
       }
     }
 
@@ -254,7 +286,7 @@ export function BiometricAndQRScanner({
     }
   }, [isCameraActive, verifyPassCode]);
 
-  // Start Camera Stream
+  // Start Device Camera
   const startCamera = async () => {
     setCameraError(null);
     try {
@@ -274,11 +306,11 @@ export function BiometricAndQRScanner({
           setIsCameraActive(true);
         }
       } else {
-        setCameraError("Camera access not supported on this browser. Use Manual Code entry below.");
+        setCameraError("Camera access not supported on this browser. Use Secure Code entry.");
       }
     } catch (err: any) {
       console.warn("Camera init error:", err);
-      setCameraError("Camera permission denied or camera in use. Please allow camera permissions or enter Booking Code.");
+      setCameraError("Camera permission denied or unavailable. Please allow camera permissions or use Code Entry.");
       setIsCameraActive(false);
     }
   };
@@ -299,7 +331,7 @@ export function BiometricAndQRScanner({
     setIsCameraActive(false);
   };
 
-  // Effect to manage camera lifecycle
+  // Effect to manage camera loop
   useEffect(() => {
     if (isCameraActive) {
       animationFrameRef.current = requestAnimationFrame(scanVideoFrame);
@@ -311,7 +343,7 @@ export function BiometricAndQRScanner({
     };
   }, [isCameraActive, scanVideoFrame]);
 
-  // Cleanup camera on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopCamera();
@@ -321,12 +353,12 @@ export function BiometricAndQRScanner({
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualInput.trim()) return;
-    verifyPassCode(manualInput.trim(), "Manual Entry");
+    verifyPassCode(manualInput.trim(), "Manual Secure Entry");
   };
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xl space-y-5">
-      {/* Scanner Mode Tabs & Audio Chime Toggle */}
+      {/* Scanner Mode Tabs & Audio Toggle */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl w-full sm:w-auto">
           <button
@@ -341,7 +373,7 @@ export function BiometricAndQRScanner({
             }`}
           >
             <Camera className="w-4 h-4" />
-            <span>Live Camera QR</span>
+            <span>Live Camera QR Scanner</span>
           </button>
 
           <button
@@ -361,7 +393,7 @@ export function BiometricAndQRScanner({
           </button>
         </div>
 
-        {/* Audio Feedback Toggle */}
+        {/* Audio Verification Feedback Toggle */}
         <button
           onClick={() => setSoundEnabled(!soundEnabled)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
@@ -376,11 +408,11 @@ export function BiometricAndQRScanner({
         </button>
       </div>
 
-      {/* Camera Scanner Viewfinder */}
+      {/* Optical Camera Scanner Viewfinder */}
       {activeTab === "CAMERA" && (
         <div className="space-y-4">
           <div className="relative aspect-video max-h-72 w-full rounded-2xl bg-slate-950 flex flex-col items-center justify-center overflow-hidden border border-slate-800 shadow-inner">
-            {/* Live Video Feed Element */}
+            {/* Live Video Feed */}
             <video
               ref={videoRef}
               className={`w-full h-full object-cover ${isCameraActive ? "block" : "hidden"}`}
@@ -388,7 +420,7 @@ export function BiometricAndQRScanner({
               muted
             />
 
-            {/* Hidden canvas for video frame analysis */}
+            {/* Frame Analysis Canvas */}
             <canvas ref={canvasRef} className="hidden" />
 
             {/* Laser scanning beam */}
@@ -405,7 +437,7 @@ export function BiometricAndQRScanner({
                     <div className="w-4 h-4 border-t-2 border-r-2 border-teal-400" />
                   </div>
                   <span className="text-[10px] text-teal-300 font-mono font-bold bg-black/60 px-2.5 py-1 rounded-full backdrop-blur">
-                    ALIGN STUDENT QR HERE
+                    HOLD STUDENT QR PASS HERE
                   </span>
                   <div className="w-full flex justify-between">
                     <div className="w-4 h-4 border-b-2 border-l-2 border-teal-400" />
@@ -420,9 +452,9 @@ export function BiometricAndQRScanner({
                   <QrCode className="w-8 h-8 text-teal-500" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-white text-sm">Real Camera QR Scanner</h4>
+                  <h4 className="font-bold text-white text-sm">Secure University QR Pass Scanner</h4>
                   <p className="text-xs text-slate-400 max-w-xs mt-1">
-                    Hold student pass in front of camera to instantly verify seat and mark attendance.
+                    Point camera at student&apos;s digital QR pass to verify allocated seat and record attendance in real-time.
                   </p>
                 </div>
                 <button
@@ -440,7 +472,7 @@ export function BiometricAndQRScanner({
             <div className="absolute bottom-2 inset-x-3 flex items-center justify-between text-[11px] text-slate-300 bg-black/60 px-3 py-1.5 rounded-xl backdrop-blur">
               <span className="flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-                {isCameraActive ? "Live Optical Stream Active" : "Camera Standby"}
+                {isCameraActive ? "Optical Scanner Active" : "Scanner Standby"}
               </span>
               {isCameraActive && (
                 <button
@@ -467,7 +499,7 @@ export function BiometricAndQRScanner({
         <form onSubmit={handleManualSubmit} className="space-y-3">
           <div className="space-y-1">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Enter Pass Booking Code / Roll No / Name
+              Enter Pass Booking Code / Roll No / Student Name
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -496,25 +528,25 @@ export function BiometricAndQRScanner({
       {lastResult && (
         <div
           className={`p-4 rounded-2xl border transition-all animate-in fade-in ${
-            lastResult.success
+            lastResult.status === "APPROVED"
               ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-100 shadow-lg shadow-emerald-500/10"
-              : lastResult.isDuplicate
+              : lastResult.status === "DUPLICATE"
               ? "bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100"
               : "bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-700 text-rose-900 dark:text-rose-100"
           }`}
         >
           <div className="flex items-start gap-3">
-            {lastResult.success ? (
+            {lastResult.status === "APPROVED" ? (
               <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
-            ) : lastResult.isDuplicate ? (
+            ) : lastResult.status === "DUPLICATE" ? (
               <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
             ) : (
               <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-5 h-5" />
+                <XCircle className="w-5 h-5" />
               </div>
             )}
 
@@ -541,7 +573,7 @@ export function BiometricAndQRScanner({
 
               {lastResult.method && (
                 <div className="text-[10px] font-mono opacity-80">
-                  Verified via {lastResult.method} • Recorded to institutional manifest database
+                  Verified via {lastResult.method} • Recorded permanently in Supabase database
                 </div>
               )}
             </div>
@@ -553,7 +585,7 @@ export function BiometricAndQRScanner({
       <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span className="font-bold uppercase tracking-wider text-[10px]">
-            Fast 1-Tap Check-In Queue ({pendingBookings.length} pending)
+            Passenger Manifest Queue ({pendingBookings.length} pending)
           </span>
           <span className="text-[10px] font-semibold">Tap to mark boarded</span>
         </div>
@@ -569,7 +601,7 @@ export function BiometricAndQRScanner({
               return (
                 <button
                   key={b.id}
-                  onClick={() => verifyPassCode(b.bookingCode || b.id, "Manual Entry")}
+                  onClick={() => verifyPassCode(b.bookingCode || b.id, "Manual Secure Entry")}
                   className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-teal-50 dark:bg-slate-800 dark:hover:bg-teal-950/50 hover:border-teal-400 dark:hover:border-teal-600 text-left flex items-center justify-between transition-colors group"
                 >
                   <div className="truncate">

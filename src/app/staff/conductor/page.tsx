@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { store } from "@/lib/store";
-import { BiometricAndQRScanner } from "@/components/scanner/BiometricAndQRScanner";
+import { QRPassScanner } from "@/components/scanner/QRPassScanner";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import {
   ShieldCheck,
@@ -179,9 +179,9 @@ export default function ConductorConsolePage() {
           </div>
         </div>
 
-        {/* Integrated QR & Biometric Hardware Scanner */}
+        {/* Secure QR Digital Pass Optical Scanner */}
         {activeTrip && (
-          <BiometricAndQRScanner
+          <QRPassScanner
             trip={activeTrip}
             bookings={bookings}
             students={students}
