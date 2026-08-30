@@ -309,9 +309,10 @@ class CampusRideStore {
             phone: newStudent.phone,
             department: newStudent.department,
             semester: newStudent.semester,
-            campus: newStudent.campus,
+            campus: newStudent.campus || "GEHU Bhimtal",
             enrollment_no: newStudent.enrollmentNo,
-            primary_stop_id: newStudent.primaryStopId,
+            primary_stop_id: newStudent.primaryStopId || null,
+            primary_route_id: newStudent.primaryRouteId || null,
             has_active_subscription: true,
           }).then(() => {});
         }
@@ -797,9 +798,10 @@ class CampusRideStore {
         phone: updatedStudent.phone,
         department: updatedStudent.department,
         semester: updatedStudent.semester,
-        campus: updatedStudent.campus,
+        campus: updatedStudent.campus || "GEHU Bhimtal",
         enrollment_no: updatedStudent.enrollmentNo,
-        primary_stop_id: updatedStudent.primaryStopId,
+        primary_stop_id: updatedStudent.primaryStopId || null,
+        primary_route_id: updatedStudent.primaryRouteId || null,
         emergency_contact: updatedStudent.emergencyContact,
         has_active_subscription: updatedStudent.hasActiveSubscription,
       });
