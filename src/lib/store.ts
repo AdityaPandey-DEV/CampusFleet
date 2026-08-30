@@ -222,9 +222,7 @@ class CampusRideStore {
       // 5. Fetch Users
       const { data: dbUsers } = await supabase.from("users").select("*");
       if (dbUsers && dbUsers.length > 0) {
-        // Filter out static mock placeholders if real users exist
-        const realUsers = dbUsers.filter(u => !["student@gehu.ac.in", "priya.bht@gehu.ac.in", "rahul.ddn@gehu.ac.in", "aayush.bht@gehu.ac.in"].includes(u.email));
-        this.users = (realUsers.length > 0 ? realUsers : dbUsers).map(u => ({
+        this.users = dbUsers.map(u => ({
           id: u.id,
           email: u.email,
           fullName: u.full_name,
@@ -262,8 +260,7 @@ class CampusRideStore {
       const { data: dbStudents } = await supabase.from("students").select("*");
       let mappedStudents: Student[] = [];
       if (dbStudents && dbStudents.length > 0) {
-        const filtered = dbStudents.filter(s => !["student@gehu.ac.in", "priya.bht@gehu.ac.in", "rahul.ddn@gehu.ac.in", "aayush.bht@gehu.ac.in"].includes(s.email));
-        mappedStudents = (filtered.length > 0 ? filtered : dbStudents).map(s => ({
+        mappedStudents = dbStudents.map(s => ({
           id: s.id,
           userId: s.user_id,
           enrollmentNo: s.enrollment_no || "PENDING",
