@@ -18,7 +18,6 @@ import {
   Sparkles,
   XCircle,
   RefreshCw,
-  Zap,
 } from "lucide-react";
 import jsQR from "jsqr";
 
@@ -29,7 +28,7 @@ interface QRPassScannerProps {
   onAttendanceSuccess: (studentName: string, method: string) => void;
 }
 
-// Synthesize pleasant audio confirmation chimes using Web Audio API
+// Synthesize audio confirmation chimes using Web Audio API
 function playChime(type: "success" | "error" | "duplicate") {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -72,11 +71,10 @@ function playChime(type: "success" | "error" | "duplicate") {
       osc.stop(ctx.currentTime + 0.3);
     }
   } catch {
-    // Ignore audio policy restrictions
+    // Ignore
   }
 }
 
-// Trigger haptic feedback on supported mobile devices
 function triggerHaptic(type: "success" | "warning" | "error") {
   try {
     if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
@@ -119,11 +117,9 @@ export function QRPassScanner({
   const streamRef = useRef<MediaStream | null>(null);
   const lastScannedCodeRef = useRef<{ code: string; time: number }>({ code: "", time: 0 });
 
-  // List of pending / confirmed bookings for this trip
   const tripBookings = bookings.filter(b => b.tripId === trip.id);
   const pendingBookings = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "WAITLISTED");
 
-  // Core verification function
   const verifyPassCode = useCallback(
     (rawCode: string, method: "Optical QR Scanner" | "Manual Secure Entry" = "Optical QR Scanner") => {
       if (!rawCode || isProcessing) return;
@@ -140,14 +136,13 @@ export function QRPassScanner({
       try {
         parsedPayload = JSON.parse(rawCode);
       } catch {
-        // Plain alphanumeric code
+        // Plain text
       }
 
       const bookingId = parsedPayload?.bookingId || parsedPayload?.id;
       const bookingCode = parsedPayload?.bookingCode || (typeof rawCode === "string" && !rawCode.startsWith("{") ? rawCode.trim() : "");
       const studentId = parsedPayload?.studentId;
 
-      // 1. Match against this specific trip
       let targetBooking = tripBookings.find(
         b =>
           (bookingId && b.id === bookingId) ||
@@ -155,7 +150,6 @@ export function QRPassScanner({
           (studentId && (b.studentId === studentId || b.studentId === `stud-${studentId}`))
       );
 
-      // 2. Check other routes or student directory lookup
       let isWrongTrip = false;
       if (!targetBooking) {
         const anyBooking = bookings.find(
@@ -186,7 +180,6 @@ export function QRPassScanner({
         }
       }
 
-      // Security check: Unverified
       if (!targetBooking) {
         if (soundEnabled) playChime("error");
         triggerHaptic("error");
@@ -199,7 +192,6 @@ export function QRPassScanner({
         return;
       }
 
-      // Resolve student profile
       const student =
         students.find(
           s =>
@@ -212,7 +204,6 @@ export function QRPassScanner({
           enrollmentNo: "VERIFIED",
         };
 
-      // Security check: Duplicate scan
       if (targetBooking.status === "BOARDED") {
         if (soundEnabled) playChime("duplicate");
         triggerHaptic("warning");
@@ -228,7 +219,6 @@ export function QRPassScanner({
         return;
       }
 
-      // Security check: Wrong bus
       if (isWrongTrip) {
         if (soundEnabled) playChime("error");
         triggerHaptic("warning");
@@ -244,7 +234,6 @@ export function QRPassScanner({
         return;
       }
 
-      // Record attendance
       store.recordAttendance(
         student.id || targetBooking.studentId,
         trip.id,
@@ -272,7 +261,6 @@ export function QRPassScanner({
     [tripBookings, students, bookings, trip.id, soundEnabled, isProcessing, onAttendanceSuccess]
   );
 
-  // Video Frame Scanning Loop
   const scanVideoFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !isCameraActive) return;
 
@@ -300,7 +288,6 @@ export function QRPassScanner({
     }
   }, [isCameraActive, verifyPassCode]);
 
-  // Start Device Camera
   const startCamera = async (facing: "environment" | "user" = cameraFacing) => {
     setCameraError(null);
     try {
@@ -328,12 +315,11 @@ export function QRPassScanner({
       }
     } catch (err: any) {
       console.warn("Camera init error:", err);
-      setCameraError("Camera permission denied or camera in use. Use Code Entry or allow camera access.");
+      setCameraError("Camera permission denied or unavailable. Use Code Entry or allow camera access.");
       setIsCameraActive(false);
     }
   };
 
-  // Stop Camera
   const stopCamera = () => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -417,7 +403,6 @@ export function QRPassScanner({
           </button>
         </div>
 
-        {/* Audio Verification Feedback Toggle */}
         <button
           onClick={() => setSoundEnabled(!soundEnabled)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
@@ -436,7 +421,6 @@ export function QRPassScanner({
       {activeTab === "CAMERA" && (
         <div className="space-y-4">
           <div className="relative aspect-video max-h-80 w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-slate-800 shadow-2xl">
-            {/* Live Video Feed */}
             <video
               ref={videoRef}
               className={`w-full h-full object-cover ${isCameraActive ? "block" : "hidden"}`}
@@ -444,15 +428,12 @@ export function QRPassScanner({
               muted
             />
 
-            {/* Frame Analysis Canvas */}
             <canvas ref={canvasRef} className="hidden" />
 
-            {/* Glowing Laser Scan Beam */}
             {isCameraActive && (
               <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-teal-400 to-transparent shadow-[0_0_20px_#2dd4bf] animate-bounce z-20 pointer-events-none" />
             )}
 
-            {/* Viewfinder Overlay with Precision Reticle */}
             {isCameraActive ? (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-52 h-52 sm:w-60 sm:h-60 border-2 border-dashed border-teal-400/80 rounded-3xl shadow-[0_0_40px_rgba(45,212,191,0.25)] flex flex-col items-center justify-between p-3.5">
@@ -470,7 +451,6 @@ export function QRPassScanner({
                 </div>
               </div>
             ) : (
-              /* Idle Standby Screen */
               <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
                 <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-teal-400 shadow-inner">
                   <QrCode className="w-8 h-8" />
@@ -492,7 +472,6 @@ export function QRPassScanner({
               </div>
             )}
 
-            {/* Bottom Status & Camera Switcher */}
             <div className="absolute bottom-2.5 inset-x-3 flex items-center justify-between text-[11px] text-slate-300 bg-black/70 px-3.5 py-2 rounded-2xl backdrop-blur border border-slate-800">
               <span className="flex items-center gap-1.5 font-bold">
                 <ShieldCheck className="w-4 h-4 text-teal-400" />
