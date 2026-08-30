@@ -103,20 +103,19 @@ export default function CampusRideLandingPage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
 
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-colors"
+            <Link
+              href="/login"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-colors"
             >
               <Key className="w-3.5 h-3.5 text-blue-600" />
-              <span>{currentUser ? currentUser.fullName : "Google / OTP Login"}</span>
-            </button>
+              <span>{currentUser ? currentUser.fullName : "Unified Login Gateway"}</span>
+            </Link>
 
             <Link
-              href="/portal"
+              href="/login"
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-transform active:scale-95 flex items-center gap-1.5"
             >
-              <span>Launch Portal</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Sign In →</span>
             </Link>
           </div>
         </div>
