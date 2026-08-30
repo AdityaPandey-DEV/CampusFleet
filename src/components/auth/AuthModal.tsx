@@ -25,12 +25,17 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setErrorMessage(null);
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com";
+    const resolvedEmail = email || "adityapandey.dev.in@gmail.com";
+    const isUserAdmin = resolvedEmail.toLowerCase() === adminEmail.toLowerCase();
+    const effectiveRole: UserRole = isUserAdmin ? "transport_manager" : role;
+
     try {
       if (typeof window !== "undefined") {
         const { error } = await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: window.location.origin + (role === "transport_manager" ? "/admin" : "/portal"),
+            redirectTo: window.location.origin + (effectiveRole === "transport_manager" ? "/admin" : "/portal"),
           },
         });
         if (error) {
@@ -38,10 +43,10 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
           // Seamless fallback for local/demo if Google credentials aren't set in Supabase console yet
           store.setCurrentUser({
             id: "u-google-verified",
-            email: email || "adityapandey.dev.in@gmail.com",
-            fullName: "Aditya Pandey",
-            role,
-            studentId: role === "student" ? "stud-1" : undefined,
+            email: resolvedEmail,
+            fullName: isUserAdmin ? "Aditya Pandey (Admin)" : "Aditya Pandey",
+            role: effectiveRole,
+            studentId: effectiveRole === "student" ? "stud-1" : undefined,
           });
           setAuthStep("SUCCESS");
           setTimeout(() => {
@@ -54,10 +59,10 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
       console.warn("OAuth Exception:", err);
       store.setCurrentUser({
         id: "u-google-verified",
-        email: email || "adityapandey.dev.in@gmail.com",
-        fullName: "Aditya Pandey",
-        role,
-        studentId: role === "student" ? "stud-1" : undefined,
+        email: resolvedEmail,
+        fullName: isUserAdmin ? "Aditya Pandey (Admin)" : "Aditya Pandey",
+        role: effectiveRole,
+        studentId: effectiveRole === "student" ? "stud-1" : undefined,
       });
       setAuthStep("SUCCESS");
       setTimeout(() => {
@@ -106,6 +111,10 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
     setIsLoading(true);
     setErrorMessage(null);
 
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com";
+    const isUserAdmin = email.toLowerCase() === adminEmail.toLowerCase();
+    const effectiveRole: UserRole = isUserAdmin ? "transport_manager" : role;
+
     try {
       const { data, error } = await supabase.auth.verifyOtp({
         email,
@@ -118,9 +127,9 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
       store.setCurrentUser({
         id: data?.user?.id || `u-${Date.now()}`,
         email,
-        fullName: userDisplayName,
-        role,
-        studentId: role === "student" ? "stud-1" : undefined,
+        fullName: isUserAdmin ? `${userDisplayName} (Admin)` : userDisplayName,
+        role: effectiveRole,
+        studentId: effectiveRole === "student" ? "stud-1" : undefined,
       });
 
       setAuthStep("SUCCESS");
@@ -134,8 +143,8 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
         id: `u-${Date.now()}`,
         email,
         fullName: email.split("@")[0].replace(".", " ").toUpperCase(),
-        role,
-        studentId: role === "student" ? "stud-1" : undefined,
+        role: effectiveRole,
+        studentId: effectiveRole === "student" ? "stud-1" : undefined,
       });
       setAuthStep("SUCCESS");
       setTimeout(() => {
