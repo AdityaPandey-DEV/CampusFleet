@@ -266,7 +266,7 @@ export default function AdminLayout({
               <button
                 onClick={() => {
                   if (confirm("Are you sure you want to WIPE all stops, buses, and routes to start fresh with 0 entries for your real college?")) {
-                    store.clearAllProductionData();
+                    store.wipeAllData();
                     setIsDataModalOpen(false);
                     alert("Database wiped! You now have a clean slate to add your university's real stops and buses.");
                   }
@@ -281,7 +281,7 @@ export default function AdminLayout({
                     Wipe to Clean Production State (0 Stops, 0 Buses)
                   </div>
                   <div className="text-[11px] text-slate-500 mt-0.5">
-                    Empties all demo routes, buses, and stops so the admin can configure their real campus.
+                    Empties all routes, buses, and stops so the admin can configure their real campus.
                   </div>
                 </div>
               </button>
@@ -290,7 +290,7 @@ export default function AdminLayout({
               <button
                 onClick={() => {
                   if (confirm("Load fresh campus transit template?")) {
-                    store.resetToDefaults();
+                    store.resetToCleanTemplate();
                     setIsDataModalOpen(false);
                     alert("Default academic transit template loaded!");
                   }

@@ -259,46 +259,62 @@ export default function ShiftBookingPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left 5 Cols: redBus Interactive Visual Seat Selector */}
         <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center">
-          <div className="w-full flex items-center justify-between mb-4">
-            <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-              <BusFront className="w-4 h-4 text-blue-600" />
-              Bus Seat Layout ({bus.seatLayout || "2x2"} Seater)
-            </h3>
-            <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
-              {bus.capacity - confirmedCount} Seats Available
-            </span>
-          </div>
+          {bus ? (
+            <>
+              <div className="w-full flex items-center justify-between mb-4">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <BusFront className="w-4 h-4 text-blue-600" />
+                  Bus Seat Layout ({bus.seatLayout || "2x2"} Seater)
+                </h3>
+                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
+                  {bus.capacity - confirmedCount} Seats Available
+                </span>
+              </div>
 
-          <InteractiveBusSeatGrid
-            bus={bus}
-            activeBookings={tripBookings}
-            selectedSeat={selectedSeatNumber}
-            onSelectSeat={seat => setSelectedSeatNumber(seat)}
-            disabled={isFull}
-          />
+              <InteractiveBusSeatGrid
+                bus={bus}
+                activeBookings={tripBookings}
+                selectedSeat={selectedSeatNumber}
+                onSelectSeat={seat => setSelectedSeatNumber(seat)}
+                disabled={isFull}
+              />
+            </>
+          ) : (
+            <div className="text-center py-12 space-y-3">
+              <BusFront className="w-10 h-10 text-slate-400 mx-auto" />
+              <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                No Bus Allocated Yet
+              </div>
+              <p className="text-xs text-slate-400">
+                The transport desk is finalizing bus allocations for this shift.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Right 7 Cols: Details, Cancellation Policy, & Booking Action */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Active Shift & Bus Vehicle Overview Card */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <div className="text-lg font-black text-slate-900 dark:text-white">
-                  {bus.busNumber}
+            {/* Active Shift & Bus Vehicle Overview Card */}
+            {bus && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <div className="text-lg font-black text-slate-900 dark:text-white">
+                    {bus.busNumber}
+                  </div>
+                  <div className="text-xs text-slate-500 font-mono">
+                    {bus.model} • Reg: {bus.registrationNo}
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500 font-mono">
-                  {bus.model} • Reg: {bus.registrationNo}
-                </div>
-              </div>
 
-              <div className="text-right">
-                <span className="text-xs font-bold text-slate-400 uppercase">Coverage</span>
-                <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                  Included in Active Pass (₹0.00)
+                <div className="text-right">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Coverage</span>
+                  <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                    Included in Active Pass (₹0.00)
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Selected Seat Callout Card */}
             <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-teal-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/80 border border-blue-200 dark:border-slate-700 flex items-center justify-between">
@@ -330,14 +346,14 @@ export default function ShiftBookingPage() {
             <div className="grid grid-cols-2 gap-3 text-xs pt-1">
               <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
                 <div className="text-[10px] uppercase font-bold text-slate-400">Passenger</div>
-                <div className="font-bold text-slate-900 dark:text-white">{activeStudent.fullName}</div>
-                <div className="text-[10px] text-slate-400 font-mono">{activeStudent.enrollmentNo}</div>
+                <div className="font-bold text-slate-900 dark:text-white">{activeStudent?.fullName || "Student Passenger"}</div>
+                <div className="text-[10px] text-slate-400 font-mono">{activeStudent?.enrollmentNo || "Pending Profile"}</div>
               </div>
 
               <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
                 <div className="text-[10px] uppercase font-bold text-slate-400">Guardian / Emergency</div>
-                <div className="font-bold text-slate-900 dark:text-white">{activeStudent.emergencyContact.name}</div>
-                <div className="text-[10px] text-slate-400 font-mono">{activeStudent.emergencyContact.phone}</div>
+                <div className="font-bold text-slate-900 dark:text-white">{activeStudent?.emergencyContact?.name || "Campus Desk"}</div>
+                <div className="text-[10px] text-slate-400 font-mono">{activeStudent?.emergencyContact?.phone || "+91 0000000000"}</div>
               </div>
             </div>
 

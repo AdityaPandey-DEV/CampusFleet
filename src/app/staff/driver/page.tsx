@@ -53,7 +53,7 @@ export default function DriverConsolePage() {
 
   // Simulate periodic GPS coordinate update when broadcasting is on
   useEffect(() => {
-    if (!isBroadcasting || activeTrip.status !== "IN_PROGRESS") return;
+    if (!isBroadcasting || activeTrip?.status !== "IN_PROGRESS") return;
 
     const interval = setInterval(() => {
       // Add slight jitter / forward movement to latitude
@@ -66,9 +66,10 @@ export default function DriverConsolePage() {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [isBroadcasting, activeTrip.status, liveLocation.latitude]);
+  }, [isBroadcasting, activeTrip?.status, liveLocation.latitude]);
 
   const handleStartTrip = () => {
+    if (!activeTrip) return;
     activeTrip.status = "IN_PROGRESS";
     activeTrip.startedAt = new Date().toISOString();
     store.updateLiveLocation({ delayMinutes: 0 });
@@ -76,6 +77,7 @@ export default function DriverConsolePage() {
   };
 
   const handleEndTrip = () => {
+    if (!activeTrip) return;
     if (confirm("Are you sure you want to end this trip?")) {
       activeTrip.status = "COMPLETED";
       activeTrip.completedAt = new Date().toISOString();
@@ -84,6 +86,7 @@ export default function DriverConsolePage() {
   };
 
   const handleAdvanceStop = () => {
+    if (!activeTrip || !route?.stops) return;
     const nextIdx = (activeTrip.currentStopIndex || 0) + 1;
     if (nextIdx < route.stops.length) {
       activeTrip.currentStopIndex = nextIdx;
@@ -95,7 +98,7 @@ export default function DriverConsolePage() {
   };
 
   const handleReportIncident = () => {
-    if (!selectedIncident) return;
+    if (!selectedIncident || !bus) return;
     store.addVehicleIssue({
       busId: bus.id,
       busNumber: bus.busNumber,
@@ -120,7 +123,7 @@ export default function DriverConsolePage() {
           </div>
           <div>
             <div className="text-xs uppercase font-bold text-slate-400">Driver Console</div>
-            <div className="text-sm font-bold truncate">{bus.busNumber}</div>
+            <div className="text-sm font-bold truncate">{bus?.busNumber || "Active Bus Cockpit"}</div>
           </div>
         </div>
 
@@ -142,24 +145,24 @@ export default function DriverConsolePage() {
         <div className="bg-slate-800/80 rounded-3xl p-5 border border-slate-700/60 space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-blue-900/60 text-blue-300 border border-blue-700">
-              Trip: {activeTrip.tripCode}
+              Trip: {activeTrip?.tripCode || "Standby Mode"}
             </span>
             <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${activeTrip.status === "IN_PROGRESS" ? "bg-emerald-500 animate-ping" : "bg-amber-500"}`} />
-              <span className="text-xs font-bold uppercase">{activeTrip.status}</span>
+              <span className={`w-2.5 h-2.5 rounded-full ${activeTrip?.status === "IN_PROGRESS" ? "bg-emerald-500 animate-ping" : "bg-amber-500"}`} />
+              <span className="text-xs font-bold uppercase">{activeTrip?.status || "STANDBY"}</span>
             </div>
           </div>
 
           <div>
-            <div className="text-xl font-black">{route.name}</div>
+            <div className="text-xl font-black">{route?.name || "Campus Shuttle Route"}</div>
             <div className="text-xs text-slate-400 mt-0.5">
-              Capacity: {confirmedCount} / {bus.capacity} Passengers Confirmed
+              Capacity: {confirmedCount} / {bus?.capacity || 40} Passengers Confirmed
             </div>
           </div>
 
           {/* Big Action Buttons */}
           <div className="grid grid-cols-2 gap-3 pt-2">
-            {activeTrip.status !== "IN_PROGRESS" ? (
+            {activeTrip?.status !== "IN_PROGRESS" ? (
               <button
                 onClick={handleStartTrip}
                 className="py-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30"
@@ -218,14 +221,14 @@ export default function DriverConsolePage() {
               Station Sequence Checklist
             </h3>
             <span className="text-xs font-mono text-slate-400">
-              Stop {(activeTrip.currentStopIndex || 0) + 1} of {route.stops.length}
+              Stop {(activeTrip?.currentStopIndex || 0) + 1} of {route?.stops?.length || 0}
             </span>
           </div>
 
           <div className="space-y-3">
-            {route.stops.map((rs, idx) => {
-              const isCurrent = idx === (activeTrip.currentStopIndex || 0);
-              const isPassed = idx < (activeTrip.currentStopIndex || 0);
+            {route?.stops?.map((rs, idx) => {
+              const isCurrent = idx === (activeTrip?.currentStopIndex || 0);
+              const isPassed = idx < (activeTrip?.currentStopIndex || 0);
 
               return (
                 <div

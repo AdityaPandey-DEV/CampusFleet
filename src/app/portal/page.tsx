@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 export default function StudentPortalDashboard() {
+  const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [students, setStudents] = useState(store.getStudents());
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
   const [buses, setBuses] = useState(store.getBuses());
@@ -37,6 +38,7 @@ export default function StudentPortalDashboard() {
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
+      setCurrentUser(store.getCurrentUser());
       setStudents(store.getStudents());
       setActiveChildId(store.getActiveChildId());
       setBuses(store.getBuses());
@@ -51,35 +53,15 @@ export default function StudentPortalDashboard() {
     return unsub;
   }, []);
 
-  const activeStudent = students.find(s => s.id === activeChildId) || students[0];
+  const activeStudent = students.find(s => s.id === (activeChildId || currentUser?.studentId)) || students[0];
   const activeBooking = bookings.find(
     b => b.studentId === activeStudent?.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
   );
 
-  const activeTrip = trips.find(t => t.id === activeBooking?.tripId) || trips[0] || {
-    id: "default-trip",
-    tripCode: "TRIP-001",
-    status: "SCHEDULED",
-    currentStopIndex: 0,
-  };
-  const assignedBus = buses.find(b => b.id === activeTrip?.busId) || buses[0] || {
-    id: "default-bus",
-    busNumber: "Campus Shuttle",
-    registrationNo: "CAMPUS-01",
-    capacity: 40,
-    seatLayout: "2x2",
-  };
-  const assignedRoute = routes.find(r => r.id === activeTrip?.routeId) || routes[0] || {
-    id: "default-route",
-    name: "Main Campus Direct",
-    code: "RT-101",
-    stops: [],
-  };
-  const pickupStop = stops.find(s => s.id === activeStudent?.primaryStopId) || stops[0] || {
-    id: "default-stop",
-    name: "Main Campus Station",
-    code: "MC-01",
-  };
+  const activeTrip = trips.find(t => t.id === activeBooking?.tripId) || trips[0];
+  const assignedBus = buses.find(b => b.id === activeTrip?.busId) || buses[0];
+  const assignedRoute = routes.find(r => r.id === activeTrip?.routeId) || routes[0];
+  const pickupStop = stops.find(s => s.id === (activeBooking?.boardingStopId || activeStudent?.primaryStopId)) || stops[0];
   const driver = staff.find(s => s.id === activeTrip?.driverId);
   const conductor = staff.find(s => s.id === activeTrip?.conductorId);
 
@@ -101,28 +83,41 @@ export default function StudentPortalDashboard() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-            Welcome, {activeStudent?.fullName.split(" ")[0]}! 👋
+            {currentUser ? `Welcome, ${currentUser.fullName.split(" ")[0]}! 👋` : "Student & Mobility Portal 👋"}
           </h1>
           <p className="text-xs sm:text-sm text-slate-300">
-            {activeStudent?.department} • Roll No: {activeStudent?.enrollmentNo}
+            {currentUser
+              ? `${activeStudent?.department || "Campus Passenger"} • ${activeStudent?.enrollmentNo || currentUser.email}`
+              : "Sign in with your university account to reserve bus shift seats & view live QR passes."}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/portal/pass"
-            className="px-4 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-xs rounded-2xl shadow-lg shadow-teal-500/20 flex items-center gap-2 transition-transform active:scale-95"
-          >
-            <QrCode className="w-4 h-4" />
-            Open QR Pass
-          </Link>
-          <Link
-            href="/portal/tracker"
-            className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white font-bold text-xs rounded-2xl backdrop-blur transition-colors flex items-center gap-2"
-          >
-            <Compass className="w-4 h-4" />
-            Live Map
-          </Link>
+          {currentUser ? (
+            <>
+              <Link
+                href="/portal/pass"
+                className="px-4 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-xs rounded-2xl shadow-lg shadow-teal-500/20 flex items-center gap-2 transition-transform active:scale-95"
+              >
+                <QrCode className="w-4 h-4" />
+                Open QR Pass
+              </Link>
+              <Link
+                href="/portal/tracker"
+                className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white font-bold text-xs rounded-2xl backdrop-blur transition-colors flex items-center gap-2"
+              >
+                <Compass className="w-4 h-4" />
+                Live Map
+              </Link>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-2xl shadow-lg shadow-blue-500/30 flex items-center gap-2 transition-transform active:scale-95"
+            >
+              Sign In to Your Account →
+            </Link>
+          )}
         </div>
       </div>
 
@@ -217,9 +212,9 @@ export default function StudentPortalDashboard() {
                     )}
                   </div>
                   <div className="text-xs text-slate-500 mt-1 flex items-center justify-center sm:justify-start gap-2 font-mono">
-                    <span>Current Speed: {liveLocation.speedKmh} km/h</span>
+                    <span>Current Speed: {liveLocation?.speedKmh || 0} km/h</span>
                     <span>•</span>
-                    <span>Trip Status: {activeTrip.status}</span>
+                    <span>Trip Status: {activeTrip?.status || "SCHEDULED"}</span>
                   </div>
                 </div>
 
@@ -279,19 +274,21 @@ export default function StudentPortalDashboard() {
           )}
 
           {/* Metro-style Route Line Progression */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="text-base font-black text-slate-900 dark:text-white mb-2">
-              Route Stop Sequence & Live Progression
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Real-time station tracking modeled after rapid transit displays.
-            </p>
-            <StationLineProgress
-              route={assignedRoute}
-              currentStopIndex={activeTrip.currentStopIndex || 1}
-              selectedStopId={pickupStop.id}
-            />
-          </div>
+          {assignedRoute && assignedRoute.stops && assignedRoute.stops.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <h3 className="text-base font-black text-slate-900 dark:text-white mb-2">
+                Route Stop Sequence & Live Progression
+              </h3>
+              <p className="text-xs text-slate-500 mb-4">
+                Real-time station tracking modeled after rapid transit displays.
+              </p>
+              <StationLineProgress
+                route={assignedRoute}
+                currentStopIndex={activeTrip?.currentStopIndex || 0}
+                selectedStopId={pickupStop?.id || ""}
+              />
+            </div>
+          )}
         </div>
 
         {/* Right Col: Mini Live Map & Quick Actions */}

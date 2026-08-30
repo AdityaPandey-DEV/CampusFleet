@@ -70,21 +70,22 @@ export default function ConductorConsolePage() {
   });
 
   const handleMarkAttendance = (studentId: string, status: "BOARDED" | "ABSENT" | "NO_SHOW") => {
+    if (!activeTrip) return;
     const res = store.recordAttendance(studentId, activeTrip.id, "MANUAL_OVERRIDE", status, "Direct Conductor Check-in");
     setToastMessage(res.message);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleManualOverrideSubmit = () => {
-    if (!overrideModal || !overrideReason) return;
+    if (!overrideModal || !overrideReason || !activeTrip) return;
     store.recordAttendance(
       overrideModal.studentId,
       activeTrip.id,
       "MANUAL_OVERRIDE",
       "BOARDED",
-      `Conductor Manual Override: ${overrideReason}`
+      `Manual Conductor Override: ${overrideReason}`
     );
-    setToastMessage(`Manual Override Approved for ${overrideModal.studentName}. Logged to audit logs.`);
+    setToastMessage(`Passenger ${overrideModal.studentName} marked boarded manually!`);
     setOverrideModal(null);
     setOverrideReason("");
     setTimeout(() => setToastMessage(null), 3000);
@@ -100,7 +101,9 @@ export default function ConductorConsolePage() {
           </div>
           <div>
             <div className="text-xs uppercase font-bold text-slate-400">Conductor Manifest Desk</div>
-            <div className="text-sm font-bold truncate">Trip: {activeTrip.tripCode} ({bus.busNumber})</div>
+            <div className="text-sm font-bold truncate">
+              {activeTrip ? `Trip: ${activeTrip.tripCode} (${bus?.busNumber || "Active Bus"})` : "Conductor Operations Console"}
+            </div>
           </div>
         </div>
 
@@ -146,15 +149,17 @@ export default function ConductorConsolePage() {
         </div>
 
         {/* Integrated QR & Biometric Hardware Scanner */}
-        <BiometricAndQRScanner
-          trip={activeTrip}
-          bookings={bookings}
-          students={students}
-          onAttendanceSuccess={(name, method) => {
-            setToastMessage(`Verified ${name} via ${method}!`);
-            setTimeout(() => setToastMessage(null), 3000);
-          }}
-        />
+        {activeTrip && (
+          <BiometricAndQRScanner
+            trip={activeTrip}
+            bookings={bookings}
+            students={students}
+            onAttendanceSuccess={(name, method) => {
+              setToastMessage(`Verified ${name} via ${method}!`);
+              setTimeout(() => setToastMessage(null), 3000);
+            }}
+          />
+        )}
 
         {/* Final Passenger Manifest Table */}
         <div className="bg-slate-800/80 rounded-3xl p-5 border border-slate-700 space-y-4">
