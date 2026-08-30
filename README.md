@@ -5,7 +5,7 @@
 > Inspired by the operational clarity, route progression, and passenger safety of modern rapid transit systems.
 
 [![Production Deployment](https://img.shields.io/badge/Vercel-Live%20Demo-black?style=for-the-badge&logo=vercel)](https://campusride.vercel.app)
-[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/AdityaPandey-DEV/bussync)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/AdityaPandey-DEV/campusride)
 
 🌐 **Live Production URL**: [https://campusride.vercel.app](https://campusride.vercel.app)
 
