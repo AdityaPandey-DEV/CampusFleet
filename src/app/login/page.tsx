@@ -34,7 +34,7 @@ export default function UnifiedLoginPage() {
 
   const getTargetRouteForRole = (userRole: UserRole, userEmail: string): string => {
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com";
-    if (userEmail.toLowerCase() === adminEmail.toLowerCase() || userRole === "transport_manager") {
+    if (userEmail.toLowerCase() === adminEmail.toLowerCase() || userRole === "admin" || userRole === "transport_manager") {
       return "/admin";
     }
     if (userRole === "driver") return "/staff/driver";
@@ -48,7 +48,7 @@ export default function UnifiedLoginPage() {
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com";
     const resolvedEmail = email || "adityapandey.dev.in@gmail.com";
     const isUserAdmin = resolvedEmail.toLowerCase() === adminEmail.toLowerCase();
-    const effectiveRole: UserRole = isUserAdmin ? "transport_manager" : role;
+    const effectiveRole: UserRole = isUserAdmin ? "admin" : role;
     const targetRoute = getTargetRouteForRole(effectiveRole, resolvedEmail);
 
     try {
@@ -241,19 +241,19 @@ export default function UnifiedLoginPage() {
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">
                   Select Role (Or Auto-Detect via Email)
                 </label>
-                <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl text-[11px] font-bold">
-                  {(["student", "guardian", "driver", "transport_manager"] as UserRole[]).map(r => (
+                <div className="grid grid-cols-5 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl text-[10px] font-bold">
+                  {(["student", "parent", "driver", "conductor", "admin"] as UserRole[]).map(r => (
                     <button
                       key={r}
                       type="button"
                       onClick={() => setRole(r)}
-                      className={`py-2 rounded-xl capitalize transition-all ${
+                      className={`py-2 rounded-xl capitalize transition-all truncate px-1 ${
                         role === r
                           ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
                           : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                       }`}
                     >
-                      {r === "transport_manager" ? "Admin" : r}
+                      {r === "admin" ? "Admin" : r === "parent" ? "Parent" : r}
                     </button>
                   ))}
                 </div>
