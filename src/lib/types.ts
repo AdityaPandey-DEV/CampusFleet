@@ -42,6 +42,7 @@ export interface Stop {
   longitude: number;
   landmark: string;
   geofenceRadiusMeters: number;
+  campus?: string;
 }
 
 export interface RouteStop {

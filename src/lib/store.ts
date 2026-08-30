@@ -174,6 +174,7 @@ class CampusRideStore {
           longitude: s.longitude,
           landmark: s.landmark,
           geofenceRadiusMeters: s.geofence_radius || 80,
+          campus: s.campus || "GEHU Bhimtal",
         }));
       }
 

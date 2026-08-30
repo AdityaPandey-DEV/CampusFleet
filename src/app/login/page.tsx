@@ -71,20 +71,33 @@ export default function UnifiedLoginPage() {
     return unsub;
   }, [selectedStopId]);
 
+  // Filter stops by selected campus (e.g. GEHU Bhimtal)
+  const campusStops = React.useMemo(() => {
+    return stops.filter(st => {
+      if (onboardingCampus.includes("Bhimtal")) {
+        return st.campus === "GEHU Bhimtal" || st.id.includes("bht") || !st.id.includes("ddn");
+      }
+      if (onboardingCampus.includes("Dehradun")) {
+        return st.campus === "GEHU Dehradun" || st.id.includes("ddn");
+      }
+      return true;
+    });
+  }, [stops, onboardingCampus]);
+
   // Compute nearest stops based on text filter or GPS
   const filteredNearestStops = React.useMemo(() => {
     if (!homeLocation.trim()) {
-      return stops.slice(0, 8);
+      return campusStops;
     }
     const q = homeLocation.toLowerCase().trim();
-    const matched = stops.filter(
+    const matched = campusStops.filter(
       st =>
         st.name.toLowerCase().includes(q) ||
         st.landmark.toLowerCase().includes(q) ||
         st.code.toLowerCase().includes(q)
     );
-    return matched.length > 0 ? matched : stops.slice(0, 8);
-  }, [stops, homeLocation]);
+    return matched.length > 0 ? matched : campusStops;
+  }, [campusStops, homeLocation]);
 
   const handleDetectGPSLocation = () => {
     if (!navigator.geolocation) {
@@ -96,12 +109,12 @@ export default function UnifiedLoginPage() {
       pos => {
         setIsLocating(false);
         const { latitude, longitude } = pos.coords;
-        if (stops.length === 0) return;
+        if (campusStops.length === 0) return;
         
-        let nearestStop = stops[0];
+        let nearestStop = campusStops[0];
         let minDistance = Infinity;
 
-        stops.forEach(st => {
+        campusStops.forEach(st => {
           const dist = calculateDistanceKm(latitude, longitude, st.latitude, st.longitude);
           if (dist < minDistance) {
             minDistance = dist;
@@ -111,14 +124,14 @@ export default function UnifiedLoginPage() {
 
         if (nearestStop) {
           setSelectedStopId(nearestStop.id);
-          setHomeLocation(`${nearestStop.name} Area`);
+          setHomeLocation(`${nearestStop.name.split("(")[0].trim()}`);
           setDetectedDistanceText(`📍 Nearest stop found: ~${minDistance} km away (${nearestStop.name})`);
         }
       },
       err => {
         setIsLocating(false);
         console.warn("GPS error:", err);
-        const defaultStop = stops.find(s => s.code.includes("LDT") || s.name.includes("Laldant")) || stops[0];
+        const defaultStop = campusStops.find(s => s.code.includes("LDT") || s.name.includes("Laldant")) || campusStops[0];
         if (defaultStop) setSelectedStopId(defaultStop.id);
       },
       { timeout: 8000 }
