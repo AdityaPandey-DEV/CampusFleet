@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
 import { Route, Stop } from "@/lib/types";
-import BusSyncMap from "@/components/maps/BusSyncMap";
+import CampusRideMap from "@/components/maps/CampusRideMap";
 import { StationLineProgress } from "@/components/ui/StationLineProgress";
 import { Route as RouteIcon, Plus, MapPin, Clock, ShieldAlert, ArrowUpDown, Check } from "lucide-react";
 
@@ -97,14 +97,10 @@ export default function RouteManagementPage() {
             </span>
           </div>
 
-          <BusSyncMap
-            buses={buses}
-            routes={routes}
+          <CampusRideMap
             stops={stops}
-            selectedRouteId={activeRoute.id}
-            selectedStopId={selectedStopId}
+            routeCoordinates={stops.map(s => [s.latitude, s.longitude])}
             height="460px"
-            interactive={true}
           />
         </div>
 

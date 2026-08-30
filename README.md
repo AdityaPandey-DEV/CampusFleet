@@ -1,20 +1,20 @@
-# 🚌 BusSync — Smart Campus Transport and Bus Management System
+# 🚌 CampusRide — Smart Campus Transport and Bus Management System
 
 > **Production-Quality Full-Stack Academic Project**  
 > Built with **Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui patterns, Supabase PostgreSQL, and Leaflet**.  
 > Inspired by the operational clarity, route progression, and passenger safety of modern rapid transit systems.
 
-[![Production Deployment](https://img.shields.io/badge/Vercel-Live%20Demo-black?style=for-the-badge&logo=vercel)](https://bussync-nine.vercel.app)
+[![Production Deployment](https://img.shields.io/badge/Vercel-Live%20Demo-black?style=for-the-badge&logo=vercel)](https://campusride.vercel.app)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/AdityaPandey-DEV/bussync)
 
-🌐 **Live Production URL**: [https://bussync-nine.vercel.app](https://bussync-nine.vercel.app)
+🌐 **Live Production URL**: [https://campusride.vercel.app](https://campusride.vercel.app)
 
 ---
 
 ## 📸 Application Interface & Visual Tour
 
 ### 1. Unified Gateway & Role Portal Launchers
-![BusSync Gateway](./docs/screenshots/landing.png)
+![CampusRide Gateway](./docs/screenshots/landing.png)
 
 ### 2. Student & Parent Live Transit Radar (`/portal`)
 ![Student Portal](./docs/screenshots/student_portal.png)

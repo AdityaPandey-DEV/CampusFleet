@@ -19,7 +19,7 @@ import {
   Lock,
 } from "lucide-react";
 
-export default function BusSyncLandingPage() {
+export default function CampusRideLandingPage() {
   const rolePortals = [
     {
       title: "Student & Parent Portal",
@@ -70,7 +70,7 @@ export default function BusSyncLandingPage() {
             </div>
             <div>
               <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                Bus<span className="text-blue-600 dark:text-blue-400">Sync</span>
+                Campus<span className="text-blue-600 dark:text-blue-400">Ride</span>
               </span>
               <span className="hidden sm:inline-block ml-2 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
                 Academic Transit Platform
@@ -204,7 +204,7 @@ export default function BusSyncLandingPage() {
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div>
-            BusSync © 2026 Smart Campus Transport Management System • Academic Major Project
+            CampusRide © 2026 Smart Campus Transport Management System • Academic Major Project
           </div>
           <div className="flex items-center gap-4">
             <span>Next.js 14 App Router</span>

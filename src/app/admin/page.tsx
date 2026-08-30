@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { store } from "@/lib/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import BusSyncMap from "@/components/maps/BusSyncMap";
+import CampusRideMap from "@/components/maps/CampusRideMap";
 import {
   ResponsiveContainer,
   BarChart,
@@ -62,6 +62,8 @@ export default function AdminDashboardOverview() {
     });
     return unsub;
   }, []);
+
+  const routeCoordinates: [number, number][] = stops.map(s => [s.latitude, s.longitude]);
 
   const activeBuses = buses.filter(b => b.status === "ACTIVE").length;
   const confirmedBookings = bookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
@@ -216,13 +218,11 @@ export default function AdminDashboardOverview() {
             </Link>
           </div>
 
-          <BusSyncMap
-            buses={buses}
-            routes={routes}
+          <CampusRideMap
+            busLocation={liveLocation}
             stops={stops}
-            liveLocation={liveLocation}
-            height="380px"
-            interactive={true}
+            routeCoordinates={routeCoordinates}
+            height="320px"
           />
         </div>
 

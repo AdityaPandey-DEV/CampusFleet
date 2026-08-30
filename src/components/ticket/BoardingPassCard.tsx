@@ -63,7 +63,7 @@ export function BoardingPassCard({
           </div>
           <div>
             <div className="text-xs uppercase tracking-wider text-white/80 font-medium">
-              BusSync Digital Pass
+              CampusRide Digital Pass
             </div>
             <div className="text-sm font-bold truncate">
               {bus?.busNumber || "Campus Express Shuttle"}

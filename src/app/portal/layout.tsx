@@ -67,7 +67,7 @@ export default function StudentPortalLayout({
               </div>
               <div>
                 <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                  Bus<span className="text-blue-600 dark:text-blue-400">Sync</span>
+                  Campus<span className="text-blue-600 dark:text-blue-400">Ride</span>
                 </span>
                 <span className="hidden sm:inline-block ml-2 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
                   Student & Parent Portal

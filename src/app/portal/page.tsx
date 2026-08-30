@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
-import BusSyncMap from "@/components/maps/BusSyncMap";
+import CampusRideMap from "@/components/maps/CampusRideMap";
 import { StationLineProgress } from "@/components/ui/StationLineProgress";
 import {
   BusFront,
@@ -258,15 +258,11 @@ export default function StudentPortalDashboard() {
               </Link>
             </div>
 
-            <BusSyncMap
-              buses={buses}
-              routes={routes}
+            <CampusRideMap
+              busLocation={liveLocation}
               stops={stops}
-              liveLocation={liveLocation}
-              selectedRouteId={assignedRoute.id}
-              selectedStopId={pickupStop.id}
-              height="240px"
-              interactive={false}
+              routeCoordinates={stops.map(s => [s.latitude, s.longitude])}
+              height="320px"
             />
 
             <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">

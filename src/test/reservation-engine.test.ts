@@ -8,7 +8,7 @@ import {
 import { calculateHaversineDistanceKm, calculateETA } from "../lib/eta-calculator";
 import { Student, Trip, Bus, Booking, Stop } from "../lib/types";
 
-describe("BusSync Railway Reservation Engine Tests", () => {
+describe("CampusRide Railway Reservation Engine Tests", () => {
   const mockStudent1: Student = {
     id: "stud-1",
     userId: "u-stud-1",

@@ -571,7 +571,7 @@ export const INITIAL_MAINTENANCE: MaintenanceRecord[] = [
 ];
 
 // Reactive Client-Side Store Class with Local Storage sync
-class BusSyncStore {
+class CampusRideStore {
   private buses: Bus[] = INITIAL_BUSES;
   private routes: Route[] = INITIAL_ROUTES;
   private stops: Stop[] = INITIAL_STOPS;
@@ -630,15 +630,15 @@ class BusSyncStore {
   private saveToLocalStorage() {
     if (typeof window === "undefined") return;
     try {
-      localStorage.setItem("bussync_buses", JSON.stringify(this.buses));
-      localStorage.setItem("bussync_trips", JSON.stringify(this.trips));
-      localStorage.setItem("bussync_bookings", JSON.stringify(this.bookings));
-      localStorage.setItem("bussync_location", JSON.stringify(this.liveLocation));
-      localStorage.setItem("bussync_notifications", JSON.stringify(this.notifications));
-      localStorage.setItem("bussync_user", JSON.stringify(this.currentUser));
-      localStorage.setItem("bussync_active_child", this.activeChildId);
-      localStorage.setItem("bussync_attendance", JSON.stringify(this.attendanceRecords));
-      localStorage.setItem("bussync_issues", JSON.stringify(this.issues));
+      localStorage.setItem("campusride_buses", JSON.stringify(this.buses));
+      localStorage.setItem("campusride_trips", JSON.stringify(this.trips));
+      localStorage.setItem("campusride_bookings", JSON.stringify(this.bookings));
+      localStorage.setItem("campusride_location", JSON.stringify(this.liveLocation));
+      localStorage.setItem("campusride_notifications", JSON.stringify(this.notifications));
+      localStorage.setItem("campusride_user", JSON.stringify(this.currentUser));
+      localStorage.setItem("campusride_active_child", this.activeChildId);
+      localStorage.setItem("campusride_attendance", JSON.stringify(this.attendanceRecords));
+      localStorage.setItem("campusride_issues", JSON.stringify(this.issues));
     } catch (e) {
       console.warn("Could not save to localStorage", e);
     }
@@ -646,23 +646,23 @@ class BusSyncStore {
 
   private loadFromLocalStorage() {
     try {
-      const b = localStorage.getItem("bussync_buses");
+      const b = localStorage.getItem("campusride_buses") || localStorage.getItem("bussync_buses");
       if (b) this.buses = JSON.parse(b);
-      const t = localStorage.getItem("bussync_trips");
+      const t = localStorage.getItem("campusride_trips") || localStorage.getItem("bussync_trips");
       if (t) this.trips = JSON.parse(t);
-      const bk = localStorage.getItem("bussync_bookings");
+      const bk = localStorage.getItem("campusride_bookings") || localStorage.getItem("bussync_bookings");
       if (bk) this.bookings = JSON.parse(bk);
-      const loc = localStorage.getItem("bussync_location");
+      const loc = localStorage.getItem("campusride_location") || localStorage.getItem("bussync_location");
       if (loc) this.liveLocation = JSON.parse(loc);
-      const notif = localStorage.getItem("bussync_notifications");
+      const notif = localStorage.getItem("campusride_notifications") || localStorage.getItem("bussync_notifications");
       if (notif) this.notifications = JSON.parse(notif);
-      const u = localStorage.getItem("bussync_user");
+      const u = localStorage.getItem("campusride_user") || localStorage.getItem("bussync_user");
       if (u) this.currentUser = JSON.parse(u);
-      const ch = localStorage.getItem("bussync_active_child");
+      const ch = localStorage.getItem("campusride_active_child") || localStorage.getItem("bussync_active_child");
       if (ch) this.activeChildId = ch;
-      const att = localStorage.getItem("bussync_attendance");
+      const att = localStorage.getItem("campusride_attendance") || localStorage.getItem("bussync_attendance");
       if (att) this.attendanceRecords = JSON.parse(att);
-      const iss = localStorage.getItem("bussync_issues");
+      const iss = localStorage.getItem("campusride_issues") || localStorage.getItem("bussync_issues");
       if (iss) this.issues = JSON.parse(iss);
     } catch (e) {
       console.warn("Could not load from localStorage", e);
@@ -944,4 +944,4 @@ class BusSyncStore {
   }
 }
 
-export const store = new BusSyncStore();
+export const store = new CampusRideStore();

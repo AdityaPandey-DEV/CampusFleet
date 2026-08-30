@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
-import BusSyncMap from "@/components/maps/BusSyncMap";
+import CampusRideMap from "@/components/maps/CampusRideMap";
 import { StationLineProgress } from "@/components/ui/StationLineProgress";
 import { Compass, Clock, MapPin, ShieldAlert, Phone, Navigation, RefreshCw } from "lucide-react";
 
@@ -58,15 +58,11 @@ export default function LiveTrackerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Full interactive map & Telemetry HUD */}
         <div className="lg:col-span-2 space-y-4">
-          <BusSyncMap
-            buses={buses}
-            routes={routes}
+          <CampusRideMap
+            busLocation={liveLocation}
             stops={stops}
-            liveLocation={liveLocation}
-            selectedRouteId={assignedRoute.id}
-            selectedStopId={pickupStop.id}
+            routeCoordinates={stops.map(s => [s.latitude, s.longitude])}
             height="500px"
-            interactive={true}
           />
 
           {/* Telematics Info HUD Strip */}

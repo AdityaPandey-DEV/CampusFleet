@@ -17,7 +17,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
-    const saved = localStorage.getItem("bussync_theme") as Theme | null;
+    const saved = (localStorage.getItem("campusride_theme") || localStorage.getItem("bussync_theme")) as Theme | null;
     if (saved && (saved === "light" || saved === "dark" || saved === "system")) {
       setThemeState(saved);
     }
@@ -57,7 +57,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem("bussync_theme", newTheme);
+    localStorage.setItem("campusride_theme", newTheme);
   };
 
   return (
