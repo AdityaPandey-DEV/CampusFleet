@@ -23,7 +23,10 @@ import {
   MapPin,
   Clock,
   Key,
+  LogOut,
+  User,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function CampusRideLandingPage() {
   const [buses, setBuses] = useState(store.getBuses());
@@ -41,6 +44,31 @@ export default function CampusRideLandingPage() {
     });
     return unsub;
   }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Supabase signout:", e);
+    }
+    store.setCurrentUser(null as any);
+  };
+
+  const getDashboardLink = () => {
+    if (!currentUser) return "/portal";
+    if (currentUser.role === "admin" || currentUser.role === "transport_manager") return "/admin";
+    if (currentUser.role === "driver") return "/staff/driver";
+    if (currentUser.role === "conductor") return "/staff/conductor";
+    return "/portal";
+  };
+
+  const getDashboardLabel = () => {
+    if (!currentUser) return "Launch Portal";
+    if (currentUser.role === "admin" || currentUser.role === "transport_manager") return "Admin Console →";
+    if (currentUser.role === "driver") return "Driver Cockpit →";
+    if (currentUser.role === "conductor") return "Conductor Manifest →";
+    return "My Student Portal →";
+  };
 
   const rolePortals = [
     {
@@ -103,20 +131,41 @@ export default function CampusRideLandingPage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
 
-            <Link
-              href="/login"
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-colors"
-            >
-              <Key className="w-3.5 h-3.5 text-blue-600" />
-              <span>{currentUser ? currentUser.fullName : "Unified Login Gateway"}</span>
-            </Link>
+            {currentUser ? (
+              <>
+                <Link
+                  href={getDashboardLink()}
+                  className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-colors"
+                >
+                  <User className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{currentUser.fullName}</span>
+                </Link>
 
-            <Link
-              href="/login"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-transform active:scale-95 flex items-center gap-1.5"
-            >
-              <span>Sign In →</span>
-            </Link>
+                <Link
+                  href={getDashboardLink()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-transform active:scale-95 flex items-center gap-1.5"
+                >
+                  <span>{getDashboardLabel()}</span>
+                </Link>
+
+                <button
+                  onClick={handleSignOut}
+                  title="Sign Out"
+                  className="px-3 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold border border-rose-200 dark:border-rose-900/50"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-transform active:scale-95 flex items-center gap-1.5"
+              >
+                <Key className="w-3.5 h-3.5" />
+                <span>Sign In →</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>

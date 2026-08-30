@@ -21,6 +21,8 @@ import {
   ChevronDown,
   Key,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 
 export default function StudentPortalLayout({
   children,
@@ -28,6 +30,7 @@ export default function StudentPortalLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [students, setStudents] = useState(store.getStudents());
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
@@ -35,6 +38,16 @@ export default function StudentPortalLayout({
   const [isSOSOpen, setIsSOSOpen] = useState(false);
   const [isChildMenuOpen, setIsChildMenuOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn(e);
+    }
+    store.setCurrentUser(null as any);
+    router.push("/login");
+  };
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -169,14 +182,14 @@ export default function StudentPortalLayout({
               <Key className="w-4 h-4 text-blue-600" />
             </button>
 
-            {/* Switch Panel Shortcut */}
-            <Link
-              href="/"
-              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-              title="Switch Portal Role"
+            {/* Sign Out Button */}
+            <button
+              onClick={handleSignOut}
+              className="p-2 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
+              title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
-            </Link>
+            </button>
           </div>
         </div>
       </header>

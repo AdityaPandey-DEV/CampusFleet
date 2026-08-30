@@ -32,6 +32,8 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 
 export default function AdminLayout({
   children,
@@ -39,11 +41,22 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn(e);
+    }
+    store.setCurrentUser(null as any);
+    router.push("/login");
+  };
   const [notifications, setNotifications] = useState(store.getNotifications());
   const [issues, setIssues] = useState(store.getIssues());
 
@@ -167,13 +180,13 @@ export default function AdminLayout({
 
           <div className="flex items-center justify-between gap-2">
             <ThemeToggle />
-            <Link
-              href="/"
-              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-              title="Switch to Landing Portal"
+            <button
+              onClick={handleSignOut}
+              className="p-2 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
+              title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
-            </Link>
+            </button>
           </div>
         </div>
       </aside>
@@ -203,18 +216,13 @@ export default function AdminLayout({
             >
               Student Portal →
             </Link>
-            <Link
-              href="/staff/driver"
-              className="text-xs font-bold text-slate-600 dark:text-slate-400 hover:underline"
-            >
-              Driver Console
-            </Link>
+
             <button
-              onClick={() => setIsAuthOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-colors"
+              onClick={handleSignOut}
+              className="flex items-center gap-1.5 px-3 py-1 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-xs font-bold rounded-xl transition-colors"
             >
-              <Key className="w-3.5 h-3.5 text-blue-600" />
-              <span>{currentUser ? currentUser.fullName : "Sign In"}</span>
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
             </button>
           </div>
         </header>
