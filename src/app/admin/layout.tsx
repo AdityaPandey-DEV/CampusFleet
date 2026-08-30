@@ -27,6 +27,10 @@ import {
   Radio,
   AlertTriangle,
   Key,
+  Database,
+  Trash2,
+  RefreshCw,
+  Sparkles,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -38,6 +42,7 @@ export default function AdminLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [notifications, setNotifications] = useState(store.getNotifications());
   const [issues, setIssues] = useState(store.getIssues());
@@ -183,12 +188,20 @@ export default function AdminLayout({
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsDataModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs font-bold rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors"
+            >
+              <Database className="w-3.5 h-3.5 text-amber-600" />
+              <span>Data & Reset</span>
+            </button>
+
             <Link
               href="/portal"
               className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
             >
-              View Student Portal Preview →
+              Student Portal →
             </Link>
             <Link
               href="/staff/driver"
@@ -217,6 +230,81 @@ export default function AdminLayout({
         onClose={() => setIsAuthOpen(false)}
         initialRole="transport_manager"
       />
+
+      {/* Database State Management Modal */}
+      {isDataModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-blue-100 dark:bg-blue-950 text-blue-600 rounded-2xl">
+                  <Database className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg">Production Fleet Data Controls</h3>
+                  <p className="text-xs text-slate-500">Switch database state or clear test entries</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDataModalOpen(false)}
+                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {/* Option 1: Clean Production State */}
+              <button
+                onClick={() => {
+                  if (confirm("Are you sure you want to WIPE all stops, buses, and routes to start fresh with 0 entries for your real college?")) {
+                    store.clearAllProductionData();
+                    setIsDataModalOpen(false);
+                    alert("Database wiped! You now have a clean slate to add your university's real stops and buses.");
+                  }
+                }}
+                className="w-full p-4 rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100/70 text-left flex items-start gap-3 transition-colors group"
+              >
+                <div className="p-2 bg-rose-100 dark:bg-rose-900/60 text-rose-600 rounded-xl group-hover:scale-105 transition-transform">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-xs text-rose-700 dark:text-rose-300">
+                    Wipe to Clean Production State (0 Stops, 0 Buses)
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    Empties all demo routes, buses, and stops so the admin can configure their real campus.
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 2: Restore Standard Template */}
+              <button
+                onClick={() => {
+                  if (confirm("Load fresh campus transit template?")) {
+                    store.resetToDefaults();
+                    setIsDataModalOpen(false);
+                    alert("Default academic transit template loaded!");
+                  }
+                }}
+                className="w-full p-4 rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100/70 text-left flex items-start gap-3 transition-colors group"
+              >
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/60 text-blue-600 rounded-xl group-hover:scale-105 transition-transform">
+                  <RefreshCw className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-xs text-blue-700 dark:text-blue-300">
+                    Load Standard Academic Template
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    Pre-loads 5 campus stations, 2 corridors, and active fleet vehicles.
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
