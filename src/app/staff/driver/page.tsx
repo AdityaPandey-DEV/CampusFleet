@@ -147,7 +147,7 @@ export default function DriverConsolePage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between sm:justify-end min-w-0">
-            <RolePortalSwitcher align="right" />
+            <RolePortalSwitcher />
             <ThemeToggle />
             <Link
               href="/"

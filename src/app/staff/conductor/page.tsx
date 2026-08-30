@@ -195,7 +195,7 @@ export default function ConductorConsolePage() {
               </select>
             )}
 
-            <RolePortalSwitcher align="right" />
+            <RolePortalSwitcher />
             <ThemeToggle />
             <Link
               href="/"
