@@ -368,8 +368,9 @@ class CampusFleetStore {
         }));
       }
 
-      // Auto-register every real authenticated Google user as a Student if not yet in directory
+      // Auto-register every real authenticated Google student if not yet in directory
       for (const u of this.users) {
+        if (u.role && u.role !== "student") continue; // Never register conductors, drivers, staff, teachers, or admins as students!
         const alreadyExists = mappedStudents.some(s => s.email?.toLowerCase() === u.email?.toLowerCase());
         if (!alreadyExists) {
           const newStudent: Student = {
