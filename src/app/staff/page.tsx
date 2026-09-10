@@ -4,8 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { store } from "@/lib/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { ThemeToggle } from "@/components/common/ThemeToggle";
-import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
+import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import * as XLSX from "xlsx";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -600,53 +599,24 @@ export default function StaffOperationsPanel() {
 
   return (
     <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans pb-20 transition-colors">
-      {/* Staff Header */}
-      <header className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-4 py-3 sm:px-6 shadow-sm">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-cyan-500 flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/20 flex-shrink-0">
-              <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                  Transport Staff Operations
-                </span>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                  Supervisory Console
-                </span>
-              </div>
-              <div className="text-sm sm:text-base font-black text-slate-900 dark:text-white truncate">
-                CampusFleet Operations Command
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between sm:justify-end min-w-0">
-            {/* Quick Admin Jump if user is admin */}
-            {(currentUser?.role === "admin" || currentUser?.role === "transport_manager") && (
-              <Link
-                href="/admin"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 text-xs font-bold mr-2"
-                title="Return to Admin Hub"
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Admin Hub</span>
-              </Link>
-            )}
-
-            <RolePortalSwitcher />
-            <ThemeToggle />
+      {/* Zero-Overflow Staff Header with Vertical Command Slide */}
+      <UnifiedAppHeader
+        role="staff"
+        portalTitle="CampusFleet"
+        portalSubtitle="Transport Staff Operations & Supervisory Console"
+        customActions={
+          (currentUser?.role === "admin" || currentUser?.role === "transport_manager") ? (
             <Link
-              href="/"
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-              title="Exit to Portal"
+              href="/admin"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 text-xs font-bold transition-all shadow-2xs"
+              title="Return to Admin Hub"
             >
-              <LogOut className="w-4 h-4" />
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Admin Hub</span>
             </Link>
-          </div>
-        </div>
-      </header>
+          ) : null
+        }
+      />
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6 min-w-0">

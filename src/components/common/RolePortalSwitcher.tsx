@@ -179,7 +179,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
       </button>
 
       {isOpen && (
-        <div className={`absolute ${getDropdownAlignmentClass()} mt-2 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-2.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 space-y-1 text-slate-900 dark:text-white`}>
+        <div className={`absolute ${getDropdownAlignmentClass()} mt-2 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-2.5 shadow-2xl z-50 animate-in slide-in-from-top-2 fade-in duration-200 space-y-1 text-slate-900 dark:text-white`}>
           <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
               <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">

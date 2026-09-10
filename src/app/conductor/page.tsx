@@ -27,7 +27,7 @@ import {
   AlertTriangle,
   ArrowRight,
 } from "lucide-react";
-import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
+import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 
 export default function ConductorConsolePage() {
@@ -205,61 +205,31 @@ export default function ConductorConsolePage() {
   }
 
   return (
-    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 md:pb-12 font-sans transition-colors duration-200 selection:bg-teal-500 selection:text-white">
-      {/* Cockpit Top Bar */}
-      <header className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-4 py-3 sm:px-6 shadow-sm dark:shadow-2xl">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-          {/* Vehicle & Trip Title */}
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-teal-600 via-emerald-600 to-teal-500 flex items-center justify-center text-white font-black shadow-md shadow-teal-500/20 flex-shrink-0">
-              <BusFront className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-500/20 border border-teal-200 dark:border-teal-500/30 text-teal-800 dark:text-teal-300">
-                  Conductor Command Terminal
-                </span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                  <Radio className="w-2.5 h-2.5 text-emerald-500 animate-pulse" /> Live Dispatch
-                </span>
-              </div>
-              <div className="text-xs sm:text-base font-black text-slate-900 dark:text-white truncate">
-                {activeTrip ? `${bus?.busNumber || "Bus"} • ${route?.name || "Corridor"}` : "Conductor Operations"}
-              </div>
-            </div>
-          </div>
-
-          {/* Trip Selector & Global Controls */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap min-w-0 justify-between sm:justify-end">
-            {trips.length > 0 && (
-              <select
-                value={activeTrip?.id || ""}
-                onChange={e => setSelectedTripId(e.target.value)}
-                className="text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 outline-none cursor-pointer flex-1 sm:flex-none max-w-full sm:max-w-xs truncate shadow-xs"
-              >
-                {trips.map(t => {
-                  const b = buses.find(busItem => busItem.id === t.busId);
-                  return (
-                    <option key={t.id} value={t.id}>
-                      {t.tripCode} ({b?.busNumber || "Bus"})
-                    </option>
-                  );
-                })}
-              </select>
-            )}
-
-            <RolePortalSwitcher />
-            <ThemeToggle />
-            <Link
-              href="/"
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-              title="Exit to Portal"
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 md:pb-12 font-sans transition-colors duration-200 selection:bg-purple-600 selection:text-white">
+      {/* Zero-Overflow Cockpit Header with Vertical Command Slide */}
+      <UnifiedAppHeader
+        role="conductor"
+        portalTitle="CampusFleet"
+        portalSubtitle={activeTrip ? `${bus?.busNumber || "Bus"} • ${route?.name || "Corridor"}` : "Conductor Operations"}
+        customActions={
+          trips.length > 0 ? (
+            <select
+              value={activeTrip?.id || ""}
+              onChange={e => setSelectedTripId(e.target.value)}
+              className="text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-2.5 py-1.5 outline-none cursor-pointer max-w-[140px] sm:max-w-[190px] truncate shadow-2xs"
             >
-              <LogOut className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </header>
+              {trips.map(t => {
+                const b = buses.find(busItem => busItem.id === t.busId);
+                return (
+                  <option key={t.id} value={t.id}>
+                    {t.tripCode} ({b?.busNumber || "Bus"})
+                  </option>
+                );
+              })}
+            </select>
+          ) : null
+        }
+      />
 
       {/* Main Container */}
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6 min-w-0">

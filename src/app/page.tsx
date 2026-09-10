@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { store } from "@/lib/store";
-import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { AuthModal } from "@/components/auth/AuthModal";
 import {
   BusFront,
@@ -24,9 +24,7 @@ import {
   Clock,
   Key,
   LogOut,
-  User,
 } from "lucide-react";
-import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function CampusFleetLandingPage() {
@@ -138,68 +136,21 @@ export default function CampusFleetLandingPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.12),transparent_70%)]" />
       </div>
 
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 w-full shadow-xs">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
-          {/* Brand Logo & Name */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 flex-shrink-0">
-              <BusFront className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white truncate block">
-                Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
-              </span>
-              <span className="hidden md:inline-block text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
-                Academic Transit Platform
-              </span>
-            </div>
-          </div>
-
-          {/* Right Action Items */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
-            <RolePortalSwitcher />
-            <ThemeToggle />
-
-            {currentUser ? (
-              <>
-                <Link
-                  href={getDashboardLink()}
-                  className="hidden lg:flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-colors max-w-[140px] truncate"
-                >
-                  <User className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                  <span className="truncate">{currentUser.fullName.split(" ")[0]}</span>
-                </Link>
-
-                <Link
-                  href={getDashboardLink()}
-                  className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-transform active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-                >
-                  <span className="hidden sm:inline">{getDashboardLabel()}</span>
-                  <span className="sm:hidden">Portal →</span>
-                </Link>
-
-                <button
-                  onClick={handleSignOut}
-                  title="Sign Out"
-                  className="p-2 sm:px-3 sm:py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold border border-rose-200 dark:border-rose-900/50 flex-shrink-0 cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline">Sign Out</span>
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-transform active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-              >
-                <Key className="w-3.5 h-3.5" />
-                <span>Sign In</span>
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* Zero-Overflow Top Navbar with Vertical Command Slide */}
+      <UnifiedAppHeader
+        portalTitle="CampusFleet"
+        portalSubtitle="Academic Transit Platform"
+        customActions={
+          currentUser ? (
+            <Link
+              href={getDashboardLink()}
+              className="px-3 sm:px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <span>{getDashboardLabel()}</span>
+            </Link>
+          ) : null
+        }
+      />
 
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-12 sm:space-y-16 flex-1">

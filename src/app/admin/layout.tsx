@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { store } from "@/lib/store";
-import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { useTheme } from "@/components/common/ThemeProvider";
 import { AuthModal } from "@/components/auth/AuthModal";
 import {
   LayoutDashboard,
@@ -35,9 +35,12 @@ import {
   GitMerge,
   Building2,
   ArrowRight,
+  ChevronDown,
+  Sun,
+  Moon,
+  Laptop,
+  Check,
 } from "lucide-react";
-import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
-import { useRouter } from "next/navigation";
 
 export default function AdminLayout({
   children,
@@ -51,6 +54,10 @@ export default function AdminLayout({
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
+
+  const { theme, setTheme } = useTheme();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
     await store.logout();
@@ -67,6 +74,21 @@ export default function AdminLayout({
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+    setIsProfileOpen(false);
+  }, [pathname]);
 
   const openIssues = issues.filter(i => i.status === "OPEN").length;
   const unreadNotifs = notifications.filter(n => !n.isRead).length;
@@ -143,30 +165,115 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
       {/* Mobile Header */}
-      <div className="md:hidden sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="md:hidden sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 p-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+            aria-label="Toggle Navigation Menu"
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-          <span className="font-black text-lg">Campus<span className="text-blue-600">Fleet</span> Admin</span>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-600 flex items-center justify-center text-white font-bold shadow-xs">
+              <BusFront className="w-4 h-4" />
+            </div>
+            <span className="font-black text-base">Campus<span className="text-blue-600">Fleet</span> Admin</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Link href="/" className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold">
-            Exit
+          <Link
+            href="/staff"
+            className="px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold"
+          >
+            Staff Ops
           </Link>
+          <button
+            onClick={handleSignOut}
+            className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
+      {/* Mobile Vertical Slide-Down Navigation Sheet (Zero Overflow, Top-to-Bottom Flow) */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed top-14 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-b border-slate-200 dark:border-slate-800 shadow-2xl p-4 animate-in slide-in-from-top-4 duration-300 max-h-[calc(100vh-3.5rem)] overflow-y-auto space-y-4">
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <div>
+              <div className="text-xs font-black text-slate-900 dark:text-white">
+                {currentUser?.fullName || "Transport Controller"}
+              </div>
+              <div className="text-[10px] text-slate-500">{currentUser?.email || "Admin Operations Workspace"}</div>
+            </div>
+            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+              Admin Ops
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">
+              Operations Navigation
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {navItems.map(item => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl text-xs font-bold transition-all ${
+                      isActive
+                        ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate flex-1">{item.label}</span>
+                    {item.badge && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-bold">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setIsDataModalOpen(true);
+              }}
+              className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-bold flex items-center gap-1.5"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Data & Reset</span>
+            </button>
+
+            <button
+              onClick={handleSignOut}
+              className="px-3 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-xl text-xs font-bold flex items-center gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Desktop Left Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 h-screen z-50 md:z-30 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 flex flex-col justify-between ${
-          isMobileMenuOpen ? "left-0 w-64 shadow-2xl" : "-left-64 md:left-0"
-        } ${isSidebarOpen ? "md:w-64" : "md:w-20"}`}
+        className={`hidden md:flex flex-col justify-between sticky top-0 h-screen z-30 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ${
+          isSidebarOpen ? "md:w-64" : "md:w-20"
+        }`}
       >
         <div className="p-4 space-y-6">
           {/* Logo */}
@@ -175,7 +282,7 @@ export default function AdminLayout({
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
                 <BusFront className="w-5 h-5" />
               </div>
-              {(isSidebarOpen || isMobileMenuOpen) && (
+              {isSidebarOpen && (
                 <div>
                   <div className="font-black text-lg tracking-tight">
                     Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
@@ -197,7 +304,6 @@ export default function AdminLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
                     isActive
                       ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40 shadow-sm"
@@ -206,10 +312,10 @@ export default function AdminLayout({
                   title={item.label}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
-                  {(isSidebarOpen || isMobileMenuOpen) && (
+                  {isSidebarOpen && (
                     <span className="truncate flex-1">{item.label}</span>
                   )}
-                  {(isSidebarOpen || isMobileMenuOpen) && item.badge && (
+                  {isSidebarOpen && item.badge && (
                     <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold">
                       {item.badge}
                     </span>
@@ -222,7 +328,7 @@ export default function AdminLayout({
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-          {(isSidebarOpen || isMobileMenuOpen) && (
+          {isSidebarOpen && (
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs">
               <div className="text-[10px] uppercase font-bold text-slate-400">Logged in as</div>
               <div className="font-bold text-slate-800 dark:text-slate-200 truncate">Transport Controller</div>
@@ -234,7 +340,13 @@ export default function AdminLayout({
           )}
 
           <div className="flex items-center justify-between gap-2">
-            <ThemeToggle />
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold"
+              title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+            >
+              {isSidebarOpen ? "← Collapse" : "→"}
+            </button>
             <button
               onClick={handleSignOut}
               className="p-2 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
@@ -248,42 +360,140 @@ export default function AdminLayout({
 
       {/* Main Admin Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Desktop Bar */}
-        <header className="hidden md:flex sticky top-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-mono">
+        {/* Top Desktop Bar (Zero Overflow!) */}
+        <header className="hidden md:flex sticky top-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-mono truncate">
               CAMPUS FLEET OPS • SYSTEM v2.4
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Universal Cross-Portal Role Switcher */}
-            <RolePortalSwitcher />
-
+          <div className="flex items-center gap-2.5 flex-shrink-0">
             <button
               onClick={() => setIsDataModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs font-bold rounded-2xl hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs font-bold rounded-2xl hover:bg-amber-100 transition-colors shadow-2xs"
+              title="Open Database Management & Reset Modal"
             >
               <Database className="w-3.5 h-3.5 text-amber-600" />
-              <span>Data & Reset</span>
+              <span className="hidden lg:inline">Data & Reset</span>
             </button>
 
             <Link
               href="/staff"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-xs font-bold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-xs font-bold transition-colors shadow-2xs"
               title="Open Staff Operations Panel"
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span>Staff Operations →</span>
+              <span>Staff Ops →</span>
             </Link>
 
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-xs font-bold rounded-2xl transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
-            </button>
+            {/* Unified User & Command Pill (Zero Overflow!) */}
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs active:scale-98"
+                title="Admin Account & Settings"
+              >
+                <div className="w-6 h-6 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-600 text-white flex items-center justify-center text-[10px] font-black shadow-2xs">
+                  AD
+                </div>
+                <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                  Admin
+                </span>
+                <ChevronDown
+                  className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${
+                    isProfileOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Vertical Slide-Down Menu */}
+              {isProfileOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-3 shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200 space-y-3">
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Super Administrator
+                    </div>
+                    <div className="font-black text-sm text-slate-900 dark:text-white truncate">
+                      {currentUser?.fullName || "Transport Controller"}
+                    </div>
+                    <div className="text-xs text-slate-500 truncate">
+                      {currentUser?.email || "adityapandey.dev.in@gmail.com"}
+                    </div>
+                  </div>
+
+                  {/* Switch to Staff Console */}
+                  <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">
+                      Authorized Portals
+                    </div>
+                    <Link
+                      href="/staff"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
+                    >
+                      <div className="p-1.5 rounded-lg bg-gradient-to-tr from-indigo-600 to-blue-600 text-white">
+                        <Building2 className="w-3.5 h-3.5" />
+                      </div>
+                      <span>Staff Operations Console</span>
+                    </Link>
+                  </div>
+
+                  {/* Theme Mode Segmented Switcher */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between px-2">
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                      Appearance
+                    </span>
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                      <button
+                        onClick={() => setTheme("light")}
+                        className={`p-1 rounded-lg text-xs transition-all ${
+                          theme === "light"
+                            ? "bg-white dark:bg-slate-900 text-amber-600 shadow-2xs"
+                            : "text-slate-400 hover:text-slate-700"
+                        }`}
+                        title="Light Mode"
+                      >
+                        <Sun className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setTheme("dark")}
+                        className={`p-1 rounded-lg text-xs transition-all ${
+                          theme === "dark"
+                            ? "bg-slate-900 text-blue-400 shadow-2xs"
+                            : "text-slate-400 hover:text-slate-700"
+                        }`}
+                        title="Dark Mode"
+                      >
+                        <Moon className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setTheme("system")}
+                        className={`p-1 rounded-lg text-xs transition-all ${
+                          theme === "system"
+                            ? "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 shadow-2xs"
+                            : "text-slate-400 hover:text-slate-700"
+                        }`}
+                        title="System Default"
+                      >
+                        <Laptop className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sign Out Action */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl transition-colors flex items-center justify-center gap-2 text-xs font-bold"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

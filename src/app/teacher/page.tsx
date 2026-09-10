@@ -17,8 +17,7 @@ import {
   ChevronRight,
   BookOpen,
 } from "lucide-react";
-import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
-import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 
 interface TodayArrival {
   id: string;
@@ -127,27 +126,12 @@ export default function TeacherPortalPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-600 via-teal-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-teal-500/20">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="font-black text-lg tracking-tight">
-              Campus<span className="text-teal-600 dark:text-teal-400">Fleet</span>
-            </div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Faculty & Class Attendance Desk
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <RolePortalSwitcher />
-          <ThemeToggle />
-        </div>
-      </header>
+      {/* Zero-Overflow Top Header */}
+      <UnifiedAppHeader
+        role="teacher"
+        portalTitle="CampusFleet"
+        portalSubtitle="Faculty & Class Attendance Desk"
+      />
 
       {/* Main Container */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">

@@ -335,8 +335,8 @@ class CampusFleetStore {
         }));
       }
 
-      // 7. Fetch Students & Auto-Sync Real Signed-In Users
-      const { data: dbStudents } = await supabase.from("students").select("*");
+      // 7. Fetch Students via normalized VIEW (profiles JOIN → single source of truth for name/email/phone)
+      const { data: dbStudents } = await supabase.from("students_full").select("*");
       let mappedStudents: Student[] = [];
       if (dbStudents && dbStudents.length > 0) {
         mappedStudents = dbStudents.map(s => ({
@@ -351,7 +351,11 @@ class CampusFleetStore {
           campus: s.campus || "GEHU Bhimtal",
           primaryStopId: s.primary_stop_id || "",
           primaryRouteId: s.primary_route_id || "",
-          emergencyContact: s.emergency_contact || { name: "Campus Desk", relationship: "Admin", phone: "+91 0000000000" },
+          emergencyContact: s.emergency_contact || {
+            name: s.emergency_contact_name || "Campus Desk",
+            relationship: s.emergency_contact_relation || "Admin",
+            phone: s.emergency_contact_phone || "+91 0000000000",
+          },
           transportAccessSuspended: s.transport_access_suspended || false,
           hasActiveSubscription: s.has_active_subscription || false,
           subscriptionExpiryDate: s.subscription_expiry_date,
@@ -359,7 +363,7 @@ class CampusFleetStore {
           className: s.class_name,
           zoneCode: s.zone_code || "ZONE_B",
           paymentStatus: s.payment_status || (s.has_active_subscription ? "APPROVED" : "UNPAID"),
-          totalFeeDue: s.total_fee_due || 12000,
+          totalFeeDue: s.total_fee_due || (s.zone_semester_fee ? Number(s.zone_semester_fee) : 12000),
           totalFeePaid: s.total_fee_paid || 0,
         }));
       }
@@ -409,8 +413,8 @@ class CampusFleetStore {
 
       this.students = mappedStudents;
 
-      // 8. Fetch Staff (Drivers & Conductors)
-      const { data: dbStaff } = await supabase.from("staff").select("*");
+      // 8. Fetch Staff via normalized VIEW (profiles JOIN → single source of truth for name/email/phone)
+      const { data: dbStaff } = await supabase.from("staff_full").select("*");
       if (dbStaff && dbStaff.length > 0) {
         this.staff = dbStaff.map(s => ({
           id: s.id,
@@ -420,7 +424,7 @@ class CampusFleetStore {
           email: s.email,
           phone: s.phone || "+91 0000000000",
           category: s.category || "TRANSPORT_OPS",
-          rank: "REGULAR" as const,
+          rank: (s.rank || "REGULAR") as "SENIOR" | "REGULAR" | "PROBATIONARY",
           role: (s.role || "driver") as UserRole,
           permissions: [],
           licenseNo: s.license_no,
@@ -428,15 +432,15 @@ class CampusFleetStore {
         }));
       }
 
-      // 9. Fetch Bookings
-      const { data: dbBookings } = await supabase.from("bookings").select("*");
+      // 9. Fetch Bookings via normalized VIEW (bus_id derived from trips JOIN — no manual fallback)
+      const { data: dbBookings } = await supabase.from("bookings_full").select("*");
       if (dbBookings && dbBookings.length > 0) {
         this.bookings = dbBookings.map(b => ({
           id: b.id,
           bookingCode: b.booking_code,
           studentId: b.student_id,
           tripId: b.trip_id,
-          busId: b.bus_id || this.trips.find(t => t.id === b.trip_id)?.busId || "",
+          busId: b.bus_id || "",
           bookingDate: b.booking_date || (b.created_at ? b.created_at.split("T")[0] : ""),
           boardingStopId: b.boarding_stop_id,
           status: b.status || "CONFIRMED",
@@ -468,8 +472,8 @@ class CampusFleetStore {
         }));
       }
 
-      // 11. Fetch Stop-Route mappings (multiple buses per stop)
-      const { data: dbStopRoutes } = await supabase.from("stop_routes").select("*");
+      // 11. Fetch Stop-Route mappings from normalized route_stops table (canonical junction)
+      const { data: dbStopRoutes } = await supabase.from("route_stops").select("*");
       if (dbStopRoutes && dbStopRoutes.length > 0) {
         this.stopRoutes = dbStopRoutes.map(sr => ({
           stopId: sr.stop_id,
@@ -479,7 +483,7 @@ class CampusFleetStore {
         }));
       }
 
-      // 12. Fetch Attendance Records (Single Source of Truth for Conductor Manifest)
+      // 12. Fetch Attendance Records from actual PostgreSQL table
       const { data: dbAttendance } = await supabase
         .from("attendance_records")
         .select("*")
@@ -493,16 +497,16 @@ class CampusFleetStore {
           tripId: a.trip_id,
           method: a.method || "QR_SCAN",
           status: a.status || "BOARDED",
-          verifiedBy: a.verified_by || "Conductor Terminal",
+          verifiedBy: a.verified_by || a.conductor_id || "Conductor Terminal",
           signatureToken: a.signature_token || "",
           notes: a.notes,
           timestamp: a.timestamp || new Date().toISOString(),
         }));
       }
 
-      // 13. Fetch Vehicle Issues (Single Source of Truth for Driver Incident Reports)
+      // 13. Fetch Vehicle Issues via normalized VIEW (bus_number derived from buses JOIN)
       const { data: dbIssues } = await supabase
-        .from("vehicle_issues")
+        .from("vehicle_issues_full")
         .select("*")
         .order("reported_at", { ascending: false })
         .limit(50);
