@@ -626,9 +626,9 @@ export default function StaffOperationsPanel() {
             {/* Quick Admin Jump if user is admin */}
             {(currentUser?.role === "admin" || currentUser?.role === "transport_manager") && (
               <Link
-                href="/driver"
-                className="px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 flex items-center gap-1"
-                title="Launch Driver HUD"
+                href="/admin"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 text-xs font-bold mr-2"
+                title="Return to Admin Hub"
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
                 <span>Admin Hub</span>
