@@ -32,6 +32,7 @@ import {
 import { calculateDistanceKm } from "@/lib/utils";
 import { Stop } from "@/lib/types";
 import { authService } from "@/lib/auth-service";
+import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 
 export default function UnifiedLoginPage() {
   const router = useRouter();
@@ -307,6 +308,19 @@ export default function UnifiedLoginPage() {
 
       {/* Main Single Login Experience */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6 my-8">
+        {isLoading && (
+          <BusLoadingScreen
+            fullScreen={true}
+            message={
+              authStep === "EMAIL_OTP"
+                ? "Verifying OTP code and loading transit profile..."
+                : authStep === "ONBOARDING"
+                ? "Saving primary stop & configuring campus hub..."
+                : "Authenticating & querying institutional database..."
+            }
+            subtitle="Graphic Era Hill University Smart Fleet Gateway"
+          />
+        )}
         <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
           {/* Header */}
           <div className="text-center space-y-1.5">

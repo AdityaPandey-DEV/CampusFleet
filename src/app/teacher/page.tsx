@@ -18,6 +18,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
+import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 
 interface TodayArrival {
   id: string;
@@ -283,8 +284,13 @@ export default function TeacherPortalPage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-slate-400">
-                      Loading bus arrivals from database...
+                    <td colSpan={5} className="py-8 text-center">
+                      <BusLoadingScreen
+                        compact={true}
+                        fullScreen={false}
+                        message="Loading student bus arrivals from database..."
+                        subtitle="Connecting to Faculty Transit Ledger"
+                      />
                     </td>
                   </tr>
                 ) : filteredArrivals.length === 0 ? (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { store } from "@/lib/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
+import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 import * as XLSX from "xlsx";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -820,9 +821,13 @@ export default function StaffOperationsPanel() {
 
             {/* List Table / Cards */}
             {isLoadingSubmissions ? (
-              <div className="py-16 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
-                <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
-                <span>Loading payment queue from database...</span>
+              <div className="py-8 text-center flex flex-col items-center justify-center">
+                <BusLoadingScreen
+                  compact={true}
+                  fullScreen={false}
+                  message="Loading student payment queue from database..."
+                  subtitle="Synchronizing Realtime Audit Manifests"
+                />
               </div>
             ) : filteredSubmissions.length === 0 ? (
               <div className="py-16 text-center text-xs text-slate-400 font-mono space-y-2">

@@ -33,12 +33,19 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+import BusLoadingScreen from "@/components/common/BusLoadingScreen";
+
 // Dynamic import for Leaflet map with no SSR
 const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-80 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
-      Loading Live Telematics Radar...
+    <div className="w-full h-80 rounded-3xl bg-slate-900/60 border border-slate-800 flex items-center justify-center overflow-hidden">
+      <BusLoadingScreen
+        compact={true}
+        fullScreen={false}
+        message="Loading Live Telematics Radar..."
+        subtitle="Initializing GPS Map Engine"
+      />
     </div>
   ),
 });
