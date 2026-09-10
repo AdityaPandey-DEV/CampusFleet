@@ -189,21 +189,41 @@ class CampusFleetStore {
         }));
       }
 
-      // 3. Fetch Routes
+      // 3. Fetch Routes (with persistent multi-stop stops_data from Supabase)
       const { data: dbRoutes } = await supabase.from("routes").select("*");
       if (dbRoutes && dbRoutes.length > 0) {
-        this.routes = dbRoutes.map(r => ({
-          id: r.id,
-          code: r.code,
-          name: r.name,
-          description: r.description,
-          direction: r.direction || "HOME_TO_CAMPUS",
-          color: r.color || "#2563EB",
-          totalDistanceKm: r.total_distance_km || 28.0,
-          estimatedDurationMins: r.estimated_duration_mins || 55,
-          isActive: r.is_active ?? true,
-          stops: this.buildRouteStops(r.id, r.description || "", this.stops),
-        }));
+        this.routes = dbRoutes.map(r => {
+          let stopsList = [];
+          if (r.stops_data && Array.isArray(r.stops_data) && r.stops_data.length > 0) {
+            stopsList = r.stops_data
+              .map((rs: any, idx: number) => {
+                const stopObj = this.stops.find(s => s.id === rs.stopId || s.id === rs.stop?.id) || rs.stop;
+                return {
+                  stopId: rs.stopId || rs.stop?.id || "",
+                  stopOrder: rs.stopOrder || idx + 1,
+                  arrivalOffsetMinutes: rs.arrivalOffsetMinutes ?? idx * 8,
+                  bufferTimeMinutes: rs.bufferTimeMinutes ?? 2,
+                  stop: stopObj,
+                };
+              })
+              .filter((rs: any) => rs.stop);
+          }
+          if (stopsList.length === 0) {
+            stopsList = this.buildRouteStops(r.id, r.description || "", this.stops);
+          }
+          return {
+            id: r.id,
+            code: r.code,
+            name: r.name,
+            description: r.description,
+            direction: r.direction || "HOME_TO_CAMPUS",
+            color: r.color || "#2563EB",
+            totalDistanceKm: r.total_distance_km || 28.0,
+            estimatedDurationMins: r.estimated_duration_mins || 55,
+            isActive: r.is_active ?? true,
+            stops: stopsList,
+          };
+        });
       }
 
       // 4. Fetch Shifts
@@ -938,33 +958,49 @@ class CampusFleetStore {
     this.notify();
 
     try {
-      await supabase.from("stops").insert({
-        id: newStop.id, name: newStop.name, code: newStop.code,
-        latitude: newStop.latitude, longitude: newStop.longitude,
-        landmark: newStop.landmark, geofence_radius: newStop.geofenceRadiusMeters,
-        campus: newStop.campus,
+      await supabase.from("stops").upsert({
+        id: newStop.id,
+        name: newStop.name,
+        code: newStop.code,
+        latitude: newStop.latitude,
+        longitude: newStop.longitude,
+        landmark: newStop.landmark,
+        geofence_radius: newStop.geofenceRadiusMeters,
+        campus: newStop.campus || "GEHU Bhimtal",
       });
-    } catch (e) { console.warn("DB createStop:", e); }
+    } catch (e) {
+      console.warn("DB createStop:", e);
+    }
     return newStop;
   }
 
   public async updateStop(id: string, updates: Partial<Stop>) {
-    this.stops = this.stops.map(s => s.id === id ? { ...s, ...updates } : s);
+    this.stops = this.stops.map(s => (s.id === id ? { ...s, ...updates } : s));
+    // Also update in-memory and database routes containing this stop
+    this.routes = this.routes.map(r => ({
+      ...r,
+      stops: r.stops.map(rs => (rs.stopId === id ? { ...rs, stop: { ...rs.stop, ...updates } } : rs)),
+    }));
     this.invalidateGraphCache();
     this.saveToLocalStorage();
     this.notify();
+
     try {
       const dbUpdates: Record<string, unknown> = {};
       if (updates.name) dbUpdates.name = updates.name;
       if (updates.code) dbUpdates.code = updates.code;
-      if (updates.latitude) dbUpdates.latitude = updates.latitude;
-      if (updates.longitude) dbUpdates.longitude = updates.longitude;
-      if (updates.landmark) dbUpdates.landmark = updates.landmark;
-      if (updates.geofenceRadiusMeters) dbUpdates.geofence_radius = updates.geofenceRadiusMeters;
+      if (updates.latitude !== undefined) dbUpdates.latitude = updates.latitude;
+      if (updates.longitude !== undefined) dbUpdates.longitude = updates.longitude;
+      if (updates.landmark !== undefined) dbUpdates.landmark = updates.landmark;
+      if (updates.geofenceRadiusMeters !== undefined) dbUpdates.geofence_radius = updates.geofenceRadiusMeters;
+      if (updates.campus !== undefined) dbUpdates.campus = updates.campus;
+
       if (Object.keys(dbUpdates).length > 0) {
         await supabase.from("stops").update(dbUpdates).eq("id", id);
       }
-    } catch (e) { console.warn("DB updateStop:", e); }
+    } catch (e) {
+      console.warn("DB updateStop:", e);
+    }
   }
 
   public async deleteStop(id: string) {
@@ -977,7 +1013,14 @@ class CampusFleetStore {
     this.invalidateGraphCache();
     this.saveToLocalStorage();
     this.notify();
-    try { await supabase.from("stops").delete().eq("id", id); } catch (e) { console.warn("DB deleteStop:", e); }
+
+    try {
+      await supabase.from("stops").delete().eq("id", id);
+      await supabase.from("stop_routes").delete().eq("stop_id", id);
+      await supabase.from("route_stops").delete().eq("stop_id", id);
+    } catch (e) {
+      console.warn("DB deleteStop:", e);
+    }
   }
 
   public async createRoute(routeData: Omit<Route, "id">) {
@@ -991,18 +1034,46 @@ class CampusFleetStore {
     this.notify();
 
     try {
-      await supabase.from("routes").insert({
-        id: newRoute.id, code: newRoute.code, name: newRoute.name,
-        description: newRoute.description, direction: newRoute.direction,
-        color: newRoute.color, total_distance_km: newRoute.totalDistanceKm,
-        estimated_duration_mins: newRoute.estimatedDurationMins, is_active: newRoute.isActive,
+      // 1. Insert into routes table with stops_data JSONB
+      await supabase.from("routes").upsert({
+        id: newRoute.id,
+        code: newRoute.code,
+        name: newRoute.name,
+        description: newRoute.description,
+        direction: newRoute.direction,
+        color: newRoute.color,
+        total_distance_km: newRoute.totalDistanceKm,
+        estimated_duration_mins: newRoute.estimatedDurationMins,
+        is_active: newRoute.isActive,
+        stops_data: newRoute.stops,
       });
-    } catch (e) { console.warn("DB createRoute:", e); }
+
+      // 2. Insert into route_stops & stop_routes tables
+      if (newRoute.stops && newRoute.stops.length > 0) {
+        const routeStopsEntries = newRoute.stops.map(rs => ({
+          route_id: newRoute.id,
+          stop_id: rs.stopId,
+          stop_order: rs.stopOrder,
+          arrival_offset_minutes: rs.arrivalOffsetMinutes,
+          buffer_time_minutes: rs.bufferTimeMinutes,
+        }));
+        await supabase.from("route_stops").insert(routeStopsEntries);
+
+        const stopRoutesEntries = newRoute.stops.map(rs => ({
+          route_id: newRoute.id,
+          stop_id: rs.stopId,
+          stop_order: rs.stopOrder,
+        }));
+        await supabase.from("stop_routes").upsert(stopRoutesEntries, { onConflict: "stop_id,route_id" });
+      }
+    } catch (e) {
+      console.warn("DB createRoute:", e);
+    }
     return newRoute;
   }
 
   public async updateRoute(id: string, updates: Partial<Route>) {
-    this.routes = this.routes.map(r => r.id === id ? { ...r, ...updates } : r);
+    this.routes = this.routes.map(r => (r.id === id ? { ...r, ...updates } : r));
     this.invalidateGraphCache();
     this.saveToLocalStorage();
     this.notify();
@@ -1017,11 +1088,35 @@ class CampusFleetStore {
       if (updates.totalDistanceKm !== undefined) dbUpdates.total_distance_km = updates.totalDistanceKm;
       if (updates.estimatedDurationMins !== undefined) dbUpdates.estimated_duration_mins = updates.estimatedDurationMins;
       if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+      if (updates.stops !== undefined) dbUpdates.stops_data = updates.stops;
 
       if (Object.keys(dbUpdates).length > 0) {
         await supabase.from("routes").update(dbUpdates).eq("id", id);
       }
-    } catch (e) { console.warn("DB updateRoute:", e); }
+
+      // Re-sync relational route_stops and stop_routes if stops were updated
+      if (updates.stops && updates.stops.length > 0) {
+        await supabase.from("route_stops").delete().eq("route_id", id);
+        const routeStopsEntries = updates.stops.map(rs => ({
+          route_id: id,
+          stop_id: rs.stopId,
+          stop_order: rs.stopOrder,
+          arrival_offset_minutes: rs.arrivalOffsetMinutes,
+          buffer_time_minutes: rs.bufferTimeMinutes,
+        }));
+        await supabase.from("route_stops").insert(routeStopsEntries);
+
+        await supabase.from("stop_routes").delete().eq("route_id", id);
+        const stopRoutesEntries = updates.stops.map(rs => ({
+          route_id: id,
+          stop_id: rs.stopId,
+          stop_order: rs.stopOrder,
+        }));
+        await supabase.from("stop_routes").upsert(stopRoutesEntries, { onConflict: "stop_id,route_id" });
+      }
+    } catch (e) {
+      console.warn("DB updateRoute:", e);
+    }
   }
 
   public async deleteRoute(id: string) {
@@ -1029,7 +1124,13 @@ class CampusFleetStore {
     this.invalidateGraphCache();
     this.saveToLocalStorage();
     this.notify();
-    try { await supabase.from("routes").delete().eq("id", id); } catch (e) { console.warn("DB deleteRoute:", e); }
+    try {
+      await supabase.from("routes").delete().eq("id", id);
+      await supabase.from("route_stops").delete().eq("route_id", id);
+      await supabase.from("stop_routes").delete().eq("route_id", id);
+    } catch (e) {
+      console.warn("DB deleteRoute:", e);
+    }
   }
 
   public async allocateBusToRoute(busId: string, routeId: string) {
