@@ -161,8 +161,21 @@ export default function ConductorConsolePage() {
     });
   });
 
-  // Access Barrier: Staff cannot access Conductor Console
-  if (currentUser && currentUser.role === "staff") {
+  // Access Barrier: Only Conductors and authorized Drivers can access Conductor Console
+  // Admin and Staff are restricted to Admin & Staff panels
+  const isAuthorizedConductor = currentUser?.role === "conductor" || currentUser?.role === "driver";
+  if (currentUser && !isAuthorizedConductor) {
+    const role = currentUser.role;
+    const isAdmin = role === "admin" || role === "transport_manager";
+    const isStaff = role === "staff";
+
+    const targetPortal = isAdmin ? "/admin" : isStaff ? "/staff" : "/portal";
+    const targetLabel = isAdmin
+      ? "Return to Admin Operations Center"
+      : isStaff
+      ? "Return to Staff Operations Panel"
+      : "Go to Student Portal";
+
     return (
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl text-center space-y-4 animate-in fade-in">
@@ -171,14 +184,18 @@ export default function ConductorConsolePage() {
           </div>
           <h2 className="text-xl font-black">Access Restricted</h2>
           <p className="text-xs text-slate-300">
-            Staff members are restricted from the Conductor Console. Please return to the Staff Operations Panel.
+            {isAdmin
+              ? "Administrators are restricted from the Conductor Console. Admin and Staff can manage operations in Admin Hub or Staff Ops."
+              : isStaff
+              ? "Staff members are restricted from the Conductor Console. Please return to the Staff Operations Panel."
+              : "Ticketing & optical manifest authorization required to access the Conductor Console."}
           </p>
           <div className="pt-2">
             <Link
-              href="/staff"
+              href={targetPortal}
               className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
             >
-              <span>Return to Staff Operations Panel</span>
+              <span>{targetLabel}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

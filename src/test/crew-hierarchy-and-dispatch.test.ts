@@ -3,22 +3,30 @@ import { UserRole } from "../lib/types";
 
 describe("Role Hierarchy & Crew Assignment Qualification Matrix", () => {
   // 1. Navigation & Access Matrix
-  const canAccessPortal = (userRole: UserRole, targetPortal: "/staff" | "/driver" | "/conductor"): boolean => {
-    if (userRole === "admin" || userRole === "transport_manager") return true;
+  // Rule: "admin can also only access admin and staf pannel"
+  // Rule: "staff cant access driver and conductor vice versa and driver can access conductor but conductor cant see driver pannel"
+  const canAccessPortal = (
+    userRole: UserRole,
+    targetPortal: "/admin" | "/staff" | "/driver" | "/conductor"
+  ): boolean => {
+    // Admin: ONLY access /admin and /staff ("admin can also only access admin and staf pannel")
+    if (userRole === "admin" || userRole === "transport_manager") {
+      return targetPortal === "/admin" || targetPortal === "/staff";
+    }
 
-    // Staff: only /staff. Staff CANNOT access driver or conductor console!
+    // Staff: only /staff. Staff CANNOT access /admin, /driver, or /conductor!
     if (userRole === "staff") {
       return targetPortal === "/staff";
     }
 
     // Driver: /driver AND /conductor! (Driver can access conductor)
-    // Driver CANNOT access /staff!
+    // Driver CANNOT access /admin or /staff!
     if (userRole === "driver") {
       return targetPortal === "/driver" || targetPortal === "/conductor";
     }
 
     // Conductor: /conductor ONLY!
-    // Conductor CANNOT access /driver or /staff!
+    // Conductor CANNOT access /admin, /driver, or /staff!
     if (userRole === "conductor") {
       return targetPortal === "/conductor";
     }
@@ -26,22 +34,43 @@ describe("Role Hierarchy & Crew Assignment Qualification Matrix", () => {
     return false;
   };
 
+  it("should enforce that Admin can ONLY access Admin and Staff panel", () => {
+    expect(canAccessPortal("admin", "/admin")).toBe(true);
+    expect(canAccessPortal("admin", "/staff")).toBe(true);
+    expect(canAccessPortal("admin", "/driver")).toBe(false);
+    expect(canAccessPortal("admin", "/conductor")).toBe(false);
+
+    expect(canAccessPortal("transport_manager", "/admin")).toBe(true);
+    expect(canAccessPortal("transport_manager", "/staff")).toBe(true);
+    expect(canAccessPortal("transport_manager", "/driver")).toBe(false);
+    expect(canAccessPortal("transport_manager", "/conductor")).toBe(false);
+  });
+
+  it("should enforce that Non-Admins CANNOT access the Admin Operations Center", () => {
+    expect(canAccessPortal("staff", "/admin")).toBe(false);
+    expect(canAccessPortal("driver", "/admin")).toBe(false);
+    expect(canAccessPortal("conductor", "/admin")).toBe(false);
+    expect(canAccessPortal("student", "/admin")).toBe(false);
+  });
+
   it("should enforce that Staff CANNOT access Driver or Conductor console", () => {
     expect(canAccessPortal("staff", "/staff")).toBe(true);
     expect(canAccessPortal("staff", "/driver")).toBe(false);
     expect(canAccessPortal("staff", "/conductor")).toBe(false);
   });
 
-  it("should enforce that Driver CAN access Conductor, but CANNOT access Staff", () => {
+  it("should enforce that Driver CAN access Conductor, but CANNOT access Staff or Admin", () => {
     expect(canAccessPortal("driver", "/driver")).toBe(true);
     expect(canAccessPortal("driver", "/conductor")).toBe(true);
     expect(canAccessPortal("driver", "/staff")).toBe(false);
+    expect(canAccessPortal("driver", "/admin")).toBe(false);
   });
 
-  it("should enforce that Conductor CANNOT access Driver or Staff panel", () => {
+  it("should enforce that Conductor CANNOT access Driver, Staff, or Admin panel", () => {
     expect(canAccessPortal("conductor", "/conductor")).toBe(true);
     expect(canAccessPortal("conductor", "/driver")).toBe(false);
     expect(canAccessPortal("conductor", "/staff")).toBe(false);
+    expect(canAccessPortal("conductor", "/admin")).toBe(false);
   });
 
   // 2. Crew Dispatch Qualification Matrix

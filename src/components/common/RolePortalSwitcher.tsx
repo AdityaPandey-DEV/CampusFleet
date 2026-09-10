@@ -120,14 +120,14 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
   const isConductor = userRole === "conductor";
 
   // Strict Hierarchy Filter:
-  // Admin: Can access all (Admin, Staff, Driver, Conductor, Teacher, Student)
+  // Admin: Can ONLY access Admin and Staff panel ("admin can also only access admin and staf pannel")
   // Staff: Staff Operations & Student Hub (Staff CANNOT access Driver or Conductor)
   // Driver: Driver Console, Conductor Console & Student Hub (Driver CAN access Conductor, but CANNOT access Staff)
   // Conductor: Conductor Console & Student Hub (Conductor CANNOT access Driver or Staff)
   // Teacher: Teacher Desk & Student Hub
   // Student: Student only (Switcher Hidden)
   const allowedOptions = PORTAL_OPTIONS.filter(opt => {
-    if (isAdmin) return true;
+    if (isAdmin) return opt.role === "admin" || opt.role === "staff";
     if (isStaff) return opt.role === "staff" || opt.role === "student";
     if (isDriver) return opt.role === "driver" || opt.role === "conductor" || opt.role === "student";
     if (isConductor) return opt.role === "conductor" || opt.role === "student";
@@ -183,7 +183,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
           <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
               <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                {isAdmin ? "Admin Superuser Switcher" : "Staff Console Switcher"}
+                {isAdmin ? "Admin & Staff Switcher" : "Staff Console Switcher"}
               </div>
               <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 {currentUser?.fullName || "Active Session"}

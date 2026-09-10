@@ -46,6 +46,7 @@ import {
   Shield,
   Phone,
   Award,
+  LayoutDashboard,
 } from "lucide-react";
 
 export default function StaffOperationsPanel() {
@@ -564,9 +565,13 @@ export default function StaffOperationsPanel() {
     }
   };
 
-  // Access Barrier: Drivers and Conductors cannot access the Staff Panel
-  if (currentUser && (currentUser.role === "driver" || currentUser.role === "conductor")) {
+  // Access Barrier: Only Staff and Admin can access the Staff Panel; Drivers, Conductors & Students are restricted
+  const isAuthorizedStaff = currentUser?.role === "staff" || currentUser?.role === "admin" || currentUser?.role === "transport_manager";
+  if (currentUser && !isAuthorizedStaff) {
     const isDriver = currentUser.role === "driver";
+    const isConductor = currentUser.role === "conductor";
+    const targetPortal = isDriver ? "/driver" : isConductor ? "/conductor" : "/portal";
+    const targetLabel = isDriver ? "Go to Driver Cockpit" : isConductor ? "Go to Conductor Console" : "Go to Student Portal";
     return (
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl text-center space-y-4 animate-in fade-in">
@@ -575,14 +580,16 @@ export default function StaffOperationsPanel() {
           </div>
           <h2 className="text-xl font-black">Access Restricted</h2>
           <p className="text-xs text-slate-300">
-            Drivers and Conductors cannot access the Staff Operations Panel. Financial approvals, audit reporting, and fleet management are restricted to Staff personnel.
+            {isDriver || isConductor
+              ? "Drivers and Conductors cannot access the Staff Operations Panel. Financial approvals, audit reporting, and fleet management are restricted to Staff personnel."
+              : "Staff or Administrator privileges are required to access the Staff Operations Panel."}
           </p>
           <div className="pt-2">
             <Link
-              href={isDriver ? "/driver" : "/conductor"}
+              href={targetPortal}
               className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
             >
-              <span>{isDriver ? "Go to Driver Cockpit" : "Go to Conductor Console"}</span>
+              <span>{targetLabel}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -616,25 +623,17 @@ export default function StaffOperationsPanel() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between sm:justify-end min-w-0">
-            {/* Quick Crew Jump */}
-            <div className="hidden lg:flex items-center gap-1.5 text-xs font-bold mr-2">
+            {/* Quick Admin Jump if user is admin */}
+            {(currentUser?.role === "admin" || currentUser?.role === "transport_manager") && (
               <Link
                 href="/driver"
                 className="px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 flex items-center gap-1"
                 title="Launch Driver HUD"
               >
-                <BusFront className="w-3.5 h-3.5" />
-                <span>Driver HUD</span>
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Admin Hub</span>
               </Link>
-              <Link
-                href="/conductor"
-                className="px-2.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 flex items-center gap-1"
-                title="Launch Conductor Terminal"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Conductor</span>
-              </Link>
-            </div>
+            )}
 
             <RolePortalSwitcher />
             <ThemeToggle />

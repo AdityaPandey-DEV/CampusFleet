@@ -214,9 +214,22 @@ export default function DriverConsolePage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Access Barrier: Staff cannot access Driver, Conductor cannot access Driver
-  if (currentUser && (currentUser.role === "staff" || currentUser.role === "conductor")) {
-    const isStaff = currentUser.role === "staff";
+  // Access Barrier: Admin and Staff can only access Admin & Staff panels; Conductor cannot access Driver
+  if (currentUser && currentUser.role !== "driver") {
+    const role = currentUser.role;
+    const isAdmin = role === "admin" || role === "transport_manager";
+    const isStaff = role === "staff";
+    const isConductor = role === "conductor";
+
+    const targetPortal = isAdmin ? "/admin" : isStaff ? "/staff" : isConductor ? "/conductor" : "/portal";
+    const targetLabel = isAdmin
+      ? "Return to Admin Operations Center"
+      : isStaff
+      ? "Return to Staff Operations Panel"
+      : isConductor
+      ? "Go to Conductor Console"
+      : "Go to Student Portal";
+
     return (
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl text-center space-y-4 animate-in fade-in">
@@ -225,16 +238,20 @@ export default function DriverConsolePage() {
           </div>
           <h2 className="text-xl font-black">Access Restricted</h2>
           <p className="text-xs text-slate-300">
-            {isStaff
+            {isAdmin
+              ? "Administrators are restricted from the Driver Console. Commercial heavy vehicle driving qualifications are required. Admins can manage operations in Admin Hub or Staff Ops."
+              : isStaff
               ? "Staff members are restricted from the Driver Console. Staff cannot operate driver telematics."
-              : "Conductors are restricted from viewing the Driver Console. Commercial heavy vehicle driving qualifications are required."}
+              : isConductor
+              ? "Conductors are restricted from viewing the Driver Console. Commercial heavy vehicle driving qualifications are required."
+              : "Commercial heavy vehicle driving credentials required to operate the Driver Telematics Cockpit."}
           </p>
           <div className="pt-2">
             <Link
-              href={isStaff ? "/staff" : "/conductor"}
+              href={targetPortal}
               className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
             >
-              <span>{isStaff ? "Return to Staff Operations Panel" : "Go to Conductor Console"}</span>
+              <span>{targetLabel}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

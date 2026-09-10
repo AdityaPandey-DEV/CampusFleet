@@ -33,6 +33,8 @@ import {
   Sparkles,
   BookOpen,
   GitMerge,
+  Building2,
+  ArrowRight,
 } from "lucide-react";
 import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 import { useRouter } from "next/navigation";
@@ -83,6 +85,60 @@ export default function AdminLayout({
     { href: "/admin/maintenance", label: "Maintenance Desk", icon: Wrench, badge: openIssues > 0 ? openIssues : undefined },
     { href: "/admin/reports", label: "Reports & Exports", icon: FileBarChart },
   ];
+
+  // Access Barrier: Only Admin (and transport_manager) can access the Admin Portal
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "transport_manager";
+  if (currentUser && !isAdmin) {
+    const role = currentUser.role;
+    const isStaff = role === "staff";
+    const isDriver = role === "driver";
+    const isConductor = role === "conductor";
+
+    const targetPortal = isStaff
+      ? "/staff"
+      : isDriver
+      ? "/driver"
+      : isConductor
+      ? "/conductor"
+      : "/portal";
+
+    const targetLabel = isStaff
+      ? "Go to Staff Operations Panel"
+      : isDriver
+      ? "Go to Driver Cockpit"
+      : isConductor
+      ? "Go to Conductor Console"
+      : "Go to Student Portal";
+
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6 font-sans">
+        <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl text-center space-y-4 animate-in fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black">Access Restricted</h2>
+          <p className="text-xs text-slate-300">
+            {isStaff
+              ? "Staff members cannot access the Master Admin Console. Staff operations are managed in the Staff Operations Panel."
+              : isDriver
+              ? "Drivers cannot access the Master Admin Console. Please navigate to the Driver Telematics Console."
+              : isConductor
+              ? "Conductors cannot access the Master Admin Console. Please navigate to the Conductor Manifest Console."
+              : "Administrator privileges are required to access the CampusFleet Operations Center."}
+          </p>
+          <div className="pt-2">
+            <Link
+              href={targetPortal}
+              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
+            >
+              <span>{targetLabel}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
@@ -213,10 +269,12 @@ export default function AdminLayout({
             </button>
 
             <Link
-              href="/portal"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-bold transition-colors"
+              href="/staff"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-xs font-bold transition-colors"
+              title="Open Staff Operations Panel"
             >
-              <span>Student Portal →</span>
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Staff Operations →</span>
             </Link>
 
             <button
