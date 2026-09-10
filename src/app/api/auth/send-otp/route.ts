@@ -37,29 +37,24 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
-      console.error("OTP storage error:", error);
-      // Fallback: If table doesn't exist yet, still return success for dev
-      console.log(`\n🔐 [DEV OTP] Email: ${cleanEmail} | Code: ${code}\n`);
-      return NextResponse.json({
-        success: true,
-        message: `Verification code sent to ${cleanEmail}`,
-        // In dev mode, include the code for testing
-        ...(process.env.NODE_ENV !== "production" && { devCode: code }),
-      });
+      console.error("OTP storage warning:", error);
     }
 
     // Send email via Gmail SMTP
     const emailResult = await sendOtpEmail(cleanEmail, code);
 
-    // Also log to console for development convenience
     console.log(`\n🔐 [OTP] Email: ${cleanEmail} | Code: ${code} | Expires: ${expiresAt} | Sent via SMTP: ${emailResult.sent}\n`);
+
+    if (!emailResult.sent) {
+      console.warn("⚠️ SMTP dispatch failed:", emailResult.reason);
+    }
 
     return NextResponse.json({
       success: true,
       message: emailResult.sent
         ? `Verification code dispatched from campusfleet@gmail.com to ${cleanEmail}`
         : `Verification code generated for ${cleanEmail}`,
-      // In dev mode or if SMTP is not configured, include the code for easy testing
+      // In dev mode or if SMTP fails, include code for dev testing
       ...((process.env.NODE_ENV !== "production" || !emailResult.sent) && { devCode: code }),
     });
   } catch (e: any) {
