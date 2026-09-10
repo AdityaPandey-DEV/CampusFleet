@@ -45,12 +45,7 @@ export default function CampusFleetLandingPage() {
   }, []);
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.warn("Supabase signout:", e);
-    }
-    store.setCurrentUser(null as any);
+    await store.logout();
   };
 
   const getDashboardLink = () => {

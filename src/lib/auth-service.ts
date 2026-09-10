@@ -199,6 +199,10 @@ class AuthService {
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            prompt: "select_account",
+            access_type: "offline",
+          },
         },
       });
       if (error) {
@@ -344,7 +348,7 @@ class AuthService {
    */
   public async logout() {
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "global" });
     } catch (e) {
       console.warn("Supabase signout:", e);
     }
