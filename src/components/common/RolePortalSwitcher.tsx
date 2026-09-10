@@ -120,19 +120,20 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
   const isConductor = userRole === "conductor";
 
   // Strict Hierarchy Filter:
-  // Admin: Can ONLY access Admin and Staff panel ("admin can also only access admin and staf pannel")
-  // Staff: Staff Operations & Student Hub (Staff CANNOT access Driver or Conductor)
-  // Driver: Driver Console, Conductor Console & Student Hub (Driver CAN access Conductor, but CANNOT access Staff)
-  // Conductor: Conductor Console & Student Hub (Conductor CANNOT access Driver or Staff)
-  // Teacher: Teacher Desk & Student Hub
-  // Student: Student only (Switcher Hidden)
+  // Admin: Can ONLY access Admin and Staff panel
+  // Staff: Staff Operations Console only
+  // Driver: Driver Console & Conductor Console (backup)
+  // Conductor: Conductor Console only
+  // Teacher: Teacher Desk only
+  // Student: Student Portal only
   const allowedOptions = PORTAL_OPTIONS.filter(opt => {
     if (isAdmin) return opt.role === "admin" || opt.role === "staff";
-    if (isStaff) return opt.role === "staff" || opt.role === "student";
-    if (isDriver) return opt.role === "driver" || opt.role === "conductor" || opt.role === "student";
-    if (isConductor) return opt.role === "conductor" || opt.role === "student";
-    if (isTeacher) return opt.role === "student" || opt.role === "teacher";
-    return opt.role === "student";
+    if (isStaff) return opt.role === "staff";
+    if (isDriver) return opt.role === "driver" || opt.role === "conductor";
+    if (isConductor) return opt.role === "conductor";
+    if (isTeacher) return opt.role === "teacher";
+    if (userRole === "student") return opt.role === "student";
+    return false;
   });
 
   // If user has only 1 portal option or none, do not show switcher
