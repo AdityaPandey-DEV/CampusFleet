@@ -934,6 +934,7 @@ class CampusFleetStore {
     };
     this.stops = [...this.stops, newStop];
     this.invalidateGraphCache();
+    this.saveToLocalStorage();
     this.notify();
 
     try {
@@ -950,6 +951,7 @@ class CampusFleetStore {
   public async updateStop(id: string, updates: Partial<Stop>) {
     this.stops = this.stops.map(s => s.id === id ? { ...s, ...updates } : s);
     this.invalidateGraphCache();
+    this.saveToLocalStorage();
     this.notify();
     try {
       const dbUpdates: Record<string, unknown> = {};
@@ -958,6 +960,7 @@ class CampusFleetStore {
       if (updates.latitude) dbUpdates.latitude = updates.latitude;
       if (updates.longitude) dbUpdates.longitude = updates.longitude;
       if (updates.landmark) dbUpdates.landmark = updates.landmark;
+      if (updates.geofenceRadiusMeters) dbUpdates.geofence_radius = updates.geofenceRadiusMeters;
       if (Object.keys(dbUpdates).length > 0) {
         await supabase.from("stops").update(dbUpdates).eq("id", id);
       }
@@ -966,7 +969,13 @@ class CampusFleetStore {
 
   public async deleteStop(id: string) {
     this.stops = this.stops.filter(s => s.id !== id);
+    // Also remove from any routes
+    this.routes = this.routes.map(r => ({
+      ...r,
+      stops: r.stops.filter(rs => rs.stopId !== id).map((rs, idx) => ({ ...rs, stopOrder: idx + 1 })),
+    }));
     this.invalidateGraphCache();
+    this.saveToLocalStorage();
     this.notify();
     try { await supabase.from("stops").delete().eq("id", id); } catch (e) { console.warn("DB deleteStop:", e); }
   }
@@ -978,6 +987,7 @@ class CampusFleetStore {
     };
     this.routes = [...this.routes, newRoute];
     this.invalidateGraphCache();
+    this.saveToLocalStorage();
     this.notify();
 
     try {
@@ -991,9 +1001,33 @@ class CampusFleetStore {
     return newRoute;
   }
 
+  public async updateRoute(id: string, updates: Partial<Route>) {
+    this.routes = this.routes.map(r => r.id === id ? { ...r, ...updates } : r);
+    this.invalidateGraphCache();
+    this.saveToLocalStorage();
+    this.notify();
+
+    try {
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.code) dbUpdates.code = updates.code;
+      if (updates.description) dbUpdates.description = updates.description;
+      if (updates.direction) dbUpdates.direction = updates.direction;
+      if (updates.color) dbUpdates.color = updates.color;
+      if (updates.totalDistanceKm !== undefined) dbUpdates.total_distance_km = updates.totalDistanceKm;
+      if (updates.estimatedDurationMins !== undefined) dbUpdates.estimated_duration_mins = updates.estimatedDurationMins;
+      if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+
+      if (Object.keys(dbUpdates).length > 0) {
+        await supabase.from("routes").update(dbUpdates).eq("id", id);
+      }
+    } catch (e) { console.warn("DB updateRoute:", e); }
+  }
+
   public async deleteRoute(id: string) {
     this.routes = this.routes.filter(r => r.id !== id);
     this.invalidateGraphCache();
+    this.saveToLocalStorage();
     this.notify();
     try { await supabase.from("routes").delete().eq("id", id); } catch (e) { console.warn("DB deleteRoute:", e); }
   }

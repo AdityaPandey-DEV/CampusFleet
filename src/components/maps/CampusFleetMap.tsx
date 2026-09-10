@@ -14,6 +14,11 @@ interface CampusFleetMapProps {
   expressReason?: string;
   height?: string;
   zoom?: number;
+  onMapClick?: (lat: number, lng: number) => void;
+  onStopClick?: (stop: Stop) => void;
+  draftPinLocation?: [number, number] | null;
+  draftGeofenceRadius?: number;
+  interactiveMode?: "VIEW" | "PIN_DROP";
 }
 
 // Fetches actual road-snapped geometry via Open-Source Routing Machine (OSRM) with multi-mirror fallback
@@ -78,6 +83,11 @@ export default function CampusFleetMap({
   expressReason,
   height = "400px",
   zoom = 13,
+  onMapClick,
+  onStopClick,
+  draftPinLocation,
+  draftGeofenceRadius = 80,
+  interactiveMode = "VIEW",
 }: CampusFleetMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -87,6 +97,11 @@ export default function CampusFleetMap({
   const polylineGlowRef = useRef<any>(null);
   const shortestPathPolylineRef = useRef<any>(null);
   const markersGroupRef = useRef<any>(null);
+
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
+  const onStopClickRef = useRef(onStopClick);
+  onStopClickRef.current = onStopClick;
 
   useEffect(() => {
     if (typeof window === "undefined" || !mapContainerRef.current) return;
@@ -105,7 +120,9 @@ export default function CampusFleetMap({
       });
 
       // Default center: GEHU Bhimtal default or first stop
-      const defaultCenter: [number, number] = busLocation
+      const defaultCenter: [number, number] = draftPinLocation
+        ? draftPinLocation
+        : busLocation
         ? [busLocation.latitude, busLocation.longitude]
         : stops[0]
         ? [stops[0].latitude, stops[0].longitude]
@@ -125,10 +142,19 @@ export default function CampusFleetMap({
           maxZoom: 19,
         }).addTo(map);
 
+        map.on("click", (e: any) => {
+          if (onMapClickRef.current) {
+            onMapClickRef.current(Number(e.latlng.lat.toFixed(6)), Number(e.latlng.lng.toFixed(6)));
+          }
+        });
+
         mapInstanceRef.current = map;
       }
 
       const map = mapInstanceRef.current;
+      if (map && map.getContainer()) {
+        map.getContainer().style.cursor = interactiveMode === "PIN_DROP" ? "crosshair" : "";
+      }
 
       // Clean existing markers group
       if (markersGroupRef.current) {
@@ -259,6 +285,10 @@ export default function CampusFleetMap({
         });
 
         const marker = L.marker([stop.latitude, stop.longitude], { icon: stopIcon }).addTo(markersGroupRef.current);
+        marker.on("click", () => {
+          onStopClickRef.current?.(stop);
+        });
+
         marker.bindPopup(`
           <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
             ${isStudentPickup ? '<div style="color: #059669; font-weight: 900; font-size: 12px; margin-bottom: 2px;">★ Your Allocated Boarding Point</div>' : ""}
@@ -280,6 +310,49 @@ export default function CampusFleetMap({
           fillOpacity: isStudentPickup || isEndOfPath ? 0.35 : 0.25,
         }).addTo(markersGroupRef.current);
       });
+
+      // Render Draft Stop Pin & Geofence Preview (Pin Drop Mode)
+      if (draftPinLocation) {
+        const draftIcon = L.divIcon({
+          className: "custom-draft-pin-icon",
+          html: `
+            <div class="relative flex items-center justify-center w-10 h-10 -translate-x-1/2 -translate-y-full">
+              <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-2xl flex items-center justify-center text-white text-sm font-black animate-bounce ring-4 ring-rose-400/50">
+                📍
+              </div>
+              <div class="absolute -bottom-1 w-2 h-2 rounded-full bg-rose-700"></div>
+            </div>
+          `,
+          iconSize: [40, 40],
+          iconAnchor: [20, 40],
+        });
+
+        const draftMarker = L.marker(draftPinLocation, {
+          icon: draftIcon,
+          zIndexOffset: 1500,
+        }).addTo(markersGroupRef.current);
+
+        draftMarker.bindPopup(`
+          <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
+            <strong style="color: #e11d48; font-size: 13px;">📍 New Selected Location</strong><br/>
+            <span>Lat: <strong>${draftPinLocation[0].toFixed(5)}</strong></span><br/>
+            <span>Lng: <strong>${draftPinLocation[1].toFixed(5)}</strong></span><br/>
+            <span>Radius: <strong>${draftGeofenceRadius}m</strong></span>
+          </div>
+        `).openPopup();
+
+        L.circle(draftPinLocation, {
+          radius: draftGeofenceRadius || 80,
+          color: "#e11d48",
+          dashArray: "6, 6",
+          weight: 2,
+          opacity: 0.9,
+          fillColor: "#fecdd3",
+          fillOpacity: 0.35,
+        }).addTo(markersGroupRef.current);
+
+        map.panTo(draftPinLocation);
+      }
 
       // Render Real-time Live Bus Vehicle Marker
       if (busLocation) {
@@ -323,7 +396,19 @@ export default function CampusFleetMap({
     return () => {
       isMounted = false;
     };
-  }, [busLocation, stops, routeCoordinates, activeStopIndex, shortestPathStopIds, selectedStopId, isExpressDirect, zoom]);
+  }, [
+    busLocation,
+    stops,
+    routeCoordinates,
+    activeStopIndex,
+    shortestPathStopIds,
+    selectedStopId,
+    isExpressDirect,
+    zoom,
+    draftPinLocation,
+    draftGeofenceRadius,
+    interactiveMode,
+  ]);
 
   return (
     <div className="relative w-full rounded-3xl overflow-hidden shadow-inner border border-slate-200 dark:border-slate-800 z-0">
@@ -332,8 +417,15 @@ export default function CampusFleetMap({
         style={{ height, width: "100%" }}
       />
 
+      {interactiveMode === "PIN_DROP" && (
+        <div className="absolute top-3 left-3 z-10 bg-rose-600 text-white font-bold text-xs px-3.5 py-2 rounded-2xl shadow-xl flex items-center gap-2 border border-white/30 animate-pulse pointer-events-none">
+          <span className="text-sm">📍</span>
+          <span>Click anywhere on the map to set stop coordinates</span>
+        </div>
+      )}
+
       {isExpressDirect && (
-        <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-white/40 animate-pulse">
+        <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-white/40 animate-pulse pointer-events-none">
           <span>⚡ Direct Non-Stop to Campus</span>
         </div>
       )}
