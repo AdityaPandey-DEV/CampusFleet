@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { store } from "@/lib/store";
 import { BoardingPassCard } from "@/components/ticket/BoardingPassCard";
+import { IncomingShuttleRadar } from "@/components/booking/IncomingShuttleRadar";
 import { QrCode, ArrowLeft, PlusCircle } from "lucide-react";
 
 export default function DigitalPassPage() {
@@ -108,32 +109,62 @@ export default function DigitalPassPage() {
             Sign In to View Pass →
           </Link>
         </div>
-      ) : activeBooking && activeStudent ? (
-        <BoardingPassCard
-          booking={activeBooking}
-          student={activeStudent}
-          bus={bus}
-          stop={stop}
-          shift={shift}
-          trip={trip}
-          onCancelBooking={handleCancel}
-        />
       ) : (
-        <div className="text-center py-12 p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-          <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950 rounded-full flex items-center justify-center mx-auto text-blue-600">
-            <QrCode className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-bold">No Active Boarding Pass Found</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            You do not currently have a confirmed or waitlisted booking for today&apos;s shift.
-          </p>
-          <Link
-            href="/portal/booking"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl shadow-lg shadow-blue-500/20"
-          >
-            <PlusCircle className="w-4 h-4" />
-            Book a Bus Shift Now
-          </Link>
+        <div className="space-y-8">
+          {activeBooking && activeStudent ? (
+            <BoardingPassCard
+              booking={activeBooking}
+              student={activeStudent}
+              bus={bus}
+              stop={stop}
+              shift={shift}
+              trip={trip}
+              onCancelBooking={handleCancel}
+            />
+          ) : (
+            <div className="text-center py-10 p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
+              <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950 rounded-full flex items-center justify-center mx-auto text-blue-600">
+                <QrCode className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-bold">No Active Boarding Pass Found</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                You do not currently have a confirmed reservation for today&apos;s shift, or you may have missed your scheduled departure.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Link
+                  href="/portal/booking"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl shadow-lg shadow-blue-500/20"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Book Regular Shift
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Missed Bus Recovery & Approaching Shuttle Radar */}
+          {activeStudent && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  Live Stop Radar • Missed Bus & Next Shuttle Pick
+                </h3>
+                <span className="text-[11px] text-purple-600 dark:text-purple-400 font-bold">
+                  ⚡ Automatic Seat or Standing Allocation
+                </span>
+              </div>
+              <IncomingShuttleRadar
+                studentId={activeStudent.id}
+                currentStopId={activeBooking?.boardingStopId || activeStudent.primaryStopId || stops[0]?.id}
+                stops={stops}
+                onClaimSuccess={(result) => {
+                  if (result.booking) {
+                    store.reloadFromDatabase();
+                  }
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

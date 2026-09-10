@@ -37,6 +37,12 @@ export function BoardingPassCard({
     createdAt: "2026-08-30T00:00:00.000Z",
   };
 
+  const isConfirmed = currentBooking.status === "CONFIRMED";
+  const isWaitlisted = currentBooking.status === "WAITLISTED";
+  const isBoarded = currentBooking.status === "BOARDED";
+  const isCancelled = currentBooking.status === "CANCELLED";
+  const isStandingPassenger = currentBooking.passengerType === "STANDING_TILL_MERGE";
+
   // Deterministic token payload for conductor QR scanner (no non-deterministic Date.now in SSR)
   const qrPayload = useMemo(() => {
     return JSON.stringify({
@@ -45,24 +51,24 @@ export function BoardingPassCard({
       studentId: student?.id || "st-student",
       studentName: student?.fullName || "Student Passenger",
       tripId: currentBooking.tripId,
-      seatNumber: currentBooking.seatNumber || "1A",
+      seatNumber: currentBooking.seatNumber || (isStandingPassenger ? "STAND" : "1A"),
+      passengerType: currentBooking.passengerType || "SEATED",
+      mergeStopId: currentBooking.mergeStopId,
+      mergeStopName: currentBooking.mergeStopName,
       status: currentBooking.status,
       issuedAt: currentBooking.createdAt,
       hash: `SEC-${(currentBooking.id || "pass").slice(0, 8)}-${(currentBooking.bookingCode || "gehu").toLowerCase()}`,
     });
-  }, [currentBooking, student]);
-
-  const isConfirmed = currentBooking.status === "CONFIRMED";
-  const isWaitlisted = currentBooking.status === "WAITLISTED";
-  const isBoarded = currentBooking.status === "BOARDED";
-  const isCancelled = currentBooking.status === "CANCELLED";
+  }, [currentBooking, student, isStandingPassenger]);
 
   return (
     <div className="relative max-w-md w-full mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
       {/* Top Header Strip */}
       <div
         className={`p-4 text-white flex items-center justify-between ${
-          isConfirmed
+          isStandingPassenger
+            ? "bg-gradient-to-r from-purple-800 via-indigo-800 to-amber-700"
+            : isConfirmed
             ? "bg-gradient-to-r from-blue-700 to-indigo-800"
             : isBoarded
             ? "bg-gradient-to-r from-emerald-600 to-teal-700"
@@ -88,7 +94,9 @@ export function BoardingPassCard({
         {/* Status Pill */}
         <div
           className={`px-3 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase shadow-sm ${
-            isConfirmed
+            isStandingPassenger
+              ? "bg-purple-900/80 text-amber-300 border border-amber-400/40"
+              : isConfirmed
               ? "bg-blue-900/60 text-white border border-blue-400/30"
               : isBoarded
               ? "bg-emerald-900/60 text-white border border-emerald-400/30"
@@ -97,7 +105,11 @@ export function BoardingPassCard({
               : "bg-slate-800 text-slate-300"
           }`}
         >
-          {isWaitlisted ? `WL-${String(currentBooking.waitlistPosition || 1).padStart(2, "0")}` : currentBooking.status}
+          {isStandingPassenger
+            ? "STANDING (TILL MERGE)"
+            : isWaitlisted
+            ? `WL-${String(currentBooking.waitlistPosition || 1).padStart(2, "0")}`
+            : currentBooking.status}
         </div>
       </div>
 
@@ -119,19 +131,28 @@ export function BoardingPassCard({
 
           <div className="text-right">
             <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
-              {isConfirmed || isBoarded ? "Seat Number" : "Queue Pos."}
+              {isStandingPassenger ? "Pass Type" : (isConfirmed || isBoarded ? "Seat Number" : "Queue Pos.")}
             </span>
             <div
               className={`text-2xl font-black ${
-                isConfirmed || isBoarded
+                isStandingPassenger
+                  ? "text-purple-600 dark:text-purple-400 font-mono"
+                  : isConfirmed || isBoarded
                   ? "text-blue-600 dark:text-blue-400 font-mono"
                   : isWaitlisted
                   ? "text-amber-600 dark:text-amber-400"
                   : "text-slate-400"
               }`}
             >
-              {currentBooking.seatNumber || (currentBooking.waitlistPosition ? `WL-${currentBooking.waitlistPosition}` : "1A")}
+              {isStandingPassenger
+                ? "STAND"
+                : (currentBooking.seatNumber || (currentBooking.waitlistPosition ? `WL-${currentBooking.waitlistPosition}` : "1A"))}
             </div>
+            {isStandingPassenger && (
+              <div className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold truncate max-w-[120px]">
+                Till {currentBooking.mergeStopName || "Merge Hub"}
+              </div>
+            )}
           </div>
         </div>
 
@@ -208,6 +229,18 @@ export function BoardingPassCard({
             </>
           )}
         </div>
+
+        {/* Standing Passenger Advisory notice if standing */}
+        {isStandingPassenger && !isCancelled && (
+          <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 rounded-2xl space-y-1">
+            <div className="text-xs font-black text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
+              <span>⚡ Standing Passenger Authorization</span>
+            </div>
+            <div className="text-[11px] text-purple-800/90 dark:text-purple-300/90 leading-relaxed">
+              Authorized to travel standing safely until <strong>{currentBooking.mergeStopName || "Bus Merge Stop"}</strong>. Conductor will reallocate you to an available confirmed seat upon vehicle consolidation at the merge hub.
+            </div>
+          </div>
+        )}
 
         {/* Waitlist Warning notice if waitlisted */}
         {isWaitlisted && (

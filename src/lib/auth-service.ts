@@ -172,12 +172,17 @@ class AuthService {
   public getTargetRouteForRole(role: UserRole): string {
     switch (role) {
       case "admin":
-      case "transport_manager":
         return "/admin";
+      case "staff":
+      case "transport_manager":
+      case "supervisor":
+        return "/staff";
       case "driver":
-        return "/staff/driver";
+        return "/driver";
       case "conductor":
-        return "/staff/conductor";
+        return "/conductor";
+      case "teacher":
+        return "/teacher";
       default:
         return "/portal";
     }

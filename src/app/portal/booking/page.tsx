@@ -8,6 +8,7 @@ import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { NearestStopFinder } from "@/components/booking/NearestStopFinder";
+import { IncomingShuttleRadar } from "@/components/booking/IncomingShuttleRadar";
 import { BoardingPassCard } from "@/components/ticket/BoardingPassCard";
 import {
   CalendarCheck,
@@ -219,17 +220,24 @@ export default function ShiftBookingPage() {
               <MapPin className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Boarding From</div>
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Boarding From</div>
+                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                  {activeStudent?.zoneCode || "ZONE_B"}
+                </span>
+              </div>
               <select
                 value={selectedStopId}
                 onChange={e => setSelectedStopId(e.target.value)}
                 className="w-full text-xs font-bold bg-transparent text-slate-900 dark:text-white outline-none cursor-pointer truncate"
               >
-                {stops.map(st => (
-                  <option key={st.id} value={st.id} className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white">
-                    {st.name} ({st.code})
-                  </option>
-                ))}
+                {stops
+                  .filter(st => (st.zoneCode || "ZONE_B") === (activeStudent?.zoneCode || "ZONE_B"))
+                  .map(st => (
+                    <option key={st.id} value={st.id} className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white">
+                      {st.name} ({st.code})
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -389,6 +397,23 @@ export default function ShiftBookingPage() {
           setBookingMessage({ type: "success", text: `Selected pickup stop: ${stop.name} (${stop.code})` });
         }}
       />
+
+      {/* Missed Bus Live Shuttle Radar & Quick-Pick */}
+      {activeStudent && (
+        <IncomingShuttleRadar
+          studentId={activeStudent.id}
+          currentStopId={selectedStopId}
+          stops={stops}
+          onClaimSuccess={(data) => {
+            setBookingMessage({
+              type: "success",
+              text: data.message,
+            });
+            setIsQRModalOpen(true);
+            store.reloadFromDatabase();
+          }}
+        />
+      )}
 
       {/* STEP 2: ROUTE PROGRESSION & DIJKSTRA MAP VIEW */}
       {activeStep === "BOARDING" && (

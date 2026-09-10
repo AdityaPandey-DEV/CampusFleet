@@ -114,19 +114,66 @@ export default function LiveTrackerPage() {
     return store.findShortestPathToCampus(pickupStop.id);
   }, [pickupStop, stops]);
 
+  const isTripInProgress = activeTrip?.status === "IN_PROGRESS";
+
+  // Effective location: If trip has not started, bus MUST be stationary at the route starting point!
+  const effectiveLiveLocation = useMemo(() => {
+    const routeStartingStop = currentRouteStops[0] || stops[0];
+
+    if (!isTripInProgress && routeStartingStop) {
+      return {
+        busId: assignedBus?.id || "",
+        tripId: activeTrip?.id || "",
+        latitude: routeStartingStop.latitude,
+        longitude: routeStartingStop.longitude,
+        speedKmh: 0,
+        headingDeg: 0,
+        lastPingAt: new Date().toISOString(),
+        estimatedArrivalNextStopMins: 0,
+        delayMinutes: 0,
+      };
+    }
+
+    if (
+      liveLocation &&
+      liveLocation.latitude >= 28.9 &&
+      liveLocation.latitude <= 30.5 &&
+      liveLocation.longitude >= 78.5 &&
+      liveLocation.longitude <= 80.5
+    ) {
+      return liveLocation;
+    }
+
+    const currentStop = currentRouteStops[activeTrip?.currentStopIndex || 0] || routeStartingStop;
+    return {
+      busId: assignedBus?.id || "",
+      tripId: activeTrip?.id || "",
+      latitude: currentStop?.latitude || 29.2889,
+      longitude: currentStop?.longitude || 79.4678,
+      speedKmh: isTripInProgress ? (liveLocation?.speedKmh || 30) : 0,
+      headingDeg: liveLocation?.headingDeg || 0,
+      lastPingAt: new Date().toISOString(),
+      estimatedArrivalNextStopMins: liveLocation?.estimatedArrivalNextStopMins || 0,
+      delayMinutes: liveLocation?.delayMinutes || 0,
+    };
+  }, [isTripInProgress, currentRouteStops, stops, assignedBus?.id, activeTrip?.id, activeTrip?.currentStopIndex, liveLocation]);
+
   // Dynamic ETA calculation to pickup stop
   const dynamicEta = useMemo(() => {
     if (!pickupStop) return { displayText: "Scheduled", etaMinutes: 5, distanceKm: 2.5 };
-    const busLat = liveLocation?.latitude || (assignedRoute?.stops?.[0]?.stop?.latitude ?? pickupStop.latitude);
-    const busLon = liveLocation?.longitude || (assignedRoute?.stops?.[0]?.stop?.longitude ?? pickupStop.longitude);
+    if (!isTripInProgress) {
+      return { displayText: "Scheduled (At Terminal)", etaMinutes: 10, distanceKm: 5.0 };
+    }
+    const busLat = effectiveLiveLocation.latitude;
+    const busLon = effectiveLiveLocation.longitude;
     return calculateETA(
       busLat,
       busLon,
       pickupStop,
-      liveLocation?.speedKmh || 30,
-      liveLocation?.delayMinutes || 0
+      effectiveLiveLocation.speedKmh || 30,
+      effectiveLiveLocation.delayMinutes || 0
     );
-  }, [liveLocation, pickupStop, assignedRoute]);
+  }, [isTripInProgress, effectiveLiveLocation, pickupStop]);
 
   if (stops.length === 0 || routes.length === 0) {
     return (
@@ -181,9 +228,9 @@ export default function LiveTrackerPage() {
           </select>
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-300 shadow-sm">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+            <span className={`w-2.5 h-2.5 rounded-full ${isTripInProgress ? "bg-emerald-500 animate-ping" : "bg-amber-500"}`} />
             <Radio className="w-3.5 h-3.5" />
-            <span>GPS Beacon Active</span>
+            <span>{isTripInProgress ? "GPS Beacon Active" : "Stationary at Starting Terminal"}</span>
           </div>
         </div>
       </div>
@@ -194,7 +241,9 @@ export default function LiveTrackerPage() {
         <div className="lg:col-span-8 space-y-4">
           <div className="relative">
             <CampusFleetMap
-              busLocation={liveLocation || undefined}
+              busLocation={effectiveLiveLocation}
+              busName={assignedBus?.busNumber ? `${assignedBus.busNumber} (${assignedRoute?.name || "Campus Express"})` : (assignedRoute?.name || "Campus Shuttle")}
+              tripStatus={activeTrip?.status || "SCHEDULED"}
               stops={currentRouteStops}
               shortestPathStopIds={shortestPath?.path || []}
               routeCoordinates={currentRouteStops.map(s => [s.latitude, s.longitude])}
@@ -224,7 +273,7 @@ export default function LiveTrackerPage() {
             <div className="p-2 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
               <div className="text-[10px] uppercase font-bold text-slate-400 font-sans">Current Speed</div>
               <div className="text-xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
-                {liveLocation?.speedKmh || 32} <span className="text-xs font-normal text-slate-500">km/h</span>
+                {effectiveLiveLocation.speedKmh} <span className="text-xs font-normal text-slate-500">km/h</span>
               </div>
             </div>
 

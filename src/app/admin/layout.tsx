@@ -31,6 +31,8 @@ import {
   Trash2,
   RefreshCw,
   Sparkles,
+  BookOpen,
+  GitMerge,
 } from "lucide-react";
 import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 import { useRouter } from "next/navigation";
@@ -69,6 +71,8 @@ export default function AdminLayout({
 
   const navItems = [
     { href: "/admin", label: "Overview HUD", icon: LayoutDashboard },
+    { href: "/admin/classes", label: "Classes & Timetable", icon: BookOpen },
+    { href: "/admin/merges", label: "Merge & Dispatch", icon: GitMerge },
     { href: "/admin/buses", label: "Bus Fleet", icon: BusFront },
     { href: "/admin/routes", label: "Routes & Stops", icon: Route },
     { href: "/admin/trips", label: "Trips & Shifts", icon: Navigation },

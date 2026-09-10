@@ -37,12 +37,16 @@ export async function GET(request: Request) {
           .single();
 
         const role = dbUser?.role || "student";
-        if (role === "admin" || role === "transport_manager" || userEmail === adminEmail) {
+        if (role === "admin" || userEmail === adminEmail) {
           destination = "/admin";
+        } else if (role === "staff" || role === "transport_manager" || role === "supervisor") {
+          destination = "/staff";
         } else if (role === "driver") {
-          destination = "/staff/driver";
+          destination = "/driver";
         } else if (role === "conductor") {
-          destination = "/staff/conductor";
+          destination = "/conductor";
+        } else if (role === "teacher") {
+          destination = "/teacher";
         }
       } catch {
         // If DB lookup fails, use admin email check as fallback

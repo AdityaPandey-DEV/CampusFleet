@@ -12,8 +12,9 @@ import {
   FileCheck2,
   ChevronDown,
   ShieldCheck,
-  Sparkles,
+  BookOpen,
   ArrowRight,
+  Building2,
 } from "lucide-react";
 
 interface RolePortalOption {
@@ -37,6 +38,15 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     description: "Seat reservations, live tracking, and digital QR boarding pass",
   },
   {
+    role: "teacher",
+    label: "Teacher Attendance Desk",
+    shortLabel: "Teacher Desk",
+    path: "/teacher",
+    icon: BookOpen,
+    color: "from-teal-600 to-cyan-600 text-teal-400",
+    description: "Assigned classes, student roster, and live today's bus arrivals",
+  },
+  {
     role: "admin",
     label: "Admin Operations Center",
     shortLabel: "Admin Ops",
@@ -46,10 +56,19 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     description: "Fleet CRUD, live dispatch, telemetry logs, and financial reports",
   },
   {
+    role: "staff",
+    label: "Staff Operations Console",
+    shortLabel: "Staff Ops",
+    path: "/staff",
+    icon: Building2,
+    color: "from-indigo-600 to-blue-600 text-indigo-400",
+    description: "Payment QR manager, fee approvals, Excel audit export, route demand & bus merge optimizer",
+  },
+  {
     role: "driver",
     label: "Driver Telematics Console",
     shortLabel: "Driver HUD",
-    path: "/staff/driver",
+    path: "/driver",
     icon: BusFront,
     color: "from-emerald-600 to-teal-600 text-emerald-400",
     description: "GPS telemetry beacon, route progression checklist, and SOS",
@@ -58,7 +77,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     role: "conductor",
     label: "Conductor Manifest Console",
     shortLabel: "Conductor",
-    path: "/staff/conductor",
+    path: "/conductor",
     icon: FileCheck2,
     color: "from-purple-600 to-pink-600 text-purple-400",
     description: "High-speed optical QR radar passenger validation & real-time manifest",
@@ -95,20 +114,23 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
 
   const userRole = currentUser?.role || "student";
   const isAdmin = userRole === "admin" || userRole === "transport_manager";
+  const isTeacher = userRole === "teacher";
   const isStaff = userRole === "driver" || userRole === "conductor";
 
   // Strict Hierarchy Filter:
-  // Admin: Student, Admin, Driver, Conductor
-  // Staff: Student, Driver, Conductor (No Admin)
+  // Admin: Student, Teacher, Admin, Driver, Conductor
+  // Teacher: Student, Teacher
+  // Staff: Student, Driver, Conductor
   // Student: Student only (Switcher Hidden)
   const allowedOptions = PORTAL_OPTIONS.filter(opt => {
     if (isAdmin) return true;
-    if (isStaff) return opt.role !== "admin";
+    if (isTeacher) return opt.role === "student" || opt.role === "teacher";
+    if (isStaff) return opt.role !== "admin" && opt.role !== "teacher";
     return opt.role === "student";
   });
 
   // If student only has 1 option, do not show switcher
-  if (!isAdmin && !isStaff) {
+  if (!isAdmin && !isStaff && !isTeacher) {
     return null;
   }
 

@@ -5,6 +5,8 @@ import { LiveBusLocation, Stop } from "@/lib/types";
 
 interface CampusFleetMapProps {
   busLocation?: LiveBusLocation;
+  busName?: string;
+  tripStatus?: string;
   stops?: Stop[];
   routeCoordinates?: [number, number][];
   activeStopIndex?: number;
@@ -74,6 +76,8 @@ async function fetchRoadSnappedRoute(coordinates: [number, number][]): Promise<[
 
 export default function CampusFleetMap({
   busLocation,
+  busName,
+  tripStatus,
   stops = [],
   routeCoordinates = [],
   activeStopIndex = 0,
@@ -212,7 +216,24 @@ export default function CampusFleetMap({
           if (roadSnappedCoords.length >= 2) {
             const bounds = L.latLngBounds(roadSnappedCoords);
             if (busLocation) {
-              bounds.extend([busLocation.latitude, busLocation.longitude]);
+              // Only extend bounds if busLocation is reasonably close to this corridor (within ~0.5 deg / ~50km)
+              // to prevent stale/invalid coordinates (e.g. in Delhi) from stretching the view across North India!
+              const lats = roadSnappedCoords.map(c => c[0]);
+              const lngs = roadSnappedCoords.map(c => c[1]);
+              const minLat = Math.min(...lats);
+              const maxLat = Math.max(...lats);
+              const minLng = Math.min(...lngs);
+              const maxLng = Math.max(...lngs);
+
+              const isNearby =
+                busLocation.latitude >= minLat - 0.4 &&
+                busLocation.latitude <= maxLat + 0.4 &&
+                busLocation.longitude >= minLng - 0.4 &&
+                busLocation.longitude <= maxLng + 0.4;
+
+              if (isNearby) {
+                bounds.extend([busLocation.latitude, busLocation.longitude]);
+              }
             }
             map.fitBounds(bounds, { padding: [35, 35], maxZoom: 15 });
           }
@@ -373,22 +394,36 @@ export default function CampusFleetMap({
           iconAnchor: [22, 22],
         });
 
+        const busDisplayName = busName || "Campus Shuttle";
+        const isStationary = !busLocation.speedKmh || busLocation.speedKmh === 0;
+        const currentTripStatus = tripStatus || (isStationary ? "SCHEDULED" : "IN_PROGRESS");
+
+        const popupHtml = `
+          <div style="font-family: sans-serif; font-size: 12px; line-height: 1.45; min-width: 175px;">
+            <strong style="color: #1d4ed8; font-size: 13px;">${busDisplayName}</strong><br/>
+            <div style="margin-top: 3px; margin-bottom: 4px;">
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 999px; background: ${currentTripStatus === "IN_PROGRESS" ? "#dcfce7; color: #166534;" : "#fef3c7; color: #92400e;"} font-weight: bold; text-transform: uppercase;">
+                ${currentTripStatus === "IN_PROGRESS" ? "● In Transit" : "● Scheduled (At Terminal)"}
+              </span>
+            </div>
+            <div style="color: #334155; font-size: 11px;">
+              <span>Speed: <strong>${busLocation.speedKmh || 0} km/h</strong></span><br/>
+              ${!isStationary ? `<span>Heading: ${busLocation.headingDeg}°</span><br/>` : ""}
+              <span style="color: #64748b;">${isStationary ? "Stationary at Route Starting Point" : "Live Telematics Active"}</span>
+            </div>
+          </div>
+        `;
+
         if (!busMarkerRef.current) {
           busMarkerRef.current = L.marker([busLocation.latitude, busLocation.longitude], {
             icon: busIcon,
             zIndexOffset: 1000,
           }).addTo(map);
 
-          busMarkerRef.current.bindPopup(`
-            <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
-              <strong style="color: #1d4ed8; font-size: 13px;">Campus Express Bus</strong><br/>
-              <span>Speed: <strong>${busLocation.speedKmh} km/h</strong></span><br/>
-              <span>Heading: ${busLocation.headingDeg}°</span><br/>
-              <span>Live Telematics Active</span>
-            </div>
-          `);
+          busMarkerRef.current.bindPopup(popupHtml);
         } else {
           busMarkerRef.current.setLatLng([busLocation.latitude, busLocation.longitude]);
+          busMarkerRef.current.setPopupContent(popupHtml);
         }
       }
     });
@@ -398,6 +433,8 @@ export default function CampusFleetMap({
     };
   }, [
     busLocation,
+    busName,
+    tripStatus,
     stops,
     routeCoordinates,
     activeStopIndex,

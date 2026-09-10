@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function DriverConsolePage() {
   const [trips, setTrips] = useState(store.getTrips());
@@ -78,26 +79,65 @@ export default function DriverConsolePage() {
     return () => clearInterval(interval);
   }, [isBroadcasting, activeTrip?.status, liveLocation.latitude]);
 
-  const handleStartTrip = () => {
+  const handleStartTrip = async () => {
     if (!activeTrip) return;
     activeTrip.status = "IN_PROGRESS";
     activeTrip.startedAt = new Date().toISOString();
-    store.updateLiveLocation({ delayMinutes: 0 });
+    const startingStop = route?.stops?.[0]?.stop;
+    store.updateLiveLocation({
+      latitude: startingStop?.latitude || 29.2889,
+      longitude: startingStop?.longitude || 79.4678,
+      speedKmh: 25,
+      headingDeg: 135,
+      delayMinutes: 0,
+      currentStopId: startingStop?.id,
+    });
+
+    // Milestone persistence in PostgreSQL (Single Source of Truth)
+    try {
+      await supabase.from("trips").update({
+        status: "IN_PROGRESS",
+        started_at: activeTrip.startedAt,
+        current_stop_index: 0,
+      }).eq("id", activeTrip.id);
+    } catch (err) {
+      console.warn("DB trip start milestone:", err);
+    }
+
     setToastMessage("✓ Trip started! GPS coordinates broadcasting live to commuters.");
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleEndTrip = () => {
+  const handleEndTrip = async () => {
     if (!activeTrip) return;
     if (confirm("Are you sure you want to end this trip?")) {
       activeTrip.status = "COMPLETED";
       activeTrip.completedAt = new Date().toISOString();
+      const endStop = route?.stops?.[route.stops.length - 1]?.stop;
+      store.updateLiveLocation({
+        latitude: endStop?.latitude || 29.3516,
+        longitude: endStop?.longitude || 79.5583,
+        speedKmh: 0,
+        headingDeg: 0,
+        delayMinutes: 0,
+      });
+
+      // Milestone persistence in PostgreSQL
+      try {
+        await supabase.from("trips").update({
+          status: "COMPLETED",
+          completed_at: activeTrip.completedAt,
+        }).eq("id", activeTrip.id);
+      } catch (err) {
+        console.warn("DB trip end milestone:", err);
+      }
+
       setToastMessage("✓ Trip completed successfully.");
       setTimeout(() => setToastMessage(null), 3500);
     }
   };
 
-  const handleAdvanceStop = () => {
+  const handleAdvanceStop = async () => {
     if (!activeTrip || !route?.stops) return;
     const currentIdx = activeTrip.currentStopIndex || 0;
     const currentStop = route.stops[currentIdx]?.stop;
@@ -106,11 +146,24 @@ export default function DriverConsolePage() {
     if (directExpressResult.isExpressDirect && currentStop?.id === directExpressResult.lastPassengerStop?.id) {
       const campusIdx = route.stops.length - 1;
       activeTrip.currentStopIndex = campusIdx;
+      const campusStop = route.stops[campusIdx].stop;
       store.updateLiveLocation({
+        latitude: campusStop?.latitude || liveLocation.latitude,
+        longitude: campusStop?.longitude || liveLocation.longitude,
         currentStopId: route.stops[campusIdx].stopId,
         estimatedArrivalNextStopMins: 2,
+        speedKmh: 35,
       });
-      setToastMessage(`⚡ Express Non-Stop: Arrived directly at ${route.stops[campusIdx].stop.name}`);
+
+      try {
+        await supabase.from("trips").update({
+          current_stop_index: campusIdx,
+        }).eq("id", activeTrip.id);
+      } catch (err) {
+        console.warn("DB trip advance milestone:", err);
+      }
+
+      setToastMessage(`⚡ Express Non-Stop: Arrived directly at ${campusStop.name}`);
       setTimeout(() => setToastMessage(null), 3500);
       return;
     }
@@ -118,18 +171,31 @@ export default function DriverConsolePage() {
     const nextIdx = currentIdx + 1;
     if (nextIdx < route.stops.length) {
       activeTrip.currentStopIndex = nextIdx;
+      const nextStop = route.stops[nextIdx].stop;
       store.updateLiveLocation({
+        latitude: nextStop?.latitude || liveLocation.latitude,
+        longitude: nextStop?.longitude || liveLocation.longitude,
         currentStopId: route.stops[nextIdx].stopId,
         estimatedArrivalNextStopMins: 4,
+        speedKmh: 28,
       });
-      setToastMessage(`✓ Arrived at ${route.stops[nextIdx].stop.name}`);
+
+      try {
+        await supabase.from("trips").update({
+          current_stop_index: nextIdx,
+        }).eq("id", activeTrip.id);
+      } catch (err) {
+        console.warn("DB trip advance milestone:", err);
+      }
+
+      setToastMessage(`✓ Arrived at ${nextStop.name}`);
       setTimeout(() => setToastMessage(null), 3000);
     }
   };
 
-  const handleReportIncident = () => {
+  const handleReportIncident = async () => {
     if (!selectedIncident || !bus) return;
-    store.addVehicleIssue({
+    await store.addVehicleIssue({
       busId: bus.id,
       busNumber: bus.busNumber,
       reportedBy: "Rajesh Kumar (Driver)",
@@ -137,7 +203,7 @@ export default function DriverConsolePage() {
       severity: selectedIncident === "BREAKDOWN" || selectedIncident === "EMERGENCY" ? "HIGH" : "MEDIUM",
       description: incidentNotes || `Driver reported ${selectedIncident} during trip.`,
     });
-    setToastMessage(`✓ Incident [${selectedIncident}] logged with Transport Dispatch!`);
+    setToastMessage(`✓ Incident [${selectedIncident}] logged with Transport Dispatch & Database!`);
     setIsIncidentModalOpen(false);
     setSelectedIncident(null);
     setIncidentNotes("");

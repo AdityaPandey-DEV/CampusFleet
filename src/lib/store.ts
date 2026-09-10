@@ -22,6 +22,7 @@ import {
 import { createBooking, cancelBookingAndPromoteWaitlist, lockFinalManifest } from "./reservation-engine";
 import { supabase } from "./supabaseClient";
 import { authService } from "./auth-service";
+import { telematicsService } from "./telematicsService";
 import {
   buildStopGraph,
   dijkstraShortestPath,
@@ -61,8 +62,8 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 export const INITIAL_LIVE_LOCATION: LiveBusLocation = {
   busId: "",
   tripId: "",
-  latitude: 29.3516,
-  longitude: 79.5583,
+  latitude: 29.2889, // Lamachaur Terminal (Default Corridor Starting Point)
+  longitude: 79.4678,
   speedKmh: 0,
   headingDeg: 0,
   lastPingAt: new Date().toISOString(),
@@ -102,6 +103,7 @@ class CampusFleetStore {
     studentId?: string;
   } | null = null;
 
+  private isInitialized: boolean = false;
   private activeChildId: string = "";
   private listeners: Set<() => void> = new Set();
 
@@ -110,7 +112,24 @@ class CampusFleetStore {
       this.loadFromLocalStorage();
       this.syncFromSupabase();
       this.initAuthSync();
+      this.initTelematicsSync();
     }
+  }
+
+  /** Subscribe to real-time telematics broadcasts over WebSockets / BroadcastChannel */
+  private initTelematicsSync() {
+    telematicsService.subscribe((incomingLocation) => {
+      this.liveLocation = {
+        ...this.liveLocation,
+        ...incomingLocation,
+      };
+      // Pure in-memory reactive notification — zero localStorage write, zero DB write
+      this.listeners.forEach((cb) => cb());
+    });
+  }
+
+  public isReady(): boolean {
+    return this.isInitialized;
   }
 
   /** Subscribe to authService for user changes — single source of truth */
@@ -168,6 +187,8 @@ class CampusFleetStore {
           landmark: s.landmark,
           geofenceRadiusMeters: s.geofence_radius || 80,
           campus: s.campus || "GEHU Bhimtal",
+          isBusMergeStop: Boolean(s.is_bus_merge_stop),
+          zoneCode: s.zone_code || "ZONE_B",
         }));
       }
 
@@ -296,6 +317,12 @@ class CampusFleetStore {
           transportAccessSuspended: s.transport_access_suspended || false,
           hasActiveSubscription: s.has_active_subscription || false,
           subscriptionExpiryDate: s.subscription_expiry_date,
+          classId: s.class_id,
+          className: s.class_name,
+          zoneCode: s.zone_code || "ZONE_B",
+          paymentStatus: s.payment_status || (s.has_active_subscription ? "APPROVED" : "UNPAID"),
+          totalFeeDue: s.total_fee_due || 12000,
+          totalFeePaid: s.total_fee_paid || 0,
         }));
       }
 
@@ -317,8 +344,12 @@ class CampusFleetStore {
             primaryRouteId: this.routes[0]?.id || "",
             emergencyContact: { name: "Campus Desk", relationship: "Admin", phone: "+91 0000000000" },
             transportAccessSuspended: false,
-            hasActiveSubscription: true,
-            subscriptionExpiryDate: "2027-12-31",
+            hasActiveSubscription: false,
+            subscriptionExpiryDate: "2026-12-31",
+            zoneCode: "ZONE_B",
+            paymentStatus: "UNPAID",
+            totalFeeDue: 12000,
+            totalFeePaid: 0,
           };
           mappedStudents.push(newStudent);
           supabase.from("students").upsert({
@@ -371,6 +402,8 @@ class CampusFleetStore {
           status: b.status || "CONFIRMED",
           waitlistPosition: b.waitlist_position,
           seatNumber: b.seat_number,
+          passengerType: b.passenger_type || "SEATED",
+          mergeStopId: b.merge_stop_id,
           createdAt: b.created_at || new Date().toISOString(),
         }));
       }
@@ -406,9 +439,55 @@ class CampusFleetStore {
         }));
       }
 
+      // 12. Fetch Attendance Records (Single Source of Truth for Conductor Manifest)
+      const { data: dbAttendance } = await supabase
+        .from("attendance_records")
+        .select("*")
+        .order("timestamp", { ascending: false })
+        .limit(100);
+      if (dbAttendance && dbAttendance.length > 0) {
+        this.attendanceRecords = dbAttendance.map(a => ({
+          id: a.id,
+          studentId: a.student_id,
+          bookingId: a.booking_id || "",
+          tripId: a.trip_id,
+          method: a.method || "QR_SCAN",
+          status: a.status || "BOARDED",
+          verifiedBy: a.verified_by || "Conductor Terminal",
+          signatureToken: a.signature_token || "",
+          notes: a.notes,
+          timestamp: a.timestamp || new Date().toISOString(),
+        }));
+      }
+
+      // 13. Fetch Vehicle Issues (Single Source of Truth for Driver Incident Reports)
+      const { data: dbIssues } = await supabase
+        .from("vehicle_issues")
+        .select("*")
+        .order("reported_at", { ascending: false })
+        .limit(50);
+      if (dbIssues && dbIssues.length > 0) {
+        this.issues = dbIssues.map(i => ({
+          id: i.id,
+          busId: i.bus_id,
+          busNumber: i.bus_number,
+          reportedBy: i.reported_by,
+          issueType: i.issue_type,
+          severity: i.severity,
+          description: i.description,
+          status: i.status || "OPEN",
+          location: (i.latitude && i.longitude) ? { latitude: i.latitude, longitude: i.longitude } : undefined,
+          reportedAt: i.reported_at,
+          resolvedAt: i.resolved_at,
+        }));
+      }
+
+      this.isInitialized = true;
       this.notify();
     } catch (e) {
       console.warn("Supabase database sync:", e);
+      this.isInitialized = true;
+      this.notify();
     }
   }
 
@@ -489,55 +568,54 @@ class CampusFleetStore {
   private saveToLocalStorage() {
     if (typeof window === "undefined") return;
     try {
-      localStorage.setItem("campusfleet_buses", JSON.stringify(this.buses));
-      localStorage.setItem("campusfleet_routes", JSON.stringify(this.routes));
-      localStorage.setItem("campusfleet_stops", JSON.stringify(this.stops));
-      localStorage.setItem("campusfleet_shifts", JSON.stringify(this.shifts));
-      localStorage.setItem("campusfleet_trips", JSON.stringify(this.trips));
-      localStorage.setItem("campusfleet_bookings", JSON.stringify(this.bookings));
-      localStorage.setItem("campusfleet_location", JSON.stringify(this.liveLocation));
-      localStorage.setItem("campusfleet_notifications", JSON.stringify(this.notifications));
+      // Retain strictly transient client UI session state (NO database entities in localStorage)
       if (this.currentUser) {
         localStorage.setItem("campusfleet_user", JSON.stringify(this.currentUser));
       } else {
         localStorage.removeItem("campusfleet_user");
       }
-      localStorage.setItem("campusfleet_active_child", this.activeChildId);
-      localStorage.setItem("campusfleet_students", JSON.stringify(this.students));
-      localStorage.setItem("campusfleet_staff", JSON.stringify(this.staff));
+      if (this.activeChildId) {
+        localStorage.setItem("campusfleet_active_child", this.activeChildId);
+      }
     } catch (e) {
       console.warn("Could not save to localStorage", e);
     }
   }
 
   private loadFromLocalStorage() {
+    if (typeof window === "undefined") return;
     try {
-      const b = localStorage.getItem("campusfleet_buses") || localStorage.getItem("campusride_buses");
-      if (b) this.buses = JSON.parse(b);
-      const r = localStorage.getItem("campusfleet_routes") || localStorage.getItem("campusride_routes");
-      if (r) this.routes = JSON.parse(r);
-      const st = localStorage.getItem("campusfleet_stops") || localStorage.getItem("campusride_stops");
-      if (st) this.stops = JSON.parse(st);
-      const sh = localStorage.getItem("campusfleet_shifts") || localStorage.getItem("campusride_shifts");
-      if (sh) this.shifts = JSON.parse(sh);
-      const t = localStorage.getItem("campusfleet_trips") || localStorage.getItem("campusride_trips");
-      if (t) this.trips = JSON.parse(t);
-      const bk = localStorage.getItem("campusfleet_bookings") || localStorage.getItem("campusride_bookings");
-      if (bk) this.bookings = JSON.parse(bk);
-      const loc = localStorage.getItem("campusfleet_location") || localStorage.getItem("campusride_location");
-      if (loc) this.liveLocation = JSON.parse(loc);
-      const notif = localStorage.getItem("campusfleet_notifications") || localStorage.getItem("campusride_notifications");
-      if (notif) this.notifications = JSON.parse(notif);
+      // 1. One-time purge of legacy database entities & stale telematics from localStorage!
+      // PostgreSQL is the single source of truth; no relational data or live GPS pings belong in localStorage.
+      const legacyKeys = [
+        "campusfleet_buses", "campusride_buses",
+        "campusfleet_routes", "campusride_routes",
+        "campusfleet_stops", "campusride_stops",
+        "campusfleet_shifts", "campusride_shifts",
+        "campusfleet_trips", "campusride_trips",
+        "campusfleet_bookings", "campusride_bookings",
+        "campusfleet_location", "campusride_location",
+        "campusfleet_notifications", "campusride_notifications",
+        "campusfleet_students", "campusride_students",
+        "campusfleet_staff", "campusride_staff",
+      ];
+      for (const key of legacyKeys) {
+        localStorage.removeItem(key);
+      }
+
+      // 2. Load transient UI state only
       const u = localStorage.getItem("campusfleet_user") || localStorage.getItem("campusride_user");
-      if (u) this.currentUser = JSON.parse(u);
+      if (u) {
+        try {
+          this.currentUser = JSON.parse(u);
+        } catch {
+          this.currentUser = null;
+        }
+      }
       const ch = localStorage.getItem("campusfleet_active_child") || localStorage.getItem("campusride_active_child");
       if (ch) this.activeChildId = ch;
-      const std = localStorage.getItem("campusfleet_students") || localStorage.getItem("campusride_students");
-      if (std) this.students = JSON.parse(std);
-      const stf = localStorage.getItem("campusfleet_staff") || localStorage.getItem("campusride_staff");
-      if (stf) this.staff = JSON.parse(stf);
     } catch (e) {
-      console.warn("Could not load from localStorage", e);
+      console.warn("Could not sanitize localStorage", e);
     }
   }
 
@@ -575,6 +653,69 @@ class CampusFleetStore {
   public getCurrentUser() { return this.currentUser; }
   public getActiveChildId() { return this.activeChildId; }
   public getStopRoutes() { return this.stopRoutes; }
+  public async reloadFromDatabase() { await this.syncFromSupabase(); }
+
+  /**
+   * Resolve live location for a specific trip/route.
+   * If the trip has NOT started yet (status !== 'IN_PROGRESS'), the bus is stationary (speed = 0)
+   * at the starting point of the route (first stop)!
+   */
+  public getLiveLocationForTrip(tripId?: string, routeId?: string): LiveBusLocation {
+    const trip = tripId ? this.trips.find(t => t.id === tripId) : this.trips[0];
+    const resolvedRouteId = routeId || trip?.routeId;
+    const route = resolvedRouteId ? this.routes.find(r => r.id === resolvedRouteId) : this.routes[0];
+
+    // Find starting stop of route
+    let startingStop: Stop | undefined;
+    if (route?.stops && route.stops.length > 0) {
+      startingStop = route.stops[0].stop;
+    }
+    if (!startingStop && this.stops.length > 0) {
+      startingStop = this.stops[0];
+    }
+
+    const isTripInProgress = trip?.status === "IN_PROGRESS";
+
+    // If trip has not started, bus MUST be at the route starting point with speed = 0!
+    if (!isTripInProgress && startingStop) {
+      return {
+        busId: trip?.busId || this.liveLocation.busId,
+        tripId: trip?.id || this.liveLocation.tripId,
+        latitude: startingStop.latitude,
+        longitude: startingStop.longitude,
+        speedKmh: 0,
+        headingDeg: 0,
+        lastPingAt: new Date().toISOString(),
+        estimatedArrivalNextStopMins: 0,
+        delayMinutes: 0,
+      };
+    }
+
+    // If trip is in progress, check if current liveLocation is valid within Uttarakhand corridor
+    if (
+      this.liveLocation &&
+      this.liveLocation.latitude >= 28.9 &&
+      this.liveLocation.latitude <= 30.5 &&
+      this.liveLocation.longitude >= 78.5 &&
+      this.liveLocation.longitude <= 80.5
+    ) {
+      return this.liveLocation;
+    }
+
+    // Fallback if trip in progress but location invalid/out of bounds: snap to route stop
+    const currentStop = (route?.stops && route.stops[trip?.currentStopIndex || 0]?.stop) || startingStop;
+    return {
+      busId: trip?.busId || this.liveLocation.busId,
+      tripId: trip?.id || this.liveLocation.tripId,
+      latitude: currentStop?.latitude || 29.2889,
+      longitude: currentStop?.longitude || 79.4678,
+      speedKmh: isTripInProgress ? (this.liveLocation.speedKmh || 25) : 0,
+      headingDeg: this.liveLocation.headingDeg || 0,
+      lastPingAt: new Date().toISOString(),
+      estimatedArrivalNextStopMins: this.liveLocation.estimatedArrivalNextStopMins || 0,
+      delayMinutes: this.liveLocation.delayMinutes || 0,
+    };
+  }
 
   /** Get all buses that serve a specific stop (both explicit route stops and passing corridor path coverage) */
   public getBusesForStop(stopId: string): Bus[] {
@@ -767,6 +908,9 @@ class CampusFleetStore {
       campus?: string;
       department?: string;
       semester?: string;
+      classId?: string;
+      className?: string;
+      zoneCode?: string;
       phone?: string;
       primaryStopId?: string;
       emergencyContact?: { name: string; relationship: string; phone: string };
@@ -782,6 +926,9 @@ class CampusFleetStore {
       campus: profileData.campus || student.campus || "GEHU Bhimtal",
       department: profileData.department || student.department,
       semester: profileData.semester || student.semester,
+      classId: profileData.classId || student.classId,
+      className: profileData.className || student.className,
+      zoneCode: profileData.zoneCode || student.zoneCode || "ZONE_B",
       phone: profileData.phone || student.phone,
       primaryStopId: profileData.primaryStopId || student.primaryStopId,
       emergencyContact: profileData.emergencyContact || student.emergencyContact,
@@ -818,6 +965,9 @@ class CampusFleetStore {
         phone: updatedStudent.phone,
         department: updatedStudent.department,
         semester: updatedStudent.semester,
+        class_id: updatedStudent.classId || null,
+        class_name: updatedStudent.className || null,
+        zone_code: updatedStudent.zoneCode || "ZONE_B",
         campus: updatedStudent.campus || "GEHU Bhimtal",
         enrollment_no: updatedStudent.enrollmentNo,
         primary_stop_id: updatedStudent.primaryStopId || null,
@@ -967,6 +1117,7 @@ class CampusFleetStore {
         landmark: newStop.landmark,
         geofence_radius: newStop.geofenceRadiusMeters,
         campus: newStop.campus || "GEHU Bhimtal",
+        is_bus_merge_stop: Boolean(newStop.isBusMergeStop),
       });
     } catch (e) {
       console.warn("DB createStop:", e);
@@ -994,6 +1145,7 @@ class CampusFleetStore {
       if (updates.landmark !== undefined) dbUpdates.landmark = updates.landmark;
       if (updates.geofenceRadiusMeters !== undefined) dbUpdates.geofence_radius = updates.geofenceRadiusMeters;
       if (updates.campus !== undefined) dbUpdates.campus = updates.campus;
+      if (updates.isBusMergeStop !== undefined) dbUpdates.is_bus_merge_stop = Boolean(updates.isBusMergeStop);
 
       if (Object.keys(dbUpdates).length > 0) {
         await supabase.from("stops").update(dbUpdates).eq("id", id);
@@ -1168,10 +1320,13 @@ class CampusFleetStore {
 
   public updateLiveLocation(updates: Partial<LiveBusLocation>) {
     this.liveLocation = { ...this.liveLocation, ...updates, lastPingAt: new Date().toISOString() };
-    this.notify();
+    // Broadcast live telemetry via Supabase Realtime WebSockets & local in-memory BroadcastChannel
+    // Zero database disk writes, zero localStorage writes!
+    telematicsService.broadcastLiveLocation(this.liveLocation);
+    this.listeners.forEach((cb) => cb());
   }
 
-  public addVehicleIssue(issue: Omit<VehicleIssue, "id" | "reportedAt" | "status">) {
+  public async addVehicleIssue(issue: Omit<VehicleIssue, "id" | "reportedAt" | "status">) {
     const newIssue: VehicleIssue = {
       ...issue,
       id: `issue-${Date.now()}`,
@@ -1180,10 +1335,54 @@ class CampusFleetStore {
     };
     this.issues = [newIssue, ...this.issues];
     this.notify();
+
+    // Persist to PostgreSQL database (Single Source of Truth)
+    try {
+      await supabase.from("vehicle_issues").insert({
+        id: newIssue.id,
+        bus_id: newIssue.busId,
+        bus_number: newIssue.busNumber,
+        reported_by: newIssue.reportedBy,
+        issue_type: newIssue.issueType,
+        severity: newIssue.severity,
+        description: newIssue.description,
+        status: newIssue.status,
+        latitude: newIssue.location?.latitude || null,
+        longitude: newIssue.location?.longitude || null,
+        reported_at: newIssue.reportedAt,
+      });
+
+      // If severe breakdown or emergency, set vehicle to MAINTENANCE and record maintenance log
+      if (newIssue.issueType === "BREAKDOWN" || newIssue.severity === "HIGH" || newIssue.severity === "CRITICAL") {
+        await supabase.from("buses").update({ status: "MAINTENANCE" }).eq("id", newIssue.busId);
+        await supabase.from("maintenance_logs").insert({
+          bus_id: newIssue.busId,
+          maintenance_type: `EMERGENCY_REPAIR_${newIssue.issueType}`,
+          service_date: new Date().toISOString().split("T")[0],
+          status: "Under Maintenance",
+          notes: `Driver incident report: ${newIssue.description}`,
+          cost: 0,
+          created_by: newIssue.reportedBy,
+        });
+      }
+
+      // Log institutional audit trail
+      await supabase.from("audit_logs").insert({
+        user_role: "driver",
+        action: "DRIVER_REPORT_VEHICLE_ISSUE",
+        entity: "Bus",
+        entity_id: newIssue.busId,
+        reason: `${newIssue.issueType} (${newIssue.severity}): ${newIssue.description}`,
+        new_value: newIssue,
+      });
+    } catch (err) {
+      console.warn("Error persisting vehicle issue to PostgreSQL:", err);
+    }
+
     return newIssue;
   }
 
-  public recordAttendance(studentId: string, tripId: string, method: "QR_SCAN" | "BIOMETRIC_DEVICE" | "MANUAL_OVERRIDE", status: "BOARDED" | "ABSENT" | "NO_SHOW" = "BOARDED", notes?: string) {
+  public async recordAttendance(studentId: string, tripId: string, method: "QR_SCAN" | "BIOMETRIC_DEVICE" | "MANUAL_OVERRIDE", status: "BOARDED" | "ABSENT" | "NO_SHOW" = "BOARDED", notes?: string) {
     const student = this.students.find(s => s.id === studentId || s.userId === studentId || s.enrollmentNo?.toLowerCase() === studentId.toLowerCase() || s.email?.toLowerCase() === studentId.toLowerCase());
     const resolvedStudentId = student?.id || studentId;
 
@@ -1210,7 +1409,8 @@ class CampusFleetStore {
         b.studentId === resolvedStudentId ||
         b.studentId === studentId ||
         (student && (b.studentId === student.userId || b.studentId === student.id)) ||
-        b.id === studentId
+        b.id === studentId ||
+        (matchedBooking && b.id === matchedBooking.id)
       ) && (tripId ? b.tripId === tripId : true);
 
       if (isMatch) {
@@ -1239,23 +1439,48 @@ class CampusFleetStore {
       });
     }
 
-    // Persist to Supabase
+    // Persist to Supabase Database (Single Source of Truth)
     try {
-      supabase.from("attendance_records").insert({
+      const { error: attErr } = await supabase.from("attendance_records").insert({
         id: newRecord.id,
         student_id: resolvedStudentId,
+        booking_id: bookingId,
         trip_id: tripId,
+        bus_id: bus?.id || null,
         method,
         status,
         verified_by: newRecord.verifiedBy,
         signature_token: newRecord.signatureToken,
         notes: newRecord.notes,
         timestamp: newRecord.timestamp,
-      }).then(() => {});
+      });
+      if (attErr) {
+        console.error("attendance_records insert error:", attErr);
+      }
 
-      supabase.from("bookings").update({
-        status,
-      }).or(`student_id.eq.${resolvedStudentId},id.eq.${studentId}`).then(() => {});
+      const updatePayload: any = { status };
+      if (status === "BOARDED") {
+        updatePayload.boarded_at = newRecord.timestamp;
+      }
+
+      if (matchedBooking?.id) {
+        const { error: bkErr } = await supabase.from("bookings").update(updatePayload).eq("id", matchedBooking.id);
+        if (bkErr) console.error("bookings update error:", bkErr);
+      } else {
+        const { error: bkErr } = await supabase.from("bookings").update(updatePayload).eq("trip_id", tripId).eq("student_id", resolvedStudentId);
+        if (bkErr) console.error("bookings update error:", bkErr);
+      }
+
+      // Record audit log in PostgreSQL
+      await supabase.from("audit_logs").insert({
+        user_id: resolvedStudentId,
+        user_role: "conductor",
+        action: `ATTENDANCE_MARKED_${status}`,
+        entity: "AttendanceRecord",
+        entity_id: newRecord.id,
+        reason: notes || `Marked ${status} via Conductor Console`,
+        new_value: { status, tripId, method },
+      });
     } catch (e) {
       console.warn("DB recordAttendance sync notice:", e);
     }
@@ -1263,6 +1488,40 @@ class CampusFleetStore {
     this.saveToLocalStorage();
     this.notify();
     return { success: true, message: `Passenger attendance marked as ${status}` };
+  }
+
+  public async assignWaitlistSeat(bookingId: string, seatCode: string) {
+    const booking = this.bookings.find(b => b.id === bookingId);
+    if (!booking) return { success: false, message: "Booking not found" };
+
+    booking.status = "CONFIRMED";
+    booking.seatNumber = seatCode;
+    booking.waitlistPosition = undefined;
+
+    this.bookings = this.bookings.map(b => (b.id === bookingId ? { ...b, status: "CONFIRMED", seatNumber: seatCode, waitlistPosition: undefined } : b));
+    this.notify();
+
+    // Persist to PostgreSQL database (Single Source of Truth)
+    try {
+      await supabase.from("bookings").update({
+        status: "CONFIRMED",
+        seat_number: seatCode,
+        waitlist_position: null,
+      }).eq("id", bookingId);
+
+      await supabase.from("audit_logs").insert({
+        user_role: "conductor",
+        action: "CONDUCTOR_SEAT_ALLOCATION",
+        entity: "Booking",
+        entity_id: bookingId,
+        reason: `Allocated available seat ${seatCode} to waitlisted passenger`,
+        new_value: { status: "CONFIRMED", seatNumber: seatCode },
+      });
+    } catch (err) {
+      console.warn("DB assignWaitlistSeat notice:", err);
+    }
+
+    return { success: true, message: `Seat ${seatCode} assigned successfully!` };
   }
 
   public bookShift(studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string) {

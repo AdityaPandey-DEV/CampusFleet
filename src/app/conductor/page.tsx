@@ -846,10 +846,39 @@ export default function ConductorConsolePage() {
                 )}
               </div>
             ) : (
-              <div className="text-center py-6 space-y-2">
-                <div className="text-xs text-slate-400 font-mono">
+              <div className="text-center py-4 space-y-4">
+                <div className="text-xs text-slate-500 font-mono">
                   This seat is currently unreserved and available on this trip.
                 </div>
+                {tripBookings.filter(b => b.status === "WAITLISTED").length > 0 && (
+                  <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl space-y-2 text-left">
+                    <div className="text-xs font-black text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Allocate to Waitlisted Passenger:</span>
+                    </div>
+                    {tripBookings
+                      .filter(b => b.status === "WAITLISTED")
+                      .slice(0, 3)
+                      .map(wlBooking => {
+                        const wlStudent = students.find(s => s.id === wlBooking.studentId || s.userId === wlBooking.studentId);
+                        return (
+                          <button
+                            key={wlBooking.id}
+                            onClick={async () => {
+                              await store.assignWaitlistSeat(wlBooking.id, selectedSeatForModal.seatCode);
+                              setToastMessage(`✓ Allocated Seat ${selectedSeatForModal.seatCode} to ${wlStudent?.fullName || "Waitlisted Student"}`);
+                              setSelectedSeatForModal(null);
+                              setTimeout(() => setToastMessage(null), 3500);
+                            }}
+                            className="w-full py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl flex items-center justify-between transition-colors cursor-pointer shadow-sm"
+                          >
+                            <span>{wlStudent?.fullName || "Student"} (WL-{wlBooking.waitlistPosition || 1})</span>
+                            <span className="font-mono text-[10px]">Assign Seat →</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
             )}
           </div>

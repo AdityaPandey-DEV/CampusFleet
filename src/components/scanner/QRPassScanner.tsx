@@ -120,7 +120,7 @@ export function QRPassScanner({
   const pendingBookings = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "WAITLISTED");
 
   const verifyPassCode = useCallback(
-    (rawCode: string, method: "Optical QR Scanner" | "Manual Secure Entry" = "Optical QR Scanner") => {
+    async (rawCode: string, method: "Optical QR Scanner" | "Manual Secure Entry" = "Optical QR Scanner") => {
       if (!rawCode || isProcessing) return;
 
       const now = Date.now();
@@ -130,6 +130,86 @@ export function QRPassScanner({
       lastScannedCodeRef.current = { code: rawCode, time: now };
 
       setIsProcessing(true);
+
+      // Call authoritative backend API to validate against Postgres database, timetable, maintenance & capacity
+      try {
+        const res = await fetch("/api/boarding/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            qrData: rawCode,
+            tripId: trip.id,
+            busId: trip.busId,
+            conductorName: "Conductor Terminal",
+          }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          if (soundEnabled) playChime("error");
+          triggerHaptic("error");
+
+          if (data.code === "ACTIVE_CLASS_RESTRICTION" || data.status === "CLASS_RESTRICTION") {
+            setLastResult({
+              status: "REJECTED",
+              studentName: data.activeClass?.studentName || data.studentName || "Student",
+              enrollmentNo: data.activeClass?.className || data.className || "Academic Restriction",
+              message: data.message || `❌ BOARDING DENIED: Student has a scheduled lecture (${data.activeClass?.subject || data.subject || "Lecture"}) at this time.`,
+              timestamp: new Date().toLocaleTimeString(),
+            });
+          } else if (data.code === "ALREADY_BOARDED") {
+            if (soundEnabled) playChime("duplicate");
+            triggerHaptic("warning");
+            setLastResult({
+              status: "DUPLICATE",
+              message: `DUPLICATE REPLAY: Pass was already checked in earlier.`,
+              timestamp: new Date().toLocaleTimeString(),
+            });
+          } else {
+            setLastResult({
+              status: "REJECTED",
+              message: data.message || "UNVERIFIED PASS: Boarding rejected by server.",
+              timestamp: new Date().toLocaleTimeString(),
+            });
+          }
+          setIsProcessing(false);
+          return;
+        }
+
+        // Backend verified and recorded in PostgreSQL
+        const studentInfo = data.student || { fullName: "Student", enrollmentNo: "" };
+        const bookingInfo = data.booking || {};
+        const isStandingPassenger = bookingInfo.passengerType === "STANDING_TILL_MERGE" || bookingInfo.passenger_type === "STANDING_TILL_MERGE";
+
+        store.recordAttendance(
+          studentInfo.id || "unknown",
+          trip.id,
+          "QR_SCAN",
+          "BOARDED",
+          `Verified via Conductor ${method}`
+        );
+
+        if (soundEnabled) playChime("success");
+        triggerHaptic("success");
+        setLastResult({
+          status: "APPROVED",
+          studentName: studentInfo.fullName,
+          enrollmentNo: studentInfo.enrollmentNo,
+          seatNumber: isStandingPassenger ? "STAND" : (bookingInfo.seatNumber || bookingInfo.seat_number || "Seat Assigned"),
+          method,
+          message: data.message || (isStandingPassenger
+            ? `⚡ Standing Passenger Authorized Till ${bookingInfo.mergeStopName || "Bus Merge Stop"}!`
+            : `Boarding Verified! Allocated Seat: ${bookingInfo.seatNumber || bookingInfo.seat_number || "Seat Assigned"}`),
+          timestamp: new Date().toLocaleTimeString(),
+        });
+
+        onAttendanceSuccess(studentInfo.fullName, method);
+        setIsProcessing(false);
+        setManualInput("");
+        return;
+      } catch (err: any) {
+        console.warn("Backend scan call failed, falling back to local verification", err);
+      }
 
       let parsedPayload: any = null;
       try {
@@ -257,7 +337,7 @@ export function QRPassScanner({
       setIsProcessing(false);
       setManualInput("");
     },
-    [tripBookings, students, bookings, trip.id, soundEnabled, isProcessing, onAttendanceSuccess]
+    [tripBookings, students, bookings, trip.id, trip.busId, soundEnabled, isProcessing, onAttendanceSuccess]
   );
 
   const scanVideoFrame = useCallback(() => {

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
-import { Student } from "@/lib/types";
+import { Student, TRANSIT_ZONES } from "@/lib/types";
 import {
   GraduationCap,
   Building2,
@@ -14,6 +14,7 @@ import {
   X,
   User,
   HeartHandshake,
+  Compass,
 } from "lucide-react";
 
 export function StudentProfileModal() {
@@ -30,6 +31,9 @@ export function StudentProfileModal() {
   const [enrollmentNo, setEnrollmentNo] = useState("");
   const [department, setDepartment] = useState("B.Tech Computer Science & Engineering");
   const [semester, setSemester] = useState("5th Semester");
+  const [classesList, setClassesList] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [selectedZoneCode, setSelectedZoneCode] = useState("ZONE_B");
   const [phone, setPhone] = useState("");
   const [primaryStopId, setPrimaryStopId] = useState("");
   const [emergencyName, setEmergencyName] = useState("");
@@ -43,6 +47,15 @@ export function StudentProfileModal() {
       setStops(store.getStops());
     });
     return unsub;
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/classes")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.classes) setClassesList(data.classes);
+      })
+      .catch(console.error);
   }, []);
 
   const activeStudent: Student | undefined = students.find(
@@ -70,6 +83,7 @@ export function StudentProfileModal() {
       setCampus(activeStudent?.campus || "Graphic Era Hill University (GEHU), Bhimtal Campus");
       setDepartment(activeStudent?.department || "B.Tech Computer Science & Engineering");
       setSemester(activeStudent?.semester || "5th Semester");
+      setSelectedClassId(activeStudent?.classId || "");
       setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
       setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
       setEmergencyPhone(activeStudent?.emergencyContact?.phone !== "+91 0000000000" ? (activeStudent?.emergencyContact?.phone || "") : "");
@@ -87,6 +101,7 @@ export function StudentProfileModal() {
 
     setIsSubmitting(true);
     const targetStudentId = activeStudent?.id || `stud-${currentUser?.id || Date.now()}`;
+    const chosenClass = classesList.find(c => c.id === selectedClassId);
 
     const res = await store.updateStudentProfile(targetStudentId, {
       fullName: fullName.trim() || currentUser?.fullName || "Student",
@@ -94,6 +109,9 @@ export function StudentProfileModal() {
       campus,
       department,
       semester,
+      classId: chosenClass?.id,
+      className: chosenClass?.name,
+      zoneCode: selectedZoneCode,
       phone: phone.trim(),
       primaryStopId: primaryStopId || stops[0]?.id || "",
       emergencyContact: {
@@ -102,6 +120,18 @@ export function StudentProfileModal() {
         phone: emergencyPhone.trim() || phone.trim(),
       },
     });
+
+    if (chosenClass?.id) {
+      try {
+        await fetch(`/api/students/${targetStudentId}/class`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ classId: chosenClass.id }),
+        });
+      } catch (err) {
+        console.warn("Failed to sync student class with backend", err);
+      }
+    }
 
     setIsSubmitting(false);
     if (res.success) {
@@ -222,6 +252,27 @@ export function StudentProfileModal() {
               />
             </div>
 
+            {/* University Class (Created by Admin) */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>Assigned University Class *</span>
+                <span className="text-blue-500 font-normal lowercase">(admin authorized)</span>
+              </label>
+              <select
+                required
+                value={selectedClassId}
+                onChange={e => setSelectedClassId(e.target.value)}
+                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-bold"
+              >
+                <option value="">-- Select Your Class & Section --</option>
+                {classesList.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.course} • {c.year} • Sec {c.section})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Department */}
             <div className="space-y-1">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
@@ -265,22 +316,62 @@ export function StudentProfileModal() {
             </div>
           </div>
 
-          {/* Primary Boarding Stop */}
+          {/* Residential Transit Zone */}
           <div className="space-y-1">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-blue-600" />
-              Primary Boarding / Pickup Location
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <Compass className="w-3.5 h-3.5 text-teal-600" />
+                Residential Transit Zone *
+              </span>
+              <span className="text-teal-600 dark:text-teal-400 font-bold lowercase text-[10px]">
+                (determines semester fee & pickup corridor)
+              </span>
+            </label>
+            <select
+              required
+              value={selectedZoneCode}
+              onChange={e => {
+                const newZone = e.target.value;
+                setSelectedZoneCode(newZone);
+                const filteredStops = stops.filter(st => (st.zoneCode || "ZONE_B") === newZone);
+                if (filteredStops.length > 0) {
+                  setPrimaryStopId(filteredStops[0].id);
+                }
+              }}
+              className="w-full text-xs p-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-slate-900 dark:text-white outline-none focus:border-teal-500 font-bold"
+            >
+              {TRANSIT_ZONES.map(z => (
+                <option key={z.code} value={z.code}>
+                  {z.name} — ₹{z.semesterFee.toLocaleString()} / Semester
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+              Covers: {TRANSIT_ZONES.find(z => z.code === selectedZoneCode)?.corridorDescription}
+            </p>
+          </div>
+
+          {/* Primary Boarding Stop (Filtered strictly to selected zone) */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                Primary Boarding Stop ({selectedZoneCode}) *
+              </span>
+              <span className="text-[10px] text-slate-400">Zone-restricted</span>
             </label>
             <select
               value={primaryStopId}
               onChange={e => setPrimaryStopId(e.target.value)}
-              className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
+              className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-medium"
             >
-              {stops.map(st => (
-                <option key={st.id} value={st.id}>
-                  {st.name} ({st.code}) • {st.landmark}
-                </option>
-              ))}
+              {stops
+                .filter(st => (st.zoneCode || "ZONE_B") === selectedZoneCode)
+                .map(st => (
+                  <option key={st.id} value={st.id}>
+                    {st.name} ({st.code}) • {st.landmark}
+                  </option>
+                ))}
             </select>
           </div>
 

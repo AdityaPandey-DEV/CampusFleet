@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "student" | "parent" | "driver" | "conductor" | "transport_manager" | "supervisor";
+export type UserRole = "admin" | "student" | "parent" | "driver" | "conductor" | "transport_manager" | "supervisor" | "teacher" | "staff";
 
 export type BookingStatus = "CONFIRMED" | "WAITLISTED" | "CANCELLED" | "BOARDED" | "ABSENT" | "NO_SHOW";
 
@@ -43,6 +43,8 @@ export interface Stop {
   landmark: string;
   geofenceRadiusMeters: number;
   campus?: string;
+  isBusMergeStop?: boolean;
+  zoneCode?: string;
 }
 
 export interface RouteStop {
@@ -136,6 +138,12 @@ export interface Student {
   transportAccessSuspended: boolean;
   hasActiveSubscription: boolean;
   subscriptionExpiryDate?: string;
+  classId?: string;
+  className?: string;
+  zoneCode?: string;
+  paymentStatus?: "UNPAID" | "PENDING_APPROVAL" | "PARTIALLY_PAID" | "APPROVED" | "REJECTED";
+  totalFeeDue?: number;
+  totalFeePaid?: number;
 }
 
 export interface Guardian {
@@ -173,6 +181,9 @@ export interface Booking {
   status: BookingStatus;
   waitlistPosition?: number; // e.g. 1 -> WL-01
   seatNumber?: string;       // e.g. "12B"
+  passengerType?: "SEATED" | "STANDING_TILL_MERGE";
+  mergeStopId?: string;
+  mergeStopName?: string;
   confirmedAt?: string;
   cancelledAt?: string;
   boardedAt?: string;
@@ -241,6 +252,64 @@ export interface PaymentRecord {
   createdAt: string;
 }
 
+export interface PaymentSubmission {
+  id: string;
+  studentId: string;
+  studentName: string;
+  enrollmentNo?: string;
+  zoneCode: string;
+  amount: number;
+  installmentNo: number;
+  totalInstallments: number;
+  receiptUrl: string;
+  transactionId: string;
+  autoDetected: boolean;
+  status: "PENDING_APPROVAL" | "APPROVED" | "REJECTED";
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  createdAt: string;
+}
+
+export interface TransitZone {
+  code: string;
+  name: string;
+  corridorDescription: string;
+  semesterFee: number;
+  installmentsAllowed: number;
+}
+
+export const TRANSIT_ZONES: TransitZone[] = [
+  {
+    code: "ZONE_A",
+    name: "Zone A: Lamachaur & Kaladhungi Corridor",
+    corridorDescription: "Lamachaur Terminal, Amrapali Institute, Kamluvaganja, Bhagwanpur, Fatehpur",
+    semesterFee: 14000,
+    installmentsAllowed: 3,
+  },
+  {
+    code: "ZONE_B",
+    name: "Zone B: Haldwani City & Mukhani Corridor",
+    corridorDescription: "Kusumkhera, Mukhani Chauraha, Heera Nagar, Tikonia, Unchapul, Bhakda Laldant",
+    semesterFee: 12000,
+    installmentsAllowed: 3,
+  },
+  {
+    code: "ZONE_C",
+    name: "Zone C: Kathgodam & Bhowali Hills Corridor",
+    corridorDescription: "Kathgodam Rly Station, HMT Ranibagh, Jeolikote, Bhowali Chauraha, Panchakki",
+    semesterFee: 10000,
+    installmentsAllowed: 2,
+  },
+  {
+    code: "ZONE_D",
+    name: "Zone D: Bhimtal Campus Local Vicinity",
+    corridorDescription: "GEHU Bhimtal Campus, Bhimtal Lake / Daant, Graphic Era IT Park",
+    semesterFee: 6000,
+    installmentsAllowed: 2,
+  },
+];
+
 export interface VehicleIssue {
   id: string;
   busId: string;
@@ -289,3 +358,104 @@ export interface AuditLog {
   details: string;
   timestamp: string;
 }
+
+// ─── Enhancement Phase 3 Types (Database-backed) ───
+
+export interface ClassItem {
+  id: string;
+  course: string;
+  year: string;
+  section: string;
+  name: string;
+  isActive: boolean;
+  createdAt?: string;
+  studentCount?: number;
+  assignedTeachers?: { id: string; fullName: string; email: string; isPrimary: boolean }[];
+}
+
+export interface ClassTeacher {
+  id: string;
+  classId: string;
+  teacherId: string;
+  isPrimary: boolean;
+  assignedAt?: string;
+}
+
+export interface ClassTimetableSlot {
+  id: string;
+  classId: string;
+  dayOfWeek: string; // 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday'
+  startTime: string; // 'HH:MM:SS' or 'HH:MM'
+  endTime: string;   // 'HH:MM:SS' or 'HH:MM'
+  subject: string;
+  teacherId?: string;
+  teacherName?: string;
+  roomNumber?: string;
+}
+
+export interface BusMergePoint {
+  id: string;
+  routeId: string;
+  stopId: string;
+  name: string;
+  code: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface BusMergeSuggestion {
+  id: string;
+  mergePointId: string;
+  routeId: string;
+  sourceBusId: string;
+  targetBusId: string;
+  sourceOccupancy: number;
+  targetOccupancy: number;
+  targetCapacity: number;
+  combinedOccupancy: number;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "EXECUTED";
+  rejectionReason?: string;
+  suggestedBy?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt?: string;
+}
+
+export interface DispatchConfig {
+  id?: string;
+  minOccupancyPercent: number;
+  maxWaitMinutes: number;
+  progressiveDispatchEnabled: boolean;
+  updatedAt?: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  userId?: string;
+  userEmail?: string;
+  userRole?: string;
+  action: string;
+  entity: string;
+  entityId?: string;
+  previousValue?: any;
+  newValue?: any;
+  reason?: string;
+  createdAt: string;
+}
+
+export interface TodayBusArrival {
+  studentId: string;
+  studentName: string;
+  enrollmentNo?: string;
+  classId: string;
+  className: string;
+  busId: string;
+  busNumber: string;
+  tripId: string;
+  tripCode: string;
+  boardingStopId?: string;
+  boardingStopName: string;
+  boardingTime: string;
+  status: "Present";
+}
+

@@ -57,17 +57,21 @@ export default function CampusFleetLandingPage() {
 
   const getDashboardLink = () => {
     if (!currentUser) return "/portal";
-    if (currentUser.role === "admin" || currentUser.role === "transport_manager") return "/admin";
-    if (currentUser.role === "driver") return "/staff/driver";
-    if (currentUser.role === "conductor") return "/staff/conductor";
+    if (currentUser.role === "admin") return "/admin";
+    if (currentUser.role === "staff" || currentUser.role === "transport_manager" || currentUser.role === "supervisor") return "/staff";
+    if (currentUser.role === "driver") return "/driver";
+    if (currentUser.role === "conductor") return "/conductor";
+    if (currentUser.role === "teacher") return "/teacher";
     return "/portal";
   };
 
   const getDashboardLabel = () => {
     if (!currentUser) return "Launch Portal";
-    if (currentUser.role === "admin" || currentUser.role === "transport_manager") return "Admin Console →";
+    if (currentUser.role === "admin") return "Admin Console →";
+    if (currentUser.role === "staff" || currentUser.role === "transport_manager") return "Staff Operations →";
     if (currentUser.role === "driver") return "Driver Cockpit →";
     if (currentUser.role === "conductor") return "Conductor Manifest →";
+    if (currentUser.role === "teacher") return "Teacher Desk →";
     return "My Student Portal →";
   };
 
@@ -82,22 +86,31 @@ export default function CampusFleetLandingPage() {
       features: ["Live ETA & Station Radar", "redBus Seat Selection", "Railway Confirmed vs Waitlist WL-01", "Digital QR Boarding Pass"],
     },
     {
-      title: "Driver Console",
+      title: "Staff Operations Console",
+      description: "Supervisory command center for fee payment approvals, official university UPI QR management, Excel audit export, and bus merge optimizer.",
+      href: "/staff",
+      icon: ShieldCheck,
+      badge: "Supervisory Tier",
+      color: "from-indigo-600 to-blue-600",
+      features: ["UPI QR & Settings Management", "1-Click Student Fee Approvals", "Full Audit Report with Excel (.xlsx) Export", "Route Demand & Bus Merge Optimizer"],
+    },
+    {
+      title: "Driver Cockpit",
       description: "Assigned route checklist, trip start/end lifecycle, live GPS coordinate telemetry broadcaster, and incident reporting.",
-      href: "/staff/driver",
+      href: "/driver",
       icon: Navigation,
-      badge: "In-Cabin Console",
+      badge: "Crew Console",
       color: "from-emerald-600 to-teal-600",
       features: ["One-Tap Trip Start & End", "Live 15s GPS Broadcaster", "Turn-by-Turn Stop Checklist", "Instant Incident Dispatch"],
     },
     {
-      title: "Conductor Manifest Desk",
-      description: "Live optical camera QR scanner with cryptographic token verification, anti-counterfeit boarding checks, and passenger manifest.",
-      href: "/staff/conductor",
+      title: "Conductor Terminal",
+      description: "Live optical camera QR scanner with cryptographic token verification, anti-counterfeit boarding checks, and interactive chassis seat map.",
+      href: "/conductor",
       icon: ShieldCheck,
-      badge: "Attendance & Manifest",
+      badge: "Crew Console",
       color: "from-teal-600 to-cyan-600",
-      features: ["Live Camera QR Pass Scanner", "Anti-Replay Security Check", "Live Boarding Counters", "Audited Manual Override"],
+      features: ["Live Camera QR Pass Scanner", "Class-Time Restriction Engine", "Interactive Bus Seat Map", "Audited Manual Override"],
     },
     {
       title: "Admin Operations Center",

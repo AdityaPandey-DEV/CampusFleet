@@ -36,6 +36,7 @@ import {
   Sparkles,
   GitCommit,
   GitBranch,
+  GitMerge,
   Layers,
   Sliders,
   ChevronRight,
@@ -79,6 +80,7 @@ export default function RouteAndStopManagementPage() {
     longitude: 79.5583,
     landmark: "",
     geofenceRadiusMeters: 80,
+    isBusMergeStop: false,
   });
 
   // Flowchart Route Builder States
@@ -144,6 +146,7 @@ export default function RouteAndStopManagementPage() {
       longitude: stops[0]?.longitude || 79.5583,
       landmark: "",
       geofenceRadiusMeters: 80,
+      isBusMergeStop: false,
     });
     setIsAddStopModalOpen(true);
   };
@@ -158,6 +161,7 @@ export default function RouteAndStopManagementPage() {
       longitude: st.longitude,
       landmark: st.landmark || "",
       geofenceRadiusMeters: st.geofenceRadiusMeters || 80,
+      isBusMergeStop: Boolean(st.isBusMergeStop),
     });
     setIsAddStopModalOpen(true);
   };
@@ -171,12 +175,44 @@ export default function RouteAndStopManagementPage() {
 
     if (editingStop) {
       await store.updateStop(editingStop.id, stopFormData);
+      try {
+        await fetch(`/api/stops/${editingStop.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(stopFormData),
+        });
+      } catch (err) {
+        console.warn(err);
+      }
       setEditingStop(null);
     } else {
-      await store.createStop(stopFormData);
+      const created = await store.createStop(stopFormData);
+      try {
+        await fetch("/api/stops", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...stopFormData, id: created.id }),
+        });
+      } catch (err) {
+        console.warn(err);
+      }
     }
 
     setIsAddStopModalOpen(false);
+  };
+
+  const handleToggleStopMerge = async (st: Stop) => {
+    const nextState = !st.isBusMergeStop;
+    await store.updateStop(st.id, { isBusMergeStop: nextState });
+    try {
+      await fetch(`/api/stops/${st.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isBusMergeStop: nextState }),
+      });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleDeleteStop = async (stopId: string, stopName: string) => {
@@ -900,9 +936,28 @@ export default function RouteAndStopManagementPage() {
                       GPS: {st.latitude.toFixed(4)}° N, {st.longitude.toFixed(4)}° E
                     </div>
                   </div>
+
+                  {st.isBusMergeStop && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 text-[11px] font-bold border border-purple-200 dark:border-purple-800">
+                      <GitMerge className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                      <span>Authorized Bus Merge Stop ⚡</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    onClick={() => handleToggleStopMerge(st)}
+                    className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border flex items-center gap-1 ${
+                      st.isBusMergeStop
+                        ? "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:text-purple-600"
+                    }`}
+                    title={st.isBusMergeStop ? "Deactivate Bus Merge Stop" : "Activate as Bus Merge Stop"}
+                  >
+                    <GitMerge className="w-3.5 h-3.5" />
+                    <span>{st.isBusMergeStop ? "Merge Stop: ON" : "Merge: OFF"}</span>
+                  </button>
                   <button
                     onClick={() => handleOpenEditStop(st)}
                     className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-all"
@@ -1102,6 +1157,28 @@ export default function RouteAndStopManagementPage() {
                   onChange={e => setStopFormData({ ...stopFormData, landmark: e.target.value })}
                   className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
                 />
+              </div>
+
+              {/* Bus Merge Stop Toggle Switch */}
+              <div className="p-3.5 bg-purple-50/80 dark:bg-purple-950/40 rounded-2xl border border-purple-200 dark:border-purple-800/60 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-xs text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
+                    <GitMerge className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span>Is Bus Merge Stop (Consolidation Junction)</span>
+                  </div>
+                  <p className="text-[10px] text-purple-700/80 dark:text-purple-400 mt-0.5">
+                    Turn ON to authorize bus consolidation, transfers, and standing passenger seat transitions at this junction.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer ml-3 flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={stopFormData.isBusMergeStop || false}
+                    onChange={e => setStopFormData({ ...stopFormData, isBusMergeStop: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
               </div>
 
               <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">

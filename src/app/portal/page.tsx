@@ -122,6 +122,53 @@ export default function StudentPortalDashboard() {
     return confirmedRouteStops.map(s => [s.latitude, s.longitude] as [number, number]);
   }, [confirmedRouteStops]);
 
+  const isTripInProgress = activeTrip?.status === "IN_PROGRESS";
+
+  // Effective location: If trip has not started, bus MUST be stationary at the route starting point!
+  const effectiveBusLocation = React.useMemo(() => {
+    const startingStop = confirmedRouteStops[0] || assignedRoute?.stops?.[0]?.stop || stops[0];
+
+    // If trip has not started yet, bus is stationary at route starting stop
+    if (!isTripInProgress && startingStop) {
+      return {
+        busId: assignedBus?.id || "",
+        tripId: activeTrip?.id || "",
+        latitude: startingStop.latitude,
+        longitude: startingStop.longitude,
+        speedKmh: 0,
+        headingDeg: 0,
+        lastPingAt: new Date().toISOString(),
+        estimatedArrivalNextStopMins: 0,
+        delayMinutes: 0,
+      };
+    }
+
+    // If trip is in progress, check if current liveLocation is within Uttarakhand corridor
+    if (
+      liveLocation &&
+      liveLocation.latitude >= 28.9 &&
+      liveLocation.latitude <= 30.5 &&
+      liveLocation.longitude >= 78.5 &&
+      liveLocation.longitude <= 80.5
+    ) {
+      return liveLocation;
+    }
+
+    // Fallback: snap to route stop
+    const currentStop = confirmedRouteStops[activeTrip?.currentStopIndex || 0] || startingStop;
+    return {
+      busId: assignedBus?.id || "",
+      tripId: activeTrip?.id || "",
+      latitude: currentStop?.latitude || 29.2889,
+      longitude: currentStop?.longitude || 79.4678,
+      speedKmh: isTripInProgress ? (liveLocation?.speedKmh || 25) : 0,
+      headingDeg: liveLocation?.headingDeg || 0,
+      lastPingAt: new Date().toISOString(),
+      estimatedArrivalNextStopMins: liveLocation?.estimatedArrivalNextStopMins || 0,
+      delayMinutes: liveLocation?.delayMinutes || 0,
+    };
+  }, [isTripInProgress, confirmedRouteStops, assignedRoute, stops, assignedBus?.id, activeTrip?.id, activeTrip?.currentStopIndex, liveLocation]);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Welcome Banner */}
@@ -265,9 +312,12 @@ export default function StudentPortalDashboard() {
                     )}
                   </div>
                   <div className="text-xs text-slate-500 mt-1 flex items-center justify-center sm:justify-start gap-2 font-mono">
-                    <span>Current Speed: {liveLocation?.speedKmh || 0} km/h</span>
+                    <span>Current Speed: {effectiveBusLocation.speedKmh} km/h</span>
                     <span>•</span>
-                    <span>Trip Status: {activeTrip?.status || "SCHEDULED"}</span>
+                    <span>
+                      Trip Status: {activeTrip?.status || "SCHEDULED"}
+                      {!isTripInProgress && confirmedRouteStops[0] ? ` (At ${confirmedRouteStops[0].name})` : ""}
+                    </span>
                   </div>
                 </div>
 
@@ -375,7 +425,9 @@ export default function StudentPortalDashboard() {
             {isBookingActive ? (
               <>
                 <CampusFleetMap
-                  busLocation={liveLocation}
+                  busLocation={effectiveBusLocation}
+                  busName={assignedBus?.busNumber ? `${assignedBus.busNumber} (${assignedRoute?.name || "Campus Shuttle"})` : (assignedRoute?.name || "Campus Shuttle")}
+                  tripStatus={activeTrip?.status || "SCHEDULED"}
                   stops={confirmedRouteStops}
                   routeCoordinates={confirmedRouteCoordinates}
                   activeStopIndex={activeTrip?.currentStopIndex || 0}
@@ -418,10 +470,19 @@ export default function StudentPortalDashboard() {
                 )}
 
                 <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                  <span>Ping: {new Date(liveLocation.lastPingAt).toLocaleTimeString()}</span>
+                  <span>Ping: {new Date(effectiveBusLocation.lastPingAt).toLocaleTimeString()}</span>
                   <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                    Live GPS Telematics Active
+                    {isTripInProgress ? (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        Live GPS Telematics Active
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                        Stationary at Route Starting Point
+                      </>
+                    )}
                   </span>
                 </div>
               </>
