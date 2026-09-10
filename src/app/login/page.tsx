@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
-import { supabase } from "@/lib/supabaseClient";
+
 import { UserRole } from "@/lib/types";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import {
@@ -142,30 +142,12 @@ export default function UnifiedLoginPage() {
     setErrorMessage(null);
 
     try {
-      // Try real Google OAuth first
+      // Try real Google OAuth
       const result = await authService.signInWithGoogle();
       if (!result.success) {
-        // Fallback: if Google OAuth provider isn't configured, use instant login
-        const resolvedEmail = (email.trim() || "student.commuter@gehu.ac.in").toLowerCase();
-        const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-        const isUserAdmin = Boolean(adminEmail && resolvedEmail === adminEmail);
-        const role: UserRole = isUserAdmin ? "admin" : "student";
-
-        const user = authService.instantLogin(resolvedEmail, role);
-        store.setCurrentUser(user);
-
-        if (user.role === "admin" || user.role === "driver" || user.role === "conductor") {
-          setAuthStep("SUCCESS");
-          setTimeout(() => router.push(authService.getTargetRouteForRole(user.role)), 700);
-        } else {
-          setPendingAuthUser(user);
-          setOnboardingName(user.fullName || "Student Commuter");
-          const defaultStop = campusStops[0];
-          if (defaultStop) setSelectedStopId(defaultStop.id);
-          setAuthStep("ONBOARDING");
-        }
+        setErrorMessage(result.message || "Google Sign-In is unavailable. Please sign in with Email OTP or Password.");
       }
-      // If success, browser will redirect to /auth/callback
+      // If success, browser will redirect to Google consent / callback
     } catch (err: any) {
       console.warn("Auth exception:", err);
       setErrorMessage(err.message || "Authentication failed");
@@ -260,17 +242,20 @@ export default function UnifiedLoginPage() {
 
       store.setCurrentUser(updatedUser);
 
-      // Also persist to Supabase users table
+      // Persist profile to server
       try {
-        await supabase.from("users").upsert({
-          id: updatedUser.id,
-          email: updatedUser.email,
-          full_name: updatedUser.fullName,
-          role: "student",
-          campus: onboardingCampus,
+        await fetch("/api/auth/update-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName: updatedUser.fullName,
+            campus: onboardingCampus,
+            primaryStopId: selectedStopId,
+          }),
+          credentials: "include",
         });
       } catch (err) {
-        console.warn("Supabase user update notice:", err);
+        console.warn("Profile update notice:", err);
       }
 
       setAuthStep("SUCCESS");

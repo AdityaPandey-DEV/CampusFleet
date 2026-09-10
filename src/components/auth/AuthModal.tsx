@@ -29,15 +29,7 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
     try {
       const result = await authService.signInWithGoogle();
       if (!result.success) {
-        // Fallback to instant login if Google OAuth not configured
-        const resolvedEmail = email.trim() || "student@gehu.ac.in";
-        const user = authService.instantLogin(resolvedEmail, role);
-        store.setCurrentUser(user);
-        setAuthStep("SUCCESS");
-        setTimeout(() => {
-          onClose();
-          setAuthStep("SELECT");
-        }, 700);
+        setErrorMessage(result.message || "Google Sign-In is unavailable. Please use Email OTP.");
       }
     } catch (err: any) {
       console.warn("Auth Exception:", err);
@@ -129,7 +121,7 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
           </div>
           <h2 className="text-xl font-black tracking-tight">Institutional Gateway Login</h2>
           <p className="text-xs text-slate-500 max-w-xs mx-auto">
-            Supabase Cloud Auth • Google SSO & SMTP Email Verification
+            CampusFleet Auth • Google SSO & Email Verification
           </p>
         </div>
 
@@ -173,7 +165,7 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
             <div className="relative flex items-center justify-center my-2">
               <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
               <span className="bg-white dark:bg-slate-900 px-3 text-[10px] uppercase font-bold text-slate-400 absolute">
-                Or Supabase Email OTP
+                Or Email OTP
               </span>
             </div>
 
@@ -213,7 +205,7 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
           <form onSubmit={handleVerifyOtp} className="space-y-4">
             <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-2xl border border-blue-100 dark:border-blue-900/40 text-center space-y-1">
               <p className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                Supabase OTP Verification sent to:
+                Verification code sent to:
               </p>
               <p className="text-xs font-mono font-bold text-blue-900 dark:text-blue-200">{email}</p>
               <p className="text-[10px] text-slate-400">Enter the 6-digit passcode sent to your inbox</p>

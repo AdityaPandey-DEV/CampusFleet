@@ -1,5 +1,4 @@
 import { UserRole } from "./types";
-import { supabase } from "./supabaseClient";
 
 export interface AuthUser {
   id: string;
@@ -13,113 +12,50 @@ export interface AuthUser {
   createdAt: string;
 }
 
+/**
+ * Custom Auth Service — Zero Supabase Auth dependency.
+ * Uses our own JWT-based API routes for all authentication.
+ * Supabase is used ONLY as a database via supabaseClient.ts.
+ */
 class AuthService {
   private currentUser: AuthUser | null = null;
   private listeners: Set<(user: AuthUser | null) => void> = new Set();
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
     if (typeof window !== "undefined") {
-      this.initialize();
+      this.initPromise = this.initialize();
     }
   }
 
   private async initialize() {
-    // 1. Restore from Supabase session (the single source of truth)
+    // 1. Try to restore from our JWT cookie session via API
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await this.resolveUserFromSupabase(session.user);
+      const res = await fetch("/api/auth/session", {
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          this.currentUser = data.user;
+          this.saveLocalSession();
+          this.notify();
+        }
       } else {
-        // Try localStorage fallback for OTP-verified users
+        // No valid cookie session — try localStorage fallback
         this.restoreLocalSession();
       }
     } catch (e) {
-      console.warn("Auth init: Supabase session check failed, using local fallback", e);
+      console.warn("Auth init: Session check failed, using local fallback", e);
       this.restoreLocalSession();
     }
+
     this.initialized = true;
-
-    // 2. Listen for future auth state changes (login, logout, token refresh)
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        await this.resolveUserFromSupabase(session.user);
-      } else if (event === "SIGNED_OUT") {
-        this.currentUser = null;
-        this.clearLocalSession();
-        this.notify();
-      } else if (event === "TOKEN_REFRESHED" && session?.user) {
-        await this.resolveUserFromSupabase(session.user);
-      }
-    });
   }
 
-  /**
-   * Resolves user role and profile from the `public.users` table.
-   * If user doesn't exist in the DB, inserts a new row with default "student" role.
-   */
-  private async resolveUserFromSupabase(supabaseUser: any) {
-    const email = (supabaseUser.email || "").toLowerCase();
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-
-    // 1. Check if user exists in our users table
-    let role: UserRole = "student";
-    let fullName = supabaseUser.user_metadata?.full_name
-      || supabaseUser.user_metadata?.name
-      || email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
-    let campus = "GEHU Bhimtal";
-
-    try {
-      const { data: existingUser } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", email)
-        .single();
-
-      if (existingUser) {
-        role = existingUser.role || "student";
-        fullName = existingUser.full_name || fullName;
-        campus = existingUser.campus || campus;
-      } else {
-        // New user — determine role and insert
-        if (adminEmail && email === adminEmail) {
-          role = "admin";
-        }
-
-        await supabase.from("users").insert({
-          id: supabaseUser.id,
-          email,
-          full_name: fullName,
-          role,
-          campus,
-          provider: supabaseUser.app_metadata?.provider || "email",
-        });
-      }
-    } catch (e) {
-      // If DB query fails, use email-based fallback for admin
-      if (adminEmail && email === adminEmail) {
-        role = "admin";
-      }
-      console.warn("User DB lookup failed, using fallback role:", e);
-    }
-
-    this.currentUser = {
-      id: supabaseUser.id,
-      email,
-      fullName,
-      role,
-      campus,
-      avatarUrl: supabaseUser.user_metadata?.avatar_url,
-      studentId: role === "student" ? supabaseUser.id : undefined,
-      token: `tok_sb_${Date.now()}`,
-      createdAt: supabaseUser.created_at || new Date().toISOString(),
-    };
-
-    this.saveLocalSession();
-    this.notify();
-  }
-
-  // ─── Session Persistence ────────────────────────────────────────────
+  // ─── Session Persistence (localStorage backup) ────────────────────
 
   private saveLocalSession() {
     if (typeof window === "undefined") return;
@@ -188,26 +124,16 @@ class AuthService {
     }
   }
 
-  // ─── Auth Methods ───────────────────────────────────────────────────
+  // ─── Auth Methods (Custom JWT — No Supabase Auth) ─────────────────
 
   /**
-   * Sign in with Google OAuth via Supabase (real redirect flow).
+   * Sign in with Google OAuth — redirects to our API route which handles
+   * the Google OAuth flow directly (no Supabase intermediary).
    */
   public async signInWithGoogle(): Promise<{ success: boolean; message: string }> {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            prompt: "select_account",
-            access_type: "offline",
-          },
-        },
-      });
-      if (error) {
-        return { success: false, message: error.message };
-      }
+      // Redirect to our Google OAuth API route
+      window.location.href = "/api/auth/google";
       return { success: true, message: "Redirecting to Google..." };
     } catch (e: any) {
       return { success: false, message: e.message || "Google OAuth failed" };
@@ -215,31 +141,31 @@ class AuthService {
   }
 
   /**
-   * Send a magic link / OTP email via Supabase Auth.
-   * Supabase handles the email delivery and token validation server-side.
+   * Send a 6-digit OTP to the user's email via our custom API.
    */
-  public async sendOtp(email: string): Promise<{ success: boolean; message: string }> {
+  public async sendOtp(email: string): Promise<{ success: boolean; message: string; devCode?: string }> {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) {
       return { success: false, message: "Please enter a valid email address." };
     }
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: cleanEmail,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail }),
       });
 
-      if (error) {
-        return { success: false, message: error.message };
+      const data = await res.json();
+
+      if (!res.ok) {
+        return { success: false, message: data.error || "Failed to send verification email." };
       }
 
       return {
         success: true,
-        message: `A verification link has been sent to ${cleanEmail}. Check your inbox and click the link to sign in.`,
+        message: data.message || `Verification code sent to ${cleanEmail}`,
+        devCode: data.devCode,
       };
     } catch (e: any) {
       return { success: false, message: e.message || "Failed to send verification email." };
@@ -247,24 +173,29 @@ class AuthService {
   }
 
   /**
-   * Verify OTP token entered by user (Supabase server-side validation).
+   * Verify OTP code via our custom API.
    */
   public async verifyOtp(email: string, token: string): Promise<{ success: boolean; user?: AuthUser; message: string }> {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: cleanEmail,
-        token,
-        type: "email",
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, otp: token }),
+        credentials: "include",
       });
 
-      if (error) {
-        return { success: false, message: error.message || "Invalid or expired code. Please request a new one." };
+      const data = await res.json();
+
+      if (!res.ok) {
+        return { success: false, message: data.error || "Invalid or expired code." };
       }
 
-      if (data?.user) {
-        await this.resolveUserFromSupabase(data.user);
+      if (data.user) {
+        this.currentUser = data.user;
+        this.saveLocalSession();
+        this.notify();
         return { success: true, user: this.currentUser!, message: "Authentication successful!" };
       }
 
@@ -275,56 +206,12 @@ class AuthService {
   }
 
   /**
-   * Direct login for development/demo — creates a local session without Supabase auth.
-   * This should ONLY be used as fallback when Supabase auth is not configured.
-   */
-  public instantLogin(email: string, requestedRole?: UserRole): AuthUser {
-    const cleanEmail = email.trim().toLowerCase();
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-    const isUserAdmin = Boolean(adminEmail && cleanEmail === adminEmail);
-
-    const role: UserRole = requestedRole
-      ? requestedRole
-      : isUserAdmin ? "admin" : "student";
-
-    const displayName = isUserAdmin
-      ? "Aditya Pandey (Admin)"
-      : cleanEmail.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
-
-    const user: AuthUser = {
-      id: `usr_${Date.now()}`,
-      email: cleanEmail,
-      fullName: displayName,
-      role,
-      campus: "GEHU Bhimtal",
-      studentId: role === "student" ? `stud_${Date.now()}` : undefined,
-      token: `tok_local_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-
-    this.currentUser = user;
-    this.saveLocalSession();
-    this.notify();
-
-    // Also persist to users table in background
-    supabase.from("users").upsert({
-      id: user.id,
-      email: cleanEmail,
-      full_name: user.fullName,
-      role,
-      campus: user.campus,
-      provider: "local",
-    }).then(() => {}, () => {});
-
-    return user;
-  }
-
-  /**
-   * Update user profile in both local state and Supabase users table.
+   * Update user profile via our API.
    */
   public async updateProfile(updates: { fullName?: string; campus?: string; primaryStopId?: string }): Promise<void> {
     if (!this.currentUser) return;
 
+    // Update local state immediately
     this.currentUser = {
       ...this.currentUser,
       fullName: updates.fullName || this.currentUser.fullName,
@@ -333,24 +220,30 @@ class AuthService {
     this.saveLocalSession();
     this.notify();
 
+    // Persist to server
     try {
-      await supabase.from("users").update({
-        full_name: this.currentUser.fullName,
-        campus: this.currentUser.campus,
-      }).eq("id", this.currentUser.id);
+      await fetch("/api/auth/update-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+        credentials: "include",
+      });
     } catch (e) {
-      console.warn("Profile update to DB failed:", e);
+      console.warn("Profile update to server failed:", e);
     }
   }
 
   /**
-   * Sign out from both Supabase and local session.
+   * Sign out — clears JWT cookie and local session.
    */
   public async logout() {
     try {
-      await supabase.auth.signOut({ scope: "global" });
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
     } catch (e) {
-      console.warn("Supabase signout:", e);
+      console.warn("Logout API call failed:", e);
     }
     this.currentUser = null;
     this.clearLocalSession();
