@@ -191,7 +191,7 @@ export function UnifiedAppHeader({
 
   // Strict role-based portal switching
   const allowedPortals = ROLE_PORTALS.filter(opt => {
-    if (isActualAdmin) return true;
+    if (isActualAdmin) return opt.role === "admin" || opt.role === "staff";
     if (userAccountRole === "conductor") return opt.role === "conductor";
     if (userAccountRole === "driver") return opt.role === "driver" || opt.role === "conductor";
     if (userAccountRole === "staff" || userAccountRole === "supervisor") return opt.role === "staff";
