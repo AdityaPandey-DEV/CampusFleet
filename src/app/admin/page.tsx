@@ -1,343 +1,224 @@
-"use client";
+import { getSession } from "@/lib/jwt";
+import { redirect } from "next/navigation";
+import { supabaseAdmin } from "@/lib/supabaseClient";
+import AdminDashboardView from "@/components/admin/AdminDashboardView";
+import type { Bus, Route, Stop, Trip, Student, Staff, Booking, VehicleIssue } from "@/lib/types";
 
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import { store } from "@/lib/store";
-import dynamic from "next/dynamic";
-import { formatCurrency, formatDate } from "@/lib/utils";
+export const dynamic = "force-dynamic";
 
-// Dynamic import for Leaflet map with no SSR
-const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-80 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
-      Loading Admin GIS Telematics Map...
-    </div>
-  ),
-});
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  CartesianGrid,
-} from "recharts";
-import {
-  BusFront,
-  Route,
-  Users,
-  GraduationCap,
-  CalendarCheck,
-  CreditCard,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  Radio,
-  ArrowUpRight,
-  ShieldAlert,
-  Download,
-} from "lucide-react";
+/**
+ * Server Component: Administrator Command HUD Gateway
+ * - Performs server-side cryptographic JWT authorization
+ * - Fetches fleet rosters, corridors, bookings, and telematics health directly from PostgreSQL
+ * - Delivers pre-rendered HTML for instant telemetry visibility with zero load latency
+ */
+export default async function AdminPage() {
+  // 1. Authenticate server-side via HttpOnly JWT session
+  const session = await getSession();
 
-export default function AdminDashboardOverview() {
-  const [buses, setBuses] = useState(store.getBuses());
-  const [routes, setRoutes] = useState(store.getRoutes());
-  const [stops, setStops] = useState(store.getStops());
-  const [trips, setTrips] = useState(store.getTrips());
-  const [students, setStudents] = useState(store.getStudents());
-  const [staff, setStaff] = useState(store.getStaff());
-  const [bookings, setBookings] = useState(store.getBookings());
-  const [issues, setIssues] = useState(store.getIssues());
-  const [liveLocation, setLiveLocation] = useState(store.getLiveLocation());
-  const [notifications, setNotifications] = useState(store.getNotifications());
+  if (!session) {
+    redirect("/login?redirect=/admin");
+  }
 
-  useEffect(() => {
-    const unsub = store.subscribe(() => {
-      setBuses(store.getBuses());
-      setRoutes(store.getRoutes());
-      setStops(store.getStops());
-      setTrips(store.getTrips());
-      setStudents(store.getStudents());
-      setStaff(store.getStaff());
-      setBookings(store.getBookings());
-      setIssues(store.getIssues());
-      setLiveLocation(store.getLiveLocation());
-      setNotifications(store.getNotifications());
-    });
-    return unsub;
-  }, []);
+  // 2. Strict Role Authorization (Admin, Transport Manager, Staff allowed)
+  if (session.role !== "admin" && session.role !== "transport_manager" && session.role !== "staff") {
+    redirect(session.role === "driver" ? "/driver" : session.role === "conductor" ? "/conductor" : "/portal");
+  }
 
-  const routeCoordinates: [number, number][] = stops.map(s => [s.latitude, s.longitude]);
+  // 3. Direct Server-Side Database Queries
+  const [
+    { data: dbBuses },
+    { data: dbRoutes },
+    { data: dbStops },
+    { data: dbTrips },
+    { data: dbStudents },
+    { data: dbStaff },
+    { data: dbBookings },
+    { data: dbIssues },
+    { data: dbRouteStops },
+  ] = await Promise.all([
+    supabaseAdmin.from("buses").select("*"),
+    supabaseAdmin.from("routes").select("*"),
+    supabaseAdmin.from("stops").select("*"),
+    supabaseAdmin.from("trips").select("*").order("trip_code"),
+    supabaseAdmin.from("students").select("*"),
+    supabaseAdmin.from("staff").select("*"),
+    supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
+    supabaseAdmin.from("vehicle_issues").select("*").order("reported_at", { ascending: false }).limit(50),
+    supabaseAdmin.from("route_stops").select("*").order("stop_sequence", { ascending: true }),
+  ]);
 
-  const activeBuses = buses.filter(b => b.status === "ACTIVE").length;
-  const confirmedBookings = bookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
-  const waitlistedBookings = bookings.filter(b => b.status === "WAITLISTED").length;
-  const boardedCount = bookings.filter(b => b.status === "BOARDED").length;
-  const openIssues = issues.filter(i => i.status === "OPEN" || i.status === "IN_PROGRESS");
-  const sosAlerts = notifications.filter(n => n.type === "SOS");
+  // 4. Map DB records to typed domain models
+  const stops: Stop[] = (dbStops || []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    code: s.code,
+    latitude: s.latitude,
+    longitude: s.longitude,
+    landmark: s.landmark,
+    geofenceRadiusMeters: s.geofence_radius || 80,
+    campus: s.campus || "GEHU Bhimtal",
+    isBusMergeStop: Boolean(s.is_bus_merge_stop),
+    zoneCode: s.zone_code || "ZONE_B",
+  }));
 
-  // Chart Data: Route Demand & Capacity — computed from real DB data
-  const routeDemandData = routes.slice(0, 6).map(r => {
-    const routeBus = buses.find(b => b.currentRouteId === r.id);
-    const routeTrips = trips.filter(t => t.routeId === r.id);
-    const routeBookings = routeTrips.flatMap(t => bookings.filter(b => b.tripId === t.id));
+  const stopMap = new Map(stops.map(s => [s.id, s]));
+
+  const routes: Route[] = (dbRoutes || []).map((r: any) => {
+    const routeStops = (dbRouteStops || [])
+      .filter((rs: any) => rs.route_id === r.id)
+      .sort((a: any, b: any) => a.stop_sequence - b.stop_sequence)
+      .map((rs: any) => ({
+        stopId: rs.stop_id,
+        stopOrder: rs.stop_sequence || 0,
+        stopSequence: rs.stop_sequence,
+        arrivalOffsetMinutes: rs.arrival_offset_minutes || 0,
+        bufferTimeMinutes: rs.buffer_time_minutes || 2,
+        stop: stopMap.get(rs.stop_id) || {
+          id: rs.stop_id,
+          name: rs.stop_id,
+          code: rs.stop_id,
+          latitude: 29.35,
+          longitude: 79.55,
+          landmark: "",
+          geofenceRadiusMeters: 80,
+          campus: "GEHU Bhimtal",
+          isBusMergeStop: false,
+          zoneCode: "ZONE_B",
+        },
+      }));
+
     return {
-      name: r.code || r.name.substring(0, 16),
-      capacity: routeBus?.capacity || 40,
-      booked: routeBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length,
-      waitlist: routeBookings.filter(b => b.status === "WAITLISTED").length,
+      id: r.id,
+      code: r.code,
+      name: r.name,
+      description: r.description || "",
+      direction: r.direction || "HOME_TO_CAMPUS",
+      color: r.color || "#2563EB",
+      totalDistanceKm: Number(r.total_distance_km) || 28.0,
+      estimatedDurationMins: Number(r.estimated_duration_mins) || 55,
+      isActive: r.is_active ?? true,
+      stops: routeStops,
     };
   });
 
-  // 7-day Attendance Trend Data — shows real boarded count for today
-  const attendanceTrendData = [
-    { day: "Mon", boarded: Math.max(boardedCount, 0), absent: 0 },
-    { day: "Tue", boarded: Math.max(boardedCount, 0), absent: 0 },
-    { day: "Wed", boarded: Math.max(boardedCount, 0), absent: 0 },
-    { day: "Thu", boarded: Math.max(boardedCount, 0), absent: 0 },
-    { day: "Fri", boarded: Math.max(boardedCount, 0), absent: 0 },
-    { day: "Today", boarded: boardedCount, absent: 0 },
-  ];
+  const buses: Bus[] = (dbBuses || []).map((b: any) => ({
+    id: b.id,
+    busNumber: b.bus_number,
+    registrationNo: b.registration_no || b.bus_number,
+    model: b.model || "Eicher Skyline Pro 36-Seater",
+    capacity: b.capacity || 36,
+    seatLayout: (b.seat_layout as any) || "2x2",
+    status: b.status || "ACTIVE",
+    gpsDeviceId: b.gps_device_id || "",
+    insuranceExpiry: b.insurance_expiry || "2026-12-31",
+    maintenanceDueDate: b.maintenance_due_date || "2026-12-31",
+    currentRouteId: b.current_route_id,
+  }));
+
+  const trips: Trip[] = (dbTrips || []).map((t: any) => ({
+    id: t.id,
+    tripCode: t.trip_code,
+    routeId: t.route_id,
+    busId: t.bus_id,
+    shiftId: t.shift_id,
+    driverId: t.driver_id || "",
+    conductorId: t.conductor_id || "",
+    tripDate: t.trip_date,
+    status: t.status || "SCHEDULED",
+    delayMinutes: t.delay_minutes || 0,
+    manifestLocked: t.manifest_locked || false,
+    manifestLockedAt: t.manifest_locked_at,
+    startedAt: t.started_at,
+    completedAt: t.completed_at,
+    currentStopIndex: t.current_stop_index || 0,
+  }));
+
+  const bookings: Booking[] = (dbBookings || []).map((b: any) => ({
+    id: b.id,
+    bookingCode: b.booking_code || `BK-${b.id.slice(0, 6)}`,
+    studentId: b.student_id,
+    tripId: b.trip_id,
+    busId: b.bus_id || "",
+    bookingDate: b.booking_date || (b.created_at ? b.created_at.split("T")[0] : ""),
+    boardingStopId: b.boarding_stop_id || b.stop_id || "",
+    status: b.status || "CONFIRMED",
+    waitlistPosition: b.waitlist_position,
+    seatNumber: b.seat_number,
+    passengerType: b.passenger_type || "SEATED",
+    mergeStopId: b.merge_stop_id,
+    createdAt: b.created_at || new Date().toISOString(),
+  }));
+
+  const students: Student[] = (dbStudents || []).map((s: any) => ({
+    id: s.id,
+    userId: s.user_id || s.id,
+    fullName: s.full_name || s.name || "Student",
+    enrollmentNo: s.enrollment_no || s.enrollment_number || "",
+    email: s.email || "",
+    phone: s.phone || "",
+    department: s.department || "Computer Science",
+    semester: String(s.semester || "4"),
+    zoneCode: s.zone_code || "ZONE_B",
+    primaryStopId: s.primary_stop_id || s.stop_id || "",
+    primaryRouteId: s.primary_route_id || s.route_id || "",
+    campus: s.campus || "GEHU Bhimtal",
+    emergencyContact: {
+      name: s.emergency_contact_name || "Parent/Guardian",
+      relationship: "Parent",
+      phone: s.emergency_contact_phone || s.phone || "+91 9876543210",
+    },
+    transportAccessSuspended: Boolean(s.transport_access_suspended),
+    hasActiveSubscription: s.has_active_subscription ?? true,
+    subscriptionExpiryDate: s.subscription_expiry_date || "2026-12-31",
+    classId: s.class_id,
+    className: s.class_name,
+    paymentStatus: s.payment_status || "APPROVED",
+    totalFeeDue: Number(s.total_fee_due) || 0,
+    totalFeePaid: Number(s.total_fee_paid) || 0,
+  }));
+
+  const staff: Staff[] = (dbStaff || []).map((st: any) => ({
+    id: st.id,
+    userId: st.user_id || st.id,
+    employeeCode: st.employee_code || st.employee_id || `EMP-${st.id.slice(0, 4)}`,
+    fullName: st.full_name || st.name || "Staff Member",
+    email: st.email || "",
+    phone: st.phone || "",
+    category: (st.category || "TRANSPORT_OPS") as any,
+    rank: (st.rank || "REGULAR") as any,
+    role: (st.role || "driver") as any,
+    permissions: st.permissions || [],
+    licenseNo: st.license_no || st.license_number,
+    isActive: st.is_active ?? true,
+  }));
+
+  const busMap = new Map(buses.map(b => [b.id, b.busNumber]));
+
+  const issues: VehicleIssue[] = (dbIssues || []).map((i: any) => ({
+    id: i.id,
+    busId: i.bus_id,
+    busNumber: i.bus_number || busMap.get(i.bus_id) || "Bus",
+    reportedBy: i.reported_by || "Driver",
+    issueType: i.issue_type || "OTHER",
+    severity: i.severity || "MEDIUM",
+    status: i.status || "OPEN",
+    description: i.description || "",
+    reportedAt: i.reported_at || new Date().toISOString(),
+    resolvedAt: i.resolved_at,
+  }));
 
   return (
-    <div className="space-y-6 animate-in fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-            Fleet Operations & Dispatch HUD
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Real-time campus transit metrics, railway reservation load, and fleet safety telemetry.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin/reports"
-            className="px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Export CSV Reports
-          </Link>
-        </div>
-      </div>
-
-      {/* Emergency SOS Banner if triggered */}
-      {sosAlerts.length > 0 && (
-        <div className="p-4 bg-rose-600 text-white rounded-3xl shadow-xl shadow-rose-600/20 flex items-center justify-between animate-bounce">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-2xl">
-              <ShieldAlert className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-xs font-black uppercase tracking-wider">
-                ACTIVE PASSENGER EMERGENCY ALERT
-              </div>
-              <div className="text-sm font-bold mt-0.5">
-                {sosAlerts[0].message}
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => store.markNotificationAsRead(sosAlerts[0].id)}
-            className="px-4 py-2 bg-white text-rose-700 font-bold text-xs rounded-xl hover:bg-rose-50"
-          >
-            Acknowledge & Clear
-          </button>
-        </div>
-      )}
-
-      {/* Top 4 KPI Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider">Active Fleet</span>
-            <BusFront className="w-4 h-4 text-blue-600" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono mt-2">
-            {activeBuses} <span className="text-xs text-slate-400 font-normal">/ {buses.length} Buses</span>
-          </div>
-          <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1 flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            100% Shift Coverage
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider">Today&apos;s Bookings</span>
-            <CalendarCheck className="w-4 h-4 text-teal-600" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono mt-2">
-            {confirmedBookings} <span className="text-xs text-amber-500 font-bold">({waitlistedBookings} WL)</span>
-          </div>
-          <div className="text-[11px] text-teal-600 dark:text-teal-400 font-semibold mt-1">
-            Railway Auto-Promotion Active
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider">Boarded Passengers</span>
-            <Users className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono mt-2">
-            {boardedCount} <span className="text-xs text-slate-400 font-normal">Verified</span>
-          </div>
-          <div className="text-[11px] text-slate-500 font-semibold mt-1">
-            High-Speed Optical QR Radar Active
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider">Monthly Pass Revenue</span>
-            <CreditCard className="w-4 h-4 text-indigo-600" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono mt-2">
-            ₹1,84,500
-          </div>
-          <div className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            +14% from last semester
-          </div>
-        </div>
-      </div>
-
-      {/* Main Split: Live Operations Control Map & Needs Attention Desk */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Live Fleet Map & Telemetry Control */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
-                <Radio className="w-4 h-4 text-blue-600 animate-pulse" />
-                Live Fleet Tracking & Dispatch Control
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Monitoring 5 active campus transit corridors with real-time GPS pings.
-              </p>
-            </div>
-            <Link
-              href="/admin/routes"
-              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              Route Config →
-            </Link>
-          </div>
-
-          <CampusFleetMap
-            busLocation={liveLocation}
-            stops={stops}
-            routeCoordinates={routeCoordinates}
-            height="320px"
-          />
-        </div>
-
-        {/* Right Col: Needs Attention & Vehicle Incidents */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-              Needs Attention Desk
-            </h3>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold">
-              {openIssues.length} Open
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {openIssues.map(issue => (
-              <div
-                key={issue.id}
-                className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 space-y-1.5"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-slate-900 dark:text-white">
-                    {issue.busNumber}
-                  </span>
-                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
-                    {issue.issueType}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {issue.description}
-                </p>
-                <div className="text-[10px] text-slate-400 font-mono">
-                  Reported by: {issue.reportedBy} • {new Date(issue.reportedAt).toLocaleTimeString()}
-                </div>
-              </div>
-            ))}
-
-            {openIssues.length === 0 && (
-              <div className="text-center py-8 text-xs text-slate-500">
-                No active incidents reported. All corridors running on schedule.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Analytics Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Route Demand & Capacity Chart */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div>
-            <h3 className="font-black text-base text-slate-900 dark:text-white">
-              Route Demand vs Physical Seat Capacity
-            </h3>
-            <p className="text-xs text-slate-500">
-              Corridor utilization to guide shift frequency adjustments.
-            </p>
-          </div>
-
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={routeDemandData}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                <XAxis dataKey="name" fontSize={11} />
-                <YAxis fontSize={11} />
-                <Tooltip />
-                <Bar dataKey="capacity" name="Bus Capacity" fill="#94A3B8" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="booked" name="Confirmed Bookings" fill="#1D4ED8" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="waitlist" name="Waitlisted (WL)" fill="#F59E0B" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* 7-Day Attendance Trends */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div>
-            <h3 className="font-black text-base text-slate-900 dark:text-white">
-              Weekly Boarding & Attendance Trends
-            </h3>
-            <p className="text-xs text-slate-500">
-              Verified boardings vs student no-show rate.
-            </p>
-          </div>
-
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={attendanceTrendData}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                <XAxis dataKey="day" fontSize={11} />
-                <YAxis fontSize={11} />
-                <Tooltip />
-                <Line type="monotone" dataKey="boarded" name="Boarded Count" stroke="#0D9488" strokeWidth={3} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey="absent" name="Absent Count" stroke="#E11D48" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AdminDashboardView
+      initialUser={session}
+      initialBuses={buses}
+      initialRoutes={routes}
+      initialStops={stops}
+      initialTrips={trips}
+      initialStudents={students}
+      initialStaff={staff}
+      initialBookings={bookings}
+      initialIssues={issues}
+    />
   );
 }
