@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
+import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 
 export default function ConductorConsolePage() {
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
@@ -241,8 +242,19 @@ export default function ConductorConsolePage() {
           </div>
         )}
 
-        {/* Live Manifest Metric Strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+        {trips.length === 0 || !activeTrip ? (
+          <div className="py-20 bg-white dark:bg-slate-900/80 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-center">
+            <BusLoadingScreen
+              compact={false}
+              fullScreen={false}
+              message="Loading Scheduled Bus Trips & Manifests..."
+              subtitle="Synchronizing Realtime Fleet Telematics Database"
+            />
+          </div>
+        ) : (
+          <>
+            {/* Live Manifest Metric Strip */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
           {/* Total Confirmed */}
           <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-sm dark:shadow-lg">
             <div>
@@ -803,6 +815,8 @@ export default function ConductorConsolePage() {
               )}
             </div>
           </div>
+        )}
+          </>
         )}
       </main>
 
