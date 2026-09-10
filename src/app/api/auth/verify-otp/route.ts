@@ -24,8 +24,7 @@ export async function POST(req: NextRequest) {
       .eq("code", cleanOtp)
       .eq("used", false)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!otpRecord) {
       return NextResponse.json(
