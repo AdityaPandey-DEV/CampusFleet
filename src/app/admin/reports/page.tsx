@@ -1,180 +1,104 @@
-"use client";
+import { getSession } from "@/lib/jwt";
+import { redirect } from "next/navigation";
+import { supabaseAdmin } from "@/lib/supabaseClient";
+import AdminReportsView from "@/components/admin/AdminReportsView";
+import type { Booking, Student, Bus } from "@/lib/types";
 
-import React, { useState } from "react";
-import { store } from "@/lib/store";
-import { formatDate } from "@/lib/utils";
-import { FileBarChart, Download, FileSpreadsheet, CheckCircle2, Calendar } from "lucide-react";
+export const dynamic = "force-dynamic";
 
-export default function ReportsAndExportsPage() {
-  const [reportType, setReportType] = useState<"ATTENDANCE" | "OCCUPANCY" | "REVENUE" | "MAINTENANCE">("ATTENDANCE");
-  const [isExporting, setIsExporting] = useState(false);
+/**
+ * Server Component: Transit Analytics & CSV Export Gateway
+ * - Server-side authorization check (Admin / Auditor)
+ * - Pre-fetches attendance records, passenger occupancy, and revenue streams
+ * - Fast server render
+ */
+export default async function ReportsAndExportsPage() {
+  const session = await getSession();
 
-  const bookings = store.getBookings();
-  const students = store.getStudents();
-  const buses = store.getBuses();
-  const payments = store.getPayments();
-  const maintenance = store.getMaintenance();
+  if (!session) {
+    redirect("/login?redirect=/admin/reports");
+  }
 
-  const handleExportCSV = () => {
-    setIsExporting(true);
-    setTimeout(() => {
-      let csvContent = "";
-      let filename = `campusfleet_${reportType.toLowerCase()}_report.csv`;
+  if (session.role !== "admin" && session.role !== "transport_manager" && session.role !== "staff") {
+    redirect("/portal");
+  }
 
-      if (reportType === "ATTENDANCE") {
-        csvContent = "BookingCode,StudentName,EnrollmentNo,Seat,Status,Date\n";
-        bookings.forEach(b => {
-          const s = students.find(stud => stud.id === b.studentId);
-          csvContent += `"${b.bookingCode}","${s?.fullName || ""}","${s?.enrollmentNo || ""}","${b.seatNumber || `WL-${b.waitlistPosition}`}","${b.status}","${b.createdAt}"\n`;
-        });
-      } else if (reportType === "OCCUPANCY") {
-        csvContent = "BusNumber,Registration,Capacity,Status,GPS_ID\n";
-        buses.forEach(b => {
-          csvContent += `"${b.busNumber}","${b.registrationNo}",${b.capacity},"${b.status}","${b.gpsDeviceId}"\n`;
-        });
-      } else if (reportType === "REVENUE") {
-        csvContent = "ReceiptNo,StudentName,PlanName,Amount,Method,Date,Status\n";
-        payments.forEach(p => {
-          csvContent += `"${p.receiptNumber}","${p.studentName}","${p.planName}",${p.amount},"${p.paymentMethod}","${p.createdAt}","${p.status}"\n`;
-        });
-      } else if (reportType === "MAINTENANCE") {
-        csvContent = "BusNumber,ServiceType,Cost,OdometerKm,Center,ServiceDate,NextDue\n";
-        maintenance.forEach(m => {
-          csvContent += `"${m.busNumber}","${m.serviceType}",${m.cost},${m.odometerKm},"${m.serviceCenter}","${m.serviceDate}","${m.nextDueDate}"\n`;
-        });
-      }
+  const [
+    { data: dbBookings },
+    { data: dbStudents },
+    { data: dbBuses },
+    { data: dbPayments },
+  ] = await Promise.all([
+    supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(500),
+    supabaseAdmin.from("students").select("*"),
+    supabaseAdmin.from("buses").select("*"),
+    supabaseAdmin.from("payments").select("*").order("created_at", { ascending: false }).limit(200),
+  ]);
 
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", filename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setIsExporting(false);
-    }, 600);
-  };
+  const bookings: Booking[] = (dbBookings || []).map((b: any) => ({
+    id: b.id,
+    bookingCode: b.booking_code || `BK-${b.id.slice(0, 6)}`,
+    studentId: b.student_id,
+    tripId: b.trip_id,
+    busId: b.bus_id || "",
+    bookingDate: b.booking_date || (b.created_at ? b.created_at.split("T")[0] : ""),
+    boardingStopId: b.boarding_stop_id || b.stop_id || "",
+    status: b.status || "CONFIRMED",
+    waitlistPosition: b.waitlist_position,
+    seatNumber: b.seat_number,
+    passengerType: b.passenger_type || "SEATED",
+    mergeStopId: b.merge_stop_id,
+    createdAt: b.created_at || new Date().toISOString(),
+  }));
+
+  const students: Student[] = (dbStudents || []).map((s: any) => ({
+    id: s.id,
+    userId: s.user_id || s.id,
+    fullName: s.full_name || s.name || "Student",
+    enrollmentNo: s.enrollment_no || s.enrollment_number || "",
+    email: s.email || "",
+    phone: s.phone || "",
+    department: s.department || "Computer Science",
+    semester: String(s.semester || "4"),
+    zoneCode: s.zone_code || "ZONE_B",
+    primaryStopId: s.primary_stop_id || s.stop_id || "",
+    primaryRouteId: s.primary_route_id || s.route_id || "",
+    campus: s.campus || "GEHU Bhimtal",
+    emergencyContact: {
+      name: s.emergency_contact_name || "Parent/Guardian",
+      relationship: "Parent",
+      phone: s.emergency_contact_phone || s.phone || "+91 9876543210",
+    },
+    transportAccessSuspended: Boolean(s.transport_access_suspended),
+    hasActiveSubscription: s.has_active_subscription ?? true,
+    subscriptionExpiryDate: s.subscription_expiry_date || "2026-12-31",
+    classId: s.class_id,
+    className: s.class_name,
+    paymentStatus: s.payment_status || "APPROVED",
+    totalFeeDue: Number(s.total_fee_due) || 0,
+    totalFeePaid: Number(s.total_fee_paid) || 0,
+  }));
+
+  const buses: Bus[] = (dbBuses || []).map((b: any) => ({
+    id: b.id,
+    busNumber: b.bus_number,
+    registrationNo: b.registration_no || b.bus_number,
+    model: b.model || "Tata Starbus Ultra 40-Seater",
+    capacity: b.capacity || 40,
+    seatLayout: (b.seat_layout as any) || "2x2",
+    status: b.status || "ACTIVE",
+    gpsDeviceId: b.gps_device_id || "",
+    insuranceExpiry: b.insurance_expiry || "2027-05-15",
+    maintenanceDueDate: b.maintenance_due_date || "2026-12-10",
+    currentRouteId: b.current_route_id,
+  }));
 
   return (
-    <div className="space-y-6 animate-in fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
-            <FileBarChart className="w-7 h-7 text-blue-600" />
-            Compliance Reports & CSV Data Export
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Generate auditable spreadsheets for university transport audits, safety boards, and finance.
-          </p>
-        </div>
-
-        <button
-          onClick={handleExportCSV}
-          disabled={isExporting}
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-2xl flex items-center gap-2 shadow-md shadow-blue-600/20 transition-all"
-        >
-          <Download className="w-4 h-4" />
-          {isExporting ? "Generating CSV..." : `Download ${reportType} CSV`}
-        </button>
-      </div>
-
-      {/* Report Selection Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800">
-        {[
-          { id: "ATTENDANCE", label: "Daily Trip & Attendance Ledger" },
-          { id: "OCCUPANCY", label: "Bus Fleet & Seat Occupancy" },
-          { id: "REVENUE", label: "Subscription Pass & Fee Revenue" },
-          { id: "MAINTENANCE", label: "Workshop & Maintenance Due" },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setReportType(tab.id as any)}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-              reportType === tab.id
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Live Data Preview */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-            Live Preview: {reportType} Dataset
-          </h3>
-          <span className="text-xs font-mono text-slate-400">
-            Export format: RFC 4180 CSV Compliant
-          </span>
-        </div>
-
-        {reportType === "ATTENDANCE" && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                <tr>
-                  <th className="p-3">Booking Code</th>
-                  <th className="p-3">Passenger</th>
-                  <th className="p-3">Seat Number</th>
-                  <th className="p-3">Verification Status</th>
-                  <th className="p-3">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {bookings.map(b => {
-                  const s = students.find(stud => stud.id === b.studentId);
-                  return (
-                    <tr key={b.id}>
-                      <td className="p-3 font-mono font-bold text-blue-600">{b.bookingCode}</td>
-                      <td className="p-3 font-semibold">{s?.fullName} ({s?.enrollmentNo})</td>
-                      <td className="p-3 font-mono">{b.seatNumber || `WL-${b.waitlistPosition}`}</td>
-                      <td className="p-3">
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold text-[10px]">
-                          {b.status}
-                        </span>
-                      </td>
-                      <td className="p-3 text-slate-500">{formatDate(b.createdAt)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {reportType === "OCCUPANCY" && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                <tr>
-                  <th className="p-3">Bus Identifier</th>
-                  <th className="p-3">Registration</th>
-                  <th className="p-3">Capacity</th>
-                  <th className="p-3">Layout</th>
-                  <th className="p-3">Fleet Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {buses.map(bus => (
-                  <tr key={bus.id}>
-                    <td className="p-3 font-bold">{bus.busNumber}</td>
-                    <td className="p-3 font-mono">{bus.registrationNo}</td>
-                    <td className="p-3 font-mono">{bus.capacity} Physical Seats</td>
-                    <td className="p-3">{bus.seatLayout}</td>
-                    <td className="p-3 font-bold text-emerald-600">{bus.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
+    <AdminReportsView
+      initialBookings={bookings}
+      initialStudents={students}
+      initialBuses={buses}
+      initialPayments={dbPayments || []}
+    />
   );
 }

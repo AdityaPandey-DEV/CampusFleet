@@ -1,186 +1,138 @@
-"use client";
+import { getSession } from "@/lib/jwt";
+import { redirect } from "next/navigation";
+import { supabaseAdmin } from "@/lib/supabaseClient";
+import AdminReservationsView from "@/components/admin/AdminReservationsView";
+import type { Booking, Student, Trip, Bus, Stop } from "@/lib/types";
 
-import React, { useEffect, useState } from "react";
-import { store } from "@/lib/store";
-import { formatDate } from "@/lib/utils";
-import { CalendarCheck, Search, Filter, Sparkles, XCircle, ArrowRight, ShieldCheck } from "lucide-react";
+export const dynamic = "force-dynamic";
 
-export default function ReservationsAdminPage() {
-  const [bookings, setBookings] = useState(store.getBookings());
-  const [students, setStudents] = useState(store.getStudents());
-  const [trips, setTrips] = useState(store.getTrips());
-  const [buses, setBuses] = useState(store.getBuses());
-  const [stops, setStops] = useState(store.getStops());
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+/**
+ * Server Component: Passenger Booking Manifest & Waitlist Queue Hub
+ * - Server-side authorization check (Admin / Reservation Desk)
+ * - Pre-fetches confirmed bookings, sequential waitlist positions, trips, and stops
+ * - Pre-rendered HTML delivery with zero latency
+ */
+export default async function ReservationsAdminPage() {
+  const session = await getSession();
 
-  useEffect(() => {
-    const unsub = store.subscribe(() => {
-      setBookings(store.getBookings());
-      setStudents(store.getStudents());
-      setTrips(store.getTrips());
-      setBuses(store.getBuses());
-      setStops(store.getStops());
-    });
-    return unsub;
-  }, []);
+  if (!session) {
+    redirect("/login?redirect=/admin/reservations");
+  }
 
-  const handleCancelAndPromote = (bookingId: string) => {
-    const res = store.cancelBooking(bookingId);
-    setToastMessage(res.message);
-    setTimeout(() => setToastMessage(null), 4000);
-  };
+  if (session.role !== "admin" && session.role !== "transport_manager" && session.role !== "staff") {
+    redirect("/portal");
+  }
 
-  const filteredBookings = bookings.filter(b => {
-    const s = students.find(stud => stud.id === b.studentId);
-    const matchesSearch =
-      s?.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.bookingCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.seatNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "ALL" || b.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const [
+    { data: dbBookings },
+    { data: dbStudents },
+    { data: dbTrips },
+    { data: dbBuses },
+    { data: dbStops },
+  ] = await Promise.all([
+    supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(300),
+    supabaseAdmin.from("students").select("*"),
+    supabaseAdmin.from("trips").select("*").order("trip_code"),
+    supabaseAdmin.from("buses").select("*"),
+    supabaseAdmin.from("stops").select("*"),
+  ]);
+
+  const bookings: Booking[] = (dbBookings || []).map((b: any) => ({
+    id: b.id,
+    bookingCode: b.booking_code || `BK-${b.id.slice(0, 6)}`,
+    studentId: b.student_id,
+    tripId: b.trip_id,
+    busId: b.bus_id || "",
+    bookingDate: b.booking_date || (b.created_at ? b.created_at.split("T")[0] : ""),
+    boardingStopId: b.boarding_stop_id || b.stop_id || "",
+    status: b.status || "CONFIRMED",
+    waitlistPosition: b.waitlist_position,
+    seatNumber: b.seat_number,
+    passengerType: b.passenger_type || "SEATED",
+    mergeStopId: b.merge_stop_id,
+    createdAt: b.created_at || new Date().toISOString(),
+  }));
+
+  const students: Student[] = (dbStudents || []).map((s: any) => ({
+    id: s.id,
+    userId: s.user_id || s.id,
+    fullName: s.full_name || s.name || "Student",
+    enrollmentNo: s.enrollment_no || s.enrollment_number || "",
+    email: s.email || "",
+    phone: s.phone || "",
+    department: s.department || "Computer Science",
+    semester: String(s.semester || "4"),
+    zoneCode: s.zone_code || "ZONE_B",
+    primaryStopId: s.primary_stop_id || s.stop_id || "",
+    primaryRouteId: s.primary_route_id || s.route_id || "",
+    campus: s.campus || "GEHU Bhimtal",
+    emergencyContact: {
+      name: s.emergency_contact_name || "Parent/Guardian",
+      relationship: "Parent",
+      phone: s.emergency_contact_phone || s.phone || "+91 9876543210",
+    },
+    transportAccessSuspended: Boolean(s.transport_access_suspended),
+    hasActiveSubscription: s.has_active_subscription ?? true,
+    subscriptionExpiryDate: s.subscription_expiry_date || "2026-12-31",
+    classId: s.class_id,
+    className: s.class_name,
+    paymentStatus: s.payment_status || "APPROVED",
+    totalFeeDue: Number(s.total_fee_due) || 0,
+    totalFeePaid: Number(s.total_fee_paid) || 0,
+  }));
+
+  const trips: Trip[] = (dbTrips || []).map((t: any) => ({
+    id: t.id,
+    tripCode: t.trip_code,
+    routeId: t.route_id,
+    busId: t.bus_id,
+    shiftId: t.shift_id,
+    driverId: t.driver_id || "",
+    conductorId: t.conductor_id || "",
+    tripDate: t.trip_date,
+    status: t.status || "SCHEDULED",
+    delayMinutes: t.delay_minutes || 0,
+    manifestLocked: t.manifest_locked || false,
+    manifestLockedAt: t.manifest_locked_at,
+    startedAt: t.started_at,
+    completedAt: t.completed_at,
+    currentStopIndex: t.current_stop_index || 0,
+  }));
+
+  const buses: Bus[] = (dbBuses || []).map((b: any) => ({
+    id: b.id,
+    busNumber: b.bus_number,
+    registrationNo: b.registration_no || b.bus_number,
+    model: b.model || "Tata Starbus Ultra 40-Seater",
+    capacity: b.capacity || 40,
+    seatLayout: (b.seat_layout as any) || "2x2",
+    status: b.status || "ACTIVE",
+    gpsDeviceId: b.gps_device_id || "",
+    insuranceExpiry: b.insurance_expiry || "2027-05-15",
+    maintenanceDueDate: b.maintenance_due_date || "2026-12-10",
+    currentRouteId: b.current_route_id,
+  }));
+
+  const stops: Stop[] = (dbStops || []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    code: s.code,
+    latitude: s.latitude,
+    longitude: s.longitude,
+    landmark: s.landmark,
+    geofenceRadiusMeters: s.geofence_radius || 80,
+    campus: s.campus || "GEHU Bhimtal",
+    isBusMergeStop: Boolean(s.is_bus_merge_stop),
+    zoneCode: s.zone_code || "ZONE_B",
+  }));
 
   return (
-    <div className="space-y-6 animate-in fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
-          <CalendarCheck className="w-7 h-7 text-blue-600" />
-          Railway Reservation Engine & Waitlist Queue
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Inspect atomic seat reservations, sequential waitlist positions (WL-01, WL-02), and auto-promotion audit logs.
-        </p>
-      </div>
-
-      {toastMessage && (
-        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-2xl text-xs font-bold text-emerald-900 dark:text-emerald-200 animate-in fade-in">
-          {toastMessage}
-        </div>
-      )}
-
-      {/* Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-        <div className="relative max-w-sm w-full">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search booking code, passenger name..."
-            className="w-full text-xs pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto">
-          {["ALL", "CONFIRMED", "WAITLISTED", "BOARDED", "CANCELLED"].map(st => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                statusFilter === st
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-              }`}
-            >
-              {st}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Bookings Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <tr>
-                <th className="p-3.5">Booking Code</th>
-                <th className="p-3.5">Passenger</th>
-                <th className="p-3.5">Assigned Bus</th>
-                <th className="p-3.5">Boarding Stop</th>
-                <th className="p-3.5">Seat / Position</th>
-                <th className="p-3.5">Status</th>
-                <th className="p-3.5">Booking Date</th>
-                <th className="p-3.5 text-right">Auto-Promotion Test</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredBookings.map(b => {
-                const s = students.find(stud => stud.id === b.studentId);
-                const stop = stops.find(st => st.id === b.boardingStopId);
-                const trip = trips.find(t => t.id === b.tripId);
-                const bus = buses.find(busItem => busItem.id === (b.busId || trip?.busId));
-                const isConfirmed = b.status === "CONFIRMED";
-                const isWaitlisted = b.status === "WAITLISTED";
-                const isBoarded = b.status === "BOARDED";
-                const isCancelled = b.status === "CANCELLED";
-
-                return (
-                  <tr key={b.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <td className="p-3.5 font-mono font-bold text-blue-600 dark:text-blue-400">
-                      {b.bookingCode}
-                    </td>
-                    <td className="p-3.5">
-                      <div className="font-bold text-slate-900 dark:text-white">
-                        {s?.fullName}
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        {s?.enrollmentNo}
-                      </div>
-                    </td>
-                    <td className="p-3.5">
-                      <div className="font-semibold text-slate-800 dark:text-slate-200">
-                        {bus?.busNumber || "Assigned Bus"}
-                      </div>
-                      <div className="text-[10px] font-mono text-slate-400">
-                        {bus?.registrationNo || b.busId || "--"}
-                      </div>
-                    </td>
-                    <td className="p-3.5 text-slate-700 dark:text-slate-300">
-                      {stop?.name || "Campus Terminal"}
-                    </td>
-                    <td className="p-3.5 font-mono font-black text-sm">
-                      {b.seatNumber || (isWaitlisted ? `WL-${String(b.waitlistPosition).padStart(2, "0")}` : "--")}
-                    </td>
-                    <td className="p-3.5">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          isConfirmed
-                            ? "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300"
-                            : isBoarded
-                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300"
-                            : isWaitlisted
-                            ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                        }`}
-                      >
-                        {isWaitlisted ? `WL-${b.waitlistPosition}` : b.status}
-                      </span>
-                    </td>
-                    <td className="p-3.5 text-slate-500">
-                      {formatDate(b.createdAt)}
-                    </td>
-                    <td className="p-3.5 text-right">
-                      {isConfirmed && (
-                        <button
-                          onClick={() => handleCancelAndPromote(b.id)}
-                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 font-bold rounded-xl text-[11px] border border-rose-200 dark:border-rose-900/60 transition-colors"
-                          title="Cancel confirmed booking to trigger automatic promotion of waitlisted student"
-                        >
-                          Cancel & Auto-Promote WL
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <AdminReservationsView
+      initialBookings={bookings}
+      initialStudents={students}
+      initialTrips={trips}
+      initialBuses={buses}
+      initialStops={stops}
+    />
   );
 }
