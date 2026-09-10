@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { store } from "@/lib/store";
+import { authService } from "@/lib/auth-service";
 import { UserRole } from "@/lib/types";
 import { useTheme } from "./ThemeProvider";
 import {
@@ -27,6 +28,7 @@ import {
   Sparkles,
   Shield,
   Radio,
+  ArrowRight,
 } from "lucide-react";
 
 export interface NavLinkItem {
@@ -169,25 +171,37 @@ export function UnifiedAppHeader({
     setIsProfileOpen(false);
   }, [pathname]);
 
-  const effectiveRole = role || currentUser?.role || "student";
-  const isAdmin = effectiveRole === "admin" || effectiveRole === "transport_manager";
-  const isTeacher = effectiveRole === "teacher";
-  const isStaff = effectiveRole === "staff";
-  const isDriver = effectiveRole === "driver";
-  const isConductor = effectiveRole === "conductor";
+  const portalViewRole = role || currentUser?.role || "student";
+  const userAccountRole = currentUser?.role || portalViewRole;
+  const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com").toLowerCase();
+  const isActualAdmin =
+    userAccountRole === "admin" ||
+    userAccountRole === "transport_manager" ||
+    currentUser?.email?.toLowerCase() === adminEmail;
+
+  // Real authenticated student identity matching
+  const activeStudent = currentUser
+    ? students.find(
+        s =>
+          (currentUser.studentId && s.id === currentUser.studentId) ||
+          s.userId === currentUser.id ||
+          s.email?.toLowerCase() === currentUser.email?.toLowerCase()
+      ) || null
+    : null;
 
   // Strict role-based portal switching
   const allowedPortals = ROLE_PORTALS.filter(opt => {
-    if (isAdmin) return opt.role === "admin" || opt.role === "staff";
-    if (isStaff) return opt.role === "staff" || opt.role === "student";
-    if (isDriver) return opt.role === "driver" || opt.role === "conductor" || opt.role === "student";
-    if (isConductor) return opt.role === "conductor" || opt.role === "student";
-    if (isTeacher) return opt.role === "student" || opt.role === "teacher";
-    return opt.role === "student";
+    if (isActualAdmin) return true;
+    if (userAccountRole === "conductor") return opt.role === "conductor";
+    if (userAccountRole === "driver") return opt.role === "driver" || opt.role === "conductor";
+    if (userAccountRole === "staff" || userAccountRole === "supervisor") return opt.role === "staff";
+    if (userAccountRole === "teacher") return opt.role === "teacher";
+    if (userAccountRole === "student") return opt.role === "student";
+    return false;
   });
 
   const currentPortalConfig =
-    ROLE_PORTALS.find(p => p.role === effectiveRole) || ROLE_PORTALS[0];
+    ROLE_PORTALS.find(p => p.role === portalViewRole) || ROLE_PORTALS[0];
 
   const handleSignOut = async () => {
     await store.logout();
@@ -253,7 +267,7 @@ export function UnifiedAppHeader({
                   </span>
                   <span
                     className={`hidden md:inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${getRoleBadgeClasses(
-                      effectiveRole
+                      portalViewRole
                     )}`}
                   >
                     {currentPortalConfig.shortLabel}
@@ -363,43 +377,100 @@ export function UnifiedAppHeader({
                       <div className="text-xs text-slate-500 truncate">{currentUser.email}</div>
                     </div>
 
-                    {/* Linked Child / Multi-Student Selector (for Commuters/Parents) */}
-                    {students.length > 1 && (
-                      <div className="space-y-1">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">
-                          Switch Linked Student Profile
+                    {/* Student Identity Card (only for students) */}
+                    {userAccountRole === "student" && activeStudent && (
+                      <div className="p-2.5 rounded-2xl bg-blue-50/60 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 space-y-1.5 text-xs">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                          Student Transit Identity
                         </div>
-                        <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
-                          {students.slice(0, 4).map(s => (
-                            <button
-                              key={s.id}
-                              onClick={() => {
-                                store.setActiveChildId(s.id);
-                                setIsProfileOpen(false);
-                              }}
-                              className={`w-full text-left p-2 rounded-xl text-xs flex items-center justify-between transition-colors ${
-                                s.id === activeChildId
-                                  ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-bold border border-blue-200 dark:border-blue-800"
-                                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                              }`}
-                            >
-                              <div className="truncate min-w-0 flex-1">
-                                <div className="truncate font-semibold">{s.fullName}</div>
-                                <div className="text-[10px] text-slate-400 truncate">
-                                  {s.department || "Student"}
-                                </div>
-                              </div>
-                              {s.id === activeChildId && (
-                                <div className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 ml-2" />
-                              )}
-                            </button>
-                          ))}
+                        <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                          <span className="text-slate-400">Enrollment:</span>
+                          <span className="font-semibold">{activeStudent.enrollmentNo || "Pending"}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                          <span className="text-slate-400">Department:</span>
+                          <span className="font-semibold truncate max-w-[140px]">{activeStudent.department || "B.Tech CSE"}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                          <span className="text-slate-400">Pass Status:</span>
+                          <span className={`font-bold text-[10px] uppercase px-1.5 py-0.5 rounded-md ${
+                            activeStudent.paymentStatus === "APPROVED"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                          }`}>
+                            {activeStudent.paymentStatus === "APPROVED" ? "Active / Approved" : "Payment Pending"}
+                          </span>
                         </div>
                       </div>
                     )}
 
-                    {/* Authorized Portal Switcher */}
-                    {allowedPortals.length > 1 && (
+                    {/* Operational Console Switchers (for Conductor, Driver, Staff, Teacher) */}
+                    {userAccountRole === "conductor" && (
+                      <div className="pt-1">
+                        <Link
+                          href="/conductor"
+                          onClick={() => setIsProfileOpen(false)}
+                          className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-bold text-xs transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            <FileCheck2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            <span>Conductor Manifest Console</span>
+                          </span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    )}
+
+                    {userAccountRole === "driver" && (
+                      <div className="pt-1">
+                        <Link
+                          href="/driver"
+                          onClick={() => setIsProfileOpen(false)}
+                          className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            <BusFront className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            <span>Driver HUD & Cockpit</span>
+                          </span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    )}
+
+                    {(userAccountRole === "staff" || userAccountRole === "transport_manager" || userAccountRole === "supervisor") && !isActualAdmin && (
+                      <div className="pt-1">
+                        <Link
+                          href="/staff"
+                          onClick={() => setIsProfileOpen(false)}
+                          className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold text-xs transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                            <span>Staff Operations Console</span>
+                          </span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    )}
+
+                    {userAccountRole === "teacher" && (
+                      <div className="pt-1">
+                        <Link
+                          href="/teacher"
+                          onClick={() => setIsProfileOpen(false)}
+                          className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 font-bold text-xs transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                            <span>Teacher Attendance Desk</span>
+                          </span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    )}
+
+                    {/* Authorized Portal Switcher for Admins */}
+                    {isActualAdmin && allowedPortals.length > 1 && (
                       <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">
                           Switch Operations Portal
@@ -407,7 +478,7 @@ export function UnifiedAppHeader({
                         <div className="space-y-1">
                           {allowedPortals.map(opt => {
                             const Icon = opt.icon;
-                            const isCurrent = opt.role === effectiveRole;
+                            const isCurrent = opt.role === portalViewRole;
                             return (
                               <button
                                 key={opt.role}
@@ -566,7 +637,7 @@ export function UnifiedAppHeader({
           )}
 
           {/* Quick Operations Portal Switcher (Mobile) */}
-          {allowedPortals.length > 1 && (
+          {isActualAdmin && allowedPortals.length > 1 && (
             <div className="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">
                 Switch Portal
@@ -574,7 +645,7 @@ export function UnifiedAppHeader({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                 {allowedPortals.map(opt => {
                   const Icon = opt.icon;
-                  const isCurrent = opt.role === effectiveRole;
+                  const isCurrent = opt.role === portalViewRole;
                   return (
                     <button
                       key={opt.role}
@@ -595,6 +666,19 @@ export function UnifiedAppHeader({
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {!isActualAdmin && userAccountRole !== "student" && (
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <Link
+                href={authService.getTargetRouteForRole(userAccountRole)}
+                onClick={() => setIsMobileSheetOpen(false)}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold text-xs"
+              >
+                <span>Switch to {userAccountRole.toUpperCase()} Console</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           )}
 

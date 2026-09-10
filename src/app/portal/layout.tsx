@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { store } from "@/lib/store";
+import { authService } from "@/lib/auth-service";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { SOSModal } from "@/components/common/SOSModal";
@@ -16,6 +17,8 @@ import {
   CalendarCheck,
   CreditCard,
   Lock,
+  ArrowRight,
+  ShieldAlert,
 } from "lucide-react";
 
 export default function StudentPortalLayout({
@@ -24,6 +27,7 @@ export default function StudentPortalLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [students, setStudents] = useState(store.getStudents());
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
@@ -38,6 +42,16 @@ export default function StudentPortalLayout({
     });
     return unsub;
   }, []);
+
+  // Strict Access Guard: Student portal can only be seen by enrolled students (or parents)
+  const isAuthorizedStudent = !currentUser || currentUser.role === "student" || currentUser.role === "parent";
+
+  useEffect(() => {
+    if (currentUser && currentUser.role && currentUser.role !== "student" && currentUser.role !== "parent") {
+      const destination = authService.getTargetRouteForRole(currentUser.role);
+      router.replace(destination);
+    }
+  }, [currentUser, router]);
 
   const activeStudent = currentUser
     ? students.find(
@@ -57,6 +71,36 @@ export default function StudentPortalLayout({
   );
   const isPaymentPage = pathname === "/portal/payments";
   const isAccessBlocked = isStudent && !isPaymentApproved && !isPaymentPage;
+
+  if (currentUser && !isAuthorizedStudent) {
+    const role = currentUser.role;
+    const targetRoute = authService.getTargetRouteForRole(role);
+    const roleTitle = role.toUpperCase();
+
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-2xl text-center space-y-4 animate-in fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black">Student Portal Restricted</h2>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            You are signed in as <strong>{currentUser.fullName}</strong> with role{" "}
+            <span className="text-purple-400 font-bold uppercase">{roleTitle}</span>. The Student Portal is strictly reserved for enrolled students.
+          </p>
+          <div className="pt-2">
+            <Link
+              href={targetRoute}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-black shadow-lg shadow-purple-600/30 transition-all active:scale-95"
+            >
+              <span>Switch to {roleTitle} Console ({targetRoute})</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const navLinks = [
     { href: "/portal", label: "Overview", icon: BusFront, requiresPayment: false },
