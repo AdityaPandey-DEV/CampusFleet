@@ -57,14 +57,21 @@ export default function SubscriptionsAndBillingPage() {
     return transitZones.find((z) => z.code === selectedZoneCode) || transitZones[0] || TRANSIT_ZONES[1];
   }, [selectedZoneCode, transitZones]);
 
-  // Installment Mode: 1 (Full), 2 (Half), 3 (Third)
-  const [installmentPlan, setInstallmentPlan] = useState<number>(1);
-  const [currentInstallmentNo, setCurrentInstallmentNo] = useState<number>(1);
+  // Payment Amount (defaults to zone fee or remaining balance, with support for custom/partial transfers)
+  const [paymentAmountInput, setPaymentAmountInput] = useState<string>("");
+
+  const remainingDue = useMemo(() => {
+    const total = currentZone.semesterFee;
+    const paid = Number(activeStudent?.totalFeePaid || 0);
+    return Math.max(0, total - paid);
+  }, [currentZone, activeStudent]);
 
   const amountToPay = useMemo(() => {
-    const total = currentZone.semesterFee;
-    return Math.round(total / installmentPlan);
-  }, [currentZone, installmentPlan]);
+    if (paymentAmountInput && !isNaN(Number(paymentAmountInput)) && Number(paymentAmountInput) > 0) {
+      return Number(paymentAmountInput);
+    }
+    return remainingDue > 0 ? remainingDue : currentZone.semesterFee;
+  }, [paymentAmountInput, remainingDue, currentZone]);
 
   // Upload & OCR State
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -231,8 +238,8 @@ export default function SubscriptionsAndBillingPage() {
           enrollmentNo: activeStudent?.enrollmentNo || "PENDING",
           zoneCode: selectedZoneCode,
           amount: amountToPay,
-          installmentNo: currentInstallmentNo,
-          totalInstallments: installmentPlan,
+          installmentNo: 1,
+          totalInstallments: 1,
           receiptUrl: receiptBlobUrl,
           transactionId: transactionIdInput.trim(),
           autoDetected: Boolean(detectedTransactionId && detectedTransactionId === transactionIdInput.trim()),
@@ -352,7 +359,7 @@ export default function SubscriptionsAndBillingPage() {
         </div>
       </div>
 
-      {/* Step 1: Zone Selection & Installment Planner */}
+      {/* Step 1: Zone Selection */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center font-black text-sm">
@@ -360,10 +367,10 @@ export default function SubscriptionsAndBillingPage() {
           </div>
           <div>
             <h2 className="text-lg font-black text-slate-900 dark:text-white">
-              Select Residential Zone & Payment Plan
+              Select Residential Transit Zone
             </h2>
             <p className="text-xs text-slate-500">
-              Pick your route corridor and decide whether to pay in full or in multiple installments.
+              Pick your route corridor to view your semester transit fee.
             </p>
           </div>
         </div>
@@ -378,11 +385,12 @@ export default function SubscriptionsAndBillingPage() {
                 key={zone.code}
                 onClick={() => {
                   setSelectedZoneCode(zone.code);
+                  setPaymentAmountInput("");
                   if (activeStudent) {
                     store.updateStudentProfile(activeStudent.id, { zoneCode: zone.code });
                   }
                 }}
-                className={`text-left p-4 rounded-2xl border-2 transition-all flex flex-col justify-between space-y-3 ${
+                className={`text-left p-4 rounded-2xl border-2 transition-all flex flex-col justify-between space-y-3 cursor-pointer ${
                   isSelected
                     ? "border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 shadow-md ring-2 ring-blue-500/20"
                     : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
@@ -412,82 +420,6 @@ export default function SubscriptionsAndBillingPage() {
               </button>
             );
           })}
-        </div>
-
-        {/* Installment Selector (Pay amount in multiple times) */}
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <div className="text-xs font-black uppercase text-slate-700 dark:text-slate-200">
-                Payment Schedule (Pay in Full or Installments)
-              </div>
-              <p className="text-[11px] text-slate-500">
-                You can pay the full semester amount now or split across multiple installments.
-              </p>
-            </div>
-            <div className="text-sm font-black text-blue-600 dark:text-blue-400">
-              Installment Amount: {formatCurrency(amountToPay)}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setInstallmentPlan(1);
-                setCurrentInstallmentNo(1);
-              }}
-              className={`p-3 rounded-xl border text-left transition-all ${
-                installmentPlan === 1
-                  ? "border-blue-600 bg-white dark:bg-slate-900 shadow-sm"
-                  : "border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-900"
-              }`}
-            >
-              <div className="text-xs font-bold text-slate-900 dark:text-white">Full Payment (1x)</div>
-              <div className="text-sm font-black text-emerald-600 mt-0.5">
-                {formatCurrency(currentZone.semesterFee)}
-              </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">100% of Semester Fee</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setInstallmentPlan(2);
-                setCurrentInstallmentNo(1);
-              }}
-              className={`p-3 rounded-xl border text-left transition-all ${
-                installmentPlan === 2
-                  ? "border-blue-600 bg-white dark:bg-slate-900 shadow-sm"
-                  : "border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-900"
-              }`}
-            >
-              <div className="text-xs font-bold text-slate-900 dark:text-white">2 Installments (50%)</div>
-              <div className="text-sm font-black text-emerald-600 mt-0.5">
-                {formatCurrency(Math.round(currentZone.semesterFee / 2))} <span className="text-[10px] font-normal text-slate-400">/ inst.</span>
-              </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Pay 1st installment today</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setInstallmentPlan(3);
-                setCurrentInstallmentNo(1);
-              }}
-              className={`p-3 rounded-xl border text-left transition-all ${
-                installmentPlan === 3
-                  ? "border-blue-600 bg-white dark:bg-slate-900 shadow-sm"
-                  : "border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-900"
-              }`}
-            >
-              <div className="text-xs font-bold text-slate-900 dark:text-white">3 Installments (33%)</div>
-              <div className="text-sm font-black text-emerald-600 mt-0.5">
-                {formatCurrency(Math.round(currentZone.semesterFee / 3))} <span className="text-[10px] font-normal text-slate-400">/ inst.</span>
-              </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Pay 1st installment today</div>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -535,14 +467,14 @@ export default function SubscriptionsAndBillingPage() {
                 )}
               </div>
 
-              <div className="text-center mt-4">
+              <div className="text-center mt-4 space-y-1">
                 <div className="text-2xl font-black text-slate-900 dark:text-white">
                   {formatCurrency(amountToPay)}
                 </div>
-                <div className="text-xs font-bold text-teal-600 dark:text-teal-400 mt-0.5">
-                  Installment {currentInstallmentNo} of {installmentPlan}
+                <div className="text-xs font-bold text-teal-600 dark:text-teal-400">
+                  {amountToPay === currentZone.semesterFee ? "Semester Transit Fee" : "Custom Transfer Amount"}
                 </div>
-                <div className="text-[11px] text-slate-400 font-mono mt-1">
+                <div className="text-[11px] text-slate-400 font-mono">
                   Merchant: {staffQrConfig.merchant_name || "Graphic Era Hill University (Bhimtal)"}
                 </div>
               </div>
@@ -683,6 +615,26 @@ export default function SubscriptionsAndBillingPage() {
                 </div>
               </div>
             )}
+
+            {/* Amount Paid Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Amount Paid in this Receipt (₹) *</span>
+                <span className="text-[10px] text-slate-400">
+                  Total Semester Fee: {formatCurrency(currentZone.semesterFee)}
+                </span>
+              </label>
+              <input
+                type="number"
+                value={paymentAmountInput}
+                onChange={(e) => setPaymentAmountInput(e.target.value)}
+                placeholder={String(amountToPay)}
+                className="w-full px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500"
+              />
+              <p className="text-[10px] text-slate-400">
+                You can upload multiple receipts & transaction IDs if paying across multiple transfers.
+              </p>
+            </div>
 
             {/* Transaction ID Input */}
             <div className="space-y-1.5">
