@@ -81,6 +81,7 @@ describe("CampusFleet Railway Reservation Engine Tests", () => {
     expect(result.success).toBe(true);
     expect(result.booking?.status).toBe("CONFIRMED");
     expect(result.booking?.seatNumber).toBe("1A");
+    expect(result.booking?.busId).toBe("bus-test");
   });
 
   it("places passenger on sequential WAITLIST (WL-01) when physical seats are full", () => {
@@ -120,6 +121,7 @@ describe("CampusFleet Railway Reservation Engine Tests", () => {
     expect(result.success).toBe(true);
     expect(result.booking?.status).toBe("WAITLISTED");
     expect(result.booking?.waitlistPosition).toBe(1); // WL-01
+    expect(result.booking?.busId).toBe("bus-test");
   });
 
   it("automatically promotes earliest waitlisted passenger (WL-01 -> CONFIRMED) on cancellation", () => {

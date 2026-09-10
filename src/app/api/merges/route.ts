@@ -273,7 +273,7 @@ export async function POST(req: NextRequest) {
         .from("bookings")
         .update({
           bus_id: targetBus.id,
-          pickup_stop: `[Merged at ${suggestion.bus_merge_points.name}]`,
+          merge_stop_id: suggestion.bus_merge_points?.id || suggestion.merge_point_id || null,
         })
         .eq("bus_id", sourceBus.id)
         .in("status", ["CONFIRMED", "BOARDED", "PENDING"]);

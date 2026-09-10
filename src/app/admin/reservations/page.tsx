@@ -9,6 +9,7 @@ export default function ReservationsAdminPage() {
   const [bookings, setBookings] = useState(store.getBookings());
   const [students, setStudents] = useState(store.getStudents());
   const [trips, setTrips] = useState(store.getTrips());
+  const [buses, setBuses] = useState(store.getBuses());
   const [stops, setStops] = useState(store.getStops());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -19,6 +20,7 @@ export default function ReservationsAdminPage() {
       setBookings(store.getBookings());
       setStudents(store.getStudents());
       setTrips(store.getTrips());
+      setBuses(store.getBuses());
       setStops(store.getStops());
     });
     return unsub;
@@ -97,6 +99,7 @@ export default function ReservationsAdminPage() {
               <tr>
                 <th className="p-3.5">Booking Code</th>
                 <th className="p-3.5">Passenger</th>
+                <th className="p-3.5">Assigned Bus</th>
                 <th className="p-3.5">Boarding Stop</th>
                 <th className="p-3.5">Seat / Position</th>
                 <th className="p-3.5">Status</th>
@@ -108,6 +111,8 @@ export default function ReservationsAdminPage() {
               {filteredBookings.map(b => {
                 const s = students.find(stud => stud.id === b.studentId);
                 const stop = stops.find(st => st.id === b.boardingStopId);
+                const trip = trips.find(t => t.id === b.tripId);
+                const bus = buses.find(busItem => busItem.id === (b.busId || trip?.busId));
                 const isConfirmed = b.status === "CONFIRMED";
                 const isWaitlisted = b.status === "WAITLISTED";
                 const isBoarded = b.status === "BOARDED";
@@ -124,6 +129,14 @@ export default function ReservationsAdminPage() {
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono">
                         {s?.enrollmentNo}
+                      </div>
+                    </td>
+                    <td className="p-3.5">
+                      <div className="font-semibold text-slate-800 dark:text-slate-200">
+                        {bus?.busNumber || "Assigned Bus"}
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400">
+                        {bus?.registrationNo || b.busId || "--"}
                       </div>
                     </td>
                     <td className="p-3.5 text-slate-700 dark:text-slate-300">
