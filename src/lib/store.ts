@@ -583,7 +583,7 @@ class CampusFleetStore {
   private saveToLocalStorage() {
     if (typeof window === "undefined") return;
     try {
-      // Retain strictly transient client UI session state (NO database entities in localStorage)
+      // Retain transient client UI session state
       if (this.currentUser) {
         localStorage.setItem("campusfleet_user", JSON.stringify(this.currentUser));
       } else {
@@ -592,33 +592,31 @@ class CampusFleetStore {
       if (this.activeChildId) {
         localStorage.setItem("campusfleet_active_child", this.activeChildId);
       }
+
+      // Fast Stale-While-Revalidate session cache for instant 0ms tab navigation
+      if (this.isInitialized && this.trips.length > 0) {
+        const cacheSnapshot = {
+          buses: this.buses,
+          routes: this.routes,
+          stops: this.stops,
+          shifts: this.shifts,
+          trips: this.trips,
+          bookings: this.bookings,
+          students: this.students,
+          transitZones: this.transitZones,
+          plans: this.plans,
+        };
+        sessionStorage.setItem("campusfleet_cache_snapshot", JSON.stringify(cacheSnapshot));
+      }
     } catch (e) {
-      console.warn("Could not save to localStorage", e);
+      console.warn("Could not save to storage", e);
     }
   }
 
   private loadFromLocalStorage() {
     if (typeof window === "undefined") return;
     try {
-      // 1. One-time purge of legacy database entities & stale telematics from localStorage!
-      // PostgreSQL is the single source of truth; no relational data or live GPS pings belong in localStorage.
-      const legacyKeys = [
-        "campusfleet_buses", "campusride_buses",
-        "campusfleet_routes", "campusride_routes",
-        "campusfleet_stops", "campusride_stops",
-        "campusfleet_shifts", "campusride_shifts",
-        "campusfleet_trips", "campusride_trips",
-        "campusfleet_bookings", "campusride_bookings",
-        "campusfleet_location", "campusride_location",
-        "campusfleet_notifications", "campusride_notifications",
-        "campusfleet_students", "campusride_students",
-        "campusfleet_staff", "campusride_staff",
-      ];
-      for (const key of legacyKeys) {
-        localStorage.removeItem(key);
-      }
-
-      // 2. Load transient UI state only
+      // 1. Load transient UI user state
       const u = localStorage.getItem("campusfleet_user") || localStorage.getItem("campusride_user");
       if (u) {
         try {
@@ -629,8 +627,29 @@ class CampusFleetStore {
       }
       const ch = localStorage.getItem("campusfleet_active_child") || localStorage.getItem("campusride_active_child");
       if (ch) this.activeChildId = ch;
+
+      // 2. Load cached database snapshot for instant 0ms rendering
+      const cached = sessionStorage.getItem("campusfleet_cache_snapshot");
+      if (cached) {
+        try {
+          const snapshot = JSON.parse(cached);
+          if (snapshot && Array.isArray(snapshot.trips) && snapshot.trips.length > 0) {
+            if (snapshot.buses) this.buses = snapshot.buses;
+            if (snapshot.routes) this.routes = snapshot.routes;
+            if (snapshot.stops) this.stops = snapshot.stops;
+            if (snapshot.shifts) this.shifts = snapshot.shifts;
+            if (snapshot.trips) this.trips = snapshot.trips;
+            if (snapshot.bookings) this.bookings = snapshot.bookings;
+            if (snapshot.students) this.students = snapshot.students;
+            if (snapshot.transitZones) this.transitZones = snapshot.transitZones;
+            if (snapshot.plans) this.plans = snapshot.plans;
+          }
+        } catch (e) {
+          console.warn("Could not load snapshot cache:", e);
+        }
+      }
     } catch (e) {
-      console.warn("Could not sanitize localStorage", e);
+      console.warn("Could not load storage cache", e);
     }
   }
 
