@@ -15,31 +15,19 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
   const navItems = [
     {
       href: "/portal",
-      label: "Home",
+      label: "Commute",
       icon: BusFront,
       requiresPayment: false,
     },
     {
-      href: "/portal/tracker",
-      label: "Tracker",
-      icon: Compass,
-      requiresPayment: true,
-    },
-    {
       href: "/portal/pass",
-      label: "Pass",
+      label: "Digital Pass",
       icon: QrCode,
       requiresPayment: true,
     },
     {
-      href: "/portal/booking",
-      label: "Book",
-      icon: CalendarCheck,
-      requiresPayment: true,
-    },
-    {
       href: "/portal/payments",
-      label: "Billing",
+      label: "Pass & Billing",
       icon: CreditCard,
       requiresPayment: false,
     },
@@ -48,9 +36,9 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800/80 px-2 py-1.5 shadow-2xl safe-area-inset-bottom"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800/80 px-4 py-2 shadow-2xl safe-area-inset-bottom"
     >
-      <div className="max-w-md mx-auto grid grid-cols-5 gap-1">
+      <div className="max-w-md mx-auto grid grid-cols-3 gap-2">
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = pathname === item.href;

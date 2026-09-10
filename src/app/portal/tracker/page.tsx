@@ -198,6 +198,13 @@ export default function LiveTrackerPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in">
+      <Link
+        href="/portal"
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+      >
+        ← Back to My Commute Cockpit
+      </Link>
+
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

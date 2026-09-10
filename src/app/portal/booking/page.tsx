@@ -218,6 +218,13 @@ export default function ShiftBookingPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in">
+      <Link
+        href="/portal"
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+      >
+        ← Back to My Commute Cockpit
+      </Link>
+
       {/* Top redBus-inspired Search / Corridor Filter Bar */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-lg space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
