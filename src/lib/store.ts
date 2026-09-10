@@ -399,6 +399,7 @@ class CampusFleetStore {
           studentId: b.student_id,
           tripId: b.trip_id,
           busId: b.bus_id || this.trips.find(t => t.id === b.trip_id)?.busId || "",
+          bookingDate: b.booking_date || (b.created_at ? b.created_at.split("T")[0] : ""),
           boardingStopId: b.boarding_stop_id,
           status: b.status || "CONFIRMED",
           waitlistPosition: b.waitlist_position,
@@ -481,6 +482,48 @@ class CampusFleetStore {
           reportedAt: i.reported_at,
           resolvedAt: i.resolved_at,
         }));
+      }
+
+      // Self-Healing Daily Rollover check
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(now.getTime() + istOffset);
+      const todayStr = istDate.toISOString().split("T")[0];
+
+      const hasTodayTrips = this.trips.some(t => t.tripDate === todayStr);
+      if (!hasTodayTrips && typeof window !== "undefined") {
+        fetch("/api/cron/daily-rollover", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetDate: todayStr, triggeredBy: "LAZY_STORE_INIT" }),
+        })
+          .then(res => res.json())
+          .then(async data => {
+            if (data.success && data.newTripsCount > 0) {
+              const { data: refreshedTrips } = await supabase.from("trips").select("*");
+              if (refreshedTrips && refreshedTrips.length > 0) {
+                this.trips = refreshedTrips.map(t => ({
+                  id: t.id,
+                  tripCode: t.trip_code,
+                  routeId: t.route_id,
+                  busId: t.bus_id,
+                  shiftId: t.shift_id,
+                  driverId: t.driver_id || "",
+                  conductorId: t.conductor_id || "",
+                  tripDate: t.trip_date,
+                  status: t.status || "SCHEDULED",
+                  delayMinutes: t.delay_minutes || 0,
+                  manifestLocked: t.manifest_locked || false,
+                  manifestLockedAt: t.manifest_locked_at,
+                  startedAt: t.started_at,
+                  completedAt: t.completed_at,
+                  currentStopIndex: t.current_stop_index || 0,
+                }));
+                this.notify();
+              }
+            }
+          })
+          .catch(e => console.warn("Lazy daily rollover notice:", e));
       }
 
       this.isInitialized = true;
@@ -638,6 +681,22 @@ class CampusFleetStore {
   public getStops() { return this.stops; }
   public getShifts() { return this.shifts; }
   public getTrips() { return this.trips; }
+  public getTodayTrips() {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const todayStr = new Date(now.getTime() + istOffset).toISOString().split("T")[0];
+    const todayTrips = this.trips.filter(t => t.tripDate === todayStr);
+    return todayTrips.length > 0 ? todayTrips : this.trips;
+  }
+  public getTripsByDate(dateStr: string) {
+    return this.trips.filter(t => t.tripDate === dateStr);
+  }
+  public getTodayBookings() {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const todayStr = new Date(now.getTime() + istOffset).toISOString().split("T")[0];
+    return this.bookings.filter(b => b.bookingDate === todayStr || (b.createdAt && b.createdAt.startsWith(todayStr)));
+  }
   public getStudents() { return this.students; }
   public getGuardians() { return this.guardians; }
   public getStaff() { return this.staff; }

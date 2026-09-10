@@ -178,6 +178,7 @@ export interface Booking {
   studentId: string;
   tripId: string;
   busId?: string;
+  bookingDate?: string;
   boardingStopId: string;
   status: BookingStatus;
   waitlistPosition?: number; // e.g. 1 -> WL-01

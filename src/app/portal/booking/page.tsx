@@ -109,7 +109,14 @@ export default function ShiftBookingPage() {
     }
   }, [activeStudent, selectedStopId, stops]);
 
-  const targetTrip = trips.find(t => t.shiftId === selectedShiftId) || trips[0];
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const todayStr = new Date(now.getTime() + istOffset).toISOString().split("T")[0];
+
+  const targetTrip =
+    trips.find(t => t.shiftId === selectedShiftId && t.tripDate === todayStr) ||
+    trips.find(t => t.shiftId === selectedShiftId) ||
+    trips[0];
   const bus = buses.find(b => b.id === targetTrip?.busId) || buses[0];
   const tripBookings = targetTrip ? bookings.filter(b => b.tripId === targetTrip.id) : [];
   const confirmedCount = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
