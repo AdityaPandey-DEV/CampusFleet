@@ -24,11 +24,14 @@ import {
   Shield,
   Radio,
   Zap,
+  AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
 import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 
 export default function ConductorConsolePage() {
+  const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [trips, setTrips] = useState(store.getTrips());
   const [buses, setBuses] = useState(store.getBuses());
   const [students, setStudents] = useState(store.getStudents());
@@ -63,6 +66,7 @@ export default function ConductorConsolePage() {
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
+      setCurrentUser(store.getCurrentUser());
       setTrips(store.getTrips());
       setBuses(store.getBuses());
       setStudents(store.getStudents());
@@ -156,6 +160,32 @@ export default function ConductorConsolePage() {
       };
     });
   });
+
+  // Access Barrier: Staff cannot access Conductor Console
+  if (currentUser && currentUser.role === "staff") {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl text-center space-y-4 animate-in fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black">Access Restricted</h2>
+          <p className="text-xs text-slate-300">
+            Staff members are restricted from the Conductor Console. Please return to the Staff Operations Panel.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/staff"
+              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
+            >
+              <span>Return to Staff Operations Panel</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 md:pb-12 font-sans transition-colors duration-200 selection:bg-teal-500 selection:text-white">

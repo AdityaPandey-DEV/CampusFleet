@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
-import { Student, TRANSIT_ZONES } from "@/lib/types";
+import { Student, TransitZone, TRANSIT_ZONES } from "@/lib/types";
 import {
   GraduationCap,
   Building2,
@@ -21,6 +21,7 @@ export function StudentProfileModal() {
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [students, setStudents] = useState(store.getStudents());
   const [stops, setStops] = useState(store.getStops());
+  const [transitZones, setTransitZones] = useState<TransitZone[]>(store.getTransitZones());
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -45,6 +46,7 @@ export function StudentProfileModal() {
       setCurrentUser(store.getCurrentUser());
       setStudents(store.getStudents());
       setStops(store.getStops());
+      setTransitZones(store.getTransitZones());
     });
     return unsub;
   }, []);
@@ -340,14 +342,14 @@ export function StudentProfileModal() {
               }}
               className="w-full text-xs p-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-slate-900 dark:text-white outline-none focus:border-teal-500 font-bold"
             >
-              {TRANSIT_ZONES.map(z => (
+              {transitZones.map(z => (
                 <option key={z.code} value={z.code}>
                   {z.name} — ₹{z.semesterFee.toLocaleString()} / Semester
                 </option>
               ))}
             </select>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Covers: {TRANSIT_ZONES.find(z => z.code === selectedZoneCode)?.corridorDescription}
+              Covers: {transitZones.find(z => z.code === selectedZoneCode)?.corridorDescription}
             </p>
           </div>
 

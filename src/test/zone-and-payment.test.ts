@@ -68,10 +68,10 @@ export function canAccessPortalPage(
 
 describe("Transit Zones and Stop Restriction Engine", () => {
   const sampleStops: Stop[] = [
-    { id: "s1", name: "Amrapali Institute / Lamachaur", latitude: 29.2831, longitude: 79.4682, zoneCode: "ZONE_A" },
-    { id: "s2", name: "Tikonia Chauraha", latitude: 29.2185, longitude: 79.5126, zoneCode: "ZONE_B" },
-    { id: "s3", name: "Kathgodam Station", latitude: 29.2711, longitude: 79.5422, zoneCode: "ZONE_C" },
-    { id: "s4", name: "Graphic Era Hill University Campus", latitude: 29.3491, longitude: 79.5574, zoneCode: "ZONE_D" },
+    { id: "s1", name: "Amrapali Institute / Lamachaur", code: "ST-01", landmark: "Amrapali", geofenceRadiusMeters: 100, latitude: 29.2831, longitude: 79.4682, zoneCode: "ZONE_A" },
+    { id: "s2", name: "Tikonia Chauraha", code: "ST-02", landmark: "Tikonia", geofenceRadiusMeters: 100, latitude: 29.2185, longitude: 79.5126, zoneCode: "ZONE_B" },
+    { id: "s3", name: "Kathgodam Station", code: "ST-03", landmark: "Kathgodam", geofenceRadiusMeters: 100, latitude: 29.2711, longitude: 79.5422, zoneCode: "ZONE_C" },
+    { id: "s4", name: "Graphic Era Hill University Campus", code: "ST-04", landmark: "Campus Gate", geofenceRadiusMeters: 100, latitude: 29.3491, longitude: 79.5574, zoneCode: "ZONE_D" },
   ];
 
   it("should define all 4 transit zones with valid fees", () => {

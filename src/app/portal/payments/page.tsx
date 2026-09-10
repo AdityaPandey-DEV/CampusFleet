@@ -49,12 +49,13 @@ export default function SubscriptionsAndBillingPage() {
     );
   }, [currentUser, students, activeChildId]);
 
-  // Zone & Payment Plan State
+  // Zone & Payment Plan State (Loaded dynamically from PostgreSQL)
+  const [transitZones, setTransitZones] = useState<TransitZone[]>(store.getTransitZones());
   const initialZone = activeStudent?.zoneCode || "ZONE_B";
   const [selectedZoneCode, setSelectedZoneCode] = useState<string>(initialZone);
   const currentZone = useMemo(() => {
-    return TRANSIT_ZONES.find((z) => z.code === selectedZoneCode) || TRANSIT_ZONES[1];
-  }, [selectedZoneCode]);
+    return transitZones.find((z) => z.code === selectedZoneCode) || transitZones[0] || TRANSIT_ZONES[1];
+  }, [selectedZoneCode, transitZones]);
 
   // Installment Mode: 1 (Full), 2 (Half), 3 (Third)
   const [installmentPlan, setInstallmentPlan] = useState<number>(1);
@@ -91,6 +92,7 @@ export default function SubscriptionsAndBillingPage() {
       setStudents(store.getStudents());
       setActiveChildId(store.getActiveChildId());
       setPayments(store.getPayments());
+      setTransitZones(store.getTransitZones());
     });
     return unsub;
   }, []);
@@ -368,7 +370,7 @@ export default function SubscriptionsAndBillingPage() {
 
         {/* Zone Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {TRANSIT_ZONES.map((zone) => {
+          {transitZones.map((zone) => {
             const isSelected = selectedZoneCode === zone.code;
             return (
               <button

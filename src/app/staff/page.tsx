@@ -41,11 +41,16 @@ import {
   CalendarDays,
   RotateCcw,
   History,
+  UserCheck,
+  BadgeAlert,
+  Shield,
+  Phone,
+  Award,
 } from "lucide-react";
 
 export default function StaffOperationsPanel() {
   const [activeTab, setActiveTab] = useState<
-    "APPROVALS" | "QR_SETTINGS" | "AUDIT_EXCEL" | "DEMAND_FLEET" | "MERGE_OPTIMIZER" | "DAILY_OPERATIONS"
+    "APPROVALS" | "QR_SETTINGS" | "AUDIT_EXCEL" | "DEMAND_FLEET" | "MERGE_OPTIMIZER" | "DAILY_OPERATIONS" | "CREW_ASSIGNMENT"
   >("APPROVALS");
 
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
@@ -55,6 +60,24 @@ export default function StaffOperationsPanel() {
   const [students, setStudents] = useState(store.getStudents());
   const [trips, setTrips] = useState(store.getTrips());
   const [bookings, setBookings] = useState(store.getBookings());
+  const [staff, setStaff] = useState(store.getStaff());
+  const [users, setUsers] = useState(store.getUsers());
+
+  // Crew Assignment State
+  const [crewSearchQuery, setCrewSearchQuery] = useState("");
+  const [selectedTripForCrew, setSelectedTripForCrew] = useState<any | null>(null);
+  const [crewModalOpen, setCrewModalOpen] = useState(false);
+  const [driverSearchQuery, setDriverSearchQuery] = useState("");
+  const [conductorSearchQuery, setConductorSearchQuery] = useState("");
+  const [selectedDriverId, setSelectedDriverId] = useState("");
+  const [selectedConductorId, setSelectedConductorId] = useState("");
+  const [isAssigningCrew, setIsAssigningCrew] = useState(false);
+  const [crewAssignError, setCrewAssignError] = useState<string | null>(null);
+  const [crewDate, setCrewDate] = useState(() => {
+    const now = new Date();
+    const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+    return ist.toISOString().split("T")[0];
+  });
 
   // Submissions State
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -154,6 +177,8 @@ export default function StaffOperationsPanel() {
       setStudents(store.getStudents());
       setTrips(store.getTrips());
       setBookings(store.getBookings());
+      setStaff(store.getStaff());
+      setUsers(store.getUsers());
     });
     fetchSubmissions();
     fetchQrConfig();
@@ -392,6 +417,180 @@ export default function StaffOperationsPanel() {
     .filter((s) => s.status === "APPROVED")
     .reduce((acc, s) => acc + (Number(s.amount_paid) || 0), 0);
 
+  // Filtered Crew for Crew Assignment:
+  // 1. DRIVERS: strictly users/staff where role === 'driver' (conductors cannot drive!)
+  const eligibleDrivers = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; phone: string; license?: string; role: string; employeeCode?: string }>();
+    staff
+      .filter((s) => s.role === "driver")
+      .forEach((s) => {
+        map.set(s.id, {
+          id: s.id,
+          name: s.fullName,
+          phone: s.phone,
+          license: s.licenseNo || "HMV-COMMERCIAL",
+          role: "driver",
+          employeeCode: s.employeeCode,
+        });
+      });
+    users
+      .filter((u) => u.role === "driver")
+      .forEach((u) => {
+        if (!map.has(u.id)) {
+          map.set(u.id, {
+            id: u.id,
+            name: u.fullName,
+            phone: u.phone || "—",
+            license: "HMV-COMMERCIAL",
+            role: "driver",
+          });
+        }
+      });
+    const list = Array.from(map.values());
+    if (!driverSearchQuery.trim()) return list;
+    const q = driverSearchQuery.toLowerCase();
+    return list.filter(
+      (d) =>
+        d.name.toLowerCase().includes(q) ||
+        d.phone.includes(q) ||
+        (d.license && d.license.toLowerCase().includes(q))
+    );
+  }, [staff, users, driverSearchQuery]);
+
+  // 2. CONDUCTORS: BOTH conductors AND qualified drivers are eligible! ("a driver can be a conductor but conductor cant")
+  const eligibleConductors = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; phone: string; role: string; isActingDriver?: boolean; employeeCode?: string }>();
+    staff
+      .filter((s) => s.role === "conductor")
+      .forEach((s) => {
+        map.set(s.id, {
+          id: s.id,
+          name: s.fullName,
+          phone: s.phone,
+          role: "conductor",
+          isActingDriver: false,
+          employeeCode: s.employeeCode,
+        });
+      });
+    users
+      .filter((u) => u.role === "conductor")
+      .forEach((u) => {
+        if (!map.has(u.id)) {
+          map.set(u.id, {
+            id: u.id,
+            name: u.fullName,
+            phone: u.phone || "—",
+            role: "conductor",
+            isActingDriver: false,
+          });
+        }
+      });
+    // Add qualified drivers as eligible conductors
+    staff
+      .filter((s) => s.role === "driver")
+      .forEach((s) => {
+        if (!map.has(s.id)) {
+          map.set(s.id, {
+            id: s.id,
+            name: s.fullName,
+            phone: s.phone,
+            role: "driver",
+            isActingDriver: true,
+            employeeCode: s.employeeCode,
+          });
+        }
+      });
+    users
+      .filter((u) => u.role === "driver")
+      .forEach((u) => {
+        if (!map.has(u.id)) {
+          map.set(u.id, {
+            id: u.id,
+            name: u.fullName,
+            phone: u.phone || "—",
+            role: "driver",
+            isActingDriver: true,
+          });
+        }
+      });
+    const list = Array.from(map.values());
+    if (!conductorSearchQuery.trim()) return list;
+    const q = conductorSearchQuery.toLowerCase();
+    return list.filter((c) => c.name.toLowerCase().includes(q) || c.phone.includes(q));
+  }, [staff, users, conductorSearchQuery]);
+
+  const openCrewModal = (t: any) => {
+    setSelectedTripForCrew(t);
+    setSelectedDriverId(t.driverId || "");
+    setSelectedConductorId(t.conductorId || "");
+    setDriverSearchQuery("");
+    setConductorSearchQuery("");
+    setCrewAssignError(null);
+    setCrewModalOpen(true);
+  };
+
+  const handleSaveCrewAssignment = async () => {
+    if (!selectedTripForCrew) return;
+    setIsAssigningCrew(true);
+    setCrewAssignError(null);
+
+    try {
+      const res = await fetch("/api/staff/assign-crew", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tripId: selectedTripForCrew.id,
+          busId: selectedTripForCrew.busId,
+          driverId: selectedDriverId,
+          conductorId: selectedConductorId,
+          assignedBy: currentUser?.fullName || "Transport Operations Staff",
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        await store.assignTripCrew(selectedTripForCrew.id, selectedDriverId, selectedConductorId);
+        showToast(data.message || "✓ Crew assigned to bus successfully!");
+        setCrewModalOpen(false);
+        setSelectedTripForCrew(null);
+        await store.syncFromSupabase();
+      } else {
+        setCrewAssignError(data.error || "Failed to assign crew.");
+      }
+    } catch (err: any) {
+      setCrewAssignError(err.message || "Network error while assigning crew.");
+    } finally {
+      setIsAssigningCrew(false);
+    }
+  };
+
+  // Access Barrier: Drivers and Conductors cannot access the Staff Panel
+  if (currentUser && (currentUser.role === "driver" || currentUser.role === "conductor")) {
+    const isDriver = currentUser.role === "driver";
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl text-center space-y-4 animate-in fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black">Access Restricted</h2>
+          <p className="text-xs text-slate-300">
+            Drivers and Conductors cannot access the Staff Operations Panel. Financial approvals, audit reporting, and fleet management are restricted to Staff personnel.
+          </p>
+          <div className="pt-2">
+            <Link
+              href={isDriver ? "/driver" : "/conductor"}
+              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
+            >
+              <span>{isDriver ? "Go to Driver Cockpit" : "Go to Conductor Console"}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans pb-20 transition-colors">
       {/* Staff Header */}
@@ -595,6 +794,18 @@ export default function StaffOperationsPanel() {
           >
             <CalendarDays className="w-4 h-4" />
             <span>Daily Operations</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("CREW_ASSIGNMENT")}
+            className={`flex-1 min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+              activeTab === "CREW_ASSIGNMENT"
+                ? "bg-blue-600 text-white shadow-md"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Crew & Bus Allocation</span>
           </button>
         </div>
 
@@ -1516,6 +1727,242 @@ export default function StaffOperationsPanel() {
             </div>
           </div>
         )}
+
+        {/* TAB 7: Crew & Bus Allocation */}
+        {activeTab === "CREW_ASSIGNMENT" && (
+          <div className="space-y-6 animate-in fade-in">
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-xs font-mono font-bold text-blue-300 mb-2">
+                    <Award className="w-3.5 h-3.5" />
+                    <span>Crew Qualification Dispatch Matrix</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black">
+                    Bus Crew Allocation & Role Qualifications
+                  </h2>
+                  <p className="text-xs sm:text-sm text-blue-200/80 max-w-2xl mt-1">
+                    Staff dispatch authority: Assign certified drivers and conductors to campus transit buses.
+                    <span className="block mt-1 font-bold text-amber-300">
+                      • Driver Slot: Strictly qualified drivers only (conductors cannot drive).
+                      • Conductor Slot: Both conductors and certified drivers can serve as conductors.
+                    </span>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-slate-800/80 p-2 rounded-2xl border border-slate-700">
+                    <CalendarDays className="w-4 h-4 text-blue-400" />
+                    <input
+                      type="date"
+                      value={crewDate}
+                      onChange={(e) => setCrewDate(e.target.value)}
+                      className="text-xs px-2 py-1 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Crew Status Metrics */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="text-[10px] uppercase font-black tracking-wider text-blue-600 dark:text-blue-400">
+                  Scheduled Buses
+                </div>
+                <div className="text-2xl font-black font-mono mt-1">
+                  {trips.filter((t) => !crewDate || t.tripDate === crewDate).length}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono mt-0.5">Active Fleet Runs</div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="text-[10px] uppercase font-black tracking-wider text-emerald-600 dark:text-emerald-400">
+                  Fully Crewed
+                </div>
+                <div className="text-2xl font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
+                  {trips.filter((t) => (!crewDate || t.tripDate === crewDate) && t.driverId && t.conductorId).length}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono mt-0.5">Driver + Conductor Ready</div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="text-[10px] uppercase font-black tracking-wider text-rose-600 dark:text-rose-400">
+                  Missing Driver
+                </div>
+                <div className="text-2xl font-black font-mono mt-1 text-rose-600 dark:text-rose-400">
+                  {trips.filter((t) => (!crewDate || t.tripDate === crewDate) && !t.driverId).length}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono mt-0.5">Immediate Attention</div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="text-[10px] uppercase font-black tracking-wider text-amber-600 dark:text-amber-400">
+                  Missing Conductor
+                </div>
+                <div className="text-2xl font-black font-mono mt-1 text-amber-600 dark:text-amber-400">
+                  {trips.filter((t) => (!crewDate || t.tripDate === crewDate) && !t.conductorId).length}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono mt-0.5">Ticket Radar Officer</div>
+              </div>
+            </div>
+
+            {/* Crew Allocation Roster Table */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <BusFront className="w-4 h-4 text-blue-600" />
+                    <span>Fleet Crew Dispatch Table</span>
+                  </h3>
+                </div>
+
+                <div className="relative w-full sm:w-72">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={crewSearchQuery}
+                    onChange={(e) => setCrewSearchQuery(e.target.value)}
+                    placeholder="Search by bus, route, or trip code..."
+                    className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-blue-500 font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-black text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                      <th className="p-3.5">Bus & Trip</th>
+                      <th className="p-3.5">Corridor Route</th>
+                      <th className="p-3.5">Assigned Driver</th>
+                      <th className="p-3.5">Assigned Conductor</th>
+                      <th className="p-3.5 text-center">Crew Status</th>
+                      <th className="p-3.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {trips
+                      .filter((t) => !crewDate || t.tripDate === crewDate)
+                      .filter((t) => {
+                        if (!crewSearchQuery.trim()) return true;
+                        const q = crewSearchQuery.toLowerCase();
+                        const b = buses.find((bus) => bus.id === t.busId);
+                        const r = routes.find((route) => route.id === t.routeId);
+                        return (
+                          t.tripCode.toLowerCase().includes(q) ||
+                          (b?.busNumber && b.busNumber.toLowerCase().includes(q)) ||
+                          (r?.name && r.name.toLowerCase().includes(q))
+                        );
+                      })
+                      .map((t) => {
+                        const b = buses.find((bus) => bus.id === t.busId);
+                        const r = routes.find((route) => route.id === t.routeId);
+                        const drv =
+                          staff.find((s) => s.id === t.driverId || s.fullName === t.driverId) ||
+                          users.find((u) => u.id === t.driverId || u.email === t.driverId);
+                        const cnd =
+                          staff.find((s) => s.id === t.conductorId || s.fullName === t.conductorId) ||
+                          users.find((u) => u.id === t.conductorId || u.email === t.conductorId);
+
+                        const isDrvConductor = drv && drv.role === "driver";
+                        const isCndActing = cnd && cnd.role === "driver";
+                        const isFullyCrewed = Boolean(t.driverId && t.conductorId);
+
+                        return (
+                          <tr key={t.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="p-3.5">
+                              <div className="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <BusFront className="w-4 h-4 text-blue-600" />
+                                <span>{b?.busNumber || t.busId}</span>
+                              </div>
+                              <div className="text-[10px] font-mono text-slate-400 mt-0.5 flex items-center gap-2">
+                                <span>{t.tripCode}</span>
+                                <span>•</span>
+                                <span>{t.shiftId}</span>
+                              </div>
+                            </td>
+
+                            <td className="p-3.5 font-bold text-slate-900 dark:text-slate-100">
+                              <div>{r?.name || t.routeId}</div>
+                              <div className="text-[10px] text-slate-400 font-mono font-normal">
+                                {r?.totalDistanceKm || 28} km • {r?.estimatedDurationMins || 55} mins
+                              </div>
+                            </td>
+
+                            <td className="p-3.5">
+                              {t.driverId ? (
+                                <div className="space-y-0.5">
+                                  <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    <span>{drv?.fullName || t.driverId}</span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 font-mono">
+                                    {drv?.phone || "Phone on file"} • Commercial Lic
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-[10px] font-black border border-rose-200 dark:border-rose-900">
+                                  <BadgeAlert className="w-3 h-3" /> Unassigned Driver
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="p-3.5">
+                              {t.conductorId ? (
+                                <div className="space-y-0.5">
+                                  <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                                    <span>{cnd?.fullName || t.conductorId}</span>
+                                    {isCndActing && (
+                                      <span className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                        Driver Acting
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 font-mono">
+                                    {cnd?.phone || "Phone on file"} • Scanner Authorized
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-black border border-amber-200 dark:border-amber-900">
+                                  <BadgeAlert className="w-3 h-3" /> Unassigned Conductor
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="p-3.5 text-center">
+                              {isFullyCrewed ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-black">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Complete
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] font-black">
+                                  <Clock className="w-3 h-3 text-amber-600" /> Incomplete
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="p-3.5 text-right">
+                              <button
+                                onClick={() => openCrewModal(t)}
+                                className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-sm transition-all cursor-pointer inline-flex items-center gap-1.5"
+                              >
+                                <UserCheck className="w-3.5 h-3.5" />
+                                <span>Assign Crew</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Lightbox Modal for Receipt Image */}
@@ -1588,6 +2035,151 @@ export default function StaffOperationsPanel() {
                 className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold"
               >
                 Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Crew Assignment Modal with Strict Role Validation */}
+      {crewModalOpen && selectedTripForCrew && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="max-w-xl w-full bg-white dark:bg-slate-900 rounded-3xl p-6 space-y-5 border border-slate-200 dark:border-slate-800 shadow-2xl text-slate-900 dark:text-white max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h4 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <BusFront className="w-5 h-5 text-blue-600" />
+                  <span>
+                    Assign Crew for Bus {buses.find((b) => b.id === selectedTripForCrew.busId)?.busNumber || selectedTripForCrew.busId}
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">
+                  Trip: {selectedTripForCrew.tripCode} • {routes.find((r) => r.id === selectedTripForCrew.routeId)?.name || selectedTripForCrew.routeId}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setCrewModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            {crewAssignError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 rounded-2xl text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>{crewAssignError}</span>
+              </div>
+            )}
+
+            {/* Section 1: DRIVER ASSIGNMENT */}
+            <div className="space-y-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Shield className="w-4 h-4 text-blue-600" />
+                  <span>Assign Certified Driver *</span>
+                </label>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                  Commercial Heavy Vehicle License Required
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Rule: Conductors cannot drive the bus. Only certified drivers are shown.
+              </p>
+
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={driverSearchQuery}
+                  onChange={(e) => setDriverSearchQuery(e.target.value)}
+                  placeholder="Filter drivers by name or phone..."
+                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none focus:border-blue-500 font-bold"
+                />
+              </div>
+
+              <select
+                value={selectedDriverId}
+                onChange={(e) => setSelectedDriverId(e.target.value)}
+                className="w-full text-xs p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold outline-none focus:border-blue-500"
+              >
+                <option value="">-- Choose Qualified Driver --</option>
+                {eligibleDrivers.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.phone}) • {d.license || "Licensed Driver"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Section 2: CONDUCTOR ASSIGNMENT */}
+            <div className="space-y-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-purple-600" />
+                  <span>Assign Conductor / Manifest Officer *</span>
+                </label>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300">
+                  Conductors & Drivers Eligible
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Rule: A driver can serve as a conductor, and a conductor can serve as a conductor.
+              </p>
+
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={conductorSearchQuery}
+                  onChange={(e) => setConductorSearchQuery(e.target.value)}
+                  placeholder="Filter conductors or drivers by name or phone..."
+                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none focus:border-purple-500 font-bold"
+                />
+              </div>
+
+              <select
+                value={selectedConductorId}
+                onChange={(e) => setSelectedConductorId(e.target.value)}
+                className="w-full text-xs p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold outline-none focus:border-purple-500"
+              >
+                <option value="">-- Choose Conductor or Acting Driver --</option>
+                {eligibleConductors.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.phone}) {c.isActingDriver ? "• [Driver - Eligible as Conductor]" : "• [Conductor]"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setCrewModalOpen(false)}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl text-xs font-bold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveCrewAssignment}
+                disabled={isAssigningCrew}
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-md transition-all flex items-center justify-center gap-2"
+              >
+                {isAssigningCrew ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Saving to Database...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Save Crew Assignment</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

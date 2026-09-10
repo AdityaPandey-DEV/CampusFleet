@@ -18,6 +18,8 @@ import {
   AuditLog,
   UserRole,
   UserAccount,
+  TransitZone,
+  TRANSIT_ZONES,
 } from "./types";
 import { createBooking, cancelBookingAndPromoteWaitlist, lockFinalManifest } from "./reservation-engine";
 import { supabase } from "./supabaseClient";
@@ -89,6 +91,7 @@ class CampusFleetStore {
   private maintenance: MaintenanceRecord[] = [];
   private notifications: NotificationItem[] = [];
   private auditLogs: AuditLog[] = [];
+  private transitZones: TransitZone[] = [];
   private attendanceRecords: AttendanceRecord[] = [];
   private users: UserAccount[] = [];
   private stopRoutes: { stopId: string; routeId: string; busId: string; stopOrder: number }[] = [];
@@ -175,6 +178,18 @@ class CampusFleetStore {
 
   public async syncFromSupabase() {
     try {
+      // 0. Fetch Transit Zones (PostgreSQL Master Data)
+      const { data: dbZones } = await supabase.from("transit_zones").select("*").eq("is_active", true);
+      if (dbZones && dbZones.length > 0) {
+        this.transitZones = dbZones.map(z => ({
+          code: z.code,
+          name: z.name,
+          corridorDescription: z.corridor_description,
+          semesterFee: Number(z.semester_fee),
+          installmentsAllowed: z.installments_allowed,
+        }));
+      }
+
       // 1. Fetch Stops
       const { data: dbStops } = await supabase.from("stops").select("*");
       if (dbStops && dbStops.length > 0) {
@@ -190,6 +205,15 @@ class CampusFleetStore {
           isBusMergeStop: Boolean(s.is_bus_merge_stop),
           zoneCode: s.zone_code || "ZONE_B",
         }));
+
+        // Dynamic origin: sync idle telematics position from first departure terminal in database
+        if (this.stops.length > 0 && (!this.liveLocation.busId || this.liveLocation.latitude === 29.2889)) {
+          this.liveLocation = {
+            ...this.liveLocation,
+            latitude: this.stops[0].latitude,
+            longitude: this.stops[0].longitude,
+          };
+        }
       }
 
       // 2. Fetch Buses
@@ -210,7 +234,7 @@ class CampusFleetStore {
         }));
       }
 
-      // 3. Fetch Routes (with persistent multi-stop stops_data from Supabase)
+      // 3. Fetch Routes (100% database-driven from PostgreSQL stops_data)
       const { data: dbRoutes } = await supabase.from("routes").select("*");
       if (dbRoutes && dbRoutes.length > 0) {
         this.routes = dbRoutes.map(r => {
@@ -230,7 +254,21 @@ class CampusFleetStore {
               .filter((rs: any) => rs.stop);
           }
           if (stopsList.length === 0) {
-            stopsList = this.buildRouteStops(r.id, r.description || "", this.stops);
+            const relational = this.stopRoutes
+              .filter(sr => sr.routeId === r.id)
+              .sort((a, b) => a.stopOrder - b.stopOrder)
+              .map(sr => {
+                const st = this.stops.find(s => s.id === sr.stopId);
+                return st ? {
+                  stopId: st.id,
+                  stopOrder: sr.stopOrder,
+                  arrivalOffsetMinutes: (sr.stopOrder - 1) * 8,
+                  bufferTimeMinutes: 2,
+                  stop: st,
+                } : null;
+              })
+              .filter(Boolean);
+            stopsList = (relational.length > 0 ? relational : []) as any[];
           }
           return {
             id: r.id,
@@ -535,79 +573,7 @@ class CampusFleetStore {
     }
   }
 
-  private buildRouteStops(routeId: string, _description: string, allStops: Stop[]) {
-    // Helper to find a stop by its ID from the current allStops (19 official Bhimtal stops)
-    const find = (id: string) => allStops.find(s => s.id === id);
 
-    const bhimtal = find("stop-bhimtal-campus") || allStops[0];
-    const bhowali = find("stop-bhowali");
-    const kathgodam = find("stop-kathgodam");
-    const laldant = find("stop-bhakda-laldant");
-    const unchapul = find("stop-unchapul");
-    const mukhani = find("stop-mukhani");
-    const kusumkhera = find("stop-kusumkhera");
-    const kamluvaganja = find("stop-kamluvaganja");
-    const bhagwanpur = find("stop-bhagwanpur");
-    const lamachaur = find("stop-lamachaur");
-    const gannaCenter = find("stop-ganna-center");
-    const gaulapar = find("stop-gaulapar");
-    const jadgeFarm = find("stop-jadge-farm");
-    const newIti = find("stop-new-iti");
-    const gusaipur = find("stop-gusaipur");
-    const panchayatGhar = find("stop-panchayat-ghar");
-    const lalkuan = find("stop-lalkuan-nagla");
-    const nainital = find("stop-nainital-tallital");
-    const naukuchiatal = find("stop-naukuchiatal");
-
-    let matchingStops: Stop[] = [];
-
-    if (routeId.includes("bus-44")) {
-      matchingStops = [laldant, kamluvaganja, unchapul, mukhani, kusumkhera, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-45")) {
-      matchingStops = [naukuchiatal, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-2")) {
-      matchingStops = [gannaCenter, mukhani, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-3")) {
-      matchingStops = [gaulapar, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-8")) {
-      matchingStops = [lalkuan, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-9")) {
-      matchingStops = [jadgeFarm, mukhani, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-11")) {
-      matchingStops = [nainital, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-36")) {
-      matchingStops = [bhagwanpur, kusumkhera, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-37")) {
-      matchingStops = [lamachaur, unchapul, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-40")) {
-      matchingStops = [gusaipur, mukhani, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-43")) {
-      matchingStops = [kamluvaganja, kusumkhera, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-49")) {
-      matchingStops = [panchayatGhar, mukhani, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bus-50")) {
-      matchingStops = [newIti, kusumkhera, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    } else if (routeId.includes("bht-ddn") || routeId.includes("placement")) {
-      matchingStops = [bhimtal, kathgodam, bhowali].filter(Boolean) as Stop[];
-    } else if (routeId.includes("tempo")) {
-      matchingStops = [nainital, bhimtal].filter(Boolean) as Stop[];
-    } else {
-      // Default: generic corridor
-      matchingStops = [laldant, kathgodam, bhowali, bhimtal].filter(Boolean) as Stop[];
-    }
-
-    if (matchingStops.length === 0) {
-      matchingStops = allStops.slice(0, 4);
-    }
-
-    return matchingStops.map((st, idx) => ({
-      stopId: st.id,
-      stopOrder: idx + 1,
-      arrivalOffsetMinutes: idx === 0 ? 0 : idx * 8 + (idx > 3 ? 10 : 0),
-      bufferTimeMinutes: 2,
-      stop: st,
-    }));
-  }
 
   private saveToLocalStorage() {
     if (typeof window === "undefined") return;
@@ -703,6 +669,12 @@ class CampusFleetStore {
   public getBookings() { return this.bookings; }
   public getLiveLocation() { return this.liveLocation; }
   public getPlans() { return this.plans; }
+  public getTransitZones(): TransitZone[] {
+    if (this.transitZones && this.transitZones.length > 0) {
+      return this.transitZones;
+    }
+    return TRANSIT_ZONES;
+  }
   public getPayments() { return this.payments; }
   public getIssues() { return this.issues; }
   public getMaintenance() { return this.maintenance; }
@@ -1065,14 +1037,26 @@ class CampusFleetStore {
         studentId: newRole === "student" ? (this.currentUser.studentId || this.currentUser.id) : undefined,
       };
     } else {
-      const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-      this.currentUser = {
-        id: `usr_${Date.now()}`,
-        email: newRole === "admin" ? (adminEmail || "admin@campus.gehu.ac.in") : "student@campus.gehu.ac.in",
-        fullName: newRole === "admin" ? "Aditya Pandey (Admin)" : "Student Commuter",
-        role: newRole,
-        studentId: newRole === "student" ? `stud_${Date.now()}` : undefined,
-      };
+      // Direct PostgreSQL lookup: select real user registered for this role
+      const dbUser = this.users.find(u => u.role === newRole);
+      if (dbUser) {
+        this.currentUser = {
+          id: dbUser.id,
+          email: dbUser.email,
+          fullName: dbUser.fullName || `${newRole.toUpperCase()} User`,
+          role: newRole,
+          studentId: newRole === "student" ? dbUser.id : undefined,
+        };
+      } else {
+        const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+        this.currentUser = {
+          id: `usr_${Date.now()}`,
+          email: newRole === "admin" ? (adminEmail || "admin@gehu.ac.in") : `${newRole}@gehu.ac.in`,
+          fullName: `${newRole.charAt(0).toUpperCase() + newRole.slice(1)} User`,
+          role: newRole,
+          studentId: newRole === "student" ? `stud_${Date.now()}` : undefined,
+        };
+      }
     }
     this.saveToLocalStorage();
     this.notify();
@@ -1349,6 +1333,19 @@ class CampusFleetStore {
     this.buses = this.buses.map(b => (b.id === busId ? { ...b, currentRouteId: routeId } : b));
     this.notify();
     try { await supabase.from("buses").update({ current_route_id: routeId }).eq("id", busId); } catch (e) { console.warn("DB allocate:", e); }
+  }
+
+  public async assignTripCrew(tripId: string, driverId: string, conductorId: string) {
+    this.trips = this.trips.map(t => (t.id === tripId ? { ...t, driverId, conductorId } : t));
+    this.notify();
+    try {
+      await supabase.from("trips").update({
+        driver_id: driverId,
+        conductor_id: conductorId,
+      }).eq("id", tripId);
+    } catch (e) {
+      console.warn("DB assignTripCrew error:", e);
+    }
   }
 
   public async createTrip(tripData: Omit<Trip, "id">) {

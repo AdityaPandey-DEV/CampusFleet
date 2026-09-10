@@ -115,22 +115,28 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
   const userRole = currentUser?.role || "student";
   const isAdmin = userRole === "admin" || userRole === "transport_manager";
   const isTeacher = userRole === "teacher";
-  const isStaff = userRole === "driver" || userRole === "conductor";
+  const isStaff = userRole === "staff";
+  const isDriver = userRole === "driver";
+  const isConductor = userRole === "conductor";
 
   // Strict Hierarchy Filter:
-  // Admin: Student, Teacher, Admin, Driver, Conductor
-  // Teacher: Student, Teacher
-  // Staff: Student, Driver, Conductor
+  // Admin: Can access all (Admin, Staff, Driver, Conductor, Teacher, Student)
+  // Staff: Staff Operations & Student Hub (Staff CANNOT access Driver or Conductor)
+  // Driver: Driver Console, Conductor Console & Student Hub (Driver CAN access Conductor, but CANNOT access Staff)
+  // Conductor: Conductor Console & Student Hub (Conductor CANNOT access Driver or Staff)
+  // Teacher: Teacher Desk & Student Hub
   // Student: Student only (Switcher Hidden)
   const allowedOptions = PORTAL_OPTIONS.filter(opt => {
     if (isAdmin) return true;
+    if (isStaff) return opt.role === "staff" || opt.role === "student";
+    if (isDriver) return opt.role === "driver" || opt.role === "conductor" || opt.role === "student";
+    if (isConductor) return opt.role === "conductor" || opt.role === "student";
     if (isTeacher) return opt.role === "student" || opt.role === "teacher";
-    if (isStaff) return opt.role !== "admin" && opt.role !== "teacher";
     return opt.role === "student";
   });
 
-  // If student only has 1 option, do not show switcher
-  if (!isAdmin && !isStaff && !isTeacher) {
+  // If user has only 1 portal option or none, do not show switcher
+  if (allowedOptions.length <= 1) {
     return null;
   }
 

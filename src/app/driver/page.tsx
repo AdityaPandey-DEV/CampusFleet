@@ -23,12 +23,15 @@ import {
   Users,
   Shield,
   Zap,
+  FileCheck2,
+  ArrowRight,
 } from "lucide-react";
 import { RolePortalSwitcher } from "@/components/common/RolePortalSwitcher";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function DriverConsolePage() {
+  const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [trips, setTrips] = useState(store.getTrips());
   const [buses, setBuses] = useState(store.getBuses());
   const [routes, setRoutes] = useState(store.getRoutes());
@@ -43,6 +46,7 @@ export default function DriverConsolePage() {
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
+      setCurrentUser(store.getCurrentUser());
       setTrips(store.getTrips());
       setBuses(store.getBuses());
       setRoutes(store.getRoutes());
@@ -210,6 +214,35 @@ export default function DriverConsolePage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
+  // Access Barrier: Staff cannot access Driver, Conductor cannot access Driver
+  if (currentUser && (currentUser.role === "staff" || currentUser.role === "conductor")) {
+    const isStaff = currentUser.role === "staff";
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl text-center space-y-4 animate-in fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black">Access Restricted</h2>
+          <p className="text-xs text-slate-300">
+            {isStaff
+              ? "Staff members are restricted from the Driver Console. Staff cannot operate driver telematics."
+              : "Conductors are restricted from viewing the Driver Console. Commercial heavy vehicle driving qualifications are required."}
+          </p>
+          <div className="pt-2">
+            <Link
+              href={isStaff ? "/staff" : "/conductor"}
+              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
+            >
+              <span>{isStaff ? "Return to Staff Operations Panel" : "Go to Conductor Console"}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-16 font-sans transition-colors duration-200 selection:bg-blue-600 selection:text-white">
       {/* Top Driver Header (Fully Responsive, Zero Overflow!) */}
@@ -235,6 +268,16 @@ export default function DriverConsolePage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between sm:justify-end min-w-0">
+            {/* Driver can access conductor panel */}
+            <Link
+              href="/conductor"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-bold transition-all shadow-xs"
+              title="Driver authorized to access Conductor Manifest Console"
+            >
+              <FileCheck2 className="w-3.5 h-3.5 text-purple-500" />
+              <span className="hidden sm:inline">Conductor Console</span>
+              <ArrowRight className="w-3 h-3 text-purple-400" />
+            </Link>
             <RolePortalSwitcher />
             <ThemeToggle />
             <Link

@@ -65,6 +65,7 @@ export default function AdminBillingPage() {
 
   const handleApprove = async (submissionId: string) => {
     setActionLoadingId(submissionId);
+    const reviewerName = store.getCurrentUser()?.fullName || "Transport Admin";
     try {
       const res = await fetch("/api/payments/approvals", {
         method: "POST",
@@ -72,7 +73,7 @@ export default function AdminBillingPage() {
         body: JSON.stringify({
           submissionId,
           action: "APPROVE",
-          reviewedBy: "Aditya Pandey (Transport Admin)",
+          reviewedBy: reviewerName,
         }),
       });
       const data = await res.json();
@@ -94,6 +95,7 @@ export default function AdminBillingPage() {
   const handleReject = async () => {
     if (!rejectModalId) return;
     setActionLoadingId(rejectModalId);
+    const reviewerName = store.getCurrentUser()?.fullName || "Transport Admin";
     try {
       const res = await fetch("/api/payments/approvals", {
         method: "POST",
@@ -102,7 +104,7 @@ export default function AdminBillingPage() {
           submissionId: rejectModalId,
           action: "REJECT",
           rejectionReason: rejectionReason.trim() || "Transaction ID / Screenshot could not be verified.",
-          reviewedBy: "Aditya Pandey (Transport Admin)",
+          reviewedBy: reviewerName,
         }),
       });
       const data = await res.json();

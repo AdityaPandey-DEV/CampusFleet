@@ -144,12 +144,12 @@ export default function LiveTrackerPage() {
       return liveLocation;
     }
 
-    const currentStop = currentRouteStops[activeTrip?.currentStopIndex || 0] || routeStartingStop;
+    const currentStop = currentRouteStops[activeTrip?.currentStopIndex || 0] || routeStartingStop || (stops.length > 0 ? stops[0] : null);
     return {
       busId: assignedBus?.id || "",
       tripId: activeTrip?.id || "",
-      latitude: currentStop?.latitude || 29.2889,
-      longitude: currentStop?.longitude || 79.4678,
+      latitude: currentStop?.latitude || (stops.length > 0 ? stops[0].latitude : 29.2889),
+      longitude: currentStop?.longitude || (stops.length > 0 ? stops[0].longitude : 79.4678),
       speedKmh: isTripInProgress ? (liveLocation?.speedKmh || 30) : 0,
       headingDeg: liveLocation?.headingDeg || 0,
       lastPingAt: new Date().toISOString(),

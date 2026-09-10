@@ -281,6 +281,11 @@ export interface TransitZone {
   installmentsAllowed: number;
 }
 
+/**
+ * Transit zones definition.
+ * Primary source of truth is PostgreSQL table `public.transit_zones` synced via `store.getTransitZones()`.
+ * The constant below serves as an offline initial fallback before first database sync.
+ */
 export const TRANSIT_ZONES: TransitZone[] = [
   {
     code: "ZONE_A",

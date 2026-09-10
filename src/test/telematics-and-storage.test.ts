@@ -11,6 +11,8 @@ describe("Modern Production Telematics & Storage Architecture", () => {
     speedKmh: 35,
     headingDeg: 120,
     lastPingAt: new Date().toISOString(),
+    estimatedArrivalNextStopMins: 4,
+    delayMinutes: 0,
   };
 
   it("should broadcast telematics updates to registered subscribers without throwing", async () => {
