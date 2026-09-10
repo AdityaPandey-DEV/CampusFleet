@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { sendOtpEmail } from "@/lib/email";
 
 /**
  * POST /api/auth/send-otp
@@ -47,15 +48,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // TODO: Send email via SMTP in production
-    // For now, log to console
-    console.log(`\n🔐 [OTP] Email: ${cleanEmail} | Code: ${code} | Expires: ${expiresAt}\n`);
+    // Send email via Gmail SMTP
+    const emailResult = await sendOtpEmail(cleanEmail, code);
+
+    // Also log to console for development convenience
+    console.log(`\n🔐 [OTP] Email: ${cleanEmail} | Code: ${code} | Expires: ${expiresAt} | Sent via SMTP: ${emailResult.sent}\n`);
 
     return NextResponse.json({
       success: true,
-      message: `Verification code sent to ${cleanEmail}`,
-      // In dev mode, include the code for easy testing
-      ...(process.env.NODE_ENV !== "production" && { devCode: code }),
+      message: emailResult.sent
+        ? `Verification code dispatched from campusfleet@gmail.com to ${cleanEmail}`
+        : `Verification code generated for ${cleanEmail}`,
+      // In dev mode or if SMTP is not configured, include the code for easy testing
+      ...((process.env.NODE_ENV !== "production" || !emailResult.sent) && { devCode: code }),
     });
   } catch (e: any) {
     console.error("Send OTP error:", e);
