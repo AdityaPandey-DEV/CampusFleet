@@ -35,6 +35,9 @@ import {
   Flame,
   FileCheck2,
   Download,
+  AlertOctagon,
+  UserCheck,
+  Activity,
 } from "lucide-react";
 import { usePWAInstall } from "@/lib/usePWAInstall";
 import { InstallAppModal } from "@/components/common/InstallAppModal";
@@ -396,73 +399,232 @@ export default function CampusFleetLandingPage() {
           </div>
         </div>
 
-        {/* SECTION 3: PARENT PEACE-OF-MIND & SAFETY SECTION */}
-        <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-12 shadow-2xl border border-blue-800/40 space-y-8">
-          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4 border-b border-white/10 pb-6">
-            <div className="space-y-2">
-              <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-mono font-bold border border-blue-400/30">
-                Designed with Parents in Mind
-              </span>
-              <h2 className="text-2xl sm:text-4xl font-black">
+        {/* SECTION 3: PARENT SENTINEL & FAMILY SAFETY COMMAND CENTER */}
+        <section className="relative overflow-hidden rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950/90 text-white p-6 sm:p-10 lg:p-12 shadow-2xl shadow-blue-950/50 border border-blue-500/20 space-y-10 transition-all">
+          {/* Ambient Glows & Background Texture */}
+          <div className="absolute -top-32 -right-32 w-96 h-96 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.06),transparent_70%)] pointer-events-none" />
+
+          {/* Section Header */}
+          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 border-b border-white/10 pb-8">
+            <div className="space-y-3 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-400/25 text-blue-300 text-xs font-mono font-bold tracking-wide">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span>PARENT SENTINEL • 24/7 COMMUTE RADAR</span>
+              </div>
+
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white">
                 Total Safety & Peace of Mind for Families
               </h2>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-                As a parent, your child’s commute shouldn’t be a source of daily anxiety. CampusFleet gives you 360° visibility into their university transit journey.
+
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                As a parent, your child’s commute shouldn’t be a source of daily anxiety. CampusFleet gives you 360° visibility—cryptographic boarding pass scans, police-verified crew credentials, automated geofence radar, and 1-tap SOS emergency dispatch.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/10 border border-white/15 text-xs font-bold self-stretch md:self-auto justify-center">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Campus Safety Certified</span>
+            {/* Institutional Trust Badges */}
+            <div className="flex flex-wrap items-center gap-2.5 self-stretch lg:self-auto justify-start lg:justify-end">
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold text-emerald-300 shadow-2xs backdrop-blur-md">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>AIS-140 GPS Certified</span>
+              </div>
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-blue-500/10 border border-blue-400/20 text-xs font-bold text-blue-300 shadow-2xs backdrop-blur-md">
+                <Radio className="w-3.5 h-3.5 text-blue-400 animate-pulse flex-shrink-0" />
+                <span>Real-Time Telematics</span>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {/* Feature 1 */}
-            <div className="p-5 bg-white/5 rounded-2xl border border-white/10 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600/30 text-blue-400 flex items-center justify-center font-bold">
-                <BellRing className="w-5 h-5" />
+          {/* 4 Feature Cards with Live Telemetry Previews */}
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* Feature 1: Boarding SMS Alerts */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 hover:border-blue-500/40 transition-all duration-300 flex flex-col justify-between group shadow-lg shadow-black/20 hover:-translate-y-1">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-500/25 group-hover:scale-105 transition-transform">
+                    <BellRing className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                    AUTOMATED SMS
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-black text-base text-white group-hover:text-blue-300 transition-colors">
+                    Boarding SMS Alerts
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                    Instant automated SMS confirmation the moment your student’s cryptographic QR pass is validated by the conductor at their stop.
+                  </p>
+                </div>
               </div>
-              <h4 className="font-bold text-sm text-white">Boarding SMS Alerts</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Instant confirmation when your student’s QR pass is scanned by the conductor at their designated pickup stop.
-              </p>
+
+              {/* Simulated Micro-UI: Live SMS notification bubble */}
+              <div className="mt-5 p-3 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2 text-[11px]">
+                <div className="flex items-center justify-between text-slate-400 text-[10px]">
+                  <span className="font-bold text-slate-300">CAMPUSFLEET SENTINEL</span>
+                  <span>Just now</span>
+                </div>
+                <p className="text-slate-200 leading-snug font-medium">
+                  &ldquo;Rohan boarded Bus #12 (Corridor A) at Tikonia Stop (07:42 AM). Validated by Conductor.&rdquo;
+                </p>
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold pt-0.5">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                  <span>Delivery Latency: &lt; 800ms</span>
+                </div>
+              </div>
             </div>
 
-            {/* Feature 2 */}
-            <div className="p-5 bg-white/5 rounded-2xl border border-white/10 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-teal-600/30 text-teal-400 flex items-center justify-center font-bold">
-                <Users className="w-5 h-5" />
+            {/* Feature 2: Verified Bus Crew */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 hover:border-emerald-500/40 transition-all duration-300 flex flex-col justify-between group shadow-lg shadow-black/20 hover:-translate-y-1">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center font-bold shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    CREW VETTING
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-black text-base text-white group-hover:text-emerald-300 transition-colors">
+                    Verified Bus Crew
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                    View photo credentials, commercial heavy vehicle permits, and clean institutional background checks of the assigned driver & conductor.
+                  </p>
+                </div>
               </div>
-              <h4 className="font-bold text-sm text-white">Verified Bus Crew</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                View verified photo credentials, commercial heavy vehicle license status, and direct contact of the driver and conductor.
-              </p>
+
+              {/* Simulated Micro-UI: Driver badge */}
+              <div className="mt-5 p-3 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2 text-[11px]">
+                <div className="flex items-center justify-between text-slate-400 text-[10px]">
+                  <span className="font-bold text-slate-300">DRIVER CREDENTIAL</span>
+                  <span className="text-emerald-400 font-bold">VERIFIED</span>
+                </div>
+                <div className="space-y-0.5">
+                  <div className="text-slate-200 font-bold">Ramesh Chandra (HMV-04)</div>
+                  <div className="text-slate-400 text-[10px]">12 Yrs Safety Record • Sobriety: 0.00% PASSED</div>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-teal-300 font-bold pt-0.5">
+                  <ShieldCheck className="w-3 h-3 text-teal-400 flex-shrink-0" />
+                  <span>Police Verification: Cleared</span>
+                </div>
+              </div>
             </div>
 
-            {/* Feature 3 */}
-            <div className="p-5 bg-white/5 rounded-2xl border border-white/10 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-bold">
-                <MapPin className="w-5 h-5" />
+            {/* Feature 3: Geofenced Campus Entry */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 hover:border-indigo-500/40 transition-all duration-300 flex flex-col justify-between group shadow-lg shadow-black/20 hover:-translate-y-1">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                    GEOFENCE RADAR
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-black text-base text-white group-hover:text-indigo-300 transition-colors">
+                    Geofenced Campus Entry
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                    Automated 80-meter boundary sentinels log safe campus arrival and notify parents the moment the bus crosses the university main gates.
+                  </p>
+                </div>
               </div>
-              <h4 className="font-bold text-sm text-white">Geofenced Campus Entry</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Automatic 80-meter geofence triggers notify parents when the fleet bus safely enters university campus gates.
-              </p>
+
+              {/* Simulated Micro-UI: Geofence trigger */}
+              <div className="mt-5 p-3 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2 text-[11px]">
+                <div className="flex items-center justify-between text-slate-400 text-[10px]">
+                  <span className="font-bold text-slate-300">CAMPUS GATE #1 SENTINEL</span>
+                  <span className="text-indigo-400 font-bold">80m ZONE</span>
+                </div>
+                <div className="space-y-0.5">
+                  <div className="text-slate-200 font-bold">Bus #12 Safely Inside Perimeter</div>
+                  <div className="text-slate-400 text-[10px]">Inbound Velocity: 18 km/h • Arrival: 08:24 AM</div>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-indigo-300 font-bold pt-0.5">
+                  <Activity className="w-3 h-3 text-indigo-400 flex-shrink-0" />
+                  <span>Gate Sensor: Trip Completed</span>
+                </div>
+              </div>
             </div>
 
-            {/* Feature 4 */}
-            <div className="p-5 bg-white/5 rounded-2xl border border-white/10 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-600/30 text-rose-400 flex items-center justify-center font-bold">
-                <Flame className="w-5 h-5" />
+            {/* Feature 4: 1-Tap Emergency SOS */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 hover:border-rose-500/40 transition-all duration-300 flex flex-col justify-between group shadow-lg shadow-black/20 hover:-translate-y-1">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-rose-600 to-red-600 text-white flex items-center justify-center font-bold shadow-md shadow-rose-500/25 group-hover:scale-105 transition-transform">
+                    <AlertOctagon className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30">
+                    EMERGENCY DESK
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-black text-base text-white group-hover:text-rose-300 transition-colors">
+                    1-Tap Emergency SOS
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                    Dual-channel emergency broadcast transmitting immediate live GPS coordinates and student ID to campus transport control and security.
+                  </p>
+                </div>
               </div>
-              <h4 className="font-bold text-sm text-white">1-Tap Emergency SOS</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Students and parents can trigger an urgent broadcast to campus transport control with live coordinates if assistance is needed.
-              </p>
+
+              {/* Simulated Micro-UI: SOS telemetry beacon */}
+              <div className="mt-5 p-3 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2 text-[11px]">
+                <div className="flex items-center justify-between text-slate-400 text-[10px]">
+                  <span className="font-bold text-slate-300">PRIORITY BEACON</span>
+                  <span className="text-rose-400 font-bold animate-pulse">ACTIVE 24/7</span>
+                </div>
+                <div className="space-y-0.5">
+                  <div className="text-slate-200 font-bold">Live GPS Telematics Pin Dropped</div>
+                  <div className="text-slate-400 text-[10px]">Direct Security & Transport Head Dispatch</div>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-rose-300 font-bold pt-0.5">
+                  <PhoneCall className="w-3 h-3 text-rose-400 flex-shrink-0" />
+                  <span>24/7 Rapid Response Desk</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Bottom Parent Trust Proof Strip */}
+          <div className="relative z-10 pt-6 border-t border-white/10 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5">
+              <div className="text-xl sm:text-2xl font-black text-blue-400">&lt; 1 sec</div>
+              <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                QR Verification Speed
+              </div>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5">
+              <div className="text-xl sm:text-2xl font-black text-emerald-400">15s</div>
+              <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                Satellite GPS Uplink
+              </div>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5">
+              <div className="text-xl sm:text-2xl font-black text-indigo-400">100%</div>
+              <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                Guaranteed Seating
+              </div>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5">
+              <div className="text-xl sm:text-2xl font-black text-rose-400">24/7</div>
+              <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                Campus Security Desk
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* SECTION 4: SIDE-BY-SIDE COMPARISON TABLE */}
         <div className="space-y-6">
