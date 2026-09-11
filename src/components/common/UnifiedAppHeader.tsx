@@ -29,6 +29,7 @@ import {
   Shield,
   Radio,
   ArrowRight,
+  Download,
 } from "lucide-react";
 
 export interface NavLinkItem {
@@ -46,6 +47,8 @@ interface UnifiedAppHeaderProps {
   navLinks?: NavLinkItem[];
   showSOS?: boolean;
   onOpenSOS?: () => void;
+  showInstall?: boolean;
+  onOpenInstall?: () => void;
   customActions?: React.ReactNode;
 }
 
@@ -130,6 +133,8 @@ export function UnifiedAppHeader({
   navLinks,
   showSOS = false,
   onOpenSOS,
+  showInstall = false,
+  onOpenInstall,
   customActions,
 }: UnifiedAppHeaderProps) {
   const router = useRouter();
@@ -311,6 +316,17 @@ export function UnifiedAppHeader({
 
           {/* Right Action Items & Command Pill */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0">
+            {showInstall && onOpenInstall && (
+              <button
+                onClick={onOpenInstall}
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-blue-50/90 dark:bg-blue-950/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs rounded-xl border border-blue-200/80 dark:border-blue-800/80 transition-all active:scale-95 cursor-pointer shadow-2xs flex-shrink-0"
+                title="Install CampusFleet App on your device"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Install App</span>
+              </button>
+            )}
+
             {customActions && <div className="flex items-center gap-1.5">{customActions}</div>}
 
             {/* High-Visibility Emergency SOS Button (Compact & Tactile) */}
@@ -683,7 +699,20 @@ export function UnifiedAppHeader({
           )}
 
           {/* Emergency & Utilities Bar */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+            {showInstall && onOpenInstall && (
+              <button
+                onClick={() => {
+                  setIsMobileSheetOpen(false);
+                  onOpenInstall();
+                }}
+                className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Install App</span>
+              </button>
+            )}
+
             {showSOS && onOpenSOS && (
               <button
                 onClick={() => {

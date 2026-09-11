@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="cfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="50%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Background App Squircle -->
+  <rect width="512" height="512" rx="128" fill="url(#cfGrad)" />
+
+  <!-- Inner Ambient Glow -->
+  <circle cx="256" cy="120" r="160" fill="#ffffff" opacity="0.12" filter="blur(30px)" />
+
+  <!-- Bus Body Group -->
+  <g transform="translate(106, 96)" filter="url(#shadow)">
+    <!-- Main Bus Chassis -->
+    <rect x="15" y="40" width="270" height="250" rx="36" fill="#ffffff" />
+    
+    <!-- Windshield Glass -->
+    <rect x="35" y="65" width="230" height="95" rx="18" fill="#0f172a" />
+    <!-- Windshield Reflection -->
+    <path d="M 50 75 L 140 75 L 110 145 L 50 145 Z" fill="#38bdf8" opacity="0.4" />
+
+    <!-- Destination Sign / LED Matrix -->
+    <rect x="75" y="48" width="150" height="12" rx="4" fill="#fbbf24" opacity="0.9" />
+
+    <!-- Front Grille -->
+    <rect x="90" y="210" width="120" height="30" rx="8" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="2" />
+    <line x1="105" y1="220" x2="195" y2="220" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" />
+    <line x1="105" y1="230" x2="195" y2="230" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Headlights -->
+    <circle cx="55" cy="225" r="16" fill="#fef08a" stroke="#f59e0b" stroke-width="3" />
+    <circle cx="245" cy="225" r="16" fill="#fef08a" stroke="#f59e0b" stroke-width="3" />
+    <!-- Inner Xenon beam -->
+    <circle cx="55" cy="225" r="8" fill="#ffffff" />
+    <circle cx="245" cy="225" r="8" fill="#ffffff" />
+
+    <!-- Indicator Lights -->
+    <rect x="42" y="175" width="20" height="10" rx="4" fill="#f97316" />
+    <rect x="238" y="175" width="20" height="10" rx="4" fill="#f97316" />
+
+    <!-- Bumper -->
+    <rect x="20" y="255" width="260" height="28" rx="12" fill="#1e293b" />
+
+    <!-- Wheels -->
+    <rect x="30" y="278" width="36" height="22" rx="6" fill="#0f172a" />
+    <rect x="234" y="278" width="36" height="22" rx="6" fill="#0f172a" />
+
+    <!-- Shield / GEHU crest on front -->
+    <circle cx="150" cy="185" r="14" fill="url(#shieldGrad)" />
+    <path d="M 145 185 L 149 189 L 156 181" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  </g>
+</svg>

@@ -34,7 +34,11 @@ import {
   PhoneCall,
   Flame,
   FileCheck2,
+  Download,
 } from "lucide-react";
+import { usePWAInstall } from "@/lib/usePWAInstall";
+import { InstallAppModal } from "@/components/common/InstallAppModal";
+import { MobileInstallBanner } from "@/components/common/MobileInstallBanner";
 
 export default function CampusFleetLandingPage() {
   const [buses, setBuses] = useState(store.getBuses());
@@ -42,7 +46,21 @@ export default function CampusFleetLandingPage() {
   const [routes, setRoutes] = useState(store.getRoutes());
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  const { isInstalled, isIOS, isAndroid, canInstallNative, promptInstall } = usePWAInstall();
+
+  const handleInstallClick = async () => {
+    if (canInstallNative) {
+      const outcome = await promptInstall();
+      if (outcome === "modal_needed") {
+        setIsInstallModalOpen(true);
+      }
+    } else {
+      setIsInstallModalOpen(true);
+    }
+  };
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -115,8 +133,19 @@ export default function CampusFleetLandingPage() {
       <UnifiedAppHeader
         portalTitle="CampusFleet"
         portalSubtitle="Student & Parent Transit Portal"
+        showInstall={true}
+        onOpenInstall={handleInstallClick}
         customActions={
           <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50/90 dark:bg-blue-950/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs rounded-xl border border-blue-200/80 dark:border-blue-800/80 transition-all active:scale-95 cursor-pointer shadow-2xs"
+              title="Install CampusFleet App on your device"
+            >
+              <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span className="hidden sm:inline">Install App</span>
+            </button>
+
             <Link
               href="/portal/booking"
               className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200/80 dark:border-slate-700/80 transition-colors"
@@ -167,22 +196,31 @@ export default function CampusFleetLandingPage() {
               <ArrowRight className="w-4 h-4 shrink-0" />
             </Link>
 
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+            <div className="grid grid-cols-3 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <Link
                 href="/portal/booking"
-                className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-white/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm rounded-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-xs flex items-center justify-center gap-1.5 transition-all backdrop-blur-md text-center"
+                className="w-full sm:w-auto px-2.5 sm:px-5 py-3 bg-white/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm rounded-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-xs flex items-center justify-center gap-1.5 transition-all backdrop-blur-md text-center"
               >
                 <BusFront className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                <span>Reserve Seat</span>
+                <span className="truncate">Reserve Seat</span>
               </Link>
 
               <Link
                 href="/portal/pass"
-                className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-slate-100/90 dark:bg-slate-800/60 hover:bg-slate-200/90 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm rounded-2xl border border-slate-200/60 dark:border-slate-700/60 transition-all backdrop-blur-md flex items-center justify-center gap-1.5 text-center"
+                className="w-full sm:w-auto px-2.5 sm:px-5 py-3 bg-slate-100/90 dark:bg-slate-800/60 hover:bg-slate-200/90 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm rounded-2xl border border-slate-200/60 dark:border-slate-700/60 transition-all backdrop-blur-md flex items-center justify-center gap-1.5 text-center"
               >
                 <QrCode className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>Digital Pass</span>
+                <span className="truncate">Digital Pass</span>
               </Link>
+
+              <button
+                type="button"
+                onClick={handleInstallClick}
+                className="w-full sm:w-auto px-2.5 sm:px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/60 dark:to-indigo-950/60 hover:from-blue-100 dark:hover:from-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-xs sm:text-sm rounded-2xl border border-blue-200/90 dark:border-blue-800/80 shadow-xs flex items-center justify-center gap-1.5 transition-all backdrop-blur-md text-center cursor-pointer group"
+              >
+                <Download className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 group-hover:translate-y-0.5 transition-transform" />
+                <span className="truncate">Install App</span>
+              </button>
             </div>
           </div>
 
@@ -621,6 +659,15 @@ export default function CampusFleetLandingPage() {
             >
               <span>View Available Shifts & Seats</span>
             </Link>
+
+            <button
+              type="button"
+              onClick={handleInstallClick}
+              className="w-full sm:w-auto px-6 sm:px-8 py-3.5 bg-blue-500/30 hover:bg-blue-500/50 text-white font-bold text-xs sm:text-sm rounded-2xl border border-white/30 transition-all active:scale-95 flex items-center justify-center gap-2 text-center cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Install Web App (PWA)</span>
+            </button>
           </div>
         </div>
 
@@ -650,6 +697,14 @@ export default function CampusFleetLandingPage() {
               <Link href="/portal/pass" className="hover:text-blue-600 transition-colors">Digital Pass</Link>
               <Link href="/portal/payments" className="hover:text-blue-600 transition-colors">Pass Fees & UPI</Link>
               <Link href="/portal/tracker" className="hover:text-blue-600 transition-colors">Live GPS Radar</Link>
+              <button
+                type="button"
+                onClick={handleInstallClick}
+                className="hover:text-blue-600 transition-colors font-bold text-blue-600 dark:text-blue-400 cursor-pointer inline-flex items-center gap-1"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Install App</span>
+              </button>
             </div>
           </div>
 
@@ -681,6 +736,24 @@ export default function CampusFleetLandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Persistent Floating Install Banner */}
+      <MobileInstallBanner
+        onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        isInstalled={isInstalled}
+        canInstallNative={canInstallNative}
+        onPromptInstall={promptInstall}
+      />
+
+      {/* PWA Install Guidance & 1-Tap Trigger Modal */}
+      <InstallAppModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        canInstallNative={canInstallNative}
+        onPromptInstall={promptInstall}
+        isIOS={isIOS}
+        isAndroid={isAndroid}
+      />
     </div>
   );
 }
