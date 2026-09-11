@@ -649,7 +649,6 @@ export default function AdminRoutesView({
                   >
                     <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: r.color }} />
                     <span>{r.name}</span>
-                    <span className="font-mono text-[10px] opacity-80">({r.code})</span>
                     <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 font-mono">
                       {r.stops.length} stops
                     </span>

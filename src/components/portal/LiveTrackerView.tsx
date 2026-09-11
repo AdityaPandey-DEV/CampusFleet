@@ -249,7 +249,7 @@ export default function LiveTrackerView({
           >
             {routes.map(r => (
               <option key={r.id} value={r.id}>
-                {r.name} ({r.code})
+                {r.name}
               </option>
             ))}
           </select>

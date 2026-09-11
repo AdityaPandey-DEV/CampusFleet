@@ -1650,8 +1650,8 @@ export default function StaffOperationsView({
                       className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-md space-y-4"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                          {item.routeCode} • {item.direction === "HOME_TO_CAMPUS" ? "Morning Inbound" : "Evening Return"}
+                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          {item.direction === "HOME_TO_CAMPUS" ? "Morning Inbound" : "Evening Return"}
                         </span>
                         <span
                           className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${

@@ -282,19 +282,21 @@ export default function CampusFleetMap({
 
       // Render Stop Station Markers
       const shortestPathSet = new Set(shortestPathStopIds);
+      const hasSpecificRoute = shortestPathStopIds.length > 0;
 
       stops.forEach((stop, idx) => {
         const isPassed = idx < activeStopIndex;
         const isNext = idx === activeStopIndex;
         const isStudentPickup = selectedStopId && stop.id === selectedStopId;
         const isOnShortestPath = shortestPathSet.has(stop.id);
-        const isStartOfPath = shortestPathStopIds[0] === stop.id;
-        const isEndOfPath = shortestPathStopIds[shortestPathStopIds.length - 1] === stop.id || idx === stops.length - 1;
+        const isStartOfPath = hasSpecificRoute && shortestPathStopIds[0] === stop.id;
+        const isCampusTerminal = stop.id === "stop-bhimtal-campus" || stop.code === "GEHU-BHT" || stop.name.toLowerCase().includes("bhimtal campus") || stop.name.toLowerCase().includes("terminal");
+        const isEndOfPath = (hasSpecificRoute && shortestPathStopIds[shortestPathStopIds.length - 1] === stop.id) || (!hasSpecificRoute && isCampusTerminal);
 
         let iconBgClass = "bg-teal-600 border-white text-white";
         if (isStudentPickup) {
           iconBgClass = "bg-emerald-600 border-white text-white ring-4 ring-emerald-400/60 animate-pulse shadow-lg";
-        } else if (isEndOfPath) {
+        } else if (isCampusTerminal || isEndOfPath) {
           iconBgClass = "bg-blue-600 border-white text-white ring-4 ring-blue-400/50 shadow-md";
         } else if (isStartOfPath) {
           iconBgClass = "bg-emerald-500 border-white text-white ring-4 ring-emerald-400/40 animate-pulse";
@@ -309,7 +311,7 @@ export default function CampusFleetMap({
         const stopIcon = L.divIcon({
           className: "custom-stop-icon",
           html: `<div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-md border-2 ${iconBgClass}">
-            ${isStudentPickup ? "📍" : isEndOfPath ? "🏫" : isStartOfPath ? "🚏" : idx + 1}
+            ${isStudentPickup ? "📍" : isCampusTerminal ? "🏫" : isStartOfPath ? "🚏" : hasSpecificRoute ? idx + 1 : "🚏"}
           </div>`,
           iconSize: isStudentPickup ? [32, 32] : [28, 28],
           iconAnchor: isStudentPickup ? [16, 16] : [14, 14],
@@ -323,10 +325,10 @@ export default function CampusFleetMap({
         marker.bindPopup(`
           <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
             ${isStudentPickup ? '<div style="color: #059669; font-weight: 900; font-size: 12px; margin-bottom: 2px;">★ Your Allocated Boarding Point</div>' : ""}
-            ${isEndOfPath ? '<div style="color: #1d4ed8; font-weight: 900; font-size: 12px; margin-bottom: 2px;">🏫 Destination University Campus</div>' : ""}
+            ${isCampusTerminal ? '<div style="color: #1d4ed8; font-weight: 900; font-size: 12px; margin-bottom: 2px;">🏫 Destination University Campus</div>' : ""}
             <strong style="color: #0f172a; font-size: 13px;">${stop.name} (${stop.code})</strong><br/>
-            <span>Landmark: <strong>${stop.landmark || "Campus Stop"}</strong></span><br/>
-            <span>Route Sequence: Stop #${idx + 1}</span>
+            <span>Landmark: <strong>${stop.landmark || "Transit Stop"}</strong></span><br/>
+            <span>${hasSpecificRoute ? `Route Sequence: Stop #${idx + 1}` : `Station Code: ${stop.code}`}</span>
             ${isOnShortestPath ? '<br/><span style="color: #7c3aed; font-weight: bold;">★ On Shortest Route to Campus</span>' : ""}
           </div>
         `);

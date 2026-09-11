@@ -251,7 +251,7 @@ export default function AdminBusesView({
                     <div className="flex flex-wrap gap-1.5 pt-0.5">
                       {assignedRoutes.map(r => (
                         <span key={r.id} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-                          {r.name} ({r.code})
+                          {r.name}
                         </span>
                       ))}
                     </div>
@@ -466,7 +466,7 @@ export default function AdminBusesView({
                 <option value="">-- Choose Campus Route --</option>
                 {routes.map(r => (
                   <option key={r.id} value={r.id}>
-                    {r.name} ({r.code}) • {r.stops.length} Stops
+                    {r.name} • {r.stops.length} Stops
                   </option>
                 ))}
               </select>

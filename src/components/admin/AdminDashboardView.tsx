@@ -172,7 +172,7 @@ export default function AdminDashboardView({
     const routeTrips = trips.filter(t => t.routeId === r.id);
     const routeBookings = routeTrips.flatMap(t => bookings.filter(b => b.tripId === t.id));
     return {
-      name: r.code || r.name.substring(0, 16),
+      name: r.name.split(" to ")[0] || r.name.substring(0, 16),
       capacity: routeBus?.capacity || 40,
       booked: routeBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length,
       waitlist: routeBookings.filter(b => b.status === "WAITLISTED").length,

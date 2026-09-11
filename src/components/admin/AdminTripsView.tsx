@@ -1127,7 +1127,7 @@ export default function AdminTripsView({
                   <option value="">-- Choose Corridor --</option>
                   {routes.map((r) => (
                     <option key={r.id} value={r.id}>
-                      {r.code} - {r.name}
+                      {r.name}
                     </option>
                   ))}
                 </select>
