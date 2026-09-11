@@ -47,7 +47,13 @@ import {
   Phone,
   Award,
   LayoutDashboard,
+  Plus,
+  GitBranch,
+  ArrowDown,
+  Navigation,
+  Route as RouteIcon,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 import type { Route, Bus, Stop, Student, Trip, Booking, Staff, UserAccount } from "@/lib/types";
 
 export interface StaffOperationsProps {
@@ -74,7 +80,7 @@ export default function StaffOperationsView({
   initialUsers = [],
 }: StaffOperationsProps = {}) {
   const [activeTab, setActiveTab] = useState<
-    "APPROVALS" | "QR_SETTINGS" | "AUDIT_EXCEL" | "DEMAND_FLEET" | "MERGE_OPTIMIZER" | "DAILY_OPERATIONS" | "CREW_ASSIGNMENT"
+    "APPROVALS" | "QR_SETTINGS" | "AUDIT_EXCEL" | "DEMAND_FLEET" | "ROUTE_FLOWCHART" | "MERGE_OPTIMIZER" | "DAILY_OPERATIONS" | "CREW_ASSIGNMENT"
   >("APPROVALS");
 
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
@@ -102,6 +108,26 @@ export default function StaffOperationsView({
     const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
     return ist.toISOString().split("T")[0];
   });
+
+  // Route Flowchart & Bus Dispatch State
+  const [flowchartRouteId, setFlowchartRouteId] = useState<string>(() => initialRoutes[0]?.id || "");
+  const [flowchartSearchQuery, setFlowchartSearchQuery] = useState("");
+  const [isAssignBusModalOpen, setIsAssignBusModalOpen] = useState(false);
+  const [assignTargetStop, setAssignTargetStop] = useState<{
+    stopId: string;
+    stopName: string;
+    stopCode: string;
+    stopSequence: number;
+    arrivalOffset: number;
+  } | null>(null);
+  const [assignBusFormData, setAssignBusFormData] = useState({
+    busId: "",
+    departureTime: "07:20",
+    driverId: "",
+    conductorId: "",
+  });
+  const [isAssigningFlowchartBus, setIsAssigningFlowchartBus] = useState(false);
+  const [assignFlowchartError, setAssignFlowchartError] = useState<string | null>(null);
 
   // Submissions State
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -588,6 +614,155 @@ export default function StaffOperationsView({
     }
   };
 
+  // Active route for Corridor Flowchart
+  const selectedFlowchartRoute = useMemo(() => {
+    if (!routes || routes.length === 0) return null;
+    return routes.find((r) => r.id === flowchartRouteId) || routes[0];
+  }, [routes, flowchartRouteId]);
+
+  // Extract stops in ordered sequence for flowchart
+  const flowchartStops = useMemo(() => {
+    if (!selectedFlowchartRoute) return [];
+
+    let rawList: any[] = [];
+    if (Array.isArray(selectedFlowchartRoute.stops) && selectedFlowchartRoute.stops.length > 0) {
+      rawList = selectedFlowchartRoute.stops;
+    } else if (Array.isArray((selectedFlowchartRoute as any).stops_data) && (selectedFlowchartRoute as any).stops_data.length > 0) {
+      rawList = (selectedFlowchartRoute as any).stops_data;
+    } else if (Array.isArray((selectedFlowchartRoute as any).route_stops) && (selectedFlowchartRoute as any).route_stops.length > 0) {
+      rawList = (selectedFlowchartRoute as any).route_stops;
+    }
+
+    const resolved = rawList.map((item: any, idx: number) => {
+      const stopId = item.stopId || item.stop_id || item.id || `stop-${idx}`;
+      const foundStop = item.stop || stops.find((s) => s.id === stopId);
+      const name = foundStop?.name || item.name || `Stop ${idx + 1}`;
+      const code = foundStop?.code || item.code || `STP-${idx + 1}`;
+      const landmark = foundStop?.landmark || item.landmark || "";
+      const sequence = typeof item.stopOrder === "number" ? item.stopOrder : idx + 1;
+      const arrivalOffset = typeof item.arrivalOffsetMinutes === "number" ? item.arrivalOffsetMinutes : idx * 12;
+
+      // Count students registered for this primary stop
+      const enrolledStudents = students.filter(
+        (st) => st.primaryStopId === stopId || (st.primaryRouteId === selectedFlowchartRoute.id && idx === 0)
+      );
+
+      // Find trips that originate or are deployed starting from this stop
+      const assignedTrips = trips.filter((t) => {
+        if (t.routeId !== selectedFlowchartRoute.id) return false;
+        const currentIdx = t.currentStopIndex ?? 0;
+        return currentIdx === idx;
+      });
+
+      return {
+        stopId,
+        name,
+        code,
+        landmark,
+        sequence,
+        index: idx,
+        arrivalOffset,
+        enrolledCount: enrolledStudents.length,
+        assignedTrips,
+      };
+    });
+
+    if (!flowchartSearchQuery.trim()) return resolved;
+    const q = flowchartSearchQuery.toLowerCase();
+    return resolved.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.code.toLowerCase().includes(q) ||
+        s.landmark.toLowerCase().includes(q)
+    );
+  }, [selectedFlowchartRoute, stops, students, trips, flowchartSearchQuery]);
+
+  const handleOpenAssignModal = (targetStop: {
+    stopId: string;
+    stopName: string;
+    stopCode: string;
+    stopSequence: number;
+    arrivalOffset: number;
+  }) => {
+    setAssignTargetStop(targetStop);
+    const activeBus = buses.find((b) => b.status === "ACTIVE") || buses[0];
+    
+    // Calculate expected time based on 07:20 AM baseline + arrivalOffset
+    const baseHour = 7;
+    const baseMin = 20 + targetStop.arrivalOffset;
+    const totalMins = baseHour * 60 + baseMin;
+    const hrs = String(Math.floor(totalMins / 60) % 24).padStart(2, "0");
+    const mins = String(totalMins % 60).padStart(2, "0");
+
+    setAssignBusFormData({
+      busId: activeBus?.id || "",
+      departureTime: `${hrs}:${mins}`,
+      driverId: "",
+      conductorId: "",
+    });
+    setAssignFlowchartError(null);
+    setIsAssignBusModalOpen(true);
+  };
+
+  const handleSaveBusAssignmentToStop = async () => {
+    if (!assignTargetStop || !selectedFlowchartRoute) {
+      setAssignFlowchartError("Please select a valid stop and corridor route.");
+      return;
+    }
+    if (!assignBusFormData.busId) {
+      setAssignFlowchartError("Please select an operational bus from the fleet.");
+      return;
+    }
+
+    setIsAssigningFlowchartBus(true);
+    setAssignFlowchartError(null);
+
+    try {
+      const chosenBus = buses.find((b) => b.id === assignBusFormData.busId);
+      const chosenBusLabel = chosenBus ? chosenBus.busNumber.split(" ")[0] : "BUS";
+      const tripCode = `${selectedFlowchartRoute.code}-${chosenBusLabel}-S${assignTargetStop.stopSequence}-${Date.now().toString().slice(-4)}`;
+      const today = new Date().toISOString().split("T")[0];
+
+      const newTripData = {
+        tripCode,
+        routeId: selectedFlowchartRoute.id,
+        busId: assignBusFormData.busId,
+        shiftId: "shift-morning-01",
+        driverId: assignBusFormData.driverId || "",
+        conductorId: assignBusFormData.conductorId || "",
+        tripDate: today,
+        status: "SCHEDULED" as const,
+        delayMinutes: 0,
+        manifestLocked: false,
+        currentStopIndex: Math.max(0, assignTargetStop.stopSequence - 1),
+      };
+
+      await store.createTrip(newTripData);
+      setTrips(store.getTrips());
+
+      showToast(`✓ Bus ${chosenBus?.busNumber || chosenBusLabel} assigned starting from ${assignTargetStop.stopName}!`);
+      setIsAssignBusModalOpen(false);
+      setAssignTargetStop(null);
+    } catch (err: any) {
+      console.error("Error creating trip assignment:", err);
+      setAssignFlowchartError(err.message || "Failed to assign bus to this stop.");
+    } finally {
+      setIsAssigningFlowchartBus(false);
+    }
+  };
+
+  const handleUnassignTrip = async (tripId: string, busLabel: string) => {
+    if (!confirm(`Are you sure you want to unassign ${busLabel} from this stop?`)) return;
+    try {
+      await store.deleteTrip(tripId);
+      setTrips(store.getTrips());
+      showToast(`✓ Unassigned ${busLabel} from service successfully!`);
+    } catch (err: any) {
+      console.error("Error unassigning trip:", err);
+      showToast(`Failed to unassign: ${err.message || "Unknown error"}`);
+    }
+  };
+
   // Access Barrier: Only Staff and Admin can access the Staff Panel; Drivers, Conductors & Students are restricted
   const isAuthorizedStaff = currentUser?.role === "staff" || currentUser?.role === "admin" || currentUser?.role === "transport_manager";
   if (currentUser && !isAuthorizedStaff) {
@@ -763,6 +938,18 @@ export default function StaffOperationsView({
           >
             <BarChart3 className="w-4 h-4" />
             <span>Demand & Fleet Sizing</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("ROUTE_FLOWCHART")}
+            className={`flex-1 min-w-[160px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+              activeTab === "ROUTE_FLOWCHART"
+                ? "bg-blue-600 text-white shadow-md"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <GitBranch className="w-4 h-4" />
+            <span>Route Stops & Bus Dispatch</span>
           </button>
 
           <button
@@ -1405,6 +1592,309 @@ export default function StaffOperationsView({
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 4.5: Corridor Stop Flowchart & Dynamic Bus Dispatch */}
+        {activeTab === "ROUTE_FLOWCHART" && (
+          <div className="space-y-6 animate-in fade-in">
+            {/* Header & Route Selector */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <GitBranch className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <span>Corridor Flowchart & Stop-by-Stop Bus Dispatch</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Visual flow chart of transit stops. Click the <strong>+</strong> button at any stop to deploy an operational bus starting from that exact origin point.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Active Corridor:</span>
+                  <select
+                    value={flowchartRouteId || (routes[0]?.id ?? "")}
+                    onChange={(e) => setFlowchartRouteId(e.target.value)}
+                    className="text-xs font-black px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white outline-none focus:border-blue-500 max-w-[280px]"
+                  >
+                    {routes.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.code} • {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Corridor Overview Banner */}
+              {selectedFlowchartRoute && (
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 rounded-2xl border border-blue-200/60 dark:border-blue-900/40">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Corridor Route</div>
+                    <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5 truncate">{selectedFlowchartRoute.name}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Code: {selectedFlowchartRoute.code}</div>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Sequential Stops</div>
+                    <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5">{flowchartStops.length} Corridor Stations</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Direction: {selectedFlowchartRoute.direction || "CAMPUS"}</div>
+                  </div>
+
+                  <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200/60 dark:border-emerald-900/40">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Buses Deployed Here</div>
+                    <div className="text-sm font-black text-emerald-700 dark:text-emerald-300 mt-0.5">
+                      {trips.filter((t) => t.routeId === selectedFlowchartRoute.id).length} Active Buses
+                    </div>
+                    <div className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">Assigned along this corridor</div>
+                  </div>
+
+                  <div className="p-3 bg-purple-50/70 dark:bg-purple-950/40 rounded-2xl border border-purple-200/60 dark:border-purple-900/40">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Enrolled Commuters</div>
+                    <div className="text-sm font-black text-purple-700 dark:text-purple-300 mt-0.5">
+                      {students.filter((st) => st.primaryRouteId === selectedFlowchartRoute.id).length} Students
+                    </div>
+                    <div className="text-[10px] text-purple-600/80 dark:text-purple-400/80 mt-0.5">Registered on this corridor</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Search filter */}
+              <div className="relative pt-1">
+                <Search className="w-4 h-4 absolute left-3.5 top-[18px] text-slate-400" />
+                <input
+                  type="text"
+                  value={flowchartSearchQuery}
+                  onChange={(e) => setFlowchartSearchQuery(e.target.value)}
+                  placeholder="Search stop name, station code, or landmark along this corridor..."
+                  className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-blue-500 font-bold"
+                />
+              </div>
+            </div>
+
+            {/* Visual Flowchart Display */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-md">
+              <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <RouteIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  <span className="text-sm font-black text-slate-900 dark:text-white">Corridor Stop Flowchart</span>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                    {flowchartStops.length} Stops
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-bold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+                  <span>Origin to Terminus Flow</span>
+                </div>
+              </div>
+
+              {flowchartStops.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  No stops found for this corridor or matching your search.
+                </div>
+              ) : (
+                <div className="mt-6 space-y-0 relative">
+                  {/* Flowchart items */}
+                  {flowchartStops.map((st, idx) => {
+                    const isFirst = idx === 0;
+                    const isLast = idx === flowchartStops.length - 1;
+                    const stopBusCount = st.assignedTrips.length;
+
+                    // Calculate time badge (based on 07:20 AM baseline + arrivalOffset)
+                    const totalMins = 7 * 60 + 20 + st.arrivalOffset;
+                    const hrs = Math.floor(totalMins / 60) % 24;
+                    const mins = totalMins % 60;
+                    const ampm = hrs >= 12 ? "PM" : "AM";
+                    const displayHours = hrs % 12 || 12;
+                    const formattedTime = `${String(displayHours).padStart(2, "0")}:${String(mins).padStart(2, "0")} ${ampm}`;
+
+                    return (
+                      <div key={st.stopId} className="relative group">
+                        {/* Connecting Line to next stop */}
+                        {!isLast && (
+                          <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-indigo-500 to-purple-500 -mb-2 z-0">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 flex items-center justify-center shadow-xs">
+                              <ArrowDown className="w-2.5 h-2.5 text-indigo-500" />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-start gap-4 pb-8 z-10 relative">
+                          {/* Node Icon on the vertical flowline */}
+                          <div className="flex flex-col items-center">
+                            <div
+                              className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xs shadow-md shrink-0 transition-transform group-hover:scale-105 ${
+                                isFirst
+                                  ? "bg-gradient-to-tr from-blue-600 to-cyan-500 text-white ring-4 ring-blue-100 dark:ring-blue-950"
+                                  : isLast
+                                  ? "bg-gradient-to-tr from-emerald-600 to-teal-500 text-white ring-4 ring-emerald-100 dark:ring-emerald-950"
+                                  : "bg-gradient-to-tr from-indigo-600 to-blue-600 text-white ring-4 ring-slate-100 dark:ring-slate-800"
+                              }`}
+                            >
+                              {isFirst ? (
+                                <Navigation className="w-5 h-5" />
+                              ) : isLast ? (
+                                <Building2 className="w-5 h-5" />
+                              ) : (
+                                <span>#{st.sequence}</span>
+                              )}
+                            </div>
+                            <span
+                              className={`text-[9px] font-black uppercase tracking-wider mt-1 px-1.5 py-0.5 rounded ${
+                                isFirst
+                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                                  : isLast
+                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                  : "text-slate-400"
+                              }`}
+                            >
+                              {isFirst ? "Origin" : isLast ? "Terminus" : `Stop ${st.sequence}`}
+                            </span>
+                          </div>
+
+                          {/* Stop Card & Assign Button Container */}
+                          <div className="flex-1 bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100/80 dark:hover:bg-slate-800 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-sm transition-all">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                              {/* Stop Details */}
+                              <div className="space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h4 className="text-base font-black text-slate-900 dark:text-white">
+                                    {st.name}
+                                  </h4>
+                                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                                    {st.code}
+                                  </span>
+                                  {isFirst && (
+                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                                      Primary Route Origin
+                                    </span>
+                                  )}
+                                  {isLast && (
+                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                                      Campus Final Drop-off
+                                    </span>
+                                  )}
+                                </div>
+
+                                {st.landmark && (
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    <span>{st.landmark}</span>
+                                  </p>
+                                )}
+
+                                <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px]">
+                                  <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 font-bold bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <Clock className="w-3.5 h-3.5 text-blue-500" />
+                                    <span>{formattedTime} (+{st.arrivalOffset}m)</span>
+                                  </span>
+
+                                  <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 font-bold bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <Users className="w-3.5 h-3.5 text-purple-500" />
+                                    <span>{st.enrolledCount} Registered Commuters</span>
+                                  </span>
+
+                                  {stopBusCount > 0 && (
+                                    <span className="inline-flex items-center gap-1 font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                      <BusFront className="w-3.5 h-3.5" />
+                                      <span>{stopBusCount} {stopBusCount === 1 ? "Bus" : "Buses"} Assigned Here</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* The "+" Button to Add/Assign Bus from this starting point */}
+                              <div className="shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleOpenAssignModal({
+                                      stopId: st.stopId,
+                                      stopName: st.name,
+                                      stopCode: st.code,
+                                      stopSequence: st.sequence,
+                                      arrivalOffset: st.arrivalOffset,
+                                    })
+                                  }
+                                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-600 text-white rounded-xl text-xs font-black shadow-md hover:shadow-lg transition-all transform active:scale-95 group/btn"
+                                >
+                                  <div className="w-5 h-5 rounded-lg bg-white/20 flex items-center justify-center font-black">
+                                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                                  </div>
+                                  <span>Assign Bus Here</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Assigned Buses Display along this stop */}
+                            {stopBusCount > 0 ? (
+                              <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                                <div className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                                  <BusFront className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>Operational Buses Originating / At this Station:</span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                  {st.assignedTrips.map((trip) => {
+                                    const busObj = buses.find((b) => b.id === trip.busId);
+                                    const driverName = trip.driverId
+                                      ? staff.find((s) => s.id === trip.driverId)?.fullName ||
+                                        users.find((u) => u.id === trip.driverId)?.fullName ||
+                                        "Assigned Driver"
+                                      : "No Driver Assigned";
+                                    const conductorName = trip.conductorId
+                                      ? staff.find((s) => s.id === trip.conductorId)?.fullName ||
+                                        users.find((u) => u.id === trip.conductorId)?.fullName ||
+                                        "Assigned Conductor"
+                                      : "No Conductor Assigned";
+
+                                    return (
+                                      <div
+                                        key={trip.id}
+                                        className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between gap-3 group/chip"
+                                      >
+                                        <div className="space-y-0.5 truncate">
+                                          <div className="flex items-center gap-1.5">
+                                            <BusFront className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                            <span className="text-xs font-black text-slate-900 dark:text-white truncate">
+                                              {busObj?.busNumber || "Bus Fleet"}
+                                            </span>
+                                          </div>
+                                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                                            {busObj?.registrationNo || "Reg Plate"} • {busObj?.capacity || 40} Seats
+                                          </div>
+                                          <div className="text-[10px] text-slate-600 dark:text-slate-300 truncate">
+                                            👤 {driverName} | 🎫 {conductorName}
+                                          </div>
+                                        </div>
+
+                                        <button
+                                          type="button"
+                                          title="Unassign bus from this stop"
+                                          onClick={() =>
+                                            handleUnassignTrip(trip.id, busObj?.busNumber || "Bus")
+                                          }
+                                          className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/60 hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400 transition-all shrink-0"
+                                        >
+                                          <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-3 text-[11px] text-slate-400 dark:text-slate-500 italic">
+                                No bus starting from this point yet. Click <strong>+ Assign Bus Here</strong> to deploy a vehicle from this station.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -2175,6 +2665,164 @@ export default function StaffOperationsView({
                   <>
                     <Check className="w-4 h-4" />
                     <span>Save Crew Assignment</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Origin Assign Bus Modal */}
+      {isAssignBusModalOpen && assignTargetStop && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full space-y-4">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                    <BusFront className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-black text-base text-slate-900 dark:text-white">
+                    Deploy Bus Starting at Stop #{assignTargetStop.stopSequence}
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Origin Station: <strong>{assignTargetStop.stopName}</strong> ({assignTargetStop.stopCode}) • Route: <strong>{selectedFlowchartRoute?.name}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAssignBusModalOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {assignFlowchartError && (
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs font-bold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{assignFlowchartError}</span>
+              </div>
+            )}
+
+            {/* Modal Form */}
+            <div className="space-y-4 pt-1">
+              {/* Bus Selection */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+                  Select Vehicle from Fleet *
+                </label>
+                <select
+                  value={assignBusFormData.busId}
+                  onChange={(e) =>
+                    setAssignBusFormData((prev) => ({ ...prev, busId: e.target.value }))
+                  }
+                  className="w-full text-xs p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold outline-none focus:border-blue-500"
+                >
+                  <option value="">-- Choose Bus Fleet --</option>
+                  {buses.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.busNumber} • {b.capacity} Seats ({b.registrationNo}) [{b.status}]
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Service Departure Time */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+                  Scheduled Service Departure Time from {assignTargetStop.stopName}
+                </label>
+                <input
+                  type="time"
+                  value={assignBusFormData.departureTime}
+                  onChange={(e) =>
+                    setAssignBusFormData((prev) => ({ ...prev, departureTime: e.target.value }))
+                  }
+                  className="w-full text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* Driver Selection */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+                    Assign Driver (Optional)
+                  </label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                    HMV Licensed
+                  </span>
+                </div>
+                <select
+                  value={assignBusFormData.driverId}
+                  onChange={(e) =>
+                    setAssignBusFormData((prev) => ({ ...prev, driverId: e.target.value }))
+                  }
+                  className="w-full text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold outline-none focus:border-blue-500"
+                >
+                  <option value="">-- Choose Driver (Can assign later) --</option>
+                  {eligibleDrivers.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.phone})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Conductor Selection */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+                    Assign Conductor (Optional)
+                  </label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300">
+                    Conductors & Drivers Eligible
+                  </span>
+                </div>
+                <select
+                  value={assignBusFormData.conductorId}
+                  onChange={(e) =>
+                    setAssignBusFormData((prev) => ({ ...prev, conductorId: e.target.value }))
+                  }
+                  className="w-full text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold outline-none focus:border-blue-500"
+                >
+                  <option value="">-- Choose Conductor (Can assign later) --</option>
+                  {eligibleConductors.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.phone}) {c.isActingDriver ? "• [Driver]" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => setIsAssignBusModalOpen(false)}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl text-xs font-bold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveBusAssignmentToStop}
+                disabled={isAssigningFlowchartBus || !assignBusFormData.busId}
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-md transition-all flex items-center justify-center gap-2"
+              >
+                {isAssigningFlowchartBus ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Deploying Bus...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Confirm Bus Assignment</span>
                   </>
                 )}
               </button>

@@ -1437,9 +1437,18 @@ class CampusFleetStore {
         id: newTrip.id, trip_code: newTrip.tripCode, route_id: newTrip.routeId,
         bus_id: newTrip.busId, shift_id: newTrip.shiftId, driver_id: newTrip.driverId,
         conductor_id: newTrip.conductorId, trip_date: newTrip.tripDate, status: newTrip.status,
+        current_stop_index: newTrip.currentStopIndex ?? 0,
       });
     } catch (e) { console.warn("DB createTrip:", e); }
     return newTrip;
+  }
+
+  public async deleteTrip(tripId: string) {
+    this.trips = this.trips.filter(t => t.id !== tripId);
+    this.notify();
+    try {
+      await supabase.from("trips").delete().eq("id", tripId);
+    } catch (e) { console.warn("DB deleteTrip:", e); }
   }
 
   public lockTripManifest(tripId: string) {
