@@ -257,6 +257,59 @@ export function UnifiedAppHeader({
         .toUpperCase()
     : "CF";
 
+  const resolvedMobileAction =
+    mobilePrimaryAction ||
+    (() => {
+      if (portalViewRole === "teacher") {
+        return {
+          label: "Student & Mobility Portal",
+          href: "/portal",
+          subtitle: "Bus routes, stops, schedules & student passes",
+          icon: GraduationCap,
+        };
+      }
+      if (portalViewRole === "driver") {
+        return {
+          label: "Conductor Manifest Console",
+          href: "/conductor",
+          subtitle: "Passenger QR verification & manifest",
+          icon: FileCheck2,
+        };
+      }
+      if (portalViewRole === "conductor") {
+        return {
+          label: "Driver Telematics HUD",
+          href: "/driver",
+          subtitle: "Live vehicle telemetry & trip dashboard",
+          icon: BusFront,
+        };
+      }
+      if (portalViewRole === "staff") {
+        return isActualAdmin
+          ? {
+              label: "Master Admin Console",
+              href: "/admin",
+              subtitle: "Fleet command, routes, crew & settings",
+              icon: LayoutDashboard,
+            }
+          : {
+              label: "Student & Mobility Portal",
+              href: "/portal",
+              subtitle: "Student bookings & digital pass status",
+              icon: GraduationCap,
+            };
+      }
+      if (portalViewRole === "student" && pathname !== "/portal/tracker") {
+        return {
+          label: "Live GPS Bus Radar",
+          href: "/portal/tracker",
+          subtitle: "Real-time transit tracker & telemetry",
+          icon: Radio,
+        };
+      }
+      return null;
+    })();
+
   return (
     <>
       <header className="sticky top-0 z-40 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-xs transition-colors">
@@ -630,30 +683,30 @@ export function UnifiedAppHeader({
           )}
 
           {/* Mobile Primary Action / Launch Portal inside sliding navbar */}
-          {mobilePrimaryAction && (
+          {resolvedMobileAction && (
             <Link
-              href={mobilePrimaryAction.href}
+              href={resolvedMobileAction.href}
               onClick={() => setIsMobileSheetOpen(false)}
               className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-between shadow-lg shadow-blue-600/25 active:scale-98 transition-all"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold flex-shrink-0">
-                  {mobilePrimaryAction.icon ? (
-                    <mobilePrimaryAction.icon className="w-5 h-5 text-white" />
+                  {resolvedMobileAction.icon ? (
+                    <resolvedMobileAction.icon className="w-5 h-5 text-white" />
                   ) : (
                     <Smartphone className="w-5 h-5 text-white" />
                   )}
                 </div>
                 <div className="text-left min-w-0">
                   <div className="font-black text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
-                    <span>{mobilePrimaryAction.label}</span>
+                    <span>{resolvedMobileAction.label}</span>
                     <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-white/20 uppercase font-mono font-bold flex-shrink-0">
                       PORTAL
                     </span>
                   </div>
-                  {mobilePrimaryAction.subtitle && (
+                  {resolvedMobileAction.subtitle && (
                     <div className="text-[11px] text-blue-100 line-clamp-1">
-                      {mobilePrimaryAction.subtitle}
+                      {resolvedMobileAction.subtitle}
                     </div>
                   )}
                 </div>

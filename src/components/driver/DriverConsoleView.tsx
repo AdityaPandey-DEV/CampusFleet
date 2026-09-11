@@ -290,14 +290,25 @@ export default function DriverConsoleView({
         role="driver"
         portalTitle="CampusFleet"
         portalSubtitle={bus?.busNumber ? `Cockpit • ${bus.busNumber}` : "Driver HUD Console"}
+        mobilePrimaryAction={{
+          label: "Conductor Manifest Console",
+          href: "/conductor",
+          subtitle: "Switch to passenger QR ticket verification",
+          icon: FileCheck2,
+        }}
+        navLinks={[
+          { href: "/driver", label: "Cockpit HUD", icon: BusFront },
+          { href: "/conductor", label: "Conductor Manifest", icon: FileCheck2 },
+          { href: "/portal/tracker", label: "Live GPS Radar", icon: Navigation },
+        ]}
         customActions={
           <Link
             href="/conductor"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-bold transition-all shadow-2xs"
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-bold transition-all shadow-2xs"
             title="Switch to Conductor Manifest Console"
           >
             <FileCheck2 className="w-3.5 h-3.5 text-purple-500" />
-            <span className="hidden sm:inline">Conductor</span>
+            <span>Conductor</span>
           </Link>
         }
       />

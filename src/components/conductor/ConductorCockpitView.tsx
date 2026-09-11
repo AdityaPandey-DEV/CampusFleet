@@ -25,6 +25,8 @@ import {
   Zap,
   AlertTriangle,
   ArrowRight,
+  FileCheck2,
+  Navigation,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
@@ -230,23 +232,44 @@ export default function ConductorCockpitView({
         role="conductor"
         portalTitle="CampusFleet"
         portalSubtitle={activeTrip ? `${bus?.busNumber || "Bus"} • ${route?.name || "Corridor"}` : "Conductor Operations"}
+        mobilePrimaryAction={{
+          label: "Driver Telematics Cockpit",
+          href: "/driver",
+          subtitle: "Live vehicle telemetry & trip dashboard",
+          icon: BusFront,
+        }}
+        navLinks={[
+          { href: "/conductor", label: "Passenger QR Manifest", icon: FileCheck2 },
+          { href: "/driver", label: "Driver Cockpit", icon: BusFront },
+          { href: "/portal/tracker", label: "Live Transit Radar", icon: Navigation },
+        ]}
         customActions={
-          trips.length > 0 ? (
-            <select
-              value={activeTrip?.id || ""}
-              onChange={e => setSelectedTripId(e.target.value)}
-              className="text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-2.5 py-1.5 outline-none cursor-pointer max-w-[140px] sm:max-w-[190px] truncate shadow-2xs"
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link
+              href="/driver"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-all shadow-2xs"
+              title="Switch to Driver Cockpit HUD"
             >
-              {trips.map(t => {
-                const b = buses.find(busItem => busItem.id === t.busId);
-                return (
-                  <option key={t.id} value={t.id}>
-                    {t.tripCode} ({b?.busNumber || "Bus"})
-                  </option>
-                );
-              })}
-            </select>
-          ) : null
+              <BusFront className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Driver HUD</span>
+            </Link>
+            {trips.length > 0 && (
+              <select
+                value={activeTrip?.id || ""}
+                onChange={e => setSelectedTripId(e.target.value)}
+                className="text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-2.5 py-1.5 outline-none cursor-pointer max-w-[120px] sm:max-w-[190px] truncate shadow-2xs"
+              >
+                {trips.map(t => {
+                  const b = buses.find(busItem => busItem.id === t.busId);
+                  return (
+                    <option key={t.id} value={t.id}>
+                      {t.tripCode} ({b?.busNumber || "Bus"})
+                    </option>
+                  );
+                })}
+              </select>
+            )}
+          </div>
         }
       />
 

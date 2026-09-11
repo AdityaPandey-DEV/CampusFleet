@@ -185,7 +185,7 @@ export default function AdminLayout({
         <div className="flex items-center gap-2">
           <Link
             href="/staff"
-            className="px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold"
+            className="hidden sm:flex px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold"
           >
             Staff Ops
           </Link>
@@ -212,6 +212,45 @@ export default function AdminLayout({
             <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
               Admin Ops
             </span>
+          </div>
+
+          {/* Primary Mobile Quick Actions inside sliding drawer */}
+          <div className="space-y-2">
+            <Link
+              href="/staff"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white flex items-center justify-between shadow-lg shadow-indigo-600/25 active:scale-98 transition-all"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold flex-shrink-0">
+                  <Building2 className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left min-w-0">
+                  <div className="font-black text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
+                    <span>Staff Operations Console</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-white/20 uppercase font-mono font-bold flex-shrink-0">
+                      STAFF
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-indigo-100 line-clamp-1">
+                    Fee approvals, UPI QR manager & crew dispatch
+                  </div>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-white flex-shrink-0 ml-2" />
+            </Link>
+
+            <Link
+              href="/portal"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 flex items-center justify-between active:scale-98 transition-all"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <GraduationCap className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <span className="font-bold text-xs truncate">Launch Student & Parent Portal</span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
+            </Link>
           </div>
 
           <div className="space-y-1">

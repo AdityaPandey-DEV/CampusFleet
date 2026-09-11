@@ -52,6 +52,7 @@ import {
   ArrowDown,
   Navigation,
   Route as RouteIcon,
+  GraduationCap,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Route, Bus, Stop, Student, Trip, Booking, Staff, UserAccount } from "@/lib/types";
@@ -942,6 +943,28 @@ export default function StaffOperationsView({
         role="staff"
         portalTitle="CampusFleet"
         portalSubtitle="Transport Staff Operations & Supervisory Console"
+        mobilePrimaryAction={
+          (currentUser?.role === "admin" || currentUser?.role === "transport_manager")
+            ? {
+                label: "Master Admin Console",
+                href: "/admin",
+                subtitle: "Fleet command, routes, crew scheduling & settings",
+                icon: LayoutDashboard,
+              }
+            : {
+                label: "Student & Mobility Portal",
+                href: "/portal",
+                subtitle: "Student booking records & digital passes",
+                icon: GraduationCap,
+              }
+        }
+        navLinks={[
+          { href: "/staff", label: "Operations Hub", icon: Building2 },
+          { href: "/portal/tracker", label: "Live Transit Radar", icon: Navigation },
+          ...(currentUser?.role === "admin" || currentUser?.role === "transport_manager"
+            ? [{ href: "/admin", label: "Admin Console", icon: LayoutDashboard }]
+            : [{ href: "/portal", label: "Student Portal", icon: GraduationCap }]),
+        ]}
         customActions={
           (currentUser?.role === "admin" || currentUser?.role === "transport_manager") ? (
             <Link
@@ -952,7 +975,16 @@ export default function StaffOperationsView({
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Admin Hub</span>
             </Link>
-          ) : null
+          ) : (
+            <Link
+              href="/portal"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 text-xs font-bold transition-all shadow-2xs"
+              title="Launch Student Portal"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>Student Portal</span>
+            </Link>
+          )
         }
       />
 

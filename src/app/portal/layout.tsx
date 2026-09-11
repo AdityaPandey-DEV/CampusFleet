@@ -19,6 +19,7 @@ import {
   Lock,
   ArrowRight,
   ShieldAlert,
+  Navigation,
 } from "lucide-react";
 
 export default function StudentPortalLayout({
@@ -123,6 +124,12 @@ export default function StudentPortalLayout({
         navLinks={processedNavLinks}
         showSOS={true}
         onOpenSOS={() => setIsSOSOpen(true)}
+        mobilePrimaryAction={{
+          label: "Live GPS Bus Radar",
+          href: "/portal/tracker",
+          subtitle: "Track real-time bus locations & arrival ETA",
+          icon: Navigation,
+        }}
       />
 
       {/* Main Content Container with Top-to-Down Progressive Flow */}

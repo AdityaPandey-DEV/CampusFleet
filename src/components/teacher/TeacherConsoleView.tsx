@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Users,
   BusFront,
@@ -16,6 +17,7 @@ import {
   ShieldCheck,
   ChevronRight,
   BookOpen,
+  Navigation,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import BusLoadingScreen from "@/components/common/BusLoadingScreen";
@@ -143,6 +145,27 @@ export default function TeacherConsoleView({
         role="teacher"
         portalTitle="CampusFleet"
         portalSubtitle="Faculty & Class Attendance Desk"
+        mobilePrimaryAction={{
+          label: "Student & Mobility Portal",
+          href: "/portal",
+          subtitle: "View bus routes, student passes & live tracker",
+          icon: GraduationCap,
+        }}
+        navLinks={[
+          { href: "/teacher", label: "Bus Arrival Feed", icon: BookOpen },
+          { href: "/portal/tracker", label: "Live GPS Radar", icon: Navigation },
+          { href: "/portal", label: "Student Portal", icon: GraduationCap },
+        ]}
+        customActions={
+          <Link
+            href="/portal"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 font-bold text-xs rounded-xl border border-teal-200 dark:border-teal-800 transition-colors shadow-2xs"
+            title="Open Student & Mobility Portal"
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>Student Portal</span>
+          </Link>
+        }
       />
 
       {/* Main Container */}
