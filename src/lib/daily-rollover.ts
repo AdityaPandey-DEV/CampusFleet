@@ -136,6 +136,9 @@ export async function executeDailyRollover(
     activeRoutes.forEach((route, routeIdx) => {
       // Find bus mapped to this route, or match by index
       let assignedBus = activeBuses.find((b) => b.current_route_id === route.id);
+      if (route.id === "route-bht-ddn-placement") {
+        assignedBus = activeBuses.find((b) => b.id === "bus-21") || assignedBus;
+      }
       if (!assignedBus && activeBuses.length > 0) {
         assignedBus = activeBuses[routeIdx % activeBuses.length];
       }

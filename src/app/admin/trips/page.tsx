@@ -2,7 +2,7 @@ import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import AdminTripsView from "@/components/admin/AdminTripsView";
-import type { Trip, Bus, Route, Shift, Staff, Booking } from "@/lib/types";
+import type { Trip, Bus, Route, Shift, Staff, Booking, TripDirection } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -39,28 +39,79 @@ export default async function TripsAndManifestPage() {
     supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
   ]);
 
-  const trips: Trip[] = (dbTrips || []).map((t: any) => ({
-    id: t.id,
-    tripCode: t.trip_code,
-    routeId: t.route_id,
-    busId: t.bus_id,
-    shiftId: t.shift_id,
-    driverId: t.driver_id || "",
-    conductorId: t.conductor_id || "",
-    tripDate: t.trip_date,
-    status: t.status || "SCHEDULED",
-    delayMinutes: t.delay_minutes || 0,
-    manifestLocked: t.manifest_locked || false,
-    manifestLockedAt: t.manifest_locked_at,
-    startedAt: t.started_at,
-    completedAt: t.completed_at,
-    currentStopIndex: t.current_stop_index || 0,
-    direction: t.direction || undefined,
-    scheduleType: t.schedule_type || undefined,
-    customDays: t.custom_days || undefined,
-    departureTime: t.departure_time || undefined,
-    arrivalTime: t.arrival_time || undefined,
-  }));
+  const trips: Trip[] = (dbTrips || []).map((t: any) => {
+    const route = (dbRoutes || []).find((r: any) => r.id === t.route_id);
+    const shift = (dbShifts || []).find((s: any) => s.id === t.shift_id);
+    const shiftType = (shift?.type || "").toUpperCase();
+    const tripCode = (t.trip_code || "").toUpperCase();
+
+    let dir: TripDirection = "HOME_TO_CAMPUS";
+    if (
+      route?.direction === "CAMPUS_TO_CAMPUS" ||
+      tripCode.includes("C2C") ||
+      tripCode.includes("BUS21") ||
+      route?.name?.toLowerCase().includes("placement") ||
+      route?.name?.toLowerCase().includes("dehradun") ||
+      route?.name?.toLowerCase().includes("inter-campus")
+    ) {
+      dir = "CAMPUS_TO_CAMPUS";
+    } else if (
+      tripCode.endsWith("-E") ||
+      tripCode.includes("-E-") ||
+      t.id?.includes("-e-") ||
+      shiftType === "EVENING" ||
+      t.shift_id === "shift-2" ||
+      t.shift_id === "shift-evening" ||
+      route?.direction === "CAMPUS_TO_HOME"
+    ) {
+      dir = "CAMPUS_TO_HOME";
+    } else {
+      dir = "HOME_TO_CAMPUS";
+    }
+
+    const departureTime =
+      t.departure_time ||
+      (dir === "CAMPUS_TO_HOME"
+        ? "16:30"
+        : dir === "CAMPUS_TO_CAMPUS"
+        ? "05:00"
+        : shift?.start_time
+        ? shift.start_time.substring(0, 5)
+        : "07:30");
+
+    const arrivalTime =
+      t.arrival_time ||
+      (dir === "CAMPUS_TO_HOME"
+        ? "17:45"
+        : dir === "CAMPUS_TO_CAMPUS"
+        ? "10:30"
+        : shift?.end_time
+        ? shift.end_time.substring(0, 5)
+        : "08:45");
+
+    return {
+      id: t.id,
+      tripCode: t.trip_code,
+      routeId: t.route_id,
+      busId: t.bus_id,
+      shiftId: t.shift_id,
+      driverId: t.driver_id || "",
+      conductorId: t.conductor_id || "",
+      tripDate: t.trip_date,
+      status: t.status || "SCHEDULED",
+      delayMinutes: t.delay_minutes || 0,
+      manifestLocked: t.manifest_locked || false,
+      manifestLockedAt: t.manifest_locked_at,
+      startedAt: t.started_at,
+      completedAt: t.completed_at,
+      currentStopIndex: t.current_stop_index || 0,
+      direction: t.direction || dir,
+      scheduleType: t.schedule_type || (dir === "CAMPUS_TO_CAMPUS" ? "ONE_DAY" : "EVERY_DAY"),
+      customDays: t.custom_days || undefined,
+      departureTime,
+      arrivalTime,
+    };
+  });
 
   const buses: Bus[] = (dbBuses || []).map((b: any) => ({
     id: b.id,

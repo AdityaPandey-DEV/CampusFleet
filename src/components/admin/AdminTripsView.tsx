@@ -131,13 +131,91 @@ export default function AdminTripsView({
     setTimeout(() => setFeedbackToast(null), 4000);
   };
 
-  // Helper to determine trip direction with route fallback
+  // Helper to determine trip direction with route and shift fallback
   const getTripDirection = (trip: Trip): TripDirection => {
     if (trip.direction) return trip.direction;
     const r = routes.find((rt) => rt.id === trip.routeId);
-    if (r?.direction === "CAMPUS_TO_HOME") return "CAMPUS_TO_HOME";
-    if (r?.direction === "CAMPUS_TO_CAMPUS") return "CAMPUS_TO_CAMPUS";
+    const sh = shifts.find((s) => s.id === trip.shiftId);
+    const shiftType = (sh?.shiftType || "").toUpperCase();
+    const tripCode = (trip.tripCode || "").toUpperCase();
+
+    if (
+      r?.direction === "CAMPUS_TO_CAMPUS" ||
+      tripCode.includes("C2C") ||
+      tripCode.includes("BUS21") ||
+      r?.name?.toLowerCase().includes("placement") ||
+      r?.name?.toLowerCase().includes("dehradun") ||
+      r?.name?.toLowerCase().includes("inter-campus")
+    ) {
+      return "CAMPUS_TO_CAMPUS";
+    }
+    if (
+      tripCode.endsWith("-E") ||
+      tripCode.includes("-E-") ||
+      trip.id.includes("-e-") ||
+      shiftType === "EVENING" ||
+      trip.shiftId === "shift-2" ||
+      trip.shiftId === "shift-evening" ||
+      r?.direction === "CAMPUS_TO_HOME"
+    ) {
+      return "CAMPUS_TO_HOME";
+    }
     return "HOME_TO_CAMPUS";
+  };
+
+  // Helper to reverse or adapt route name for evening return
+  const getDirectionalRouteName = (routeName: string, dir: TripDirection): string => {
+    if (dir === "CAMPUS_TO_CAMPUS") {
+      return routeName;
+    }
+    if (dir === "CAMPUS_TO_HOME") {
+      if (routeName.includes(" to ")) {
+        const parts = routeName.split(" to ");
+        const prefixMatch = parts[0].match(/^([A-Za-z0-9\s]+:\s*)(.*)$/);
+        if (prefixMatch) {
+          const prefix = prefixMatch[1];
+          const origin = prefixMatch[2].trim();
+          const destination = parts[1].trim();
+          return `${prefix}${destination} to ${origin} (Evening Return)`;
+        }
+        return `${parts[1].trim()} to ${parts[0].trim()} (Evening Return)`;
+      }
+      return `${routeName} (Evening Return)`;
+    }
+    return routeName;
+  };
+
+  // Helper to reverse bus name for evening return
+  const getDirectionalBusNumber = (busNumber: string, dir: TripDirection): string => {
+    if (dir === "CAMPUS_TO_CAMPUS") {
+      if (busNumber.includes("Bhakda") || busNumber.includes("Ganna")) {
+        return "Bus 21 (Bhimtal ⇄ Dehradun Clement Town)";
+      }
+      return busNumber;
+    }
+    if (dir === "CAMPUS_TO_HOME") {
+      if (busNumber.includes(" → ")) {
+        const match = busNumber.match(/^([^(]+)\s*\((.+)\s*→\s*(.+)\)$/);
+        if (match) {
+          const busPrefix = match[1].trim();
+          const from = match[2].trim();
+          const to = match[3].trim();
+          return `${busPrefix} (${to} → ${from})`;
+        }
+        return busNumber.replace(" → ", " ← ");
+      }
+    }
+    return busNumber;
+  };
+
+  // Helper to extract city stop name from route
+  const getRouteCityOrigin = (routeName: string): string => {
+    if (routeName.includes(" to ")) {
+      const parts = routeName.split(" to ");
+      const originPart = parts[0].replace(/^[A-Za-z0-9\s]+:\s*/, "").trim();
+      return originPart || "City Boarding Point";
+    }
+    return "City Boarding Point";
   };
 
   // Helper to determine trip schedule type with fallback
@@ -603,7 +681,16 @@ export default function AdminTripsView({
 
             const dir = getTripDirection(trip);
             const freq = getTripScheduleType(trip);
-            const departureTime = trip.departureTime || shift.startTime;
+            const departureTime =
+              trip.departureTime ||
+              (dir === "CAMPUS_TO_HOME"
+                ? "16:30"
+                : dir === "CAMPUS_TO_CAMPUS"
+                ? "05:00"
+                : shift.startTime);
+            const displayRouteName = getDirectionalRouteName(route.name, dir);
+            const displayBusNumber = getDirectionalBusNumber(bus.busNumber, dir);
+            const cityOrigin = getRouteCityOrigin(route.name);
 
             return (
               <div
@@ -617,16 +704,22 @@ export default function AdminTripsView({
                     <span
                       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                         dir === "HOME_TO_CAMPUS"
-                          ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                           : dir === "CAMPUS_TO_HOME"
-                          ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
-                          : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                          : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
                       }`}
                     >
                       {dir === "HOME_TO_CAMPUS" && <Home className="w-3 h-3" />}
                       {dir === "CAMPUS_TO_HOME" && <Building2 className="w-3 h-3" />}
                       {dir === "CAMPUS_TO_CAMPUS" && <Shuffle className="w-3 h-3" />}
-                      <span>{dir.replace(/_/g, " ")}</span>
+                      <span>
+                        {dir === "HOME_TO_CAMPUS"
+                          ? "Home → Campus"
+                          : dir === "CAMPUS_TO_HOME"
+                          ? "Campus → Home"
+                          : "Campus ⇄ Campus"}
+                      </span>
                     </span>
 
                     {/* Status & Recurrence Tags */}
@@ -664,14 +757,67 @@ export default function AdminTripsView({
                   </div>
 
                   {/* Route & Time Details */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
                       <h3 className="font-black text-lg text-slate-900 dark:text-white leading-tight">
-                        {route.name}
+                        {displayRouteName}
                       </h3>
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 shrink-0">
                         {trip.tripCode}
                       </span>
+                    </div>
+
+                    {/* Pickup / Drop Corridor Flow */}
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/50 text-xs font-semibold">
+                      {dir === "HOME_TO_CAMPUS" ? (
+                        <>
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
+                              Pickup
+                            </span>
+                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">{cityOrigin}</span>
+                          </div>
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
+                              Drop
+                            </span>
+                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">GEHU Bhimtal Campus</span>
+                          </div>
+                        </>
+                      ) : dir === "CAMPUS_TO_HOME" ? (
+                        <>
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
+                              Pickup
+                            </span>
+                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">GEHU Bhimtal Campus</span>
+                          </div>
+                          <ArrowRight className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
+                              Drop
+                            </span>
+                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">{cityOrigin} (Reverse Route)</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                              Origin
+                            </span>
+                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">Bhimtal Campus</span>
+                          </div>
+                          <ArrowRight className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                              Destination
+                            </span>
+                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">Dehradun Clement Town</span>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-500 dark:text-slate-400 pt-1">
@@ -682,7 +828,7 @@ export default function AdminTripsView({
 
                       <span className="inline-flex items-center gap-1 font-mono">
                         <BusFront className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{bus.busNumber}</span>
+                        <span>{displayBusNumber}</span>
                       </span>
 
                       {bus.registrationNo && (
