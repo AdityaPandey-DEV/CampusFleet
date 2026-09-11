@@ -52,6 +52,8 @@ import {
   ArrowUpRight,
   ShieldAlert,
   Download,
+  Building2,
+  MapPin,
 } from "lucide-react";
 import type { Bus, Route, Stop, Trip, Student, Staff, Booking, VehicleIssue } from "@/lib/types";
 
@@ -364,36 +366,39 @@ export default function AdminDashboardView({
               </button>
               <button
                 onClick={() => setPreviewMode("CAMPUS_PARKED")}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
                   previewMode === "CAMPUS_PARKED"
                     ? "bg-white dark:bg-slate-900 text-blue-600 shadow-xs font-black"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="View all buses parked at GEHU Campus depot"
               >
-                🏫 Campus Depot
+                <Building2 className="w-3.5 h-3.5 shrink-0" />
+                <span>Campus Depot</span>
               </button>
               <button
                 onClick={() => setPreviewMode("MORNING_STANDBY")}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
                   previewMode === "MORNING_STANDBY"
                     ? "bg-white dark:bg-slate-900 text-amber-600 shadow-xs font-black"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="Simulate 1 hour before departure: all buses stationed at their route starting points"
               >
-                🚏 At Starting Points
+                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <span>At Starting Points</span>
               </button>
               <button
                 onClick={() => setPreviewMode("IN_TRANSIT")}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
                   previewMode === "IN_TRANSIT"
                     ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-xs font-black"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="Simulate all buses actively moving along corridors with driver coordinates"
               >
-                🚍 In Transit
+                <BusFront className="w-3.5 h-3.5 shrink-0" />
+                <span>In Transit</span>
               </button>
             </div>
           </div>

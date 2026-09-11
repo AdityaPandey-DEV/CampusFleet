@@ -32,6 +32,7 @@ import {
   QrCode,
   Mail,
   X,
+  Building2,
 } from "lucide-react";
 
 // Dynamic import for Leaflet map with no SSR
@@ -537,7 +538,7 @@ export default function ShiftBookingView({
                             ? "bg-blue-600 text-white"
                             : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
                         }`}>
-                          {isFirst ? "🚏" : isLast ? "🏫" : idx + 1}
+                          {isFirst ? <MapPin className="w-4 h-4" /> : isLast ? <Building2 className="w-4 h-4" /> : idx + 1}
                         </div>
                         <div>
                           <div className="font-bold text-xs text-slate-900 dark:text-white">

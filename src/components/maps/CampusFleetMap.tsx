@@ -2,6 +2,18 @@
 
 import React, { useEffect, useRef } from "react";
 import { LiveBusLocation, Stop, FleetBusMarkerData } from "@/lib/types";
+import { MapPin, Zap } from "lucide-react";
+
+// Crisp vector SVG icons for high-DPI Leaflet markers (replaces low-res emojis)
+const busSvg = `<svg class="w-3.5 h-3.5 mr-1 shrink-0 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"></path><path d="M15 6v6"></path><path d="M2 12h19.6"></path><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4C2.9 6 1.9 6.8 1.6 7.8L.2 12.8c-.1.4-.2.8-.2 1.2 0 .4.1.8.2 1.2.3 1.1.8 2.8.8 2.8h3"></path><circle cx="7" cy="18" r="2" fill="currentColor"></circle><path d="M9 18h5"></path><circle cx="16" cy="18" r="2" fill="currentColor"></circle></svg>`;
+
+const universitySvg = `<svg class="w-4 h-4 shrink-0 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 10-10-5L2 10l10 5 10-5Z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path><line x1="22" y1="10" x2="22" y2="16"></line></svg>`;
+
+const stopPinSvg = `<svg class="w-3.5 h-3.5 shrink-0 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+
+const boardingPointSvg = `<svg class="w-3.5 h-3.5 shrink-0 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>`;
+
+const checkStarSvg = `<svg class="w-3.5 h-3.5 shrink-0 inline-block mr-1" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
 
 interface CampusFleetMapProps {
   busLocation?: LiveBusLocation;
@@ -320,10 +332,20 @@ export default function CampusFleetMap({
           iconBgClass = "bg-slate-300 dark:bg-slate-700 border-slate-400 text-slate-700 dark:text-slate-300";
         }
 
+        const stopSymbolHtml = isStudentPickup
+          ? stopPinSvg
+          : isCampusTerminal
+          ? universitySvg
+          : isStartOfPath
+          ? boardingPointSvg
+          : hasSpecificRoute
+          ? `<span>${idx + 1}</span>`
+          : boardingPointSvg;
+
         const stopIcon = L.divIcon({
           className: "custom-stop-icon",
           html: `<div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-md border-2 ${iconBgClass}">
-            ${isStudentPickup ? "📍" : isCampusTerminal ? "🏫" : isStartOfPath ? "🚏" : hasSpecificRoute ? idx + 1 : "🚏"}
+            ${stopSymbolHtml}
           </div>`,
           iconSize: isStudentPickup ? [32, 32] : [28, 28],
           iconAnchor: isStudentPickup ? [16, 16] : [14, 14],
@@ -336,12 +358,12 @@ export default function CampusFleetMap({
 
         marker.bindPopup(`
           <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
-            ${isStudentPickup ? '<div style="color: #059669; font-weight: 900; font-size: 12px; margin-bottom: 2px;">★ Your Allocated Boarding Point</div>' : ""}
-            ${isCampusTerminal ? '<div style="color: #1d4ed8; font-weight: 900; font-size: 12px; margin-bottom: 2px;">🏫 Destination University Campus</div>' : ""}
+            ${isStudentPickup ? `<div style="color: #059669; font-weight: 900; font-size: 12px; margin-bottom: 3px; display: flex; align-items: center; gap: 4px;">${checkStarSvg} Your Allocated Boarding Point</div>` : ""}
+            ${isCampusTerminal ? `<div style="color: #1d4ed8; font-weight: 900; font-size: 12px; margin-bottom: 3px; display: flex; align-items: center; gap: 4px;">${universitySvg} Destination University Campus</div>` : ""}
             <strong style="color: #0f172a; font-size: 13px;">${stop.name} (${stop.code})</strong><br/>
             <span>Landmark: <strong>${stop.landmark || "Transit Stop"}</strong></span><br/>
             <span>${hasSpecificRoute ? `Route Sequence: Stop #${idx + 1}` : `Station Code: ${stop.code}`}</span>
-            ${isOnShortestPath ? '<br/><span style="color: #7c3aed; font-weight: bold;">★ On Shortest Route to Campus</span>' : ""}
+            ${isOnShortestPath ? `<br/><span style="color: #7c3aed; font-weight: bold; display: flex; align-items: center; gap: 4px; margin-top: 2px;">${checkStarSvg} On Shortest Route to Campus</span>` : ""}
           </div>
         `);
 
@@ -363,7 +385,7 @@ export default function CampusFleetMap({
           html: `
             <div class="relative flex items-center justify-center w-10 h-10 -translate-x-1/2 -translate-y-full">
               <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-2xl flex items-center justify-center text-white text-sm font-black animate-bounce ring-4 ring-rose-400/50">
-                📍
+                ${stopPinSvg}
               </div>
               <div class="absolute -bottom-1 w-2 h-2 rounded-full bg-rose-700"></div>
             </div>
@@ -379,7 +401,7 @@ export default function CampusFleetMap({
 
         draftMarker.bindPopup(`
           <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
-            <strong style="color: #e11d48; font-size: 13px;">📍 New Selected Location</strong><br/>
+            <strong style="color: #e11d48; font-size: 13px; display: flex; align-items: center; gap: 4px;">${stopPinSvg} New Selected Location</strong><br/>
             <span>Lat: <strong>${draftPinLocation[0].toFixed(5)}</strong></span><br/>
             <span>Lng: <strong>${draftPinLocation[1].toFixed(5)}</strong></span><br/>
             <span>Radius: <strong>${draftGeofenceRadius}m</strong></span>
@@ -490,7 +512,7 @@ export default function CampusFleetMap({
             className: "custom-fleet-bus-icon",
             html: `
               <div class="relative flex items-center justify-center min-w-[38px] h-9 px-2 rounded-xl shadow-xl border-2 font-black text-xs cursor-pointer select-none transition-transform hover:scale-110 ${bgClass} -translate-x-1/2 -translate-y-1/2">
-                <span class="mr-1 text-[13px]">🚍</span>
+                ${busSvg}
                 <span class="font-mono text-[11px] font-black tracking-tight">${fb.shortLabel}</span>
                 ${pulseBadge}
               </div>
@@ -610,14 +632,15 @@ export default function CampusFleetMap({
 
       {interactiveMode === "PIN_DROP" && (
         <div className="absolute top-3 left-3 z-10 bg-rose-600 text-white font-bold text-xs px-3.5 py-2 rounded-2xl shadow-xl flex items-center gap-2 border border-white/30 animate-pulse pointer-events-none">
-          <span className="text-sm">📍</span>
+          <MapPin className="w-4 h-4 shrink-0" />
           <span>Click anywhere on the map to set stop coordinates</span>
         </div>
       )}
 
       {isExpressDirect && (
         <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-white/40 animate-pulse pointer-events-none">
-          <span>⚡ Direct Non-Stop to Campus</span>
+          <Zap className="w-3.5 h-3.5 fill-current shrink-0" />
+          <span>Direct Non-Stop to Campus</span>
         </div>
       )}
     </div>

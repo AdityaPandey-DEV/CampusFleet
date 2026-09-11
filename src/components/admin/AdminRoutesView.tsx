@@ -41,6 +41,7 @@ import {
   Sliders,
   ChevronRight,
   Info,
+  Building2,
 } from "lucide-react";
 
 // Haversine geodesic distance in km
@@ -801,7 +802,13 @@ export default function AdminRoutesView({
                                     : "bg-indigo-600"
                                 }`}
                               >
-                                {isFirst ? "🚏" : isLast ? "🏫" : idx + 1}
+                                {isFirst ? (
+                                  <MapPin className="w-3.5 h-3.5" />
+                                ) : isLast ? (
+                                  <Building2 className="w-3.5 h-3.5" />
+                                ) : (
+                                  idx + 1
+                                )}
                               </div>
 
                               <div>
@@ -1032,7 +1039,7 @@ export default function AdminRoutesView({
                 }`}
               >
                 <MapPin className="w-3.5 h-3.5" />
-                <span>📍 Mark on Interactive Map</span>
+                <span>Mark on Interactive Map</span>
               </button>
 
               <button
@@ -1307,7 +1314,7 @@ export default function AdminRoutesView({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
-                          🚏
+                          <MapPin className="w-3.5 h-3.5" />
                         </span>
                         <div>
                           <span className="text-[10px] font-black tracking-wider uppercase text-emerald-700 dark:text-emerald-400 block">
@@ -1528,7 +1535,7 @@ export default function AdminRoutesView({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
-                          🏫
+                          <Building2 className="w-3.5 h-3.5" />
                         </span>
                         <div>
                           <span className="text-[10px] font-black tracking-wider uppercase text-blue-700 dark:text-blue-400 block">

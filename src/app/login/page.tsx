@@ -123,7 +123,7 @@ export default function UnifiedLoginPage() {
             setSelectedStopId(topPickStop.id);
             setHomeLocation(topPickStop.name.split("(")[0].trim());
             setDetectedDistanceText(
-              `📍 Algorithm Match: ~${recs[0].walkingDistanceKm} km walk (${recs[0].busCount} bus options, ${topPickStop.name})`
+              `Algorithm Match: ~${recs[0].walkingDistanceKm} km walk (${recs[0].busCount} bus options, ${topPickStop.name})`
             );
           }
         }
@@ -512,7 +512,7 @@ export default function UnifiedLoginPage() {
                     className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
                   >
                     <Navigation className="w-3 h-3" />
-                    <span>{isLocating ? "Locating..." : "📍 Auto-Detect Nearest"}</span>
+                    <span>{isLocating ? "Locating..." : "Auto-Detect Nearest"}</span>
                   </button>
                 </div>
 
