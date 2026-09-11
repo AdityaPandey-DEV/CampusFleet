@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // GET /api/merges - List merge suggestions and history
 export async function GET(req: NextRequest) {
   try {
@@ -20,7 +23,7 @@ export async function GET(req: NextRequest) {
     if (error) throw error;
 
     // Fetch buses and routes to enrich
-    const { data: buses } = await supabaseAdmin.from("buses").select("id, bus_number, plate_number, name, capacity, occupancy, status");
+    const { data: buses } = await supabaseAdmin.from("buses").select("id, bus_number, registration_no, capacity, current_route_id, status");
     const { data: routes } = await supabaseAdmin.from("routes").select("id, name, code");
 
     const busMap = new Map((buses || []).map((b) => [b.id, b]));
@@ -38,12 +41,12 @@ export async function GET(req: NextRequest) {
         mergePointCode: mp?.code || "MP",
         mergePointName: mp?.name || "Designated Merge Stop",
         routeId: s.route_id,
-        routeName: route ? `${route.name} (${route.code || route.id})` : s.route_id,
+        routeName: route ? route.name : s.route_id,
         sourceBusId: s.source_bus_id,
-        sourceBusName: sourceBus ? (sourceBus.bus_number || sourceBus.plate_number || sourceBus.name) : s.source_bus_id,
+        sourceBusName: sourceBus ? (sourceBus.bus_number || sourceBus.registration_no) : s.source_bus_id,
         sourceOccupancy: s.source_occupancy,
         targetBusId: s.target_bus_id,
-        targetBusName: targetBus ? (targetBus.bus_number || targetBus.plate_number || targetBus.name) : s.target_bus_id,
+        targetBusName: targetBus ? (targetBus.bus_number || targetBus.registration_no) : s.target_bus_id,
         targetOccupancy: s.target_occupancy,
         targetCapacity: s.target_capacity,
         combinedOccupancy: s.combined_occupancy,
@@ -87,8 +90,8 @@ export async function POST(req: NextRequest) {
       // Group buses by assigned route
       const routeBuses = new Map<string, any[]>();
       for (const b of allBuses || []) {
-        // Bus route can be in b.route_id or b.assigned_route_id
-        const rId = b.route_id || b.assigned_route_id;
+        // Bus route can be in b.current_route_id, b.route_id or b.assigned_route_id
+        const rId = b.current_route_id || b.route_id || b.assigned_route_id;
         if (rId) {
           if (!routeBuses.has(rId)) routeBuses.set(rId, []);
           routeBuses.get(rId)!.push(b);
