@@ -891,100 +891,100 @@ export default function StaffOperationsView({
         </div>
 
         {/* Tab Selector Bar */}
-        <div className="flex items-center gap-1.5 p-1.5 bg-slate-200/80 dark:bg-slate-900/90 rounded-2xl border border-slate-300 dark:border-slate-800 overflow-x-auto max-w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 p-1.5 bg-slate-200/80 dark:bg-slate-900/90 rounded-2xl border border-slate-300 dark:border-slate-800 max-h-56 sm:max-h-none overflow-y-auto sm:overflow-y-visible sm:overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveTab("APPROVALS")}
-            className={`flex-1 min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+            className={`w-full sm:w-auto sm:flex-1 sm:min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-start sm:justify-center gap-2 transition-all ${
               activeTab === "APPROVALS"
                 ? "bg-blue-600 text-white shadow-md"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
+            <ShieldCheck className="w-4 h-4 shrink-0" />
             <span>Fee Approvals ({pendingCount})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("QR_SETTINGS")}
-            className={`flex-1 min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+            className={`w-full sm:w-auto sm:flex-1 sm:min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-start sm:justify-center gap-2 transition-all ${
               activeTab === "QR_SETTINGS"
                 ? "bg-blue-600 text-white shadow-md"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <QrCode className="w-4 h-4" />
+            <QrCode className="w-4 h-4 shrink-0" />
             <span>Payment QR & UPI</span>
           </button>
 
           <button
             onClick={() => setActiveTab("AUDIT_EXCEL")}
-            className={`flex-1 min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+            className={`w-full sm:w-auto sm:flex-1 sm:min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-start sm:justify-center gap-2 transition-all ${
               activeTab === "AUDIT_EXCEL"
                 ? "bg-blue-600 text-white shadow-md"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <FileSpreadsheet className="w-4 h-4" />
+            <FileSpreadsheet className="w-4 h-4 shrink-0" />
             <span>Audit & Excel Export</span>
           </button>
 
           <button
             onClick={() => setActiveTab("DEMAND_FLEET")}
-            className={`flex-1 min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+            className={`w-full sm:w-auto sm:flex-1 sm:min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-start sm:justify-center gap-2 transition-all ${
               activeTab === "DEMAND_FLEET"
                 ? "bg-blue-600 text-white shadow-md"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <BarChart3 className="w-4 h-4" />
+            <BarChart3 className="w-4 h-4 shrink-0" />
             <span>Demand & Fleet Sizing</span>
           </button>
 
           <button
             onClick={() => setActiveTab("ROUTE_FLOWCHART")}
-            className={`flex-1 min-w-[160px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+            className={`w-full sm:w-auto sm:flex-1 sm:min-w-[160px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-start sm:justify-center gap-2 transition-all ${
               activeTab === "ROUTE_FLOWCHART"
                 ? "bg-blue-600 text-white shadow-md"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <GitBranch className="w-4 h-4" />
+            <GitBranch className="w-4 h-4 shrink-0" />
             <span>Route Stops & Bus Dispatch</span>
           </button>
 
           <button
             onClick={() => setActiveTab("MERGE_OPTIMIZER")}
-            className={`flex-1 min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+            className={`w-full sm:w-auto sm:flex-1 sm:min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-start sm:justify-center gap-2 transition-all ${
               activeTab === "MERGE_OPTIMIZER"
                 ? "bg-blue-600 text-white shadow-md"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <GitMerge className="w-4 h-4" />
+            <GitMerge className="w-4 h-4 shrink-0" />
             <span>Bus Merge Optimizer</span>
           </button>
 
           <button
             onClick={() => setActiveTab("DAILY_OPERATIONS")}
-            className={`flex-1 min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+            className={`w-full sm:w-auto sm:flex-1 sm:min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-start sm:justify-center gap-2 transition-all ${
               activeTab === "DAILY_OPERATIONS"
                 ? "bg-blue-600 text-white shadow-md"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <CalendarDays className="w-4 h-4" />
+            <CalendarDays className="w-4 h-4 shrink-0" />
             <span>Daily Operations</span>
           </button>
 
           <button
             onClick={() => setActiveTab("CREW_ASSIGNMENT")}
-            className={`flex-1 min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+            className={`w-full sm:w-auto sm:flex-1 sm:min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-start sm:justify-center gap-2 transition-all ${
               activeTab === "CREW_ASSIGNMENT"
                 ? "bg-blue-600 text-white shadow-md"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <Users className="w-4 h-4" />
+            <Users className="w-4 h-4 shrink-0" />
             <span>Crew & Bus Allocation</span>
           </button>
         </div>
