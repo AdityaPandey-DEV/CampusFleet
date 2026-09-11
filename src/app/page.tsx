@@ -144,38 +144,28 @@ export default function CampusFleetLandingPage() {
           icon: Smartphone,
         }}
         navLinks={[
-          { href: "/portal/booking", label: "Seat Booking & Shifts", icon: BusFront },
-          { href: "/portal/pass", label: "Digital QR Pass", icon: QrCode },
-          { href: "/portal/tracker", label: "Live GPS Bus Radar", icon: Navigation },
-          { href: "/portal/payments", label: "Pass Fees & UPI", icon: CreditCard },
+          { href: "/portal/booking", label: "Seat Booking", icon: BusFront },
+          { href: "/portal/pass", label: "Digital Pass", icon: QrCode },
+          { href: "/portal/tracker", label: "Live Radar", icon: Navigation },
+          { href: "/portal/payments", label: "Pass Fees", icon: CreditCard },
         ]}
         customActions={
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={handleInstallClick}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-blue-50/90 dark:bg-blue-950/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs rounded-xl border border-blue-200/80 dark:border-blue-800/80 transition-all active:scale-95 cursor-pointer shadow-2xs"
-              title="Install CampusFleet App on your device"
-            >
-              <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Install App</span>
-            </button>
-
+          !currentUser ? (
             <Link
-              href="/portal/booking"
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200/80 dark:border-slate-700/80 transition-colors"
-            >
-              <BusFront className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Seat Booking</span>
-            </Link>
-
-            <Link
-              href={getDashboardLink()}
-              className="hidden sm:flex px-3 sm:px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 items-center gap-1.5 whitespace-nowrap"
+              href="/portal"
+              className="hidden sm:flex px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 items-center gap-1.5 whitespace-nowrap"
             >
               <Smartphone className="w-3.5 h-3.5" />
+              <span>Launch Portal</span>
+            </Link>
+          ) : (
+            <Link
+              href={getDashboardLink()}
+              className="hidden xl:flex px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-xs rounded-xl border border-blue-200/80 dark:border-blue-800/80 transition-all items-center gap-1.5 whitespace-nowrap"
+            >
               <span>{getDashboardLabel()}</span>
             </Link>
-          </div>
+          )
         }
       />
 

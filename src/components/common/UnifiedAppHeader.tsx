@@ -313,12 +313,12 @@ export function UnifiedAppHeader({
   return (
     <>
       <header className="sticky top-0 z-40 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-xs transition-colors">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
-          {/* Brand Identity / Left Section */}
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-shrink">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 sm:gap-4 min-w-0">
+          {/* Brand Identity / Left Section (Strictly Non-Shrinkable) */}
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0 z-10">
             <Link
               href={currentPortalConfig.path}
-              className="flex items-center gap-2 sm:gap-2.5 group min-w-0"
+              className="flex items-center gap-2 sm:gap-2.5 group flex-shrink-0"
               title={`${portalTitle} Home`}
             >
               <div
@@ -326,9 +326,9 @@ export function UnifiedAppHeader({
               >
                 <currentPortalConfig.icon className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
+              <div className="flex flex-col flex-shrink-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white truncate">
+                  <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                     Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
                   </span>
                   <span
@@ -340,7 +340,7 @@ export function UnifiedAppHeader({
                   </span>
                 </div>
                 {portalSubtitle && (
-                  <p className="hidden sm:block text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                  <p className="hidden 2xl:block text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[180px]">
                     {portalSubtitle}
                   </p>
                 )}
@@ -348,35 +348,37 @@ export function UnifiedAppHeader({
             </Link>
           </div>
 
-          {/* Center Navigation Links (Desktop — Adaptive with No Overflow) */}
+          {/* Center Navigation Links (Floating Segmented Capsule) */}
           {navLinks && navLinks.length > 0 && (
-            <nav className="hidden lg:flex items-center gap-1 min-w-0 flex-1 justify-center max-w-xl">
-              {navLinks.map(link => {
-                const Icon = link.icon;
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                      isActive
-                        ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 shadow-xs"
-                        : link.isLocked
-                        ? "text-slate-400 dark:text-slate-500 hover:text-slate-600"
-                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60"
-                    }`}
-                  >
-                    {Icon && <Icon className="w-3.5 h-3.5 flex-shrink-0" />}
-                    <span>{link.label}</span>
-                    {link.isLocked && <Lock className="w-3 h-3 text-rose-500" />}
-                  </Link>
-                );
-              })}
-            </nav>
+            <div className="hidden lg:flex items-center justify-center flex-1 min-w-0 px-2 overflow-hidden">
+              <nav className="flex items-center gap-0.5 p-1 rounded-full bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                {navLinks.map(link => {
+                  const Icon = link.icon;
+                  const isActive = pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                        isActive
+                          ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/60 dark:border-slate-700/60"
+                          : link.isLocked
+                          ? "text-slate-400 dark:text-slate-500 hover:text-slate-600"
+                          : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/40"
+                      }`}
+                    >
+                      {Icon && <Icon className="w-3.5 h-3.5 flex-shrink-0" />}
+                      <span>{link.label}</span>
+                      {link.isLocked && <Lock className="w-3 h-3 text-rose-500" />}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
           )}
 
           {/* Right Action Items & Command Pill */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0">
+          <div className="flex items-center gap-2 flex-shrink-0 z-10">
             {showInstall && onOpenInstall && (
               <button
                 onClick={onOpenInstall}
@@ -388,7 +390,7 @@ export function UnifiedAppHeader({
               </button>
             )}
 
-            {customActions && <div className="flex items-center gap-1.5">{customActions}</div>}
+            {customActions}
 
             {/* High-Visibility Emergency SOS Button (Compact & Tactile) */}
             {showSOS && onOpenSOS && (
