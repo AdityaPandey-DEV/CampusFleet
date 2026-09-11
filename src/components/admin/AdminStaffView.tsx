@@ -30,7 +30,7 @@ export default function AdminStaffView({
   initialUsers = [],
   initialUser,
 }: AdminStaffProps = {}) {
-  const [users, setUsers] = useState<UserAccount[]>(() => initialUsers.length > 0 ? initialUsers : store.getUsers());
+  const [users, setUsers] = useState<UserAccount[]>(initialUsers || []);
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
@@ -47,12 +47,20 @@ export default function AdminStaffView({
   });
 
   useEffect(() => {
+    if (initialUsers && initialUsers.length > 0) {
+      setUsers(initialUsers);
+    }
+  }, [initialUsers]);
+
+  useEffect(() => {
     const unsub = store.subscribe(() => {
-      setUsers(store.getUsers());
+      if (!initialUsers || initialUsers.length === 0) {
+        setUsers(store.getUsers());
+      }
       setCurrentUser(store.getCurrentUser());
     });
     return unsub;
-  }, []);
+  }, [initialUsers]);
 
   const adminCount = users.filter(u => u.role === "admin" || u.role === "transport_manager").length;
   const staffCount = users.filter(u => u.role === "conductor" || u.role === "supervisor").length;
@@ -69,6 +77,7 @@ export default function AdminStaffView({
   });
 
   const handleRoleChange = async (userId: string, newRole: UserRole, userName: string) => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
     await store.updateUserRole(userId, newRole);
     setToastMessage(`Updated access level for ${userName} to ${newRole.toUpperCase()}`);
     setTimeout(() => setToastMessage(null), 3500);

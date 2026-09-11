@@ -25,15 +25,17 @@ export default async function UserAndRBACManagementPage() {
 
   const { data: dbUsers } = await supabaseAdmin
     .from("users")
-    .select("id, full_name, email, role, phone, is_active, created_at");
+    .select("id, full_name, email, role, phone, campus, provider, created_at")
+    .order("created_at", { ascending: false });
 
   const users: UserAccount[] = (dbUsers || []).map((u: any) => ({
     id: u.id,
     fullName: u.full_name || "User",
     email: u.email || "",
     role: (u.role || "student") as any,
-    phone: u.phone,
-    provider: "Institutional SSO",
+    phone: u.phone || undefined,
+    campus: u.campus || undefined,
+    provider: u.provider || "Institutional SSO",
     createdAt: u.created_at || new Date().toISOString(),
   }));
 
