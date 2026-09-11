@@ -542,26 +542,22 @@ export default function CampusFleetMap({
         });
 
         fleetBuses.forEach((fb) => {
-          const isInTransit = fb.state === "IN_TRANSIT";
           const isStandby = fb.state === "STANDBY_STARTING_POINT";
+          const isInTransit = !isStandby;
 
-          const bgClass = isInTransit
-            ? "bg-blue-600 text-white border-white ring-4 ring-blue-400/50"
-            : isStandby
-            ? "bg-amber-500 text-white border-white ring-4 ring-amber-300/50"
-            : "bg-slate-800 text-white border-slate-300 ring-2 ring-slate-400/20";
+          const bgClass = isStandby
+            ? "bg-amber-500 text-white border-white ring-4 ring-amber-300/50 shadow-md"
+            : "bg-blue-600 text-white border-white ring-4 ring-blue-400/50 shadow-md shadow-blue-500/30";
 
-          const pulseBadge = isInTransit
-            ? `<span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border border-white"></span>
-              </span>`
-            : isStandby
+          const pulseBadge = isStandby
             ? `<span class="absolute -top-1 -right-1 flex h-3 w-3">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white"></span>
               </span>`
-            : `<span class="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-indigo-400 border border-white"></span>`;
+            : `<span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border border-white"></span>
+              </span>`;
 
           const busIcon = L.divIcon({
             className: "custom-fleet-bus-icon",
@@ -585,18 +581,14 @@ export default function CampusFleetMap({
 
               <div style="margin-bottom: 6px;">
                 <span style="font-size: 10px; padding: 3px 8px; border-radius: 999px; font-weight: 900; text-transform: uppercase; ${
-                  isInTransit
-                    ? "background: #dcfce7; color: #15803d; border: 1px solid #86efac;"
-                    : isStandby
+                  isStandby
                     ? "background: #fef3c7; color: #b45309; border: 1px solid #fcd34d;"
-                    : "background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;"
+                    : "background: #dcfce7; color: #15803d; border: 1px solid #86efac;"
                 }">
                   ${
-                    isInTransit
-                      ? "● IN TRANSIT (MOVING)"
-                      : isStandby
+                    isStandby
                       ? "● STANDBY AT STARTING POINT"
-                      : "● PARKED IN CAMPUS DEPOT"
+                      : "● IN TRANSIT (LIVE TELEMATICS)"
                   }
                 </span>
               </div>

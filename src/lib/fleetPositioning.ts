@@ -168,32 +168,19 @@ export function computeFleetBusMarkers(
     const mode = options?.simulatedMode || "AUTO";
     const currentMinutes = options?.simulatedTimeMinutes ?? actualCurrentMinutes;
 
-    // Evaluate state
-    let state: "CAMPUS_PARKED" | "STANDBY_STARTING_POINT" | "IN_TRANSIT" = "CAMPUS_PARKED";
+    // Evaluate state — All fleet vehicles remain active on their operational corridors
+    let state: "STANDBY_STARTING_POINT" | "IN_TRANSIT" = "IN_TRANSIT";
 
-    if (mode === "IN_TRANSIT") {
-      state = "IN_TRANSIT";
-    } else if (mode === "MORNING_STANDBY") {
+    if (mode === "MORNING_STANDBY") {
       state = "STANDBY_STARTING_POINT";
-    } else if (mode === "CAMPUS_PARKED") {
-      state = "CAMPUS_PARKED";
+    } else if (mode === "IN_TRANSIT") {
+      state = "IN_TRANSIT";
     } else {
       // AUTO mode based on real clock & departure time
-      if (activeTrip?.status === "IN_PROGRESS") {
-        state = "IN_TRANSIT";
-      } else if (
-        liveTelematics.busId === bus.id &&
-        liveTelematics.speedKmh > 0 &&
-        liveTelematics.latitude >= 28.9 &&
-        liveTelematics.latitude <= 30.5
-      ) {
-        state = "IN_TRANSIT";
-      } else if (currentMinutes >= depMinutes && currentMinutes < arrMinutes && activeTrip?.status !== "COMPLETED") {
-        state = "IN_TRANSIT";
-      } else if (currentMinutes >= standbyStartMinutes && currentMinutes < depMinutes && activeTrip?.status !== "COMPLETED") {
+      if (currentMinutes >= standbyStartMinutes && currentMinutes < depMinutes && activeTrip?.status !== "COMPLETED") {
         state = "STANDBY_STARTING_POINT";
       } else {
-        state = "CAMPUS_PARKED";
+        state = "IN_TRANSIT";
       }
     }
 
@@ -205,7 +192,7 @@ export function computeFleetBusMarkers(
     let statusText = "";
 
     if (state === "IN_TRANSIT") {
-      // Case 1: IN TRANSIT — moving with driver coordinates
+      // Case 1: IN TRANSIT — moving with driver coordinates or live corridor telemetry
       const isLiveDriverPingForThisBus =
         liveTelematics.busId === bus.id &&
         liveTelematics.latitude >= 28.9 &&
@@ -218,36 +205,26 @@ export function computeFleetBusMarkers(
         headingDeg = liveTelematics.headingDeg || 45;
         statusText = `In Transit • Moving with Driver GPS (${speedKmh} km/h)`;
       } else {
-        // Interpolate along route stops
-        const elapsed = Math.max(0, currentMinutes - depMinutes);
-        const duration = Math.max(1, arrMinutes - depMinutes);
-        // Stagger bus progress slightly so different routes are along their corridors
-        const staggerOffset = ((busIdx * 7) % 20) / 100;
-        const progress = Math.min(0.92, Math.max(0.08, (elapsed / duration) + staggerOffset));
+        // Distribute along route corridor stops with realistic staggered progress
+        const staggerOffset = ((busIdx * 11) % 40) / 100;
+        const timeCycleProgress = ((currentMinutes % 45) / 45);
+        const progress = Math.min(0.92, Math.max(0.08, timeCycleProgress + staggerOffset));
 
         const interp = interpolateRouteProgress(routeStops, progress);
         latitude = interp.latitude;
         longitude = interp.longitude;
-        speedKmh = 28 + (busIdx % 12);
+        speedKmh = 28 + (busIdx % 14);
         headingDeg = interp.headingDeg;
         statusText = `In Transit • Live Corridor Telemetry (${speedKmh} km/h)`;
       }
-    } else if (state === "STANDBY_STARTING_POINT") {
-      // Case 2: 1 Hour Before Departure — stationed at starting point
+    } else {
+      // Case 2: Standby — stationed at designated starting point
       latitude = startingStop.latitude;
       longitude = startingStop.longitude;
       speedKmh = 0;
       headingDeg = 0;
       const minsToDep = Math.max(0, depMinutes - currentMinutes);
       statusText = `Standby at Starting Point (${startingStop.name}) • Boarding in ${minsToDep}m (Dep: ${departureTime})`;
-    } else {
-      // Case 3: All other times — parked in GEHU Bhimtal Campus depot
-      const slot = getCampusDepotSlot(busIdx);
-      latitude = slot.latitude;
-      longitude = slot.longitude;
-      speedKmh = 0;
-      headingDeg = 0;
-      statusText = `Parked at GEHU Campus Depot (Next Departure: ${departureTime})`;
     }
 
     return {

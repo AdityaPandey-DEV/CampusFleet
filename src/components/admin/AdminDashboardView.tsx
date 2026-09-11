@@ -134,7 +134,7 @@ export default function AdminDashboardView({
   ]);
 
   const [focusedBusId, setFocusedBusId] = useState<string | undefined>();
-  const [previewMode, setPreviewMode] = useState<"AUTO" | "MORNING_STANDBY" | "IN_TRANSIT" | "CAMPUS_PARKED">("AUTO");
+  const [previewMode, setPreviewMode] = useState<"AUTO" | "MORNING_STANDBY" | "IN_TRANSIT">("IN_TRANSIT");
   const [clockTick, setClockTick] = useState(0);
 
   useEffect(() => {
@@ -148,9 +148,8 @@ export default function AdminDashboardView({
     });
   }, [buses, trips, routes, stops, staff, liveLocation, previewMode, clockTick]);
 
-  const inTransitCount = fleetBuses.filter(fb => fb.state === "IN_TRANSIT").length;
+  const inTransitCount = fleetBuses.filter(fb => fb.state === "IN_TRANSIT" || fb.state !== "STANDBY_STARTING_POINT").length;
   const standbyCount = fleetBuses.filter(fb => fb.state === "STANDBY_STARTING_POINT").length;
-  const campusParkedCount = fleetBuses.filter(fb => fb.state === "CAMPUS_PARKED").length;
 
   const focusedBus = fleetBuses.find(fb => fb.busId === focusedBusId);
   const focusedRoute = routes.find(r => r.id === focusedBus?.routeId);
@@ -335,46 +334,30 @@ export default function AdminDashboardView({
           {/* Fleet Status Summary Badges & Quick Lifecycle Switcher */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1 pb-1">
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-                <span className="h-2 w-2 rounded-full bg-slate-500"></span>
-                <span>Campus Depot: <strong>{campusParkedCount}</strong></span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">
+                <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+                <span>Active on Route (Live GPS): <strong>{inTransitCount}</strong></span>
               </span>
 
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/60">
                 <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
                 <span>Standby at Starting Points: <strong>{standbyCount}</strong></span>
               </span>
-
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/60">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>In Transit (Driver GPS): <strong>{inTransitCount}</strong></span>
-              </span>
             </div>
 
             {/* Shift Simulation & Preview Controls */}
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-[11px] font-bold">
               <button
-                onClick={() => setPreviewMode("AUTO")}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  previewMode === "AUTO"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 shadow-xs font-black"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-                title="Automatically computes bus positions from live clock and scheduled departure times"
-              >
-                ● Live Auto
-              </button>
-              <button
-                onClick={() => setPreviewMode("CAMPUS_PARKED")}
+                onClick={() => setPreviewMode("IN_TRANSIT")}
                 className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
-                  previewMode === "CAMPUS_PARKED"
+                  previewMode === "IN_TRANSIT" || previewMode === "AUTO"
                     ? "bg-white dark:bg-slate-900 text-blue-600 shadow-xs font-black"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
-                title="View all buses parked at GEHU Campus depot"
+                title="View all fleet vehicles actively tracking along corridors with live driver coordinates"
               >
-                <Building2 className="w-3.5 h-3.5 shrink-0" />
-                <span>Campus Depot</span>
+                <BusFront className="w-3.5 h-3.5 shrink-0" />
+                <span>● Live Transit</span>
               </button>
               <button
                 onClick={() => setPreviewMode("MORNING_STANDBY")}
@@ -383,22 +366,10 @@ export default function AdminDashboardView({
                     ? "bg-white dark:bg-slate-900 text-amber-600 shadow-xs font-black"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
-                title="Simulate 1 hour before departure: all buses stationed at their route starting points"
+                title="Stationed at designated route starting points prior to departure"
               >
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span>At Starting Points</span>
-              </button>
-              <button
-                onClick={() => setPreviewMode("IN_TRANSIT")}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
-                  previewMode === "IN_TRANSIT"
-                    ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-xs font-black"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-                title="Simulate all buses actively moving along corridors with driver coordinates"
-              >
-                <BusFront className="w-3.5 h-3.5 shrink-0" />
-                <span>In Transit</span>
               </button>
             </div>
           </div>
@@ -428,11 +399,9 @@ export default function AdminDashboardView({
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${
-                    fb.state === "IN_TRANSIT"
-                      ? "bg-emerald-400 animate-ping"
-                      : fb.state === "STANDBY_STARTING_POINT"
+                    fb.state === "STANDBY_STARTING_POINT"
                       ? "bg-amber-400 animate-pulse"
-                      : "bg-slate-400"
+                      : "bg-emerald-400 animate-ping"
                   }`} />
                   <span>{fb.shortLabel}</span>
                 </button>
