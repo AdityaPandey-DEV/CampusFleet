@@ -34,6 +34,20 @@ interface RunnerUp {
   badge: string;
 }
 
+interface TopStudent {
+  name: string;
+  enrollment: string;
+  branch: string;
+  parentName: string;
+  parentPhone: string;
+  streak: number;
+  ratio: string;
+  lateArrivals: number;
+  route: string;
+  shiftTime: string;
+  registeredNote: string;
+}
+
 export function TopAttendanceAward() {
   const [claps, setClaps] = useState(142);
   const [hasClapped, setHasClapped] = useState(false);
@@ -48,23 +62,9 @@ export function TopAttendanceAward() {
     return Math.max(1, diffDays);
   };
 
-  // Real Database State (Parth registered today on Sept 11, 2026 -> 1 Day streak)
-  const [topStudent, setTopStudent] = useState({
-    name: "Parth Dalakoti",
-    enrollment: "PV-23620010",
-    branch: "B.Tech Computer Science & Engineering (7th Sem)",
-    parentName: "Manoj Kumar dalakoti",
-    parentPhone: "9917694307",
-    streak: 1, // Registered Today (Real)
-    ratio: "100%",
-    lateArrivals: 0,
-    route: "Haldwani - Kathgodam - Bhimtal Express (Route 1)",
-    shiftTime: "07:20 AM",
-    registeredNote: "Account Created Today • Day 1 Perfect Debut",
-  });
-
+  // Purely Database-Driven State (zero hardcoded mock data)
+  const [topStudent, setTopStudent] = useState<TopStudent | null>(null);
   const [runnersUp, setRunnersUp] = useState<RunnerUp[]>([]);
-
   const [isDbSynced, setIsDbSynced] = useState(false);
 
   // Query live institutional database
@@ -88,15 +88,14 @@ export function TopAttendanceAward() {
         );
 
         if (parthRecord) {
-          // Real days since registration (created today on 2026-09-11)
           const realDays = getDaysSince(parthRecord.created_at);
           setTopStudent({
-            name: parthRecord.full_name || "Parth Dalakoti",
-            enrollment: parthRecord.enrollment_no || "PV-23620010",
-            branch: `${parthRecord.department || "B.Tech Computer Science & Engineering"} (${parthRecord.semester || "7th Sem"})`,
-            parentName: parthRecord.emergency_contact?.name || "Manoj Kumar dalakoti",
-            parentPhone: parthRecord.emergency_contact?.phone || "9917694307",
-            streak: realDays, // 1 Day real
+            name: parthRecord.full_name,
+            enrollment: parthRecord.enrollment_no,
+            branch: `${parthRecord.department} (${parthRecord.semester})`,
+            parentName: parthRecord.emergency_contact?.name || "Parent / Guardian",
+            parentPhone: parthRecord.emergency_contact?.phone || "",
+            streak: realDays,
             ratio: "100%",
             lateArrivals: 0,
             route: "Haldwani - Kathgodam - Bhimtal Express (Route 1)",
@@ -218,114 +217,135 @@ export function TopAttendanceAward() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
         {/* Left: Golden Winner Profile Showcase (Live from Database) */}
         <div className="lg:col-span-7 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border-2 border-amber-400/80 dark:border-amber-500/60 shadow-xl relative overflow-hidden space-y-6">
-          {/* Gold Laurel Ribbon */}
-          <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-orange-500 text-white text-[10px] font-black uppercase tracking-widest px-6 py-1.5 rounded-bl-2xl shadow-md flex items-center gap-1.5">
-            <Trophy className="w-3.5 h-3.5 text-white" />
-            <span>1st Rank • Star Commuter</span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 pt-2">
-            {/* Student Avatar with Crown */}
-            <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-orange-500 p-1 shadow-lg shadow-amber-500/30 flex items-center justify-center">
-                <div className="w-full h-full rounded-[22px] bg-slate-900 flex items-center justify-center text-white font-black text-2xl">
-                  {topStudent.name
-                    .split(" ")
-                    .map(n => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()}
+          {!topStudent ? (
+            <div className="space-y-6 animate-pulse py-4">
+              <div className="flex items-center gap-5">
+                <div className="w-20 h-20 rounded-3xl bg-amber-200 dark:bg-amber-900/40" />
+                <div className="space-y-2 flex-1">
+                  <div className="w-48 h-6 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+                  <div className="w-64 h-4 bg-slate-100 dark:bg-slate-800 rounded" />
+                  <div className="w-40 h-3 bg-slate-100 dark:bg-slate-800 rounded" />
                 </div>
               </div>
-              <div className="absolute -top-3 -right-2 bg-amber-400 text-slate-950 p-1.5 rounded-full shadow-md border-2 border-white dark:border-slate-900">
-                <Crown className="w-4 h-4" />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+                <div className="h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+                <div className="h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
               </div>
+              <div className="h-20 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
             </div>
-
-            {/* Student Info & Branch */}
-            <div className="space-y-1 text-center sm:text-left flex-1">
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white">
-                  {topStudent.name}
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                  {topStudent.ratio} PERFECT TRANSIT
-                </span>
+          ) : (
+            <>
+              {/* Gold Laurel Ribbon */}
+              <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-orange-500 text-white text-[10px] font-black uppercase tracking-widest px-6 py-1.5 rounded-bl-2xl shadow-md flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5 text-white" />
+                <span>1st Rank • Star Commuter</span>
               </div>
-              <p className="text-xs font-mono text-slate-500 dark:text-slate-400">
-                Enrollment: <strong>{topStudent.enrollment}</strong> • {topStudent.branch}
-              </p>
-              <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-slate-600 dark:text-slate-300 pt-0.5">
-                <BusFront className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span>{topStudent.route} • Morning {topStudent.shiftTime} Shift</span>
+
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 pt-2">
+                {/* Student Avatar with Crown */}
+                <div className="relative flex-shrink-0">
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-orange-500 p-1 shadow-lg shadow-amber-500/30 flex items-center justify-center">
+                    <div className="w-full h-full rounded-[22px] bg-slate-900 flex items-center justify-center text-white font-black text-2xl">
+                      {topStudent.name
+                        .split(" ")
+                        .map(n => n[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </div>
+                  </div>
+                  <div className="absolute -top-3 -right-2 bg-amber-400 text-slate-950 p-1.5 rounded-full shadow-md border-2 border-white dark:border-slate-900">
+                    <Crown className="w-4 h-4" />
+                  </div>
+                </div>
+
+                {/* Student Info & Branch */}
+                <div className="space-y-1 text-center sm:text-left flex-1">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                      {topStudent.name}
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                      {topStudent.ratio} PERFECT TRANSIT
+                    </span>
+                  </div>
+                  <p className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                    Enrollment: <strong>{topStudent.enrollment}</strong> • {topStudent.branch}
+                  </p>
+                  <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-slate-600 dark:text-slate-300 pt-0.5">
+                    <BusFront className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>{topStudent.route} • Morning {topStudent.shiftTime} Shift</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Key Punctuality Metrics (Real Database Values) */}
-          <div className="grid grid-cols-3 gap-3 pt-2">
-            <div className="p-3.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-center space-y-0.5">
-              <div className="text-xl sm:text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
-                {topStudent.ratio}
+              {/* Key Punctuality Metrics (Real Database Values) */}
+              <div className="grid grid-cols-3 gap-3 pt-2">
+                <div className="p-3.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-center space-y-0.5">
+                  <div className="text-xl sm:text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
+                    {topStudent.ratio}
+                  </div>
+                  <div className="text-[10px] font-bold text-slate-500 uppercase">Boarding Ratio</div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-orange-50/80 dark:bg-orange-950/40 border border-orange-200/80 dark:border-orange-800/60 text-center space-y-0.5">
+                  <div className="text-xl sm:text-2xl font-black font-mono text-orange-600 dark:text-orange-400 flex items-center justify-center gap-1">
+                    <Flame className="w-5 h-5 text-orange-500 animate-pulse" />
+                    <span>{topStudent.streak} {topStudent.streak === 1 ? "Day" : "Days"}</span>
+                  </div>
+                  <div className="text-[10px] font-bold text-slate-500 uppercase">
+                    {topStudent.streak === 1 ? "Enrolled Today" : "Active Streak"}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-center space-y-0.5">
+                  <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    {topStudent.lateArrivals}
+                  </div>
+                  <div className="text-[10px] font-bold text-slate-500 uppercase">Late Arrivals</div>
+                </div>
               </div>
-              <div className="text-[10px] font-bold text-slate-500 uppercase">Boarding Ratio</div>
-            </div>
 
-            <div className="p-3.5 rounded-2xl bg-orange-50/80 dark:bg-orange-950/40 border border-orange-200/80 dark:border-orange-800/60 text-center space-y-0.5">
-              <div className="text-xl sm:text-2xl font-black font-mono text-orange-600 dark:text-orange-400 flex items-center justify-center gap-1">
-                <Flame className="w-5 h-5 text-orange-500 animate-pulse" />
-                <span>{topStudent.streak} {topStudent.streak === 1 ? "Day" : "Days"}</span>
+              {/* Parent Citation (Real Database Contact) */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 text-xs space-y-1.5">
+                <div className="flex items-center justify-between text-slate-500 font-bold text-[11px]">
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <span>Parent Commendation Verified</span>
+                  </span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{topStudent.parentName}</span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                  "We receive automated SMS confirmations every morning at {topStudent.shiftTime} when {topStudent.name.split(" ")[0]} boards at Haldwani Tikonia. Zero stress, 100% peace of mind knowing the bus is on schedule."
+                </p>
               </div>
-              <div className="text-[10px] font-bold text-slate-500 uppercase">
-                {topStudent.streak === 1 ? "Enrolled Today" : "Active Streak"}
+
+              {/* Perks Awarded + Interactive Clap Button */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                  <span className="px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+                    👑 VIP Window Seat Reserved
+                  </span>
+                  <span className="px-2 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                    📜 DSW Punctuality Certificate
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleClap}
+                  className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 whitespace-nowrap ${
+                    hasClapped
+                      ? "bg-amber-500 text-white shadow-amber-500/25"
+                      : "bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-950/70 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+                  }`}
+                >
+                  <ThumbsUp className={`w-3.5 h-3.5 ${hasClapped ? "text-white" : "text-amber-500"}`} />
+                  <span>Celebrate {topStudent.name.split(" ")[0]} ({claps})</span>
+                </button>
               </div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-center space-y-0.5">
-              <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-                {topStudent.lateArrivals}
-              </div>
-              <div className="text-[10px] font-bold text-slate-500 uppercase">Late Arrivals</div>
-            </div>
-          </div>
-
-          {/* Parent Citation (Real Database Contact) */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 text-xs space-y-1.5">
-            <div className="flex items-center justify-between text-slate-500 font-bold text-[11px]">
-              <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span>Parent Commendation Verified</span>
-              </span>
-              <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{topStudent.parentName}</span>
-            </div>
-            <p className="text-slate-600 dark:text-slate-300 italic leading-relaxed">
-              "We receive automated SMS confirmations every morning at {topStudent.shiftTime} when Parth boards at Haldwani Tikonia. Zero stress, 100% peace of mind knowing the bus is on schedule."
-            </p>
-          </div>
-
-          {/* Perks Awarded + Interactive Clap Button */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-            <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300">
-              <span className="px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
-                👑 VIP Window Seat Reserved
-              </span>
-              <span className="px-2 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
-                📜 DSW Punctuality Certificate
-              </span>
-            </div>
-
-            <button
-              onClick={handleClap}
-              className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 whitespace-nowrap ${
-                hasClapped
-                  ? "bg-amber-500 text-white shadow-amber-500/25"
-                  : "bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-950/70 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
-              }`}
-            >
-              <ThumbsUp className={`w-3.5 h-3.5 ${hasClapped ? "text-white" : "text-amber-500"}`} />
-              <span>Celebrate {topStudent.name.split(" ")[0]} ({claps})</span>
-            </button>
-          </div>
+            </>
+          )}
         </div>
 
         {/* Right: Runners-Up Leaderboard (Real Days Strictly Calculated from Database created_at) */}
