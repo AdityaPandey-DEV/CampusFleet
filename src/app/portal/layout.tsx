@@ -104,9 +104,10 @@ export default function StudentPortalLayout({
   }
 
   const navLinks = [
-    { href: "/portal", label: "My Commute", icon: BusFront, requiresPayment: false },
+    { href: "/portal/booking", label: "Seat Booking", icon: BusFront, requiresPayment: true },
     { href: "/portal/pass", label: "Digital Pass", icon: QrCode, requiresPayment: true },
-    { href: "/portal/payments", label: "Pass & Billing", icon: CreditCard, requiresPayment: false },
+    { href: "/portal/tracker", label: "Live Radar", icon: Navigation, requiresPayment: true },
+    { href: "/portal/payments", label: "Pass Fees", icon: CreditCard, requiresPayment: false },
   ];
 
   const processedNavLinks = navLinks.map(link => ({

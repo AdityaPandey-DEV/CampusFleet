@@ -958,13 +958,6 @@ export default function StaffOperationsView({
                 icon: GraduationCap,
               }
         }
-        navLinks={[
-          { href: "/staff", label: "Operations Hub", icon: Building2 },
-          { href: "/portal/tracker", label: "Live Transit Radar", icon: Navigation },
-          ...(currentUser?.role === "admin" || currentUser?.role === "transport_manager"
-            ? [{ href: "/admin", label: "Admin Console", icon: LayoutDashboard }]
-            : [{ href: "/portal", label: "Student Portal", icon: GraduationCap }]),
-        ]}
         customActions={
           (currentUser?.role === "admin" || currentUser?.role === "transport_manager") ? (
             <Link

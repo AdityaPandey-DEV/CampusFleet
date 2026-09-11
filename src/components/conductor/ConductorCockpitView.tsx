@@ -238,11 +238,6 @@ export default function ConductorCockpitView({
           subtitle: "Live vehicle telemetry & trip dashboard",
           icon: BusFront,
         }}
-        navLinks={[
-          { href: "/conductor", label: "Passenger QR Manifest", icon: FileCheck2 },
-          { href: "/driver", label: "Driver Cockpit", icon: BusFront },
-          { href: "/portal/tracker", label: "Live Transit Radar", icon: Navigation },
-        ]}
         customActions={
           <div className="flex items-center gap-1.5 sm:gap-2">
             <Link

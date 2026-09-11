@@ -151,11 +151,6 @@ export default function TeacherConsoleView({
           subtitle: "View bus routes, student passes & live tracker",
           icon: GraduationCap,
         }}
-        navLinks={[
-          { href: "/teacher", label: "Bus Arrival Feed", icon: BookOpen },
-          { href: "/portal/tracker", label: "Live GPS Radar", icon: Navigation },
-          { href: "/portal", label: "Student Portal", icon: GraduationCap },
-        ]}
         customActions={
           <Link
             href="/portal"

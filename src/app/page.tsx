@@ -143,29 +143,14 @@ export default function CampusFleetLandingPage() {
             : "Sign in with university or Google account",
           icon: Smartphone,
         }}
-        navLinks={[
-          { href: "/portal/booking", label: "Seat Booking", icon: BusFront },
-          { href: "/portal/pass", label: "Digital Pass", icon: QrCode },
-          { href: "/portal/tracker", label: "Live Radar", icon: Navigation },
-          { href: "/portal/payments", label: "Pass Fees", icon: CreditCard },
-        ]}
         customActions={
-          !currentUser ? (
-            <Link
-              href="/portal"
-              className="hidden sm:flex px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 items-center gap-1.5 whitespace-nowrap"
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>Launch Portal</span>
-            </Link>
-          ) : (
-            <Link
-              href={getDashboardLink()}
-              className="hidden xl:flex px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-xs rounded-xl border border-blue-200/80 dark:border-blue-800/80 transition-all items-center gap-1.5 whitespace-nowrap"
-            >
-              <span>{getDashboardLabel()}</span>
-            </Link>
-          )
+          <Link
+            href={getDashboardLink()}
+            className="hidden sm:flex px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 items-center gap-1.5 whitespace-nowrap"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>{getDashboardLabel()}</span>
+          </Link>
         }
       />
 

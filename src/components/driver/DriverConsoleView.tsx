@@ -296,11 +296,6 @@ export default function DriverConsoleView({
           subtitle: "Switch to passenger QR ticket verification",
           icon: FileCheck2,
         }}
-        navLinks={[
-          { href: "/driver", label: "Cockpit HUD", icon: BusFront },
-          { href: "/conductor", label: "Conductor Manifest", icon: FileCheck2 },
-          { href: "/portal/tracker", label: "Live GPS Radar", icon: Navigation },
-        ]}
         customActions={
           <Link
             href="/conductor"
