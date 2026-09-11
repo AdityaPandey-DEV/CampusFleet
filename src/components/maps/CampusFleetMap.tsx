@@ -116,6 +116,11 @@ export default function CampusFleetMap({
   const onBusClickRef = useRef(onBusClick);
   onBusClickRef.current = onBusClick;
 
+  const userInteractedRef = useRef(false);
+  const initialFitDoneRef = useRef(false);
+  const lastFittedRouteRef = useRef<string | null>(null);
+  const lastFocusedBusIdRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     if (typeof window === "undefined" || !mapContainerRef.current) return;
 
@@ -159,6 +164,10 @@ export default function CampusFleetMap({
           if (onMapClickRef.current) {
             onMapClickRef.current(Number(e.latlng.lat.toFixed(6)), Number(e.latlng.lng.toFixed(6)));
           }
+        });
+
+        map.on("zoomstart dragstart", () => {
+          userInteractedRef.current = true;
         });
 
         mapInstanceRef.current = map;
@@ -222,8 +231,11 @@ export default function CampusFleetMap({
             lineCap: "round",
           }).addTo(map);
 
-          // Auto-fit bounds so the entire road path is visible
-          if (roadSnappedCoords.length >= 2) {
+          // Auto-fit bounds so the entire road path is visible when route changes
+          const currentRouteKey = roadSnappedCoords.map(c => `${c[0].toFixed(3)},${c[1].toFixed(3)}`).join(";");
+          if (roadSnappedCoords.length >= 2 && lastFittedRouteRef.current !== currentRouteKey) {
+            lastFittedRouteRef.current = currentRouteKey;
+            userInteractedRef.current = false;
             const bounds = L.latLngBounds(roadSnappedCoords);
             if (busLocation) {
               // Only extend bounds if busLocation is reasonably close to this corridor (within ~0.5 deg / ~50km)
@@ -543,20 +555,28 @@ export default function CampusFleetMap({
           }
         });
 
-        // Fit bounds for fleet buses if no specific route polyline
-        if (waypoints.length < 2 && fleetBuses.length > 0) {
+        // Fit bounds for fleet buses ONLY once on initial mount, preserving user's manual zoom
+        if (waypoints.length < 2 && fleetBuses.length > 0 && !initialFitDoneRef.current && !userInteractedRef.current) {
           const fleetBounds = L.latLngBounds(fleetBuses.map((b) => [b.latitude, b.longitude]));
           if (stops.length > 0) {
             stops.forEach((s) => fleetBounds.extend([s.latitude, s.longitude]));
           }
           map.fitBounds(fleetBounds, { padding: [35, 35], maxZoom: 14 });
+          initialFitDoneRef.current = true;
         }
       }
 
       if (focusedBusId && fleetMarkersMapRef.current.has(focusedBusId)) {
-        const marker = fleetMarkersMapRef.current.get(focusedBusId);
-        map.panTo(marker.getLatLng(), { animate: true });
-        marker.openPopup();
+        if (lastFocusedBusIdRef.current !== focusedBusId) {
+          lastFocusedBusIdRef.current = focusedBusId;
+          const marker = fleetMarkersMapRef.current.get(focusedBusId);
+          const currentZoom = map.getZoom();
+          const targetZoom = Math.max(currentZoom, 15);
+          map.setView(marker.getLatLng(), targetZoom, { animate: true });
+          marker.openPopup();
+        }
+      } else if (!focusedBusId) {
+        lastFocusedBusIdRef.current = undefined;
       }
     });
 
