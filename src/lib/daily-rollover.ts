@@ -139,6 +139,9 @@ export async function executeDailyRollover(
       if (route.id === "route-bht-ddn-placement") {
         assignedBus = activeBuses.find((b) => b.id === "bus-21") || assignedBus;
       }
+      if (route.id === "route-bus-tempo") {
+        assignedBus = activeBuses.find((b) => b.id === "bus-tempo") || assignedBus;
+      }
       if (!assignedBus && activeBuses.length > 0) {
         assignedBus = activeBuses[routeIdx % activeBuses.length];
       }

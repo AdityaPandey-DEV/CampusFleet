@@ -90,7 +90,21 @@ export async function POST(req: NextRequest) {
     if (driverId !== undefined) updatePayload.driver_id = driverId;
     if (conductorId !== undefined) updatePayload.conductor_id = conductorId;
 
-    if (tripId) {
+    if (body.applyToAllShifts && busId) {
+      let query = supabaseAdmin
+        .from("trips")
+        .update(updatePayload)
+        .eq("bus_id", busId);
+
+      if (body.tripDate) {
+        query = query.eq("trip_date", body.tripDate);
+      }
+
+      const { error: busTripError } = await query;
+      if (busTripError) {
+        return NextResponse.json({ success: false, error: busTripError.message }, { status: 500 });
+      }
+    } else if (tripId) {
       const { error: tripError } = await supabaseAdmin
         .from("trips")
         .update(updatePayload)

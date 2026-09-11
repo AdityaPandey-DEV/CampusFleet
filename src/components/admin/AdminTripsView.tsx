@@ -185,27 +185,10 @@ export default function AdminTripsView({
     return routeName;
   };
 
-  // Helper to reverse bus name for evening return
-  const getDirectionalBusNumber = (busNumber: string, dir: TripDirection): string => {
-    if (dir === "CAMPUS_TO_CAMPUS") {
-      if (busNumber.includes("Bhakda") || busNumber.includes("Ganna")) {
-        return "Bus 21 (Bhimtal ⇄ Dehradun Clement Town)";
-      }
-      return busNumber;
-    }
-    if (dir === "CAMPUS_TO_HOME") {
-      if (busNumber.includes(" → ")) {
-        const match = busNumber.match(/^([^(]+)\s*\((.+)\s*→\s*(.+)\)$/);
-        if (match) {
-          const busPrefix = match[1].trim();
-          const from = match[2].trim();
-          const to = match[3].trim();
-          return `${busPrefix} (${to} → ${from})`;
-        }
-        return busNumber.replace(" → ", " ← ");
-      }
-    }
-    return busNumber;
+  // Helper to get clean bus name without location suffix
+  const getDirectionalBusNumber = (busNumber: string, _dir?: TripDirection): string => {
+    if (!busNumber) return "Bus";
+    return busNumber.replace(/\s*\([^)]*\)/g, "").trim();
   };
 
   // Helper to extract city stop name from route

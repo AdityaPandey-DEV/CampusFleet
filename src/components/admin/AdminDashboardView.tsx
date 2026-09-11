@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { store } from "@/lib/store";
 import dynamic from "next/dynamic";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import BusLoadingScreen from "@/components/common/BusLoadingScreen";
+import { computeFleetBusMarkers } from "@/lib/fleetPositioning";
+import type { FleetBusMarkerData } from "@/lib/types";
 
 // Dynamic import for Leaflet map with no SSR
 const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
@@ -129,7 +131,33 @@ export default function AdminDashboardView({
     issues.length,
   ]);
 
-  const routeCoordinates: [number, number][] = stops.map(s => [s.latitude, s.longitude]);
+  const [focusedBusId, setFocusedBusId] = useState<string | undefined>();
+  const [previewMode, setPreviewMode] = useState<"AUTO" | "MORNING_STANDBY" | "IN_TRANSIT" | "CAMPUS_PARKED">("AUTO");
+  const [clockTick, setClockTick] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setClockTick(c => c + 1), 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const fleetBuses: FleetBusMarkerData[] = useMemo(() => {
+    return computeFleetBusMarkers(buses, trips, routes, stops, staff, liveLocation, {
+      simulatedMode: previewMode,
+    });
+  }, [buses, trips, routes, stops, staff, liveLocation, previewMode, clockTick]);
+
+  const inTransitCount = fleetBuses.filter(fb => fb.state === "IN_TRANSIT").length;
+  const standbyCount = fleetBuses.filter(fb => fb.state === "STANDBY_STARTING_POINT").length;
+  const campusParkedCount = fleetBuses.filter(fb => fb.state === "CAMPUS_PARKED").length;
+
+  const focusedBus = fleetBuses.find(fb => fb.busId === focusedBusId);
+  const focusedRoute = routes.find(r => r.id === focusedBus?.routeId);
+  const corridorCoordinates: [number, number][] = useMemo(() => {
+    if (focusedRoute?.stops && focusedRoute.stops.length >= 2) {
+      return focusedRoute.stops.map(rs => [rs.stop.latitude, rs.stop.longitude] as [number, number]);
+    }
+    return [];
+  }, [focusedRoute]);
 
   const activeBuses = buses.filter(b => b.status === "ACTIVE").length;
   const confirmedBookings = bookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
@@ -271,29 +299,150 @@ export default function AdminDashboardView({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Live Fleet Map & Telemetry Control */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Radio className="w-4 h-4 text-blue-600 animate-pulse" />
-                Live Fleet Tracking & Dispatch Control
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Monitoring 5 active campus transit corridors with real-time GPS pings.
+                <h3 className="font-black text-base text-slate-900 dark:text-white">
+                  Live Fleet Tracking & Dispatch Control
+                </h3>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                  {fleetBuses.length} Vehicles Online
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                All campus buses live on GIS: stationed at GEHU Campus depot, moving to route starting points 1 hr prior to departure, and tracking live driver GPS in transit.
               </p>
             </div>
-            <Link
-              href="/admin/routes"
-              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              Route Config →
-            </Link>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/admin/trips"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
+              >
+                Trips & Shifts →
+              </Link>
+              <Link
+                href="/admin/routes"
+                className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 text-xs font-bold text-blue-600 dark:text-blue-400 transition-all"
+              >
+                Route Config →
+              </Link>
+            </div>
           </div>
 
+          {/* Fleet Status Summary Badges & Quick Lifecycle Switcher */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 pb-1">
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                <span className="h-2 w-2 rounded-full bg-slate-500"></span>
+                <span>Campus Depot: <strong>{campusParkedCount}</strong></span>
+              </span>
+
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/60">
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
+                <span>Standby at Starting Points: <strong>{standbyCount}</strong></span>
+              </span>
+
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/60">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>In Transit (Driver GPS): <strong>{inTransitCount}</strong></span>
+              </span>
+            </div>
+
+            {/* Shift Simulation & Preview Controls */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-[11px] font-bold">
+              <button
+                onClick={() => setPreviewMode("AUTO")}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  previewMode === "AUTO"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 shadow-xs font-black"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+                title="Automatically computes bus positions from live clock and scheduled departure times"
+              >
+                ● Live Auto
+              </button>
+              <button
+                onClick={() => setPreviewMode("CAMPUS_PARKED")}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  previewMode === "CAMPUS_PARKED"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 shadow-xs font-black"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+                title="View all buses parked at GEHU Campus depot"
+              >
+                🏫 Campus Depot
+              </button>
+              <button
+                onClick={() => setPreviewMode("MORNING_STANDBY")}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  previewMode === "MORNING_STANDBY"
+                    ? "bg-white dark:bg-slate-900 text-amber-600 shadow-xs font-black"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+                title="Simulate 1 hour before departure: all buses stationed at their route starting points"
+              >
+                🚏 At Starting Points
+              </button>
+              <button
+                onClick={() => setPreviewMode("IN_TRANSIT")}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  previewMode === "IN_TRANSIT"
+                    ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-xs font-black"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+                title="Simulate all buses actively moving along corridors with driver coordinates"
+              >
+                🚍 In Transit
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Bus Selector Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs">
+            <button
+              onClick={() => setFocusedBusId(undefined)}
+              className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all ${
+                !focusedBusId
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              All Buses ({fleetBuses.length})
+            </button>
+            {fleetBuses.map((fb) => {
+              const isFocused = focusedBusId === fb.busId;
+              return (
+                <button
+                  key={fb.busId}
+                  onClick={() => setFocusedBusId(isFocused ? undefined : fb.busId)}
+                  className={`px-2.5 py-1 rounded-lg font-bold shrink-0 flex items-center gap-1.5 transition-all ${
+                    isFocused
+                      ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-400"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    fb.state === "IN_TRANSIT"
+                      ? "bg-emerald-400 animate-ping"
+                      : fb.state === "STANDBY_STARTING_POINT"
+                      ? "bg-amber-400 animate-pulse"
+                      : "bg-slate-400"
+                  }`} />
+                  <span>{fb.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Leaflet Map with Full Multi-Bus Telematics */}
           <CampusFleetMap
-            busLocation={liveLocation}
+            fleetBuses={fleetBuses}
+            focusedBusId={focusedBusId}
+            onBusClick={(bus) => setFocusedBusId(bus.busId)}
             stops={stops}
-            routeCoordinates={routeCoordinates}
-            height="320px"
+            routeCoordinates={corridorCoordinates}
+            height="380px"
           />
         </div>
 

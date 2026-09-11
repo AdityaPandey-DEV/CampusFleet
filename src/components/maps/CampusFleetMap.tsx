@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { LiveBusLocation, Stop } from "@/lib/types";
+import { LiveBusLocation, Stop, FleetBusMarkerData } from "@/lib/types";
 
 interface CampusFleetMapProps {
   busLocation?: LiveBusLocation;
   busName?: string;
   tripStatus?: string;
+  fleetBuses?: FleetBusMarkerData[];
+  focusedBusId?: string;
+  onBusClick?: (bus: FleetBusMarkerData) => void;
   stops?: Stop[];
   routeCoordinates?: [number, number][];
   activeStopIndex?: number;
@@ -78,6 +81,9 @@ export default function CampusFleetMap({
   busLocation,
   busName,
   tripStatus,
+  fleetBuses,
+  focusedBusId,
+  onBusClick,
   stops = [],
   routeCoordinates = [],
   activeStopIndex = 0,
@@ -96,6 +102,7 @@ export default function CampusFleetMap({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const busMarkerRef = useRef<any>(null);
+  const fleetMarkersMapRef = useRef<Map<string, any>>(new Map());
   const polylineBorderRef = useRef<any>(null);
   const polylineCoreRef = useRef<any>(null);
   const polylineGlowRef = useRef<any>(null);
@@ -106,6 +113,8 @@ export default function CampusFleetMap({
   onMapClickRef.current = onMapClick;
   const onStopClickRef = useRef(onStopClick);
   onStopClickRef.current = onStopClick;
+  const onBusClickRef = useRef(onBusClick);
+  onBusClickRef.current = onBusClick;
 
   useEffect(() => {
     if (typeof window === "undefined" || !mapContainerRef.current) return;
@@ -168,11 +177,12 @@ export default function CampusFleetMap({
       }
 
       // Calculate Main Route Waypoints
+      // Only draw road corridor if explicit routeCoordinates provided OR in single route mode (not full fleet view)
       const waypoints: [number, number][] =
-        stops.length >= 2
-          ? stops.map(s => [s.latitude, s.longitude])
-          : routeCoordinates.length >= 2
+        routeCoordinates.length >= 2
           ? routeCoordinates
+          : (!fleetBuses || fleetBuses.length === 0) && stops.length >= 2
+          ? stops.map(s => [s.latitude, s.longitude])
           : [];
 
       if (waypoints.length >= 2) {
@@ -426,6 +436,126 @@ export default function CampusFleetMap({
           busMarkerRef.current.setPopupContent(popupHtml);
         }
       }
+
+      // Render Full Multi-Bus Fleet Tracking (when fleetBuses provided)
+      if (fleetBuses && fleetBuses.length > 0) {
+        const currentMarkers = fleetMarkersMapRef.current;
+        const activeBusIds = new Set(fleetBuses.map((fb) => fb.busId));
+
+        // Cleanup removed vehicles
+        currentMarkers.forEach((marker, id) => {
+          if (!activeBusIds.has(id)) {
+            map.removeLayer(marker);
+            currentMarkers.delete(id);
+          }
+        });
+
+        fleetBuses.forEach((fb) => {
+          const isInTransit = fb.state === "IN_TRANSIT";
+          const isStandby = fb.state === "STANDBY_STARTING_POINT";
+
+          const bgClass = isInTransit
+            ? "bg-blue-600 text-white border-white ring-4 ring-blue-400/50"
+            : isStandby
+            ? "bg-amber-500 text-white border-white ring-4 ring-amber-300/50"
+            : "bg-slate-800 text-white border-slate-300 ring-2 ring-slate-400/20";
+
+          const pulseBadge = isInTransit
+            ? `<span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border border-white"></span>
+              </span>`
+            : isStandby
+            ? `<span class="absolute -top-1 -right-1 flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white"></span>
+              </span>`
+            : `<span class="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-indigo-400 border border-white"></span>`;
+
+          const busIcon = L.divIcon({
+            className: "custom-fleet-bus-icon",
+            html: `
+              <div class="relative flex items-center justify-center min-w-[38px] h-9 px-2 rounded-xl shadow-xl border-2 font-black text-xs cursor-pointer select-none transition-transform hover:scale-110 ${bgClass} -translate-x-1/2 -translate-y-1/2">
+                <span class="mr-1 text-[13px]">🚍</span>
+                <span class="font-mono text-[11px] font-black tracking-tight">${fb.shortLabel}</span>
+                ${pulseBadge}
+              </div>
+            `,
+            iconSize: [46, 36],
+            iconAnchor: [23, 18],
+          });
+
+          const popupHtml = `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; line-height: 1.45; min-width: 220px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 6px;">
+                <strong style="color: #0f172a; font-size: 14px; font-weight: 900;">${fb.busNumber}</strong>
+                <span style="font-family: monospace; font-size: 11px; color: #64748b;">${fb.registrationNo}</span>
+              </div>
+
+              <div style="margin-bottom: 6px;">
+                <span style="font-size: 10px; padding: 3px 8px; border-radius: 999px; font-weight: 900; text-transform: uppercase; ${
+                  isInTransit
+                    ? "background: #dcfce7; color: #15803d; border: 1px solid #86efac;"
+                    : isStandby
+                    ? "background: #fef3c7; color: #b45309; border: 1px solid #fcd34d;"
+                    : "background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;"
+                }">
+                  ${
+                    isInTransit
+                      ? "● IN TRANSIT (MOVING)"
+                      : isStandby
+                      ? "● STANDBY AT STARTING POINT"
+                      : "● PARKED IN CAMPUS DEPOT"
+                  }
+                </span>
+              </div>
+
+              <div style="color: #334155; font-size: 11px;">
+                <div style="margin-top: 3px;">Route: <strong style="color: #1e293b;">${fb.routeName || "Corridor Route"}</strong></div>
+                <div style="margin-top: 3px;">Status: <strong style="color: ${isInTransit ? "#2563eb" : isStandby ? "#d97706" : "#475569"};">${fb.statusText}</strong></div>
+                <div style="margin-top: 3px;">Scheduled Departure: <strong style="color: #2563eb;">${fb.departureTime || "07:30 AM"}</strong></div>
+                <div style="margin-top: 3px;">Speed: <strong style="color: #0f172a;">${fb.speedKmh} km/h</strong></div>
+                <div style="margin-top: 3px; color: #64748b; font-size: 10px;">
+                  Crew: <strong>${fb.driverName || "Driver"}</strong> (Driver) • <strong>${fb.conductorName || "Conductor"}</strong>
+                </div>
+              </div>
+            </div>
+          `;
+
+          let marker = currentMarkers.get(fb.busId);
+          if (!marker) {
+            marker = L.marker([fb.latitude, fb.longitude], {
+              icon: busIcon,
+              zIndexOffset: isInTransit ? 1200 : isStandby ? 1100 : 900,
+            }).addTo(map);
+
+            marker.bindPopup(popupHtml);
+            marker.on("click", () => {
+              onBusClickRef.current?.(fb);
+            });
+            currentMarkers.set(fb.busId, marker);
+          } else {
+            marker.setLatLng([fb.latitude, fb.longitude]);
+            marker.setIcon(busIcon);
+            marker.setPopupContent(popupHtml);
+          }
+        });
+
+        // Fit bounds for fleet buses if no specific route polyline
+        if (waypoints.length < 2 && fleetBuses.length > 0) {
+          const fleetBounds = L.latLngBounds(fleetBuses.map((b) => [b.latitude, b.longitude]));
+          if (stops.length > 0) {
+            stops.forEach((s) => fleetBounds.extend([s.latitude, s.longitude]));
+          }
+          map.fitBounds(fleetBounds, { padding: [35, 35], maxZoom: 14 });
+        }
+      }
+
+      if (focusedBusId && fleetMarkersMapRef.current.has(focusedBusId)) {
+        const marker = fleetMarkersMapRef.current.get(focusedBusId);
+        map.panTo(marker.getLatLng(), { animate: true });
+        marker.openPopup();
+      }
     });
 
     return () => {
@@ -435,6 +565,8 @@ export default function CampusFleetMap({
     busLocation,
     busName,
     tripStatus,
+    fleetBuses,
+    focusedBusId,
     stops,
     routeCoordinates,
     activeStopIndex,

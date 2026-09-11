@@ -95,6 +95,7 @@ export default function StaffOperationsView({
 
   // Crew Assignment State
   const [crewSearchQuery, setCrewSearchQuery] = useState("");
+  const [crewShiftFilter, setCrewShiftFilter] = useState<"BY_BUS" | "MORNING" | "EVENING" | "ALL">("BY_BUS");
   const [selectedTripForCrew, setSelectedTripForCrew] = useState<any | null>(null);
   const [crewModalOpen, setCrewModalOpen] = useState(false);
   const [driverSearchQuery, setDriverSearchQuery] = useState("");
@@ -569,6 +570,117 @@ export default function StaffOperationsView({
     return list.filter((c) => c.name.toLowerCase().includes(q) || c.phone.includes(q));
   }, [staff, users, conductorSearchQuery]);
 
+  // Computed roster rows for Crew Dispatch table: deduplicated by bus or filtered by shift
+  const rosterRows = useMemo(() => {
+    const dayTrips = trips.filter((t) => !crewDate || t.tripDate === crewDate);
+
+    if (crewShiftFilter === "MORNING") {
+      return dayTrips
+        .filter((t) => t.shiftId === "shift-1" || t.direction === "HOME_TO_CAMPUS" || t.tripCode.includes("-M-"))
+        .map((t) => ({
+          id: t.id,
+          busId: t.busId,
+          routeId: t.routeId,
+          driverId: t.driverId,
+          conductorId: t.conductorId,
+          shiftLabel: "Morning (Shift 1)",
+          tripCode: t.tripCode,
+          allTrips: [t],
+        }));
+    }
+
+    if (crewShiftFilter === "EVENING") {
+      return dayTrips
+        .filter((t) => t.shiftId === "shift-2" || t.direction === "CAMPUS_TO_HOME" || t.tripCode.includes("-E-"))
+        .map((t) => ({
+          id: t.id,
+          busId: t.busId,
+          routeId: t.routeId,
+          driverId: t.driverId,
+          conductorId: t.conductorId,
+          shiftLabel: "Evening (Shift 2)",
+          tripCode: t.tripCode,
+          allTrips: [t],
+        }));
+    }
+
+    if (crewShiftFilter === "ALL") {
+      return dayTrips.map((t) => ({
+        id: t.id,
+        busId: t.busId,
+        routeId: t.routeId,
+        driverId: t.driverId,
+        conductorId: t.conductorId,
+        shiftLabel: t.shiftId === "shift-1" ? "Morning (Shift 1)" : t.shiftId === "shift-2" ? "Evening (Shift 2)" : t.shiftId,
+        tripCode: t.tripCode,
+        allTrips: [t],
+      }));
+    }
+
+    // Default: BY_BUS (Unique fleet vehicles deduplicated - each vehicle appears exactly ONCE!)
+    const busMap = new Map<string, {
+      id: string;
+      busId: string;
+      routeId: string;
+      driverId: string;
+      conductorId: string;
+      shiftLabel: string;
+      tripCode: string;
+      allTrips: Trip[];
+      shifts: string[];
+    }>();
+
+    for (const t of dayTrips) {
+      const key = t.busId || t.routeId;
+      if (!busMap.has(key)) {
+        busMap.set(key, {
+          id: t.id,
+          busId: t.busId,
+          routeId: t.routeId,
+          driverId: t.driverId,
+          conductorId: t.conductorId,
+          shiftLabel: "All Daily Shifts",
+          tripCode: t.tripCode,
+          allTrips: [t],
+          shifts: [t.shiftId],
+        });
+      } else {
+        const entry = busMap.get(key)!;
+        entry.allTrips.push(t);
+        if (t.shiftId && !entry.shifts.includes(t.shiftId)) {
+          entry.shifts.push(t.shiftId);
+        }
+        if (!entry.driverId && t.driverId) entry.driverId = t.driverId;
+        if (!entry.conductorId && t.conductorId) entry.conductorId = t.conductorId;
+      }
+    }
+
+    return Array.from(busMap.values());
+  }, [trips, crewDate, crewShiftFilter]);
+
+  // Filtered roster rows by search query
+  const filteredRosterRows = useMemo(() => {
+    if (!crewSearchQuery.trim()) return rosterRows;
+    const q = crewSearchQuery.toLowerCase();
+    return rosterRows.filter((r) => {
+      const b = buses.find((bus) => bus.id === r.busId);
+      const rt = routes.find((route) => route.id === r.routeId);
+      const drv = staff.find((s) => s.id === r.driverId || s.fullName === r.driverId) ||
+                  users.find((u) => u.id === r.driverId || u.email === r.driverId);
+      const cnd = staff.find((s) => s.id === r.conductorId || s.fullName === r.conductorId) ||
+                  users.find((u) => u.id === r.conductorId || u.email === r.conductorId);
+
+      return (
+        (b?.busNumber && b.busNumber.toLowerCase().includes(q)) ||
+        (b?.registrationNo && b.registrationNo.toLowerCase().includes(q)) ||
+        (rt?.name && rt.name.toLowerCase().includes(q)) ||
+        r.tripCode.toLowerCase().includes(q) ||
+        (drv?.fullName && drv.fullName.toLowerCase().includes(q)) ||
+        (cnd?.fullName && cnd.fullName.toLowerCase().includes(q))
+      );
+    });
+  }, [rosterRows, crewSearchQuery, buses, routes, staff, users]);
+
   const openCrewModal = (t: any) => {
     setSelectedTripForCrew(t);
     setSelectedDriverId(t.driverId || "");
@@ -593,13 +705,31 @@ export default function StaffOperationsView({
           busId: selectedTripForCrew.busId,
           driverId: selectedDriverId,
           conductorId: selectedConductorId,
+          applyToAllShifts: true,
+          tripDate: crewDate,
           assignedBy: currentUser?.fullName || "Transport Operations Staff",
         }),
       });
 
       const data = await res.json();
       if (data.success) {
-        await store.assignTripCrew(selectedTripForCrew.id, selectedDriverId, selectedConductorId);
+        if (selectedTripForCrew.allTrips && selectedTripForCrew.allTrips.length > 0) {
+          for (const t of selectedTripForCrew.allTrips) {
+            await store.assignTripCrew(t.id, selectedDriverId, selectedConductorId);
+          }
+        } else {
+          await store.assignTripCrew(selectedTripForCrew.id, selectedDriverId, selectedConductorId);
+        }
+
+        // Update local component state for all matching trips
+        setTrips((prev) =>
+          prev.map((t) =>
+            t.busId === selectedTripForCrew.busId && (!crewDate || t.tripDate === crewDate)
+              ? { ...t, driverId: selectedDriverId, conductorId: selectedConductorId }
+              : t
+          )
+        );
+
         showToast(data.message || "✓ Crew assigned to bus successfully!");
         setCrewModalOpen(false);
         setSelectedTripForCrew(null);
@@ -647,11 +777,20 @@ export default function StaffOperationsView({
         (st) => st.primaryStopId === stopId || (st.primaryRouteId === selectedFlowchartRoute.id && idx === 0)
       );
 
-      // Find trips that originate or are deployed starting from this stop
-      const assignedTrips = trips.filter((t) => {
+      // Find active operational buses originating or stationed at this stop for today
+      const rawAssignedTrips = trips.filter((t) => {
         if (t.routeId !== selectedFlowchartRoute.id) return false;
+        if (crewDate && t.tripDate !== crewDate) return false;
         const currentIdx = t.currentStopIndex ?? 0;
         return currentIdx === idx;
+      });
+
+      // Deduplicate by busId so the same operational vehicle is not duplicated multiple times across shifts
+      const seenBuses = new Set<string>();
+      const assignedTrips = rawAssignedTrips.filter((t) => {
+        if (seenBuses.has(t.busId)) return false;
+        seenBuses.add(t.busId);
+        return true;
       });
 
       return {
@@ -675,7 +814,7 @@ export default function StaffOperationsView({
         s.code.toLowerCase().includes(q) ||
         s.landmark.toLowerCase().includes(q)
     );
-  }, [selectedFlowchartRoute, stops, students, trips, flowchartSearchQuery]);
+  }, [selectedFlowchartRoute, stops, students, trips, crewDate, flowchartSearchQuery]);
 
   const handleOpenAssignModal = (targetStop: {
     stopId: string;
@@ -1644,7 +1783,11 @@ export default function StaffOperationsView({
                   <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200/60 dark:border-emerald-900/40">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Buses Deployed Here</div>
                     <div className="text-sm font-black text-emerald-700 dark:text-emerald-300 mt-0.5">
-                      {trips.filter((t) => t.routeId === selectedFlowchartRoute.id).length} Active Buses
+                      {new Set(
+                        trips
+                          .filter((t) => t.routeId === selectedFlowchartRoute.id && (!crewDate || t.tripDate === crewDate))
+                          .map((t) => t.busId)
+                      ).size} Active Buses
                     </div>
                     <div className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">Assigned along this corridor</div>
                   </div>

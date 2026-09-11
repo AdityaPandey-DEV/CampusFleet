@@ -224,6 +224,31 @@ export interface LiveBusLocation {
   delayMinutes: number;
 }
 
+export interface FleetBusMarkerData {
+  busId: string;
+  busNumber: string;
+  shortLabel: string;
+  registrationNo: string;
+  routeId?: string;
+  routeName?: string;
+  tripId?: string;
+  tripCode?: string;
+  tripStatus?: string;
+  latitude: number;
+  longitude: number;
+  speedKmh: number;
+  headingDeg: number;
+  state: "CAMPUS_PARKED" | "STANDBY_STARTING_POINT" | "IN_TRANSIT";
+  statusText: string;
+  driverName?: string;
+  conductorName?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  direction?: TripDirection;
+  startingStopName?: string;
+  destinationStopName?: string;
+}
+
 export interface AttendanceRecord {
   id: string;
   studentId: string;
