@@ -23,6 +23,17 @@ import {
   CalendarCheck,
 } from "lucide-react";
 
+interface RunnerUp {
+  rank: number;
+  name: string;
+  enrollment: string;
+  branch: string;
+  route: string;
+  attendance: string;
+  streak: string;
+  badge: string;
+}
+
 export function TopAttendanceAward() {
   const [claps, setClaps] = useState(142);
   const [hasClapped, setHasClapped] = useState(false);
@@ -52,38 +63,7 @@ export function TopAttendanceAward() {
     registeredNote: "Account Created Today • Day 1 Perfect Debut",
   });
 
-  const [runnersUp, setRunnersUp] = useState([
-    {
-      rank: 2,
-      name: "Aditya Pandey",
-      enrollment: "GEHU/2023/1108",
-      branch: "B.Tech CSE (5th Sem)",
-      route: "Route 1: Kathgodam",
-      attendance: "99.2%",
-      streak: "12 Days",
-      badge: "Semester Commuter",
-    },
-    {
-      rank: 3,
-      name: "Ananya Pandey",
-      enrollment: "GEHU/2023/1092",
-      branch: "B.Tech CSE (5th Sem)",
-      route: "Route 2: Haldwani Tikonia",
-      attendance: "98.5%",
-      streak: "12 Days",
-      badge: "Silver Commuter",
-    },
-    {
-      rank: 4,
-      name: "Kartik Bisht",
-      enrollment: "GEHU/2023/1108",
-      branch: "B.Tech CSE (5th Sem)",
-      route: "Route 3: Ranibagh Express",
-      attendance: "97.0%",
-      streak: "2 Days",
-      badge: "Active Commuter",
-    },
-  ]);
+  const [runnersUp, setRunnersUp] = useState<RunnerUp[]>([]);
 
   const [isDbSynced, setIsDbSynced] = useState(false);
 
@@ -131,8 +111,8 @@ export function TopAttendanceAward() {
           s.full_name?.trim() !== ""
         );
 
-        if (otherStudents.length >= 2) {
-          const badges = ["Semester Commuter", "Silver Commuter", "Active Commuter"];
+        if (otherStudents.length > 0) {
+          const badges = ["Semester Commuter", "Silver Commuter", "Active Commuter", "Commuter Star"];
           const ratios = ["99.2%", "98.5%", "97.0%", "96.4%"];
 
           // Remove duplicate names and sort by actual days since created_at
@@ -361,43 +341,63 @@ export function TopAttendanceAward() {
 
             {/* Runners Up List from Live Database */}
             <div className="space-y-2.5">
-              {runnersUp.map(commuter => (
-                <div
-                  key={commuter.rank}
-                  className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
+              {runnersUp.length === 0 ? (
+                <div className="space-y-2.5 animate-pulse">
+                  {[1, 2, 3].map((i) => (
                     <div
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs ${
-                        commuter.rank === 2
-                          ? "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
-                          : commuter.rank === 3
-                          ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                      }`}
+                      key={i}
+                      className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3"
                     >
-                      #{commuter.rank}
-                    </div>
-                    <div>
-                      <div className="font-bold text-xs text-slate-900 dark:text-white">
-                        {commuter.name}
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                        <div className="space-y-1.5">
+                          <div className="w-24 h-3 bg-slate-200 dark:bg-slate-700 rounded" />
+                          <div className="w-36 h-2 bg-slate-100 dark:bg-slate-800 rounded" />
+                        </div>
                       </div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        {commuter.branch} • {commuter.streak} streak
-                      </div>
+                      <div className="w-12 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
                     </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="font-black font-mono text-xs text-emerald-600 dark:text-emerald-400">
-                      {commuter.attendance}
-                    </div>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold">
-                      {commuter.badge}
-                    </span>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                runnersUp.map(commuter => (
+                  <div
+                    key={commuter.rank}
+                    className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs ${
+                          commuter.rank === 2
+                            ? "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
+                            : commuter.rank === 3
+                            ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                        }`}
+                      >
+                        #{commuter.rank}
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs text-slate-900 dark:text-white">
+                          {commuter.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {commuter.branch} • {commuter.streak} streak
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="font-black font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                        {commuter.attendance}
+                      </div>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold">
+                        {commuter.badge}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Gamified Why-It-Matters callout */}
