@@ -360,6 +360,28 @@ export default function StudentPortalView({
         </div>
       </div>
 
+      {/* Punctuality & Attendance Recognition Banner */}
+      <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-orange-500/15 border border-amber-300/40 dark:border-amber-700/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3 text-amber-900 dark:text-amber-200">
+          <div className="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black shadow-sm flex-shrink-0">
+            🏆
+          </div>
+          <div>
+            <span className="font-black text-slate-900 dark:text-white">
+              Transit Hall of Fame • Top Attendance Award:
+            </span>{" "}
+            <span className="text-amber-800 dark:text-amber-300 font-bold">
+              Parth Dalakoti (99.4% Boarding • 48-Day Streak 🔥)
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-1 rounded-xl bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-[11px] font-bold">
+            👑 VIP Priority Pass Unlocked
+          </span>
+        </div>
+      </div>
+
       {bookingMessage && (
         <div
           className={`p-4 rounded-2xl border text-xs font-bold flex items-center justify-between gap-3 ${

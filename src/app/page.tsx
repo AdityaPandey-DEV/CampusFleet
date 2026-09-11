@@ -6,6 +6,7 @@ import { store } from "@/lib/store";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { StudentParentProductDemo } from "@/components/landing/StudentParentProductDemo";
+import { TopAttendanceAward } from "@/components/landing/TopAttendanceAward";
 import {
   BusFront,
   Navigation,
@@ -218,7 +219,10 @@ export default function CampusFleetLandingPage() {
           <StudentParentProductDemo />
         </div>
 
-        {/* SECTION 2: 4 KEY VALUE PILLARS FOR STUDENTS & PARENTS */}
+        {/* SECTION 2: TOP ATTENDANCE & PUNCTUALITY AWARD (HALL OF FAME) */}
+        <TopAttendanceAward />
+
+        {/* SECTION 3: 4 KEY VALUE PILLARS FOR STUDENTS & PARENTS */}
         <div className="space-y-8">
           <div className="text-center space-y-2 max-w-2xl mx-auto">
             <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 text-xs font-mono font-bold border border-blue-200/60 dark:border-blue-800/60">
