@@ -29,11 +29,11 @@ export function StudentParentProductDemo() {
   const [etaSeconds, setEtaSeconds] = useState(220); // 3m 40s
 
   const stops = [
-    { name: "Kathgodam Rly Station", time: "07:30 AM", passed: true, dist: "Origin" },
-    { name: "Haldwani Tikonia", time: "07:45 AM", passed: true, dist: "Passed 4m ago" },
-    { name: "Ranibagh Toll Plaza", time: "08:05 AM", passed: false, current: true, dist: "Arriving in 3m" },
-    { name: "Bhowali Tri-Junction", time: "08:25 AM", passed: false, dist: "7.8 km away" },
-    { name: "GEHU Bhimtal Campus", time: "08:40 AM", passed: false, isCampus: true, dist: "Terminus" },
+    { name: "Haldwani Tikonia", time: "07:20 AM", passed: true, dist: "Origin" },
+    { name: "Kathgodam Rly Station", time: "07:35 AM", passed: true, dist: "Passed 4m ago" },
+    { name: "Ranibagh Toll Plaza", time: "07:50 AM", passed: false, current: true, dist: "Arriving in 3m" },
+    { name: "Bhimtal Lake Crossing", time: "08:15 AM", passed: false, dist: "6.5 km away" },
+    { name: "GEHU Bhimtal Campus", time: "08:35 AM", passed: false, isCampus: true, dist: "Terminus" },
   ];
 
   useEffect(() => {
@@ -290,7 +290,7 @@ export function StudentParentProductDemo() {
                       ON SCHEDULE
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Route 1: Kathgodam Express • Driver: Ramesh Singh</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Route 1: Haldwani - Kathgodam - Bhimtal Express • Driver: Ramesh Singh</div>
                 </div>
               </div>
 
@@ -384,7 +384,7 @@ export function StudentParentProductDemo() {
                 <div className="flex items-center gap-2.5 text-blue-900 dark:text-blue-200 font-medium">
                   <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />
                   <span>
-                    <strong>Parent Radar SMS Alert:</strong> Bus passed Tikonia stop at 07:46 AM. Student safely onboard.
+                    <strong>Parent Radar SMS Alert:</strong> Bus departed Haldwani Tikonia at 07:20 AM. Student safely onboard.
                   </span>
                 </div>
                 <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-bold whitespace-nowrap">
@@ -606,8 +606,8 @@ export function StudentParentProductDemo() {
 
                   <div className="text-xs space-y-1 text-slate-300">
                     <div><strong>Dept:</strong> B.Tech CSE (7th Sem)</div>
-                    <div><strong>Zone:</strong> Zone B (Kathgodam - Campus)</div>
-                    <div><strong>Seat:</strong> Morning 07:30 AM (#3A)</div>
+                    <div><strong>Zone:</strong> Zone B (Haldwani - Kathgodam - Bhimtal)</div>
+                    <div><strong>Seat:</strong> Morning 07:20 AM (#3A)</div>
                   </div>
                 </div>
 

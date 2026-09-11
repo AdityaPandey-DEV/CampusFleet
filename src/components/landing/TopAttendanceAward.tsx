@@ -140,7 +140,7 @@ export function TopAttendanceAward() {
               </p>
               <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-slate-600 dark:text-slate-300 pt-0.5">
                 <BusFront className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span>Kathgodam - Bhimtal Express (Route 1) • Morning 07:30 AM Shift</span>
+                <span>Haldwani - Kathgodam - Bhimtal Express (Route 1) • Morning 07:20 AM Shift</span>
               </div>
             </div>
           </div>
@@ -180,7 +180,7 @@ export function TopAttendanceAward() {
               <span className="font-mono text-slate-400">Manoj Kumar Dalakoti</span>
             </div>
             <p className="text-slate-600 dark:text-slate-300 italic leading-relaxed">
-              "We receive automated SMS confirmations every morning at 07:46 AM when Parth boards at Tikonia. Zero stress, 100% peace of mind knowing the bus is on schedule."
+              "We receive automated SMS confirmations every morning at 07:20 AM when Parth boards at Haldwani Tikonia. Zero stress, 100% peace of mind knowing the bus is on schedule."
             </p>
           </div>
 
