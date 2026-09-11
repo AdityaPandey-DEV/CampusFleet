@@ -1754,11 +1754,11 @@ export default function StaffOperationsView({
                   <select
                     value={flowchartRouteId || (routes[0]?.id ?? "")}
                     onChange={(e) => setFlowchartRouteId(e.target.value)}
-                    className="text-xs font-black px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white outline-none focus:border-blue-500 max-w-[280px]"
+                    className="text-xs font-black px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white outline-none focus:border-blue-500 max-w-[320px]"
                   >
                     {routes.map((r) => (
                       <option key={r.id} value={r.id}>
-                        {r.code} • {r.name}
+                        {r.name}
                       </option>
                     ))}
                   </select>
@@ -1771,7 +1771,7 @@ export default function StaffOperationsView({
                   <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 rounded-2xl border border-blue-200/60 dark:border-blue-900/40">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Corridor Route</div>
                     <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5 truncate">{selectedFlowchartRoute.name}</div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Code: {selectedFlowchartRoute.code}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{selectedFlowchartRoute.totalDistanceKm || 28} km Corridor</div>
                   </div>
 
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60">
