@@ -19,6 +19,8 @@ import {
   Phone,
   Building2,
   Key,
+  BookOpen,
+  Briefcase,
 } from "lucide-react";
 
 export interface AdminStaffProps {
@@ -63,7 +65,8 @@ export default function AdminStaffView({
   }, [initialUsers]);
 
   const adminCount = users.filter(u => u.role === "admin" || u.role === "transport_manager").length;
-  const staffCount = users.filter(u => u.role === "conductor" || u.role === "supervisor").length;
+  const teacherCount = users.filter(u => u.role === "teacher").length;
+  const staffCount = users.filter(u => u.role === "staff" || u.role === "conductor" || u.role === "supervisor").length;
   const driverCount = users.filter(u => u.role === "driver").length;
   const studentCount = users.filter(u => u.role === "student").length;
   const parentCount = users.filter(u => u.role === "parent").length;
@@ -80,6 +83,15 @@ export default function AdminStaffView({
   const handleRoleChange = async (userId: string, newRole: UserRole, userName: string) => {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
     await store.updateUserRole(userId, newRole);
+    try {
+      await fetch("/api/admin/update-role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+    } catch (e) {
+      console.warn("Failed to update role via API:", e);
+    }
     setToastMessage(`Updated access level for ${userName} to ${newRole.toUpperCase()}`);
     setTimeout(() => setToastMessage(null), 3500);
   };
@@ -130,6 +142,20 @@ export default function AdminStaffView({
             Administrator
           </span>
         );
+      case "teacher":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
+            <BookOpen className="w-3.5 h-3.5" />
+            Teacher / Faculty
+          </span>
+        );
+      case "staff":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800/60">
+            <Briefcase className="w-3.5 h-3.5" />
+            Transport Staff
+          </span>
+        );
       case "driver":
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
@@ -142,7 +168,7 @@ export default function AdminStaffView({
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">
             <ShieldCheck className="w-3.5 h-3.5" />
-            Conductor / Staff
+            Conductor
           </span>
         );
       case "parent":
@@ -164,6 +190,8 @@ export default function AdminStaffView({
 
   const getAvatarBg = (name: string, role: UserRole) => {
     if (role === "admin") return "bg-rose-500 text-white";
+    if (role === "teacher") return "bg-indigo-600 text-white";
+    if (role === "staff") return "bg-cyan-600 text-white";
     if (role === "driver") return "bg-blue-600 text-white";
     if (role === "conductor") return "bg-purple-600 text-white";
     if (role === "parent") return "bg-amber-600 text-white";
@@ -182,8 +210,8 @@ export default function AdminStaffView({
         </div>
       )}
 
-      {/* Top 4 Summary Cards matching Image 2 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Top 5 Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Administrator */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
           <div className="text-3xl font-black text-rose-600 dark:text-rose-400">
@@ -192,12 +220,20 @@ export default function AdminStaffView({
           <div className="text-xs font-bold text-slate-500">Administrator</div>
         </div>
 
+        {/* Teacher / Faculty */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
+          <div className="text-3xl font-black text-indigo-600 dark:text-indigo-400">
+            {teacherCount}
+          </div>
+          <div className="text-xs font-bold text-slate-500">Teacher / Faculty</div>
+        </div>
+
         {/* Transport Staff */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
-          <div className="text-3xl font-black text-purple-600 dark:text-purple-400">
+          <div className="text-3xl font-black text-cyan-600 dark:text-cyan-400">
             {staffCount}
           </div>
-          <div className="text-xs font-bold text-slate-500">Conductor & Staff</div>
+          <div className="text-xs font-bold text-slate-500">Transport Staff</div>
         </div>
 
         {/* Fleet Driver */}
@@ -209,7 +245,7 @@ export default function AdminStaffView({
         </div>
 
         {/* Student Commuters */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1 col-span-2 sm:col-span-1">
           <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
             {studentCount}
           </div>
@@ -217,7 +253,7 @@ export default function AdminStaffView({
         </div>
       </div>
 
-      {/* Search & Filter Bar matching Image 2 */}
+      {/* Search & Filter Bar */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative w-full sm:w-96">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -238,8 +274,9 @@ export default function AdminStaffView({
           >
             <option value="ALL">All Roles ({users.length})</option>
             <option value="admin">Administrator ({adminCount})</option>
+            <option value="teacher">Teacher / Faculty ({teacherCount})</option>
+            <option value="staff">Transport Staff ({staffCount})</option>
             <option value="driver">Fleet Driver ({driverCount})</option>
-            <option value="conductor">Conductor / Staff ({staffCount})</option>
             <option value="student">Student Commuter ({studentCount})</option>
             <option value="parent">Guardian / Parent ({parentCount})</option>
           </select>
@@ -340,6 +377,8 @@ export default function AdminStaffView({
                           className="px-3 py-1.5 text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 outline-none cursor-pointer hover:border-blue-500 transition-colors"
                         >
                           <option value="student">Student</option>
+                          <option value="teacher">Teacher / Faculty</option>
+                          <option value="staff">Transport Staff</option>
                           <option value="driver">Fleet Driver</option>
                           <option value="conductor">Conductor</option>
                           <option value="parent">Guardian / Parent</option>
@@ -412,6 +451,8 @@ export default function AdminStaffView({
                     className="w-full text-xs p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none mt-1 cursor-pointer"
                   >
                     <option value="student">Student</option>
+                    <option value="teacher">Teacher / Faculty</option>
+                    <option value="staff">Transport Staff</option>
                     <option value="driver">Fleet Driver</option>
                     <option value="conductor">Conductor</option>
                     <option value="parent">Parent</option>
