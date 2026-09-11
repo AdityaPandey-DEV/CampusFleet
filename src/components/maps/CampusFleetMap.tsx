@@ -559,14 +559,21 @@ export default function CampusFleetMap({
         });
 
         fleetBuses.forEach((fb) => {
+          const isParked = fb.state === "CAMPUS_PARKED";
           const isStandby = fb.state === "STANDBY_STARTING_POINT";
-          const isInTransit = !isStandby;
+          const isInTransit = fb.state === "IN_TRANSIT";
 
-          const bgClass = isStandby
+          const bgClass = isParked
+            ? "bg-slate-800 text-slate-100 border-slate-400 ring-4 ring-slate-400/20 shadow-md"
+            : isStandby
             ? "bg-amber-500 text-white border-white ring-4 ring-amber-300/50 shadow-md"
             : "bg-blue-600 text-white border-white ring-4 ring-blue-400/50 shadow-md shadow-blue-500/30";
 
-          const pulseBadge = isStandby
+          const pulseBadge = isParked
+            ? `<span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white items-center justify-center text-[8px] font-black text-white">✓</span>
+              </span>`
+            : isStandby
             ? `<span class="absolute -top-1 -right-1 flex h-3 w-3">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white"></span>
@@ -598,12 +605,16 @@ export default function CampusFleetMap({
 
               <div style="margin-bottom: 6px;">
                 <span style="font-size: 10px; padding: 3px 8px; border-radius: 999px; font-weight: 900; text-transform: uppercase; ${
-                  isStandby
+                  isParked
+                    ? "background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;"
+                    : isStandby
                     ? "background: #fef3c7; color: #b45309; border: 1px solid #fcd34d;"
-                    : "background: #dcfce7; color: #15803d; border: 1px solid #86efac;"
+                    : "background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd;"
                 }">
                   ${
-                    isStandby
+                    isParked
+                      ? "✓ TRIP COMPLETED • PARKED"
+                      : isStandby
                       ? "● STANDBY AT STARTING POINT"
                       : "● IN TRANSIT (LIVE TELEMATICS)"
                   }

@@ -134,7 +134,7 @@ export default function AdminDashboardView({
   ]);
 
   const [focusedBusId, setFocusedBusId] = useState<string | undefined>();
-  const [previewMode, setPreviewMode] = useState<"AUTO" | "MORNING_STANDBY" | "IN_TRANSIT">("IN_TRANSIT");
+  const [previewMode, setPreviewMode] = useState<"AUTO" | "MORNING_STANDBY" | "IN_TRANSIT" | "CAMPUS_PARKED">("IN_TRANSIT");
   const [clockTick, setClockTick] = useState(0);
 
   useEffect(() => {
@@ -148,8 +148,9 @@ export default function AdminDashboardView({
     });
   }, [buses, trips, routes, stops, staff, liveLocation, previewMode, clockTick]);
 
-  const inTransitCount = fleetBuses.filter(fb => fb.state === "IN_TRANSIT" || fb.state !== "STANDBY_STARTING_POINT").length;
+  const inTransitCount = fleetBuses.filter(fb => fb.state === "IN_TRANSIT").length;
   const standbyCount = fleetBuses.filter(fb => fb.state === "STANDBY_STARTING_POINT").length;
+  const parkedCount = fleetBuses.filter(fb => fb.state === "CAMPUS_PARKED").length;
 
   const focusedBus = fleetBuses.find(fb => fb.busId === focusedBusId);
   const focusedRoute = routes.find(r => r.id === focusedBus?.routeId);
@@ -343,6 +344,11 @@ export default function AdminDashboardView({
                 <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
                 <span>Standby at Starting Points: <strong>{standbyCount}</strong></span>
               </span>
+
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                <span>Parked at Depot: <strong>{parkedCount}</strong></span>
+              </span>
             </div>
 
             {/* Shift Simulation & Preview Controls */}
@@ -350,7 +356,7 @@ export default function AdminDashboardView({
               <button
                 onClick={() => setPreviewMode("IN_TRANSIT")}
                 className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
-                  previewMode === "IN_TRANSIT" || previewMode === "AUTO"
+                  previewMode === "IN_TRANSIT"
                     ? "bg-white dark:bg-slate-900 text-blue-600 shadow-xs font-black"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
@@ -370,6 +376,18 @@ export default function AdminDashboardView({
               >
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span>At Starting Points</span>
+              </button>
+              <button
+                onClick={() => setPreviewMode("CAMPUS_PARKED")}
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+                  previewMode === "CAMPUS_PARKED"
+                    ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-xs font-black"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+                title="Vehicles parked at GEHU Bhimtal Campus Depot bays following trip completion"
+              >
+                <Building2 className="w-3.5 h-3.5 shrink-0" />
+                <span>✓ Depot Parked</span>
               </button>
             </div>
           </div>
@@ -399,7 +417,9 @@ export default function AdminDashboardView({
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${
-                    fb.state === "STANDBY_STARTING_POINT"
+                    fb.state === "CAMPUS_PARKED"
+                      ? "bg-slate-400"
+                      : fb.state === "STANDBY_STARTING_POINT"
                       ? "bg-amber-400 animate-pulse"
                       : "bg-emerald-400 animate-ping"
                   }`} />

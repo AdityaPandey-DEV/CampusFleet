@@ -168,16 +168,18 @@ export function computeFleetBusMarkers(
     const mode = options?.simulatedMode || "AUTO";
     const currentMinutes = options?.simulatedTimeMinutes ?? actualCurrentMinutes;
 
-    // Evaluate state — All fleet vehicles remain active on their operational corridors
-    let state: "STANDBY_STARTING_POINT" | "IN_TRANSIT" = "IN_TRANSIT";
+    // Evaluate state — Standby at starting point, In Transit, or Completed & Parked at Depot
+    let state: "CAMPUS_PARKED" | "STANDBY_STARTING_POINT" | "IN_TRANSIT" = "IN_TRANSIT";
 
-    if (mode === "MORNING_STANDBY") {
+    if (activeTrip?.status === "COMPLETED" || mode === "CAMPUS_PARKED") {
+      state = "CAMPUS_PARKED";
+    } else if (mode === "MORNING_STANDBY") {
       state = "STANDBY_STARTING_POINT";
     } else if (mode === "IN_TRANSIT") {
       state = "IN_TRANSIT";
     } else {
       // AUTO mode based on real clock & departure time
-      if (currentMinutes >= standbyStartMinutes && currentMinutes < depMinutes && activeTrip?.status !== "COMPLETED") {
+      if (currentMinutes >= standbyStartMinutes && currentMinutes < depMinutes) {
         state = "STANDBY_STARTING_POINT";
       } else {
         state = "IN_TRANSIT";
@@ -191,8 +193,26 @@ export function computeFleetBusMarkers(
     let headingDeg = 0;
     let statusText = "";
 
-    if (state === "IN_TRANSIT") {
-      // Case 1: IN TRANSIT — moving with driver coordinates or live corridor telemetry
+    if (state === "CAMPUS_PARKED") {
+      // Case 1: TRIP COMPLETED / PARKED AT DEPOT OR TERMINAL STOP
+      if (tripDirection === "CAMPUS_TO_HOME") {
+        // Evening route parked at outer town stop
+        latitude = destinationStop.latitude;
+        longitude = destinationStop.longitude;
+        speedKmh = 0;
+        headingDeg = 0;
+        statusText = `Trip Completed • Stationed at ${destinationStop.name}`;
+      } else {
+        // Inbound route parked in dedicated bay inside GEHU Bhimtal Campus Depot
+        const depotSlot = getCampusDepotSlot(busIdx);
+        latitude = depotSlot.latitude;
+        longitude = depotSlot.longitude;
+        speedKmh = 0;
+        headingDeg = 0;
+        statusText = `Trip Completed • Parked in Depot Bay ${busIdx + 1} (GEHU Bhimtal Campus)`;
+      }
+    } else if (state === "IN_TRANSIT") {
+      // Case 2: IN TRANSIT — moving with driver coordinates or live corridor telemetry
       const isLiveDriverPingForThisBus =
         liveTelematics.busId === bus.id &&
         liveTelematics.latitude >= 28.9 &&
@@ -201,7 +221,7 @@ export function computeFleetBusMarkers(
       if (isLiveDriverPingForThisBus) {
         latitude = liveTelematics.latitude;
         longitude = liveTelematics.longitude;
-        speedKmh = liveTelematics.speedKmh || 32;
+        speedKmh = liveTelematics.speedKmh ?? 32;
         headingDeg = liveTelematics.headingDeg || 45;
         statusText = `In Transit • Moving with Driver GPS (${speedKmh} km/h)`;
       } else {
@@ -218,7 +238,7 @@ export function computeFleetBusMarkers(
         statusText = `In Transit • Live Corridor Telemetry (${speedKmh} km/h)`;
       }
     } else {
-      // Case 2: Standby — stationed at designated starting point
+      // Case 3: Standby — stationed at designated starting point
       latitude = startingStop.latitude;
       longitude = startingStop.longitude;
       speedKmh = 0;

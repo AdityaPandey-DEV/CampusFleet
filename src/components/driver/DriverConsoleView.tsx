@@ -80,7 +80,10 @@ export default function DriverConsoleView({
     return unsub;
   }, [initialTrips, initialBuses, initialRoutes, initialBookings, initialStops, trips.length, buses.length, routes.length, bookings.length, stops.length]);
 
-  const activeTrip = trips[0];
+  const activeTrip = trips.find(t => 
+    (currentUser?.id && t.driverId === currentUser.id) || 
+    (currentUser?.staffId && t.driverId === currentUser.staffId)
+  ) || trips[0];
   const bus = buses.find(b => b.id === activeTrip?.busId) || buses[0];
   const route = routes.find(r => r.id === activeTrip?.routeId) || routes[0];
   const tripBookings = bookings.filter(b => b.tripId === activeTrip?.id);
@@ -98,13 +101,15 @@ export default function DriverConsoleView({
       const latDelta = (Math.random() - 0.3) * 0.001;
       const speed = Math.floor(25 + Math.random() * 20);
       store.updateLiveLocation({
+        busId: bus?.id,
+        tripId: activeTrip?.id,
         latitude: liveLocation.latitude + latDelta,
         speedKmh: speed,
       });
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [isBroadcasting, activeTrip?.status, liveLocation.latitude]);
+  }, [isBroadcasting, activeTrip?.status, activeTrip?.id, bus?.id, liveLocation.latitude]);
 
   const handleStartTrip = async () => {
     if (!activeTrip) return;
@@ -112,6 +117,8 @@ export default function DriverConsoleView({
     activeTrip.startedAt = new Date().toISOString();
     const startingStop = route?.stops?.[0]?.stop;
     store.updateLiveLocation({
+      busId: bus?.id,
+      tripId: activeTrip?.id,
       latitude: startingStop?.latitude || 29.2889,
       longitude: startingStop?.longitude || 79.4678,
       speedKmh: 25,
@@ -142,6 +149,8 @@ export default function DriverConsoleView({
       activeTrip.completedAt = new Date().toISOString();
       const endStop = route?.stops?.[route.stops.length - 1]?.stop;
       store.updateLiveLocation({
+        busId: bus?.id,
+        tripId: activeTrip?.id,
         latitude: endStop?.latitude || 29.3516,
         longitude: endStop?.longitude || 79.5583,
         speedKmh: 0,
@@ -175,6 +184,8 @@ export default function DriverConsoleView({
       activeTrip.currentStopIndex = campusIdx;
       const campusStop = route.stops[campusIdx].stop;
       store.updateLiveLocation({
+        busId: bus?.id,
+        tripId: activeTrip?.id,
         latitude: campusStop?.latitude || liveLocation.latitude,
         longitude: campusStop?.longitude || liveLocation.longitude,
         currentStopId: route.stops[campusIdx].stopId,
@@ -200,6 +211,8 @@ export default function DriverConsoleView({
       activeTrip.currentStopIndex = nextIdx;
       const nextStop = route.stops[nextIdx].stop;
       store.updateLiveLocation({
+        busId: bus?.id,
+        tripId: activeTrip?.id,
         latitude: nextStop?.latitude || liveLocation.latitude,
         longitude: nextStop?.longitude || liveLocation.longitude,
         currentStopId: route.stops[nextIdx].stopId,
