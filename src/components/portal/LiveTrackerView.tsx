@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { store } from "@/lib/store";
 import { StationLineProgress } from "@/components/ui/StationLineProgress";
+import { WhereIsMyBusFlowchart } from "@/components/transit/WhereIsMyBusFlowchart";
 import { calculateETA } from "@/lib/eta-calculator";
 import {
   Compass,
@@ -66,6 +67,7 @@ export default function LiveTrackerView({
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
   const [selectedRouteId, setSelectedRouteId] = useState<string>("");
   const [inspectedStopId, setInspectedStopId] = useState<string>("");
+  const [trackingMode, setTrackingMode] = useState<"FLOWCHART" | "MAP">("FLOWCHART");
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -262,38 +264,95 @@ export default function LiveTrackerView({
         </div>
       </div>
 
-      {/* Split View: Map + Metro Station Progress */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left 7-8 Cols: Full interactive map & Telemetry HUD */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="relative">
-            <CampusFleetMap
-              busLocation={effectiveLiveLocation}
-              busName={assignedBus?.busNumber ? `${assignedBus.busNumber} (${assignedRoute?.name || "Campus Express"})` : (assignedRoute?.name || "Campus Shuttle")}
-              tripStatus={activeTrip?.status || "SCHEDULED"}
-              stops={currentRouteStops}
-              shortestPathStopIds={shortestPath?.path || []}
-              routeCoordinates={currentRouteStops.map(s => [s.latitude, s.longitude])}
-              selectedStopId={pickupStop?.id}
-              height="480px"
-              zoom={13}
-            />
+      {/* View Mode Switcher Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl">
+          <button
+            onClick={() => setTrackingMode("FLOWCHART")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              trackingMode === "FLOWCHART"
+                ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Corridor Timeline (Where Is My Train)</span>
+          </button>
+          <button
+            onClick={() => setTrackingMode("MAP")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              trackingMode === "MAP"
+                ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+          >
+            <Navigation className="w-3.5 h-3.5" />
+            <span>Satellite 2D Map</span>
+          </button>
+        </div>
 
-            {/* Floating Quick ETA Pill */}
-            {pickupStop && (
-              <div className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <div className="text-xs">
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    Next: {pickupStop.name}
-                  </span>
-                  <span className="text-blue-600 dark:text-blue-400 font-mono font-bold ml-2">
-                    ({dynamicEta.displayText})
-                  </span>
+        <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>{trackingMode === "FLOWCHART" ? "High-Speed Topological Sequence" : "Spatial Terrain Radar"}</span>
+        </div>
+      </div>
+
+      {/* Split View: Live Corridor Flowchart OR Satellite Map */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left 7-8 Cols: Primary Hero Tracker (Flowchart or Map) */}
+        <div className="lg:col-span-8 space-y-4">
+          {trackingMode === "FLOWCHART" ? (
+            <WhereIsMyBusFlowchart
+              route={assignedRoute}
+              bus={assignedBus}
+              busLocation={effectiveLiveLocation}
+              trip={activeTrip}
+              selectedStopId={pickupStop?.id}
+              onSelectStop={(s) => setInspectedStopId(s.id)}
+              onToggleMapView={() => setTrackingMode("MAP")}
+              isMapViewActive={false}
+              activeStopIndex={activeTrip?.currentStopIndex || 1}
+              baseDepartureTime="07:15"
+            />
+          ) : (
+            <div className="relative">
+              <CampusFleetMap
+                busLocation={effectiveLiveLocation}
+                busName={assignedBus?.busNumber ? `${assignedBus.busNumber} (${assignedRoute?.name || "Campus Express"})` : (assignedRoute?.name || "Campus Shuttle")}
+                tripStatus={activeTrip?.status || "SCHEDULED"}
+                stops={currentRouteStops}
+                shortestPathStopIds={shortestPath?.path || []}
+                routeCoordinates={currentRouteStops.map(s => [s.latitude, s.longitude])}
+                selectedStopId={pickupStop?.id}
+                height="480px"
+                zoom={13}
+              />
+
+              {/* Floating Quick ETA Pill */}
+              {pickupStop && (
+                <div className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      Next: {pickupStop.name}
+                    </span>
+                    <span className="text-blue-600 dark:text-blue-400 font-mono font-bold ml-2">
+                      ({dynamicEta.displayText})
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+
+              {/* Floating Quick Switch to Flowchart */}
+              <button
+                onClick={() => setTrackingMode("FLOWCHART")}
+                className="absolute top-4 right-4 z-10 bg-slate-900/90 text-white hover:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 shadow-lg text-xs font-bold flex items-center gap-1.5 transition-all"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Switch to Flowchart</span>
+              </button>
+            </div>
+          )}
 
           {/* Telematics Info HUD Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 text-center shadow-sm">

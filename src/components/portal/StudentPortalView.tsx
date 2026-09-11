@@ -31,8 +31,10 @@ import {
   Navigation,
   ShieldAlert,
   CheckCircle2,
+  Layers,
 } from "lucide-react";
 import BusLoadingScreen from "@/components/common/BusLoadingScreen";
+import { WhereIsMyBusFlowchart } from "@/components/transit/WhereIsMyBusFlowchart";
 import type { Student, Bus, Route, Stop, Shift, Trip, Booking, Staff } from "@/lib/types";
 
 // Dynamic import for Leaflet map with no SSR
@@ -94,6 +96,7 @@ export default function StudentPortalView({
   // QR Modal State (for State B)
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isChangeSeatOpen, setIsChangeSeatOpen] = useState(false);
+  const [studentTrackerMode, setStudentTrackerMode] = useState<"FLOWCHART" | "MAP">("FLOWCHART");
 
   useEffect(() => {
     if (initialStudents.length > 0 && students.length === 0) setStudents(initialStudents);
@@ -468,57 +471,111 @@ export default function StudentPortalView({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* Left 2 Cols: Live Telematics Radar Map & Station Progress */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Telematics Radar Map Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                    <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                      Live Telematics Radar
-                    </h2>
+              {/* Telematics Radar / Corridor Flowchart Card */}
+              <div className="space-y-4">
+                {/* View Switcher Header */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl">
+                    <button
+                      onClick={() => setStudentTrackerMode("FLOWCHART")}
+                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        studentTrackerMode === "FLOWCHART"
+                          ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      }`}
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Corridor Flowchart (Live)</span>
+                    </button>
+                    <button
+                      onClick={() => setStudentTrackerMode("MAP")}
+                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        studentTrackerMode === "MAP"
+                          ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      }`}
+                    >
+                      <Navigation className="w-3.5 h-3.5" />
+                      <span>Satellite 2D Map</span>
+                    </button>
                   </div>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    Live Pings • Uttarakhand Corridor
+
+                  <span className="text-[11px] font-mono text-slate-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>{studentTrackerMode === "FLOWCHART" ? "Where Is My Train Style Timeline" : "GIS Topological Radar"}</span>
                   </span>
                 </div>
 
-                {/* The Map Component */}
-                <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
-                  <CampusFleetMap
+                {/* Primary Hero Tracker */}
+                {studentTrackerMode === "FLOWCHART" ? (
+                  <WhereIsMyBusFlowchart
+                    route={assignedRoute}
+                    bus={assignedBus}
                     busLocation={effectiveBusLocation}
-                    busName={assignedBus?.busNumber || "Bus 44"}
-                    routeCoordinates={confirmedRouteCoordinates}
-                    stops={confirmedRouteStops}
+                    trip={activeTrip}
                     selectedStopId={pickupStop?.id}
-                    height="380px"
+                    onToggleMapView={() => setStudentTrackerMode("MAP")}
+                    isMapViewActive={false}
+                    activeStopIndex={activeTrip?.currentStopIndex || 0}
+                    baseDepartureTime="07:15"
                   />
-
-                  {/* Floating Live Telematics HUD Overlay */}
-                  <div className="absolute top-3 left-3 right-3 sm:right-auto z-20 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-lg text-xs space-y-1">
-                    <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
-                      <Compass className="w-4 h-4 text-blue-500" />
-                      <span>{isTripInProgress ? "Bus In Transit" : "Bus at Origin Terminal"}</span>
+                ) : (
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                        <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                          Live Satellite Radar
+                        </h2>
+                      </div>
+                      <button
+                        onClick={() => setStudentTrackerMode("FLOWCHART")}
+                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>Switch to Flowchart</span>
+                      </button>
                     </div>
-                    <div className="flex items-center gap-3 text-slate-500 font-mono text-[11px]">
-                      <span>
-                        Speed: <strong>{effectiveBusLocation.speedKmh} km/h</strong>
-                      </span>
-                      <span>•</span>
-                      <span>
-                        ETA: <strong>{effectiveBusLocation.estimatedArrivalNextStopMins || 8} mins</strong>
-                      </span>
+
+                    {/* The Map Component */}
+                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+                      <CampusFleetMap
+                        busLocation={effectiveBusLocation}
+                        busName={assignedBus?.busNumber || "Bus 44"}
+                        routeCoordinates={confirmedRouteCoordinates}
+                        stops={confirmedRouteStops}
+                        selectedStopId={pickupStop?.id}
+                        height="380px"
+                      />
+
+                      {/* Floating Live Telematics HUD Overlay */}
+                      <div className="absolute top-3 left-3 right-3 sm:right-auto z-20 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-lg text-xs space-y-1">
+                        <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
+                          <Compass className="w-4 h-4 text-blue-500" />
+                          <span>{isTripInProgress ? "Bus In Transit" : "Bus at Origin Terminal"}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-slate-500 font-mono text-[11px]">
+                          <span>
+                            Speed: <strong>{effectiveBusLocation.speedKmh} km/h</strong>
+                          </span>
+                          <span>•</span>
+                          <span>
+                            ETA: <strong>{effectiveBusLocation.estimatedArrivalNextStopMins || 8} mins</strong>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Metro-Style Station Line Progress */}
+                    <div className="pt-2">
+                      <StationLineProgress
+                        route={assignedRoute}
+                        currentStopIndex={activeTrip?.currentStopIndex || 0}
+                        selectedStopId={pickupStop?.id}
+                      />
                     </div>
                   </div>
-                </div>
-
-                {/* Metro-Style Station Line Progress */}
-                <div className="pt-2">
-                  <StationLineProgress
-                    route={assignedRoute}
-                    currentStopIndex={activeTrip?.currentStopIndex || 0}
-                    selectedStopId={pickupStop?.id}
-                  />
-                </div>
+                )}
               </div>
             </div>
 

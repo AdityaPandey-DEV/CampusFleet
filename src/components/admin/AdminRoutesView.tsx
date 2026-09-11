@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { store } from "@/lib/store";
 import dynamic from "next/dynamic";
 import { Route, Stop, Bus } from "@/lib/types";
+import { WhereIsMyBusFlowchart } from "@/components/transit/WhereIsMyBusFlowchart";
 
 // Dynamic import for Leaflet map with no SSR
 const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
@@ -129,6 +130,7 @@ export default function AdminRoutesView({
   // Allocate Bus Modal State
   const [isAllocateBusModalOpen, setIsAllocateBusModalOpen] = useState(false);
   const [selectedBusToAllocate, setSelectedBusToAllocate] = useState("");
+  const [routeViewMode, setRouteViewMode] = useState<"FLOWCHART" | "MAP">("FLOWCHART");
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -708,14 +710,60 @@ export default function AdminRoutesView({
                     </div>
                   </div>
 
-                  {/* Leaflet Corridor Map with road polylines */}
-                  <CampusFleetMap
-                    stops={activeRoute.stops.map(rs => rs.stop)}
-                    routeCoordinates={activeRouteCoordinates}
-                    height="420px"
-                    selectedStopId={selectedStopId}
-                    onStopClick={stop => setSelectedStopId(stop.id)}
-                  />
+                  {/* View Mode Toggle: Flowchart Timeline vs Map */}
+                  <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setRouteViewMode("FLOWCHART")}
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          routeViewMode === "FLOWCHART"
+                            ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                        }`}
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>Station Progression Flowchart</span>
+                      </button>
+                      <button
+                        onClick={() => setRouteViewMode("MAP")}
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          routeViewMode === "MAP"
+                            ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                        }`}
+                      >
+                        <Navigation className="w-3.5 h-3.5" />
+                        <span>Corridor GIS Map</span>
+                      </button>
+                    </div>
+
+                    <span className="text-[11px] font-mono text-slate-400 pr-2 hidden sm:inline">
+                      {routeViewMode === "FLOWCHART" ? "Where Is My Train Linear Sequence" : "Road Network Polylines"}
+                    </span>
+                  </div>
+
+                  {/* Primary Corridor Display */}
+                  {routeViewMode === "FLOWCHART" ? (
+                    <WhereIsMyBusFlowchart
+                      route={activeRoute}
+                      bus={assignedBuses[0] || null}
+                      busLocation={null}
+                      trip={assignedTrips[0] || null}
+                      selectedStopId={selectedStopId}
+                      onSelectStop={stop => setSelectedStopId(stop.id)}
+                      onToggleMapView={() => setRouteViewMode("MAP")}
+                      isMapViewActive={false}
+                      baseDepartureTime="07:15"
+                    />
+                  ) : (
+                    <CampusFleetMap
+                      stops={activeRoute.stops.map(rs => rs.stop)}
+                      routeCoordinates={activeRouteCoordinates}
+                      height="420px"
+                      selectedStopId={selectedStopId}
+                      onStopClick={stop => setSelectedStopId(stop.id)}
+                    />
+                  )}
 
                   {/* Allocated Fleet Buses Strip */}
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-between">
