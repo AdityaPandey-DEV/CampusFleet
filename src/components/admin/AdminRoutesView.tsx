@@ -1264,9 +1264,9 @@ export default function AdminRoutesView({
             </div>
 
             {/* Middle Grid: Left side Flowchart, Right side Realtime Map Preview */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 flex-1 overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 flex-1 overflow-hidden min-h-0">
               {/* Left 6 Cols: Flowchart Pipeline */}
-              <div className="lg:col-span-6 flex flex-col h-full overflow-hidden space-y-4">
+              <div className="lg:col-span-6 flex flex-col h-full overflow-hidden space-y-4 min-h-0">
                 {/* Route Basic Info Strip */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/60 text-xs flex-shrink-0">
                   <div>
@@ -1570,8 +1570,8 @@ export default function AdminRoutesView({
               </div>
 
               {/* Right 6 Cols: Synchronized Live Road-Snapped Corridor Map Preview */}
-              <div className="lg:col-span-6 flex flex-col h-full space-y-3">
-                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 rounded-2xl text-xs">
+              <div className="lg:col-span-6 flex flex-col h-full space-y-3 min-h-0">
+                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 rounded-2xl text-xs flex-shrink-0">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-blue-600" />
                     <span className="font-bold text-slate-700 dark:text-slate-300">Live Road Geometry & Stop Numbers</span>
@@ -1581,7 +1581,7 @@ export default function AdminRoutesView({
                   </span>
                 </div>
 
-                <div className="flex-1 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 min-h-[300px]">
+                <div className="flex-1 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 min-h-[360px] h-full relative flex flex-col">
                   <CampusFleetMap
                     stops={builderStops}
                     routeCoordinates={builderStops.map(s => [s.latitude, s.longitude])}
@@ -1589,7 +1589,7 @@ export default function AdminRoutesView({
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center text-xs p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <div className="grid grid-cols-3 gap-2 text-center text-xs p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 flex-shrink-0">
                   <div>
                     <span className="text-[10px] uppercase text-slate-400 font-bold block">Total Distance</span>
                     <span className="font-black text-sm text-slate-900 dark:text-white font-mono">

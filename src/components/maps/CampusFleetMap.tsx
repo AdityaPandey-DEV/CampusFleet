@@ -186,9 +186,27 @@ export default function CampusFleetMap({
       }
 
       const map = mapInstanceRef.current;
-      if (map && map.getContainer()) {
+      if (!map) return;
+
+      // Invalidate size immediately to prevent height 0 collapse in modals
+      map.invalidateSize();
+
+      if (map.getContainer()) {
         map.getContainer().style.cursor = interactiveMode === "PIN_DROP" ? "crosshair" : "";
       }
+
+      // Small delayed invalidations to guarantee proper dimensions after modal CSS transitions
+      const t1 = setTimeout(() => {
+        if (isMounted && mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 80);
+
+      const t2 = setTimeout(() => {
+        if (isMounted && mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 300);
 
       // Clean existing markers group
       if (markersGroupRef.current) {
@@ -245,9 +263,13 @@ export default function CampusFleetMap({
 
           // Auto-fit bounds so the entire road path is visible when route changes
           const currentRouteKey = roadSnappedCoords.map(c => `${c[0].toFixed(3)},${c[1].toFixed(3)}`).join(";");
-          if (roadSnappedCoords.length >= 2 && lastFittedRouteRef.current !== currentRouteKey) {
+          const mapSize = map.getSize();
+          const shouldFitBounds = lastFittedRouteRef.current !== currentRouteKey || mapSize.y < 50;
+
+          if (roadSnappedCoords.length >= 2 && shouldFitBounds) {
             lastFittedRouteRef.current = currentRouteKey;
             userInteractedRef.current = false;
+            map.invalidateSize();
             const bounds = L.latLngBounds(roadSnappedCoords);
             if (busLocation) {
               // Only extend bounds if busLocation is reasonably close to this corridor (within ~0.5 deg / ~50km)
@@ -269,8 +291,29 @@ export default function CampusFleetMap({
                 bounds.extend([busLocation.latitude, busLocation.longitude]);
               }
             }
-            map.fitBounds(bounds, { padding: [35, 35], maxZoom: 15 });
+            if (bounds.isValid()) {
+              map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+            }
           }
+        }
+      } else {
+        // Cleanup old polylines if route has fewer than 2 waypoints
+        if (polylineGlowRef.current) {
+          map.removeLayer(polylineGlowRef.current);
+          polylineGlowRef.current = null;
+        }
+        if (polylineBorderRef.current) {
+          map.removeLayer(polylineBorderRef.current);
+          polylineBorderRef.current = null;
+        }
+        if (polylineCoreRef.current) {
+          map.removeLayer(polylineCoreRef.current);
+          polylineCoreRef.current = null;
+        }
+        lastFittedRouteRef.current = null;
+
+        if (stops.length === 1) {
+          map.setView([stops[0].latitude, stops[0].longitude], 14, { animate: true });
         }
       }
 
@@ -307,23 +350,33 @@ export default function CampusFleetMap({
       // Render Stop Station Markers
       const shortestPathSet = new Set(shortestPathStopIds);
       const hasSpecificRoute = shortestPathStopIds.length > 0;
+      const isCorridorSequence =
+        (routeCoordinates.length >= 2 || hasSpecificRoute || (!fleetBuses || fleetBuses.length === 0)) &&
+        stops.length >= 2;
 
       stops.forEach((stop, idx) => {
         const isPassed = idx < activeStopIndex;
         const isNext = idx === activeStopIndex;
         const isStudentPickup = selectedStopId && stop.id === selectedStopId;
         const isOnShortestPath = shortestPathSet.has(stop.id);
-        const isStartOfPath = hasSpecificRoute && shortestPathStopIds[0] === stop.id;
-        const isCampusTerminal = stop.id === "stop-bhimtal-campus" || stop.code === "GEHU-BHT" || stop.name.toLowerCase().includes("bhimtal campus") || stop.name.toLowerCase().includes("terminal");
-        const isEndOfPath = (hasSpecificRoute && shortestPathStopIds[shortestPathStopIds.length - 1] === stop.id) || (!hasSpecificRoute && isCampusTerminal);
+        const isStartOfPath = isCorridorSequence ? idx === 0 : hasSpecificRoute && shortestPathStopIds[0] === stop.id;
+        const isCampusTerminal =
+          stop.id === "stop-bhimtal-campus" ||
+          stop.code === "GEHU-BHT" ||
+          stop.name.toLowerCase().includes("bhimtal campus") ||
+          stop.name.toLowerCase().includes("terminal");
+        const isEndOfPath = isCorridorSequence
+          ? idx === stops.length - 1
+          : (hasSpecificRoute && shortestPathStopIds[shortestPathStopIds.length - 1] === stop.id) ||
+            (!hasSpecificRoute && isCampusTerminal);
 
-        let iconBgClass = "bg-teal-600 border-white text-white";
+        let iconBgClass = "bg-indigo-600 border-white text-white shadow-md";
         if (isStudentPickup) {
           iconBgClass = "bg-emerald-600 border-white text-white ring-4 ring-emerald-400/60 animate-pulse shadow-lg";
         } else if (isCampusTerminal || isEndOfPath) {
           iconBgClass = "bg-blue-600 border-white text-white ring-4 ring-blue-400/50 shadow-md";
         } else if (isStartOfPath) {
-          iconBgClass = "bg-emerald-500 border-white text-white ring-4 ring-emerald-400/40 animate-pulse";
+          iconBgClass = "bg-emerald-600 border-white text-white ring-4 ring-emerald-400/50 shadow-md";
         } else if (isOnShortestPath) {
           iconBgClass = "bg-purple-600 border-white text-white ring-2 ring-purple-400/30";
         } else if (isNext) {
@@ -334,6 +387,8 @@ export default function CampusFleetMap({
 
         const stopSymbolHtml = isStudentPickup
           ? stopPinSvg
+          : isCorridorSequence
+          ? `<span class="font-black text-[11px]">${idx + 1}</span>`
           : isCampusTerminal
           ? universitySvg
           : isStartOfPath
@@ -624,10 +679,23 @@ export default function CampusFleetMap({
   ]);
 
   return (
-    <div className="relative w-full rounded-3xl overflow-hidden shadow-inner border border-slate-200 dark:border-slate-800 z-0">
+    <div
+      className={`relative w-full rounded-3xl overflow-hidden shadow-inner border border-slate-200 dark:border-slate-800 z-0 flex flex-col ${
+        height === "100%" ? "h-full min-h-[350px] flex-1" : ""
+      }`}
+      style={{
+        height: height || "400px",
+        minHeight: height === "100%" ? "350px" : height || "400px",
+      }}
+    >
       <div
         ref={mapContainerRef}
-        style={{ height, width: "100%" }}
+        className="w-full flex-1"
+        style={{
+          height: "100%",
+          width: "100%",
+          minHeight: height === "100%" ? "350px" : height || "400px",
+        }}
       />
 
       {interactiveMode === "PIN_DROP" && (
