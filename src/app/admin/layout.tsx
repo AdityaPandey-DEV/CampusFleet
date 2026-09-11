@@ -40,6 +40,8 @@ import {
   Moon,
   Laptop,
   Check,
+  Globe,
+  ExternalLink,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -61,7 +63,7 @@ export default function AdminLayout({
 
   const handleSignOut = async () => {
     await store.logout();
-    router.push("/login");
+    router.push("/");
   };
   const [notifications, setNotifications] = useState(store.getNotifications());
   const [issues, setIssues] = useState(store.getIssues());
@@ -520,8 +522,20 @@ export default function AdminLayout({
                     </div>
                   </div>
 
-                  {/* Sign Out Action */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  {/* Institutional Website Link & Sign Out Action */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
+                    <Link
+                      href="/?public=true"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="w-full p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-between text-xs font-semibold"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Globe className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Institutional Website</span>
+                      </span>
+                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                    </Link>
+
                     <button
                       onClick={handleSignOut}
                       className="w-full p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl transition-colors flex items-center justify-center gap-2 text-xs font-bold"

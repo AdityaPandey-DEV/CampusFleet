@@ -24,44 +24,78 @@ const PUBLIC_PATHS = [
   "/favicon.ico",
 ];
 
-export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+function getTargetRouteForRole(role?: string): string {
+  switch (role) {
+    case "admin":
+      return "/admin";
+    case "staff":
+    case "transport_manager":
+    case "supervisor":
+      return "/staff";
+    case "driver":
+      return "/driver";
+    case "conductor":
+      return "/conductor";
+    case "teacher":
+      return "/teacher";
+    default:
+      return "/portal";
+  }
+}
 
-  // Allow public paths
-  if (PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"))) {
+export async function middleware(req: NextRequest) {
+  const { pathname, searchParams } = req.nextUrl;
+
+  // Allow static files and Next.js internal bundles
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon.ico") ||
+    pathname === "/manifest.webmanifest" ||
+    (pathname.includes(".") && !pathname.startsWith("/api"))
+  ) {
     return NextResponse.next();
   }
 
-  // Allow static files
-  if (pathname.includes(".") && !pathname.startsWith("/api")) {
+  // Allow API routes
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
+  // Validate JWT from cookie if present
+  const token = req.cookies.get(COOKIE_NAME)?.value;
+  const session = token ? await verifyToken(token) : null;
+
+  // Root Homepage ("/") & Login ("/login") Handling
+  if (pathname === "/" || pathname === "/login") {
+    // If the user explicitly wants to view the public homepage via ?public=true or ?landing=true
+    const isExplicitPublic =
+      searchParams.get("public") === "true" || searchParams.get("landing") === "true";
+
+    // If authenticated and didn't request explicit public landing, redirect directly to assigned console
+    if (session && !isExplicitPublic) {
+      const targetRoute = getTargetRouteForRole(session.role);
+      const targetUrl = new URL(targetRoute, req.url);
+      return NextResponse.redirect(targetUrl);
+    }
+
+    // Unauthenticated or explicit public view -> allow through
     return NextResponse.next();
   }
 
   // Check if the route is protected
-  const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix));
+  const isProtected = PROTECTED_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(prefix + "/"));
   if (!isProtected) {
     return NextResponse.next();
   }
 
-  // Validate JWT from cookie
-  const token = req.cookies.get(COOKIE_NAME)?.value;
-
-  if (!token) {
-    // No session — redirect to login
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  const session = await verifyToken(token);
-
-  if (!session) {
-    // Invalid/expired token — redirect to login
+  if (!token || !session) {
+    // No valid session — redirect to login
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirect", pathname);
     const response = NextResponse.redirect(loginUrl);
-    // Clear the invalid cookie
-    response.cookies.delete(COOKIE_NAME);
+    if (token && !session) {
+      response.cookies.delete(COOKIE_NAME);
+    }
     return response;
   }
 

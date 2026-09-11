@@ -7,6 +7,8 @@ export interface AuthUser {
   role: UserRole;
   studentId?: string;
   campus?: string;
+  primaryStopId?: string;
+  primaryStopName?: string;
   avatarUrl?: string;
   token?: string;
   createdAt: string;

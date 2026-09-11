@@ -52,6 +52,15 @@ export default function UnifiedLoginPage() {
   const [isLocating, setIsLocating] = useState(false);
   const [pendingAuthUser, setPendingAuthUser] = useState<any>(null);
 
+  // If already authenticated, redirect straight to assigned console
+  React.useEffect(() => {
+    const user = store.getCurrentUser();
+    if (user) {
+      const target = authService.getTargetRouteForRole(user.role);
+      router.replace(target);
+    }
+  }, [router]);
+
   React.useEffect(() => {
     const initialStops = store.getStops();
     if (initialStops.length > 0) {
@@ -197,16 +206,32 @@ export default function UnifiedLoginPage() {
         if (authUser.role === "admin") {
           setAuthStep("SUCCESS");
           setTimeout(() => router.push("/admin"), 700);
-        } else if (authUser.role === "driver" || authUser.role === "conductor") {
+        } else if (
+          authUser.role === "driver" ||
+          authUser.role === "conductor" ||
+          authUser.role === "staff" ||
+          authUser.role === "transport_manager" ||
+          authUser.role === "supervisor" ||
+          authUser.role === "teacher"
+        ) {
           setAuthStep("SUCCESS");
           setTimeout(() => router.push(authService.getTargetRouteForRole(authUser.role)), 700);
         } else {
-          // New student commuter onboarding
-          setPendingAuthUser(authUser);
-          setOnboardingName(authUser.fullName || "Student Commuter");
-          const defaultStop = stops.find(s => s.name.includes("Laldant")) || stops[0];
-          if (defaultStop) setSelectedStopId(defaultStop.id);
-          setAuthStep("ONBOARDING");
+          // Student role
+          if (
+            authUser.primaryStopId ||
+            (authUser.campus && authUser.fullName && authUser.fullName !== "Student Commuter")
+          ) {
+            setAuthStep("SUCCESS");
+            setTimeout(() => router.push("/portal"), 700);
+          } else {
+            // First time student commuter onboarding
+            setPendingAuthUser(authUser);
+            setOnboardingName(authUser.fullName || "Student Commuter");
+            const defaultStop = stops.find(s => s.name.includes("Laldant")) || stops[0];
+            if (defaultStop) setSelectedStopId(defaultStop.id);
+            setAuthStep("ONBOARDING");
+          }
         }
       } else {
         setErrorMessage(res.message);

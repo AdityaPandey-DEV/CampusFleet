@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
+import { authService } from "@/lib/auth-service";
+import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { StudentParentProductDemo } from "@/components/landing/StudentParentProductDemo";
@@ -44,6 +47,7 @@ import { InstallAppModal } from "@/components/common/InstallAppModal";
 import { MobileInstallBanner } from "@/components/common/MobileInstallBanner";
 
 export default function CampusFleetLandingPage() {
+  const router = useRouter();
   const [buses, setBuses] = useState(store.getBuses());
   const [stops, setStops] = useState(store.getStops());
   const [routes, setRoutes] = useState(store.getRoutes());
@@ -51,6 +55,21 @@ export default function CampusFleetLandingPage() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Automatic routing: if already authenticated, go directly to assigned console
+  useEffect(() => {
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const isExplicitPublic = params?.get("public") === "true" || params?.get("landing") === "true";
+
+    const user = store.getCurrentUser();
+    if (user && !isExplicitPublic) {
+      setIsRedirecting(true);
+      const target = authService.getTargetRouteForRole(user.role);
+      router.replace(target);
+      return;
+    }
+  }, [router]);
 
   const { isInstalled, isIOS, isAndroid, canInstallNative, promptInstall } = usePWAInstall();
 
@@ -74,6 +93,15 @@ export default function CampusFleetLandingPage() {
     });
     return unsub;
   }, []);
+
+  if (isRedirecting) {
+    return (
+      <BusLoadingScreen
+        message="Opening your assigned console..."
+        subtitle="CampusFleet Realtime Gateway"
+      />
+    );
+  }
 
   const getDashboardLink = () => {
     if (!currentUser) return "/portal";

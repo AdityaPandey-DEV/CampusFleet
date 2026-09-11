@@ -85,6 +85,7 @@ export async function GET(req: NextRequest) {
       case "staff":
       case "transport_manager":
       case "supervisor": redirectPath = "/staff"; break;
+      case "teacher": redirectPath = "/teacher"; break;
       default: redirectPath = "/portal";
     }
 
