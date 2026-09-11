@@ -135,15 +135,29 @@ export default function CampusFleetLandingPage() {
         portalSubtitle="Student & Parent Transit Portal"
         showInstall={true}
         onOpenInstall={handleInstallClick}
+        mobilePrimaryAction={{
+          label: getDashboardLabel(),
+          href: getDashboardLink(),
+          subtitle: currentUser
+            ? "Seat booking, digital pass & live GPS radar"
+            : "Sign in with university or Google account",
+          icon: Smartphone,
+        }}
+        navLinks={[
+          { href: "/portal/booking", label: "Seat Booking & Shifts", icon: BusFront },
+          { href: "/portal/pass", label: "Digital QR Pass", icon: QrCode },
+          { href: "/portal/tracker", label: "Live GPS Bus Radar", icon: Navigation },
+          { href: "/portal/payments", label: "Pass Fees & UPI", icon: CreditCard },
+        ]}
         customActions={
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={handleInstallClick}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50/90 dark:bg-blue-950/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs rounded-xl border border-blue-200/80 dark:border-blue-800/80 transition-all active:scale-95 cursor-pointer shadow-2xs"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-blue-50/90 dark:bg-blue-950/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs rounded-xl border border-blue-200/80 dark:border-blue-800/80 transition-all active:scale-95 cursor-pointer shadow-2xs"
               title="Install CampusFleet App on your device"
             >
               <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span className="hidden sm:inline">Install App</span>
+              <span>Install App</span>
             </button>
 
             <Link
@@ -156,7 +170,7 @@ export default function CampusFleetLandingPage() {
 
             <Link
               href={getDashboardLink()}
-              className="px-3 sm:px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+              className="hidden sm:flex px-3 sm:px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 items-center gap-1.5 whitespace-nowrap"
             >
               <Smartphone className="w-3.5 h-3.5" />
               <span>{getDashboardLabel()}</span>

@@ -30,6 +30,7 @@ import {
   Radio,
   ArrowRight,
   Download,
+  Smartphone,
 } from "lucide-react";
 
 export interface NavLinkItem {
@@ -50,6 +51,12 @@ interface UnifiedAppHeaderProps {
   showInstall?: boolean;
   onOpenInstall?: () => void;
   customActions?: React.ReactNode;
+  mobilePrimaryAction?: {
+    label: string;
+    href: string;
+    subtitle?: string;
+    icon?: any;
+  };
 }
 
 interface RolePortalOption {
@@ -136,6 +143,7 @@ export function UnifiedAppHeader({
   showInstall = false,
   onOpenInstall,
   customActions,
+  mobilePrimaryAction,
 }: UnifiedAppHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -621,6 +629,39 @@ export function UnifiedAppHeader({
             </div>
           )}
 
+          {/* Mobile Primary Action / Launch Portal inside sliding navbar */}
+          {mobilePrimaryAction && (
+            <Link
+              href={mobilePrimaryAction.href}
+              onClick={() => setIsMobileSheetOpen(false)}
+              className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-between shadow-lg shadow-blue-600/25 active:scale-98 transition-all"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold flex-shrink-0">
+                  {mobilePrimaryAction.icon ? (
+                    <mobilePrimaryAction.icon className="w-5 h-5 text-white" />
+                  ) : (
+                    <Smartphone className="w-5 h-5 text-white" />
+                  )}
+                </div>
+                <div className="text-left min-w-0">
+                  <div className="font-black text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
+                    <span>{mobilePrimaryAction.label}</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-white/20 uppercase font-mono font-bold flex-shrink-0">
+                      PORTAL
+                    </span>
+                  </div>
+                  {mobilePrimaryAction.subtitle && (
+                    <div className="text-[11px] text-blue-100 line-clamp-1">
+                      {mobilePrimaryAction.subtitle}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-white flex-shrink-0 ml-2" />
+            </Link>
+          )}
+
           {/* Navigation Links for Mobile */}
           {navLinks && navLinks.length > 0 && (
             <div className="space-y-1">
@@ -726,13 +767,23 @@ export function UnifiedAppHeader({
               </button>
             )}
 
-            <button
-              onClick={handleSignOut}
-              className="px-3 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl text-xs font-bold flex items-center gap-1.5 ml-auto"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
-            </button>
+            {currentUser ? (
+              <button
+                onClick={handleSignOut}
+                className="px-3 py-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl text-xs font-bold flex items-center gap-1.5 ml-auto cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setIsMobileSheetOpen(false)}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 ml-auto shadow-xs"
+              >
+                <span>Sign In</span>
+              </Link>
+            )}
           </div>
         </div>
       )}
