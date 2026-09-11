@@ -98,18 +98,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: studentErr.message }, { status: 500 });
     }
 
-    // 4. Also update users table entry
-    const userUpdates: Record<string, any> = {
-      full_name: studentData.full_name,
-      phone: studentData.phone,
-      campus: studentData.campus,
-      updated_at: new Date().toISOString(),
-    };
-
+    // 4. Guarantee users table entry exists and is synchronized
     await supabaseAdmin
       .from("users")
-      .update(userUpdates)
-      .eq("id", userId);
+      .upsert({
+        id: userId,
+        email: cleanEmail,
+        full_name: studentData.full_name,
+        phone: studentData.phone,
+        campus: studentData.campus,
+        role: "student",
+        provider: session.provider || "google",
+      }, { onConflict: "id" });
 
     return NextResponse.json({
       success: true,

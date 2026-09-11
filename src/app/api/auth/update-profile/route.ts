@@ -18,13 +18,13 @@ export async function POST(req: NextRequest) {
     const updates: Record<string, any> = {};
     if (fullName) updates.full_name = fullName;
     if (campus) updates.campus = campus;
-    if (primaryStopId) updates.primary_stop_id = primaryStopId;
-    updates.updated_at = new Date().toISOString();
 
-    await supabaseAdmin
-      .from("users")
-      .update(updates)
-      .eq("id", session.userId);
+    if (Object.keys(updates).length > 0) {
+      await supabaseAdmin
+        .from("users")
+        .update(updates)
+        .eq("id", session.userId);
+    }
 
     return NextResponse.json({ success: true });
   } catch (e: any) {

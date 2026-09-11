@@ -44,7 +44,7 @@ export default async function StaffPage() {
     supabaseAdmin.from("stops").select("*"),
     supabaseAdmin.from("students").select("*"),
     supabaseAdmin.from("staff").select("*"),
-    supabaseAdmin.from("users").select("id, full_name, email, role, phone, is_active"),
+    supabaseAdmin.from("users").select("id, full_name, email, role, phone"),
     supabaseAdmin.from("route_stops").select("*").order("stop_sequence", { ascending: true }),
   ]);
 

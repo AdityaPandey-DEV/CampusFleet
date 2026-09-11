@@ -65,7 +65,8 @@ export default function AdminStaffView({
   const adminCount = users.filter(u => u.role === "admin" || u.role === "transport_manager").length;
   const staffCount = users.filter(u => u.role === "conductor" || u.role === "supervisor").length;
   const driverCount = users.filter(u => u.role === "driver").length;
-  const studentCount = users.filter(u => u.role === "student" || u.role === "parent").length;
+  const studentCount = users.filter(u => u.role === "student").length;
+  const parentCount = users.filter(u => u.role === "parent").length;
 
   const filteredUsers = users.filter(u => {
     const matchesSearch =
@@ -240,7 +241,7 @@ export default function AdminStaffView({
             <option value="driver">Fleet Driver ({driverCount})</option>
             <option value="conductor">Conductor / Staff ({staffCount})</option>
             <option value="student">Student Commuter ({studentCount})</option>
-            <option value="parent">Guardian / Parent</option>
+            <option value="parent">Guardian / Parent ({parentCount})</option>
           </select>
 
           <button
