@@ -9,28 +9,24 @@ import {
   CheckCircle2,
   Clock,
   MapPin,
-  Shield,
   ShieldCheck,
-  Smartphone,
   Sparkles,
-  AlertTriangle,
   RotateCcw,
-  User,
-  Users,
   Wifi,
-  ChevronRight,
-  ExternalLink,
   Zap,
-  Flame,
+  Disc,
+  ArrowDown,
+  BellRing,
+  Smartphone,
+  Check,
 } from "lucide-react";
 
 export function StudentParentProductDemo() {
   const [activeTab, setActiveTab] = useState<"radar" | "seats" | "qr" | "billing">("radar");
 
   // --- DEMO 1: LIVE RADAR STATE ---
-  const [currentStopIndex, setCurrentStopIndex] = useState(1);
   const [isBusMoving, setIsBusMoving] = useState(true);
-  const [etaSeconds, setEtaSeconds] = useState(240); // 4 mins
+  const [etaSeconds, setEtaSeconds] = useState(220); // 3m 40s
 
   const stops = [
     { name: "Kathgodam Rly Station", time: "07:30 AM", passed: true, dist: "Origin" },
@@ -43,33 +39,72 @@ export function StudentParentProductDemo() {
   useEffect(() => {
     if (!isBusMoving) return;
     const interval = setInterval(() => {
-      setEtaSeconds(prev => (prev > 10 ? prev - 5 : 240));
+      setEtaSeconds(prev => (prev > 10 ? prev - 5 : 220));
     }, 1500);
     return () => clearInterval(interval);
   }, [isBusMoving]);
 
   // --- DEMO 2: REDBUS SEAT SELECTION STATE ---
-  const [selectedSeat, setSelectedSeat] = useState<string>("07A");
+  const [selectedSeat, setSelectedSeat] = useState<string>("3A");
   const [selectedShift, setSelectedShift] = useState<"morning" | "evening">("morning");
-  const bookedSeats = new Set(["01A", "01B", "02B", "03A", "04B", "05A", "06A", "06B", "08A", "08B"]);
+  const bookedSeats = new Set(["1A", "1B", "2D", "3B", "4A", "4B", "5C"]);
 
-  const seats = [
-    { id: "01A", label: "1A", window: true },
-    { id: "01B", label: "1B", window: false },
-    { id: "02A", label: "2A", window: false },
-    { id: "02B", label: "2B", window: true },
-    { id: "03A", label: "3A", window: true },
-    { id: "03B", label: "3B", window: false },
-    { id: "04A", label: "4A", window: false },
-    { id: "04B", label: "4B", window: true },
-    { id: "05A", label: "5A", window: true },
-    { id: "05B", label: "5B", window: false },
-    { id: "06A", label: "6A", window: false },
-    { id: "06B", label: "6B", window: true },
-    { id: "07A", label: "7A", window: true },
-    { id: "07B", label: "7B", window: false },
-    { id: "08A", label: "8A", window: false },
-    { id: "08B", label: "8B", window: true },
+  const seatRows = [
+    {
+      row: 1,
+      left: [
+        { id: "1A", label: "1A", window: true },
+        { id: "1B", label: "1B", window: false },
+      ],
+      right: [
+        { id: "1C", label: "1C", window: false },
+        { id: "1D", label: "1D", window: true },
+      ],
+    },
+    {
+      row: 2,
+      left: [
+        { id: "2A", label: "2A", window: true },
+        { id: "2B", label: "2B", window: false },
+      ],
+      right: [
+        { id: "2C", label: "2C", window: false },
+        { id: "2D", label: "2D", window: true },
+      ],
+    },
+    {
+      row: 3,
+      left: [
+        { id: "3A", label: "3A", window: true },
+        { id: "3B", label: "3B", window: false },
+      ],
+      right: [
+        { id: "3C", label: "3C", window: false },
+        { id: "3D", label: "3D", window: true },
+      ],
+    },
+    {
+      row: 4,
+      left: [
+        { id: "4A", label: "4A", window: true },
+        { id: "4B", label: "4B", window: false },
+      ],
+      right: [
+        { id: "4C", label: "4C", window: false },
+        { id: "4D", label: "4D", window: true },
+      ],
+    },
+    {
+      row: 5,
+      left: [
+        { id: "5A", label: "5A", window: true },
+        { id: "5B", label: "5B", window: false },
+      ],
+      right: [
+        { id: "5C", label: "5C", window: false },
+        { id: "5D", label: "5D", window: true },
+      ],
+    },
   ];
 
   // --- DEMO 3: DIGITAL QR PASS STATE ---
@@ -87,14 +122,15 @@ export function StudentParentProductDemo() {
     setScanStatus("scanning");
     setTimeout(() => {
       setScanStatus("verified");
-      setTimeout(() => setScanStatus("ready"), 3500);
-    }, 800);
+      setTimeout(() => setScanStatus("ready"), 5000);
+    }, 900);
   };
 
   // --- DEMO 4: ZONE PASS & UPI BILLING STATE ---
   const [selectedZone, setSelectedZone] = useState<"ZONE_A" | "ZONE_B" | "ZONE_C">("ZONE_B");
   const [isInstallment, setIsInstallment] = useState(false);
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
+  const [paymentDone, setPaymentDone] = useState(false);
 
   const zones = {
     ZONE_A: { name: "Zone A: Campus Local & Bhimtal", fee: 8500, installment: 4500, coverage: "Bhimtal, Sattal, Bhowali town" },
@@ -104,9 +140,17 @@ export function StudentParentProductDemo() {
 
   const activeZoneInfo = zones[selectedZone];
 
+  const handleSimulatePayment = () => {
+    setPaymentDone(true);
+    setTimeout(() => {
+      setPaymentDone(false);
+      setIsUpiModalOpen(false);
+    }, 4000);
+  };
+
   return (
     <div className="w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 dark:border-slate-800/90 shadow-2xl p-4 sm:p-8 lg:p-10 space-y-8 transition-all">
-      {/* Demo Header / Value Pitch */}
+      {/* Demo Header */}
       <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-6">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 text-xs font-black tracking-wide uppercase mb-2 border border-blue-200/60 dark:border-blue-800/60">
@@ -228,7 +272,8 @@ export function StudentParentProductDemo() {
       </div>
 
       {/* Interactive Display Canvas */}
-      <div className="bg-slate-50/70 dark:bg-slate-950/60 rounded-3xl border border-slate-200/70 dark:border-slate-800/80 p-5 sm:p-8 overflow-hidden min-h-[460px] flex flex-col justify-center">
+      <div className="bg-slate-50/70 dark:bg-slate-950/60 rounded-3xl border border-slate-200/70 dark:border-slate-800/80 p-5 sm:p-8 overflow-hidden min-h-[480px] flex flex-col justify-center">
+        
         {/* TAB 1: LIVE RADAR SIMULATOR */}
         {activeTab === "radar" && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -251,7 +296,7 @@ export function StudentParentProductDemo() {
 
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <div className="text-[11px] text-slate-400 font-bold uppercase">Next Station ETA</div>
+                  <div className="text-[11px] text-slate-400 font-bold uppercase">NEXT STATION ETA</div>
                   <div className="text-lg font-black font-mono text-blue-600 dark:text-blue-400">
                     {Math.floor(etaSeconds / 60)}m {etaSeconds % 60}s
                   </div>
@@ -265,8 +310,8 @@ export function StudentParentProductDemo() {
               </div>
             </div>
 
-            {/* Delhi Metro-Style Interactive Stop Progression */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            {/* Delhi Metro-Style Interactive Stop Progression (Clean Separated Track) */}
+            <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
               <div className="flex items-center justify-between text-xs text-slate-500 font-bold">
                 <span>METRO TRANSIT PROGRESSION LINE</span>
                 <span className="flex items-center gap-1.5 text-blue-600 font-mono">
@@ -275,57 +320,76 @@ export function StudentParentProductDemo() {
                 </span>
               </div>
 
-              <div className="relative py-4">
-                {/* Connecting Track Line */}
-                <div className="absolute top-1/2 left-4 right-4 h-1.5 bg-slate-200 dark:bg-slate-800 -translate-y-1/2 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-400 w-1/2 rounded-full transition-all duration-700" />
-                </div>
+              {/* Station Progression Track & Icons */}
+              <div className="space-y-4 pt-2">
+                {/* Clean Horizontal Track with Station Circles */}
+                <div className="relative flex items-center justify-between px-6 sm:px-12">
+                  {/* The Background Line (Behind the circles, perfectly centered) */}
+                  <div className="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-400 w-1/2 rounded-full transition-all duration-700" />
+                  </div>
 
-                {/* Stations */}
-                <div className="relative grid grid-cols-5 gap-2 text-center">
+                  {/* 5 Distinct Station Dots */}
                   {stops.map((stop, i) => (
-                    <div key={i} className="flex flex-col items-center space-y-2">
+                    <div key={i} className="relative z-10 flex flex-col items-center">
                       <div
-                        className={`w-7 h-7 rounded-full border-4 flex items-center justify-center transition-all z-10 ${
+                        className={`w-9 h-9 rounded-full border-4 flex items-center justify-center transition-all ${
                           stop.passed
                             ? "bg-blue-600 border-white dark:border-slate-900 text-white shadow-md"
                             : stop.current
-                            ? "bg-white dark:bg-slate-900 border-blue-600 text-blue-600 ring-4 ring-blue-500/20 scale-125 shadow-xl animate-pulse"
+                            ? "bg-white dark:bg-slate-900 border-blue-600 text-blue-600 ring-4 ring-blue-500/25 scale-125 shadow-xl animate-pulse"
                             : "bg-slate-100 dark:bg-slate-800 border-white dark:border-slate-900 text-slate-400"
                         }`}
                       >
                         {stop.passed ? (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <CheckCircle2 className="w-4 h-4" />
                         ) : stop.current ? (
-                          <BusFront className="w-3.5 h-3.5" />
+                          <BusFront className="w-4 h-4" />
                         ) : (
-                          <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
                         )}
                       </div>
+                    </div>
+                  ))}
+                </div>
 
-                      <div className="space-y-0.5 max-w-[90px]">
-                        <div className={`text-[11px] font-bold truncate ${stop.current ? "text-blue-600 font-black" : "text-slate-800 dark:text-slate-200"}`}>
-                          {stop.name}
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono">{stop.time}</div>
-                        <span className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded ${stop.current ? "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300" : "text-slate-400"}`}>
-                          {stop.dist}
-                        </span>
+                {/* Station Labels Row (Below track, no clipping, no overlapping) */}
+                <div className="grid grid-cols-5 gap-2 text-center pt-2">
+                  {stops.map((stop, i) => (
+                    <div key={i} className="space-y-1">
+                      <div
+                        className={`text-xs font-bold leading-snug px-1 ${
+                          stop.current ? "text-blue-600 dark:text-blue-400 font-black" : "text-slate-800 dark:text-slate-200"
+                        }`}
+                      >
+                        {stop.name}
                       </div>
+                      <div className="text-[10px] text-slate-400 font-mono">{stop.time}</div>
+                      <span
+                        className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                          stop.current
+                            ? "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                        }`}
+                      >
+                        {stop.dist}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Student & Parent Notification Ribbon */}
-              <div className="p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-blue-900 dark:text-blue-200 font-medium">
+              <div className="p-4 rounded-2xl bg-blue-50/80 dark:bg-blue-950/50 border border-blue-200/70 dark:border-blue-800/50 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2.5 text-blue-900 dark:text-blue-200 font-medium">
                   <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />
                   <span>
-                    <strong>Parent Radar SMS Alert:</strong> Bus arrived at Tikonia stop at 07:46 AM. Student safely onboard.
+                    <strong>Parent Radar SMS Alert:</strong> Bus passed Tikonia stop at 07:46 AM. Student safely onboard.
                   </span>
                 </div>
-                <span className="text-[10px] text-blue-500 font-mono hidden sm:inline">Delivered to +91 98*** 43210</span>
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-bold whitespace-nowrap">
+                  Delivered to +91 99*** 43210
+                </span>
               </div>
             </div>
           </div>
@@ -380,55 +444,93 @@ export function StudentParentProductDemo() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-              {/* Bus Chassis Visualization */}
-              <div className="md:col-span-7 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center">
-                {/* Windshield & Driver Cabin */}
-                <div className="w-full max-w-[320px] pb-3 mb-4 border-b-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs text-slate-400 font-bold px-2">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Entry Door
-                  </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 font-mono text-[10px] text-slate-600 dark:text-slate-300">
-                    DRIVER CABIN
-                  </span>
+              {/* Bus Chassis Visualization (Clean 2x2 with central aisle) */}
+              <div className="md:col-span-7 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center">
+                
+                {/* Windshield & Driver Cabin Header */}
+                <div className="w-full max-w-[340px] pb-3 mb-4 border-b-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500 font-bold px-3">
+                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Passenger Entry</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-mono text-[11px] bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                    <Disc className="w-3.5 h-3.5 text-slate-500" />
+                    <span>STEERING / DRIVER</span>
+                  </div>
                 </div>
 
-                {/* 2x2 Seat Grid */}
-                <div className="grid grid-cols-4 gap-2.5 max-w-[320px] w-full">
-                  {seats.map((seat, sIdx) => {
-                    const isBooked = bookedSeats.has(seat.id);
-                    const isSelected = selectedSeat === seat.id;
-                    const isAisleBreak = sIdx % 4 === 1;
+                {/* 2x2 Clean Bus Row Layout */}
+                <div className="w-full max-w-[340px] space-y-2.5">
+                  {seatRows.map(rowObj => (
+                    <div key={rowObj.row} className="flex items-center justify-between gap-2">
+                      {/* Left Pair (Window, Aisle) */}
+                      <div className="flex items-center gap-2">
+                        {rowObj.left.map(seat => {
+                          const isBooked = bookedSeats.has(seat.id);
+                          const isSelected = selectedSeat === seat.id;
+                          return (
+                            <button
+                              key={seat.id}
+                              disabled={isBooked}
+                              onClick={() => setSelectedSeat(seat.id)}
+                              className={`w-12 h-11 rounded-xl font-bold text-xs flex flex-col items-center justify-center transition-all ${
+                                isSelected
+                                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105 ring-2 ring-indigo-400"
+                                  : isBooked
+                                  ? "bg-slate-100 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed border border-slate-200/50 dark:border-slate-800"
+                                  : "bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+                              }`}
+                            >
+                              <span>{seat.label}</span>
+                              <span className="text-[8px] opacity-75 font-mono">
+                                {seat.window ? "WIN" : "AIS"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
 
-                    return (
-                      <React.Fragment key={seat.id}>
-                        <button
-                          disabled={isBooked}
-                          onClick={() => setSelectedSeat(seat.id)}
-                          className={`h-11 rounded-xl font-bold text-xs flex flex-col items-center justify-center transition-all relative ${
-                            isSelected
-                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105 ring-2 ring-indigo-400"
-                              : isBooked
-                              ? "bg-slate-200 dark:bg-slate-800/80 text-slate-400 cursor-not-allowed opacity-60"
-                              : "bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
-                          }`}
-                        >
-                          <span>{seat.label}</span>
-                          <span className="text-[8px] opacity-75 font-mono">
-                            {seat.window ? "WIN" : "AIS"}
+                      {/* Central Walking Aisle */}
+                      <div className="flex-1 flex items-center justify-center">
+                        <div className="h-6 w-full border-b border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center">
+                          <span className="text-[9px] text-slate-300 dark:text-slate-600 font-mono uppercase tracking-widest">
+                            AISLE
                           </span>
-                        </button>
-                        {isAisleBreak && (
-                          <div className="w-full flex items-center justify-center">
-                            <div className="h-full w-0.5 bg-slate-100 dark:bg-slate-800" />
-                          </div>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
+                        </div>
+                      </div>
+
+                      {/* Right Pair (Aisle, Window) */}
+                      <div className="flex items-center gap-2">
+                        {rowObj.right.map(seat => {
+                          const isBooked = bookedSeats.has(seat.id);
+                          const isSelected = selectedSeat === seat.id;
+                          return (
+                            <button
+                              key={seat.id}
+                              disabled={isBooked}
+                              onClick={() => setSelectedSeat(seat.id)}
+                              className={`w-12 h-11 rounded-xl font-bold text-xs flex flex-col items-center justify-center transition-all ${
+                                isSelected
+                                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105 ring-2 ring-indigo-400"
+                                  : isBooked
+                                  ? "bg-slate-100 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed border border-slate-200/50 dark:border-slate-800"
+                                  : "bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+                              }`}
+                            >
+                              <span>{seat.label}</span>
+                              <span className="text-[8px] opacity-75 font-mono">
+                                {seat.window ? "WIN" : "AIS"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
+
                 <div className="text-[10px] text-slate-400 mt-4 uppercase tracking-widest font-mono">
-                  ← Rear Passenger Exit
+                  ← Rear Passenger Emergency Exit →
                 </div>
               </div>
 
@@ -505,7 +607,7 @@ export function StudentParentProductDemo() {
                   <div className="text-xs space-y-1 text-slate-300">
                     <div><strong>Dept:</strong> B.Tech CSE (7th Sem)</div>
                     <div><strong>Zone:</strong> Zone B (Kathgodam - Campus)</div>
-                    <div><strong>Seat:</strong> Morning 07:30 AM (#07A)</div>
+                    <div><strong>Seat:</strong> Morning 07:30 AM (#3A)</div>
                   </div>
                 </div>
 
@@ -537,7 +639,7 @@ export function StudentParentProductDemo() {
               <button
                 onClick={handleSimulateScan}
                 disabled={scanStatus === "scanning"}
-                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 mx-auto transition-all active:scale-95"
+                className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 mx-auto transition-all active:scale-95"
               >
                 <QrCode className="w-4 h-4" />
                 <span>
@@ -550,9 +652,14 @@ export function StudentParentProductDemo() {
               </button>
 
               {scanStatus === "verified" && (
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 animate-in zoom-in-95">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>SUCCESS: Boarding marked on Conductor Terminal. Attendance pushed to Parent Portal.</span>
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-2xl text-xs space-y-1 animate-in zoom-in-95">
+                  <div className="font-bold flex items-center justify-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>BOARDING VERIFIED: Parth Dalakoti (#3A) • Route 1</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 text-center">
+                    Instant Parent SMS sent to Manoj Kumar Dalakoti (+91 99176 94307). Attendance pushed to university ledger.
+                  </p>
                 </div>
               )}
             </div>
@@ -650,20 +757,38 @@ export function StudentParentProductDemo() {
 
               {/* UPI QR Modal Demonstration */}
               {isUpiModalOpen && (
-                <div className="p-4 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border border-purple-200 dark:border-purple-800/60 flex flex-col sm:flex-row items-center gap-4 animate-in fade-in">
-                  <div className="w-28 h-28 bg-white p-2 rounded-xl border border-purple-300 shadow-sm flex items-center justify-center flex-shrink-0">
-                    <QrCode className="w-24 h-24 text-slate-900" />
+                <div className="p-5 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border border-purple-200 dark:border-purple-800/60 flex flex-col sm:flex-row items-center gap-5 animate-in fade-in">
+                  <div className="w-32 h-32 bg-white p-2.5 rounded-2xl border border-purple-300 shadow-md flex items-center justify-center flex-shrink-0 relative">
+                    <QrCode className="w-28 h-28 text-slate-900" />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center font-black text-[9px] shadow-sm">
+                        GEHU
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs space-y-1.5 text-center sm:text-left">
-                    <div className="font-bold text-purple-900 dark:text-purple-200">
+
+                  <div className="text-xs space-y-2 text-center sm:text-left flex-1">
+                    <div className="font-black text-purple-900 dark:text-purple-200 text-sm">
                       Scan with Google Pay, PhonePe, Paytm, or BHIM
                     </div>
-                    <div className="text-slate-600 dark:text-slate-300 text-[11px]">
-                      VPA: <code className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 font-bold">gehu.transport@sbi</code>
+                    <div className="text-slate-600 dark:text-slate-300 text-xs">
+                      Official VPA: <code className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 font-bold font-mono">gehu.transport@sbi</code>
                     </div>
-                    <div className="text-slate-500 text-[10px]">
-                      Auto-OCR matches student transaction UTR number instantly and issues the cryptographic digital pass in under 60 seconds!
-                    </div>
+                    
+                    {!paymentDone ? (
+                      <button
+                        onClick={handleSimulatePayment}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 flex items-center gap-1.5 mx-auto sm:mx-0"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Simulate 1-Tap UPI Payment</span>
+                      </button>
+                    ) : (
+                      <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 font-bold text-xs flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        <span>Payment Verified! Digital Pass Instantly Unlocked.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
