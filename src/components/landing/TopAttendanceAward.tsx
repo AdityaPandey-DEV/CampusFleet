@@ -81,20 +81,20 @@ export function TopAttendanceAward() {
 
         if (!dbStudents || dbStudents.length === 0) return;
 
-        // Match Parth Dalakoti directly from DB
-        const parthRecord = dbStudents.find(s =>
+        // Match top student record directly from DB
+        const studentRecord = dbStudents.find(s =>
           s.full_name?.toLowerCase().includes("parth") ||
           s.enrollment_no?.includes("23620010")
-        );
+        ) || dbStudents[0];
 
-        if (parthRecord) {
-          const realDays = getDaysSince(parthRecord.created_at);
+        if (studentRecord) {
+          const realDays = getDaysSince(studentRecord.created_at);
           setTopStudent({
-            name: parthRecord.full_name,
-            enrollment: parthRecord.enrollment_no,
-            branch: `${parthRecord.department} (${parthRecord.semester})`,
-            parentName: parthRecord.emergency_contact?.name || "Parent / Guardian",
-            parentPhone: parthRecord.emergency_contact?.phone || "",
+            name: studentRecord.full_name,
+            enrollment: studentRecord.enrollment_no,
+            branch: `${studentRecord.department} (${studentRecord.semester})`,
+            parentName: studentRecord.emergency_contact?.name || "Parent / Guardian",
+            parentPhone: studentRecord.emergency_contact?.phone || "",
             streak: realDays,
             ratio: "100%",
             lateArrivals: 0,
@@ -106,7 +106,7 @@ export function TopAttendanceAward() {
 
         // Filter other real registered students for leaderboard
         const otherStudents = dbStudents.filter(s =>
-          !s.full_name?.toLowerCase().includes("parth") &&
+          (studentRecord ? s.id !== studentRecord.id : true) &&
           s.full_name?.trim() !== ""
         );
 
@@ -176,7 +176,7 @@ export function TopAttendanceAward() {
         <div className="fixed top-6 right-6 z-50 p-4 bg-slate-900 text-white rounded-2xl shadow-2xl border border-amber-400/40 flex items-center gap-3 animate-in slide-in-from-top-4">
           <Sparkles className="w-5 h-5 text-amber-400 animate-spin" />
           <div className="text-xs font-bold">
-            🎉 Commuter Cheers Added! You celebrated Parth’s verified enrollment!
+            🎉 Commuter Cheers Added! You celebrated {topStudent ? topStudent.name : "top student"}’s verified transit honors!
           </div>
         </div>
       )}
