@@ -332,6 +332,11 @@ class CampusFleetStore {
           startedAt: t.started_at,
           completedAt: t.completed_at,
           currentStopIndex: t.current_stop_index || 0,
+          direction: t.direction || undefined,
+          scheduleType: t.schedule_type || undefined,
+          customDays: t.custom_days || undefined,
+          departureTime: t.departure_time || undefined,
+          arrivalTime: t.arrival_time || undefined,
         }));
       }
 
@@ -561,6 +566,11 @@ class CampusFleetStore {
                   startedAt: t.started_at,
                   completedAt: t.completed_at,
                   currentStopIndex: t.current_stop_index || 0,
+                  direction: t.direction || undefined,
+                  scheduleType: t.schedule_type || undefined,
+                  customDays: t.custom_days || undefined,
+                  departureTime: t.departure_time || undefined,
+                  arrivalTime: t.arrival_time || undefined,
                 }));
                 this.notify();
               }
@@ -1433,12 +1443,25 @@ class CampusFleetStore {
     this.notify();
 
     try {
-      await supabase.from("trips").insert({
-        id: newTrip.id, trip_code: newTrip.tripCode, route_id: newTrip.routeId,
-        bus_id: newTrip.busId, shift_id: newTrip.shiftId, driver_id: newTrip.driverId,
-        conductor_id: newTrip.conductorId, trip_date: newTrip.tripDate, status: newTrip.status,
+      const payload: any = {
+        id: newTrip.id,
+        trip_code: newTrip.tripCode,
+        route_id: newTrip.routeId,
+        bus_id: newTrip.busId,
+        shift_id: newTrip.shiftId,
+        driver_id: newTrip.driverId,
+        conductor_id: newTrip.conductorId,
+        trip_date: newTrip.tripDate,
+        status: newTrip.status,
         current_stop_index: newTrip.currentStopIndex ?? 0,
-      });
+      };
+      if (newTrip.direction) payload.direction = newTrip.direction;
+      if (newTrip.scheduleType) payload.schedule_type = newTrip.scheduleType;
+      if (newTrip.customDays) payload.custom_days = newTrip.customDays;
+      if (newTrip.departureTime) payload.departure_time = newTrip.departureTime;
+      if (newTrip.arrivalTime) payload.arrival_time = newTrip.arrivalTime;
+
+      await supabase.from("trips").insert(payload);
     } catch (e) { console.warn("DB createTrip:", e); }
     return newTrip;
   }

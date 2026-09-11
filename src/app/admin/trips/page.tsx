@@ -55,6 +55,11 @@ export default async function TripsAndManifestPage() {
     startedAt: t.started_at,
     completedAt: t.completed_at,
     currentStopIndex: t.current_stop_index || 0,
+    direction: t.direction || undefined,
+    scheduleType: t.schedule_type || undefined,
+    customDays: t.custom_days || undefined,
+    departureTime: t.departure_time || undefined,
+    arrivalTime: t.arrival_time || undefined,
   }));
 
   const buses: Bus[] = (dbBuses || []).map((b: any) => ({

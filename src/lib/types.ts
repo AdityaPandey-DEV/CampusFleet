@@ -60,7 +60,7 @@ export interface Route {
   code: string;
   name: string;
   description: string;
-  direction: "HOME_TO_CAMPUS" | "CAMPUS_TO_HOME" | "CIRCULAR";
+  direction: "HOME_TO_CAMPUS" | "CAMPUS_TO_HOME" | "CIRCULAR" | "CAMPUS_TO_CAMPUS";
   color: string;
   isActive: boolean;
   stops: RouteStop[];
@@ -99,6 +99,9 @@ export interface Shift {
   bookingCutoffMins: number; // Cutoff prior to departure (e.g. 45 mins)
 }
 
+export type TripDirection = "HOME_TO_CAMPUS" | "CAMPUS_TO_HOME" | "CAMPUS_TO_CAMPUS";
+export type TripScheduleType = "EVERY_DAY" | "MON_FRI" | "ONE_DAY" | "CUSTOM";
+
 export interface Trip {
   id: string;
   tripCode: string;
@@ -115,6 +118,11 @@ export interface Trip {
   manifestLocked: boolean;
   manifestLockedAt?: string;
   currentStopIndex: number;
+  direction?: TripDirection;
+  scheduleType?: TripScheduleType;
+  customDays?: string[]; // e.g. ["Mon", "Wed", "Fri"]
+  departureTime?: string; // e.g. "07:20", "16:30"
+  arrivalTime?: string;   // e.g. "08:40", "17:45"
 }
 
 export interface Student {

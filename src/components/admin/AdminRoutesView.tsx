@@ -104,7 +104,7 @@ export default function AdminRoutesView({
     name: string;
     code: string;
     description: string;
-    direction: "HOME_TO_CAMPUS" | "CAMPUS_TO_HOME" | "CIRCULAR";
+    direction: "HOME_TO_CAMPUS" | "CAMPUS_TO_HOME" | "CIRCULAR" | "CAMPUS_TO_CAMPUS";
     color: string;
     startStopId: string;
     endStopId: string;
