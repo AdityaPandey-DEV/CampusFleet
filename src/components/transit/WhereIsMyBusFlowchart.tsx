@@ -111,6 +111,11 @@ export function WhereIsMyBusFlowchart({
   const delayMinutes = busLocation?.delayMinutes ?? 0;
   const isDelayed = delayMinutes > 2;
 
+  // Real-time broadcasted coordinates from driver telematics
+  const busLat = busLocation?.latitude ?? stops[currentIndex]?.stop.latitude ?? 29.3516;
+  const busLng = busLocation?.longitude ?? stops[currentIndex]?.stop.longitude ?? 79.5583;
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${busLat},${busLng}`;
+
   const handleRefresh = () => {
     setIsRefreshing(true);
     setTimeout(() => {
@@ -240,9 +245,26 @@ export function WhereIsMyBusFlowchart({
                     </div>
                   </div>
 
-                  <span className="text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800">
-                    GPS Tracked
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-blue-300 hover:text-white border border-blue-500/40 text-[11px] font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                      title="Open driver's live GPS coordinates in Google Maps"
+                    >
+                      <svg className="w-3.5 h-3.5 text-rose-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                      </svg>
+                      <span className="hidden sm:inline">View in Google Maps</span>
+                      <span className="sm:hidden">Google Maps</span>
+                    </a>
+
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 hidden md:inline">
+                      GPS Live
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -437,8 +459,8 @@ export function WhereIsMyBusFlowchart({
           </div>
         </div>
 
-        {/* Refresh & Map View Toggle Buttons */}
-        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
+        {/* Refresh, Google Maps & Map View Toggle Buttons */}
+        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end flex-wrap">
           <button
             onClick={handleRefresh}
             className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700/60 shadow-sm"
@@ -446,6 +468,21 @@ export function WhereIsMyBusFlowchart({
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin text-blue-400" : ""}`} />
           </button>
+
+          {/* Direct Google Maps Live GPS Link */}
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs shadow-sm transition-all border border-slate-700/80 flex items-center justify-center gap-1.5"
+            title="Open driver's live broadcasted coordinates in Google Maps"
+          >
+            <svg className="w-4 h-4 text-rose-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            <span className="hidden sm:inline">View in Google Maps</span>
+            <span className="sm:hidden">Google Maps</span>
+          </a>
 
           {onToggleMapView && (
             <button

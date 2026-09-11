@@ -499,18 +499,35 @@ export default function CampusFleetMap({
         const isStationary = !busLocation.speedKmh || busLocation.speedKmh === 0;
         const currentTripStatus = tripStatus || (isStationary ? "SCHEDULED" : "IN_PROGRESS");
 
+        const currentDelayMins = busLocation.delayMinutes || 0;
+        const currentStopName = stops.find(s => s.id === busLocation.currentStopId)?.name || stops.find(s => s.id === busLocation.nextStopId)?.name || "Corridor Track";
+        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${busLocation.latitude},${busLocation.longitude}`;
+
         const popupHtml = `
-          <div style="font-family: sans-serif; font-size: 12px; line-height: 1.45; min-width: 175px;">
-            <strong style="color: #1d4ed8; font-size: 13px;">${busDisplayName}</strong><br/>
-            <div style="margin-top: 3px; margin-bottom: 4px;">
-              <span style="font-size: 10px; padding: 2px 8px; border-radius: 999px; background: ${currentTripStatus === "IN_PROGRESS" ? "#dcfce7; color: #166534;" : "#fef3c7; color: #92400e;"} font-weight: bold; text-transform: uppercase;">
-                ${currentTripStatus === "IN_PROGRESS" ? "● In Transit" : "● Scheduled (At Terminal)"}
-              </span>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; line-height: 1.45; min-width: 220px; padding: 2px;">
+            <strong style="color: #0f172a; font-size: 13px; font-weight: 900;">${busDisplayName}</strong><br/>
+            <div style="color: #334155; font-size: 12px; font-weight: bold; margin-top: 2px;">
+              At ${currentStopName}
             </div>
-            <div style="color: #334155; font-size: 11px;">
-              <span>Speed: <strong>${busLocation.speedKmh || 0} km/h</strong></span><br/>
-              ${!isStationary ? `<span>Heading: ${busLocation.headingDeg}°</span><br/>` : ""}
-              <span style="color: #64748b;">${isStationary ? "Stationary at Route Starting Point" : "Live Telematics Active"}</span>
+            <div style="margin-top: 3px; font-size: 11px;">
+              ${
+                currentDelayMins > 2
+                  ? `<span style="color: #e11d48; font-weight: 800;">Delayed by ${currentDelayMins} minutes at ${currentStopName}</span>`
+                  : `<span style="color: #16a34a; font-weight: 800;">Running on time • ${busLocation.speedKmh || 0} km/h</span>`
+              }
+            </div>
+            <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0;">
+              <a
+                href="${googleMapsUrl}"
+                target="_blank"
+                rel="noopener noreferrer"
+                style="display: inline-flex; align-items: center; gap: 6px; color: #0284c7; font-weight: 800; font-size: 11px; text-decoration: none; padding: 4px 8px; border-radius: 8px; background: #f0f9ff; border: 1px solid #bae6fd;"
+              >
+                <svg style="width: 14px; height: 14px; color: #ea4335;" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                View in Google Maps
+              </a>
             </div>
           </div>
         `;
@@ -601,6 +618,19 @@ export default function CampusFleetMap({
                 <div style="margin-top: 3px; color: #64748b; font-size: 10px;">
                   Crew: <strong>${fb.driverName || "Driver"}</strong> (Driver) • <strong>${fb.conductorName || "Conductor"}</strong>
                 </div>
+              </div>
+              <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0;">
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=${fb.latitude},${fb.longitude}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="display: inline-flex; align-items: center; gap: 5px; color: #0284c7; font-weight: 800; font-size: 11px; text-decoration: none; padding: 4px 8px; border-radius: 8px; background: #f0f9ff; border: 1px solid #bae6fd;"
+                >
+                  <svg style="width: 14px; height: 14px; color: #ea4335;" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                  View in Google Maps
+                </a>
               </div>
             </div>
           `;
