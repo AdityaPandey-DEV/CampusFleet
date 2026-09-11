@@ -23,7 +23,10 @@ export async function POST(req: NextRequest) {
       .eq("email", cleanEmail)
       .maybeSingle();
 
-    if (existingUser?.password_hash && password) {
+    if (existingUser?.password_hash) {
+      if (!password) {
+        return NextResponse.json({ error: "Password is required" }, { status: 401 });
+      }
       const bcrypt = await import("bcryptjs");
       const valid = await bcrypt.compare(password, existingUser.password_hash);
       if (!valid) {
