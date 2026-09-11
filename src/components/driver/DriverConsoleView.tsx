@@ -147,16 +147,22 @@ export default function DriverConsoleView({
     if (confirm("Are you sure you want to end this trip?")) {
       activeTrip.status = "COMPLETED";
       activeTrip.completedAt = new Date().toISOString();
-      const endStop = route?.stops?.[route.stops.length - 1]?.stop;
-      store.updateLiveLocation({
-        busId: bus?.id,
-        tripId: activeTrip?.id,
-        latitude: endStop?.latitude || 29.3516,
-        longitude: endStop?.longitude || 79.5583,
-        speedKmh: 0,
-        headingDeg: 0,
-        delayMinutes: 0,
-      });
+      const campusOrEndStop =
+        route?.stops?.[route.stops.length - 1]?.stop ||
+        store.getStops().find((s) => s.name.toLowerCase().includes("campus terminal")) ||
+        store.getStops().find((s) => s.campus && s.name.toLowerCase().includes("campus")) ||
+        store.getStops()[0];
+      if (campusOrEndStop) {
+        store.updateLiveLocation({
+          busId: bus?.id,
+          tripId: activeTrip?.id,
+          latitude: campusOrEndStop.latitude,
+          longitude: campusOrEndStop.longitude,
+          speedKmh: 0,
+          headingDeg: 0,
+          delayMinutes: 0,
+        });
+      }
 
       // Milestone persistence in PostgreSQL
       try {

@@ -112,8 +112,8 @@ export function WhereIsMyBusFlowchart({
   const isDelayed = delayMinutes > 2;
 
   // Real-time broadcasted coordinates from driver telematics
-  const busLat = busLocation?.latitude ?? stops[currentIndex]?.stop.latitude ?? 29.3516;
-  const busLng = busLocation?.longitude ?? stops[currentIndex]?.stop.longitude ?? 79.5583;
+  const busLat = busLocation?.latitude ?? stops[currentIndex]?.stop.latitude ?? stops[0]?.stop.latitude ?? 0;
+  const busLng = busLocation?.longitude ?? stops[currentIndex]?.stop.longitude ?? stops[0]?.stop.longitude ?? 0;
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${busLat},${busLng}`;
 
   const handleRefresh = () => {

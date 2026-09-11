@@ -1,8 +1,23 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { LiveBusLocation, Stop, FleetBusMarkerData } from "@/lib/types";
-import { MapPin, Zap } from "lucide-react";
+import { MapPin, Zap, Crosshair, Building2, Navigation } from "lucide-react";
+
+/**
+ * Resolves the primary university campus terminal stop dynamically from the database stops array.
+ * Zero hardcoded constants: respects database modifications in PostgreSQL.
+ */
+export function getCampusStopFromDatabase(stops: Stop[]): Stop | null {
+  if (!stops || stops.length === 0) return null;
+  return (
+    stops.find((s) => s.name.toLowerCase().includes("campus terminal")) ||
+    stops.find((s) => s.campus && s.name.toLowerCase().includes("campus")) ||
+    stops.find((s) => s.name.toLowerCase().includes("campus")) ||
+    stops.find((s) => s.campus && s.campus.trim().length > 0) ||
+    null
+  );
+}
 
 // Crisp vector SVG icons for high-DPI Leaflet markers (replaces low-res emojis)
 const busSvg = `<svg class="w-3.5 h-3.5 mr-1 shrink-0 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"></path><path d="M15 6v6"></path><path d="M2 12h19.6"></path><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4C2.9 6 1.9 6.8 1.6 7.8L.2 12.8c-.1.4-.2.8-.2 1.2 0 .4.1.8.2 1.2.3 1.1.8 2.8.8 2.8h3"></path><circle cx="7" cy="18" r="2" fill="currentColor"></circle><path d="M9 18h5"></path><circle cx="16" cy="18" r="2" fill="currentColor"></circle></svg>`;
@@ -36,6 +51,8 @@ interface CampusFleetMapProps {
   draftPinLocation?: [number, number] | null;
   draftGeofenceRadius?: number;
   interactiveMode?: "VIEW" | "PIN_DROP";
+  showUserLocation?: boolean;
+  showCampusLandmark?: boolean;
 }
 
 // Fetches actual road-snapped geometry via Open-Source Routing Machine (OSRM) with multi-mirror fallback
@@ -110,16 +127,32 @@ export default function CampusFleetMap({
   draftPinLocation,
   draftGeofenceRadius = 80,
   interactiveMode = "VIEW",
+  showUserLocation = true,
+  showCampusLandmark = true,
 }: CampusFleetMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const busMarkerRef = useRef<any>(null);
   const fleetMarkersMapRef = useRef<Map<string, any>>(new Map());
-  const polylineBorderRef = useRef<any>(null);
-  const polylineCoreRef = useRef<any>(null);
-  const polylineGlowRef = useRef<any>(null);
+
+  // Dual-color Google Maps path polylines (Completed = Gray, Upcoming = Blue)
+  const polylineUpcomingGlowRef = useRef<any>(null);
+  const polylineUpcomingBorderRef = useRef<any>(null);
+  const polylineUpcomingCoreRef = useRef<any>(null);
+  const polylineCompletedBorderRef = useRef<any>(null);
+  const polylineCompletedCoreRef = useRef<any>(null);
+
   const shortestPathPolylineRef = useRef<any>(null);
   const markersGroupRef = useRef<any>(null);
+  const campusMarkerGroupRef = useRef<any>(null);
+  const userMarkerRef = useRef<any>(null);
+  const userAccuracyCircleRef = useRef<any>(null);
+
+  // User Live Location & Geolocation state
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationNotice, setLocationNotice] = useState<string | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
@@ -132,6 +165,75 @@ export default function CampusFleetMap({
   const initialFitDoneRef = useRef(false);
   const lastFittedRouteRef = useRef<string | null>(null);
   const lastFocusedBusIdRef = useRef<string | undefined>(undefined);
+
+  // Geolocation trigger: centers and pins user position with live GPS
+  const handleLocateUser = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setLocationNotice("GPS Geolocation is not supported by your browser");
+      setTimeout(() => setLocationNotice(null), 3500);
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationNotice(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        const { latitude, longitude, accuracy } = pos.coords;
+        const loc = { lat: latitude, lng: longitude, accuracy };
+        setUserLocation(loc);
+
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setView([latitude, longitude], Math.max(mapInstanceRef.current.getZoom(), 15), {
+            animate: true,
+          });
+        }
+        setLocationNotice(`Live location acquired (±${Math.round(accuracy)}m)`);
+        setTimeout(() => setLocationNotice(null), 3500);
+      },
+      (err) => {
+        setIsLocating(false);
+        console.warn("Geolocation prompt error:", err.message);
+        setLocationNotice("Location permission denied or unavailable");
+        setTimeout(() => setLocationNotice(null), 4000);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+    );
+
+    if (watchIdRef.current === null) {
+      try {
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (pos) => {
+            const { latitude, longitude, accuracy } = pos.coords;
+            setUserLocation({ lat: latitude, lng: longitude, accuracy });
+          },
+          (err) => console.warn("Watch position error:", err.message),
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 }
+        );
+      } catch {
+        // watchPosition fallback
+      }
+    }
+  };
+
+  const campusTerminalStop = getCampusStopFromDatabase(stops);
+
+  const handlePanToCampus = () => {
+    if (mapInstanceRef.current && campusTerminalStop) {
+      mapInstanceRef.current.setView([campusTerminalStop.latitude, campusTerminalStop.longitude], 15, {
+        animate: true,
+      });
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null && typeof navigator !== "undefined" && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || !mapContainerRef.current) return;
@@ -149,14 +251,17 @@ export default function CampusFleetMap({
         shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
-      // Default center: GEHU Bhimtal default or first stop
+      // Default center: resolved campus stop from DB, bus location, or first stop
+      const campusStop = getCampusStopFromDatabase(stops);
       const defaultCenter: [number, number] = draftPinLocation
         ? draftPinLocation
         : busLocation
         ? [busLocation.latitude, busLocation.longitude]
+        : campusStop
+        ? [campusStop.latitude, campusStop.longitude]
         : stops[0]
         ? [stops[0].latitude, stops[0].longitude]
-        : [29.3516, 79.5583];
+        : [0, 0];
 
       if (!mapInstanceRef.current) {
         const map = L.map(mapContainerRef.current, {
@@ -230,36 +335,124 @@ export default function CampusFleetMap({
 
         if (isMounted) {
           // Remove previous polylines if exist
-          if (polylineGlowRef.current) map.removeLayer(polylineGlowRef.current);
-          if (polylineBorderRef.current) map.removeLayer(polylineBorderRef.current);
-          if (polylineCoreRef.current) map.removeLayer(polylineCoreRef.current);
+          if (polylineUpcomingGlowRef.current) map.removeLayer(polylineUpcomingGlowRef.current);
+          if (polylineUpcomingBorderRef.current) map.removeLayer(polylineUpcomingBorderRef.current);
+          if (polylineUpcomingCoreRef.current) map.removeLayer(polylineUpcomingCoreRef.current);
+          if (polylineCompletedBorderRef.current) map.removeLayer(polylineCompletedBorderRef.current);
+          if (polylineCompletedCoreRef.current) map.removeLayer(polylineCompletedCoreRef.current);
 
-          // 1. Google Maps Outer Glow/Shadow
-          polylineGlowRef.current = L.polyline(roadSnappedCoords, {
-            color: isExpressDirect ? "#10B981" : "#2563EB",
-            weight: 12,
-            opacity: 0.25,
-            lineJoin: "round",
-            lineCap: "round",
-          }).addTo(map);
+          // Determine active bus position along this corridor
+          let activeBusPos: [number, number] | null = null;
+          let isCompletedTrip = tripStatus === "COMPLETED";
 
-          // 2. Google Maps Dark Blue/Teal Outline Casing
-          polylineBorderRef.current = L.polyline(roadSnappedCoords, {
-            color: isExpressDirect ? "#065F46" : "#1D4ED8",
-            weight: 7,
-            opacity: 0.95,
-            lineJoin: "round",
-            lineCap: "round",
-          }).addTo(map);
+          if (busLocation && typeof busLocation.latitude === "number") {
+            activeBusPos = [busLocation.latitude, busLocation.longitude];
+          } else if (focusedBusId && fleetBuses) {
+            const fb = fleetBuses.find((b) => b.busId === focusedBusId);
+            if (fb) {
+              activeBusPos = [fb.latitude, fb.longitude];
+              if (fb.tripStatus === "COMPLETED" || fb.state === "CAMPUS_PARKED") {
+                isCompletedTrip = true;
+              }
+            }
+          } else if (fleetBuses && fleetBuses.length > 0) {
+            const fb = fleetBuses[0];
+            if (fb) {
+              activeBusPos = [fb.latitude, fb.longitude];
+              if (fb.tripStatus === "COMPLETED" || fb.state === "CAMPUS_PARKED") {
+                isCompletedTrip = true;
+              }
+            }
+          }
 
-          // 3. Google Maps Vibrant Navigation Blue/Emerald Line
-          polylineCoreRef.current = L.polyline(roadSnappedCoords, {
-            color: isExpressDirect ? "#34D399" : "#38BDF8", // Green for express or electric blue
-            weight: 4.5,
-            opacity: 1.0,
-            lineJoin: "round",
-            lineCap: "round",
-          }).addTo(map);
+          let completedPath: [number, number][] = [];
+          let upcomingPath: [number, number][] = [];
+
+          if (isCompletedTrip) {
+            // Entire route is completed -> All Gray
+            completedPath = roadSnappedCoords;
+            upcomingPath = [];
+          } else if (!activeBusPos) {
+            // No active vehicle position -> Entire route is upcoming -> All Blue
+            completedPath = [];
+            upcomingPath = roadSnappedCoords;
+          } else {
+            // Find nearest point on the road geometry to the bus location
+            let minDistance = Infinity;
+            let splitIdx = 0;
+
+            for (let i = 0; i < roadSnappedCoords.length; i++) {
+              const dLat = roadSnappedCoords[i][0] - activeBusPos[0];
+              const dLng = (roadSnappedCoords[i][1] - activeBusPos[1]) * Math.cos((activeBusPos[0] * Math.PI) / 180);
+              const distSq = dLat * dLat + dLng * dLng;
+              if (distSq < minDistance) {
+                minDistance = distSq;
+                splitIdx = i;
+              }
+            }
+
+            if (splitIdx === 0) {
+              // Bus at starting stop
+              completedPath = [];
+              upcomingPath = roadSnappedCoords;
+            } else if (splitIdx >= roadSnappedCoords.length - 1) {
+              // Bus at destination
+              completedPath = roadSnappedCoords;
+              upcomingPath = [];
+            } else {
+              // Split at bus position:
+              // Completed = road points up to splitIdx, then connect to current bus position
+              completedPath = [...roadSnappedCoords.slice(0, splitIdx + 1), activeBusPos];
+              // Upcoming = current bus position, then remaining road points to end
+              upcomingPath = [activeBusPos, ...roadSnappedCoords.slice(splitIdx + 1)];
+            }
+          }
+
+          // 1. Render Completed Path (Already covered -> Slate / Gray, like Google Maps)
+          if (completedPath.length >= 2) {
+            polylineCompletedBorderRef.current = L.polyline(completedPath, {
+              color: "#475569", // Slate-600 outline
+              weight: 6.5,
+              opacity: 0.75,
+              lineJoin: "round",
+              lineCap: "round",
+            }).addTo(map);
+
+            polylineCompletedCoreRef.current = L.polyline(completedPath, {
+              color: "#94A3B8", // Slate-400 core
+              weight: 4.5,
+              opacity: 0.95,
+              lineJoin: "round",
+              lineCap: "round",
+            }).addTo(map);
+          }
+
+          // 2. Render Upcoming Path (To be covered -> Vibrant Blue / Emerald, like Google Maps)
+          if (upcomingPath.length >= 2) {
+            polylineUpcomingGlowRef.current = L.polyline(upcomingPath, {
+              color: isExpressDirect ? "#10B981" : "#2563EB",
+              weight: 12,
+              opacity: 0.25,
+              lineJoin: "round",
+              lineCap: "round",
+            }).addTo(map);
+
+            polylineUpcomingBorderRef.current = L.polyline(upcomingPath, {
+              color: isExpressDirect ? "#065F46" : "#1D4ED8",
+              weight: 7,
+              opacity: 0.95,
+              lineJoin: "round",
+              lineCap: "round",
+            }).addTo(map);
+
+            polylineUpcomingCoreRef.current = L.polyline(upcomingPath, {
+              color: isExpressDirect ? "#34D399" : "#38BDF8",
+              weight: 4.5,
+              opacity: 1.0,
+              lineJoin: "round",
+              lineCap: "round",
+            }).addTo(map);
+          }
 
           // Auto-fit bounds so the entire road path is visible when route changes
           const currentRouteKey = roadSnappedCoords.map(c => `${c[0].toFixed(3)},${c[1].toFixed(3)}`).join(";");
@@ -273,7 +466,6 @@ export default function CampusFleetMap({
             const bounds = L.latLngBounds(roadSnappedCoords);
             if (busLocation) {
               // Only extend bounds if busLocation is reasonably close to this corridor (within ~0.5 deg / ~50km)
-              // to prevent stale/invalid coordinates (e.g. in Delhi) from stretching the view across North India!
               const lats = roadSnappedCoords.map(c => c[0]);
               const lngs = roadSnappedCoords.map(c => c[1]);
               const minLat = Math.min(...lats);
@@ -298,17 +490,25 @@ export default function CampusFleetMap({
         }
       } else {
         // Cleanup old polylines if route has fewer than 2 waypoints
-        if (polylineGlowRef.current) {
-          map.removeLayer(polylineGlowRef.current);
-          polylineGlowRef.current = null;
+        if (polylineUpcomingGlowRef.current) {
+          map.removeLayer(polylineUpcomingGlowRef.current);
+          polylineUpcomingGlowRef.current = null;
         }
-        if (polylineBorderRef.current) {
-          map.removeLayer(polylineBorderRef.current);
-          polylineBorderRef.current = null;
+        if (polylineUpcomingBorderRef.current) {
+          map.removeLayer(polylineUpcomingBorderRef.current);
+          polylineUpcomingBorderRef.current = null;
         }
-        if (polylineCoreRef.current) {
-          map.removeLayer(polylineCoreRef.current);
-          polylineCoreRef.current = null;
+        if (polylineUpcomingCoreRef.current) {
+          map.removeLayer(polylineUpcomingCoreRef.current);
+          polylineUpcomingCoreRef.current = null;
+        }
+        if (polylineCompletedBorderRef.current) {
+          map.removeLayer(polylineCompletedBorderRef.current);
+          polylineCompletedBorderRef.current = null;
+        }
+        if (polylineCompletedCoreRef.current) {
+          map.removeLayer(polylineCompletedCoreRef.current);
+          polylineCompletedCoreRef.current = null;
         }
         lastFittedRouteRef.current = null;
 
@@ -361,9 +561,8 @@ export default function CampusFleetMap({
         const isOnShortestPath = shortestPathSet.has(stop.id);
         const isStartOfPath = isCorridorSequence ? idx === 0 : hasSpecificRoute && shortestPathStopIds[0] === stop.id;
         const isCampusTerminal =
-          stop.id === "stop-bhimtal-campus" ||
-          stop.code === "GEHU-BHT" ||
-          stop.name.toLowerCase().includes("bhimtal campus") ||
+          stop.name.toLowerCase().includes("campus terminal") ||
+          (Boolean(stop.campus) && stop.name.toLowerCase().includes("campus")) ||
           stop.name.toLowerCase().includes("terminal");
         const isEndOfPath = isCorridorSequence
           ? idx === stops.length - 1
@@ -688,6 +887,117 @@ export default function CampusFleetMap({
       } else if (!focusedBusId) {
         lastFocusedBusIdRef.current = undefined;
       }
+
+      // Render Central University Campus Terminal Landmark (from database)
+      if (showCampusLandmark && campusTerminalStop) {
+        if (!campusMarkerGroupRef.current) {
+          campusMarkerGroupRef.current = L.layerGroup().addTo(map);
+
+          const campusIcon = L.divIcon({
+            className: "custom-campus-landmark-icon",
+            html: `
+              <div class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-950 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-2xl border-2 border-indigo-400 font-bold text-xs select-none hover:scale-105 transition-transform cursor-pointer -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ring-4 ring-indigo-500/20">
+                <span class="p-1 rounded-xl bg-indigo-600 text-white shadow-xs">${universitySvg}</span>
+                <div class="leading-tight text-left">
+                  <div class="text-[11px] font-black text-white flex items-center gap-1">${campusTerminalStop.name}</div>
+                  <div class="text-[9px] text-indigo-300 font-semibold tracking-wide">${campusTerminalStop.landmark || "Central Terminal & Fleet Depot"}</div>
+                </div>
+              </div>
+            `,
+            iconSize: [210, 38],
+            iconAnchor: [105, 19],
+          });
+
+          const campusMarker = L.marker([campusTerminalStop.latitude, campusTerminalStop.longitude], {
+            icon: campusIcon,
+            zIndexOffset: 850,
+          }).addTo(campusMarkerGroupRef.current);
+
+          campusMarker.bindPopup(`
+            <div style="font-family: sans-serif; font-size: 12px; line-height: 1.45; min-width: 220px; padding: 2px;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
+                <span style="font-size: 18px;">🎓</span>
+                <div>
+                  <strong style="color: #1e1b4b; font-size: 13px;">${campusTerminalStop.name}</strong><br/>
+                  <span style="color: #4f46e5; font-size: 11px; font-weight: 800;">${campusTerminalStop.code} • Central Transit Hub</span>
+                </div>
+              </div>
+              <div style="color: #334155; font-size: 11px; border-top: 1px solid #e2e8f0; padding-top: 5px; margin-top: 5px;">
+                <div><strong>Landmark:</strong> ${campusTerminalStop.landmark || "Main Gate"}</div>
+                <div><strong>GPS:</strong> ${campusTerminalStop.latitude.toFixed(4)}° N, ${campusTerminalStop.longitude.toFixed(4)}° E</div>
+                <div><strong>Geofence Radius:</strong> ${campusTerminalStop.geofenceRadiusMeters || 80}m</div>
+                <div style="margin-top: 4px;">
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=${campusTerminalStop.latitude},${campusTerminalStop.longitude}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style="color: #2563eb; font-weight: 700; text-decoration: none; font-size: 11px;"
+                  >
+                    View in Google Maps ↗
+                  </a>
+                </div>
+              </div>
+            </div>
+          `);
+
+          // Soft indigo perimeter circle for the university campus zone
+          L.circle([campusTerminalStop.latitude, campusTerminalStop.longitude], {
+            radius: Math.max(campusTerminalStop.geofenceRadiusMeters || 80, 250),
+            color: "#4338CA",
+            weight: 2,
+            dashArray: "6, 4",
+            fillColor: "#6366F1",
+            fillOpacity: 0.12,
+          }).addTo(campusMarkerGroupRef.current);
+        }
+      }
+
+      // Render User Live Location Marker (Google Maps Style Pulsing Blue Dot)
+      if (showUserLocation && userLocation) {
+        const userIcon = L.divIcon({
+          className: "custom-user-location-icon",
+          html: `
+            <div class="relative flex items-center justify-center w-8 h-8 select-none">
+              <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-blue-500 opacity-60"></span>
+              <div class="relative w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-xl ring-2 ring-blue-400 flex items-center justify-center">
+                <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+              </div>
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        });
+
+        if (!userMarkerRef.current) {
+          userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], {
+            icon: userIcon,
+            zIndexOffset: 1600,
+          }).addTo(map);
+
+          userMarkerRef.current.bindPopup(`
+            <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
+              <strong style="color: #1d4ed8; font-size: 13px; display: flex; align-items: center; gap: 4px;">📍 Your Live Location</strong>
+              <div style="color: #64748b; font-size: 11px; margin-top: 2px;">Accurate within ±${Math.round(userLocation.accuracy)}m</div>
+            </div>
+          `);
+        } else {
+          userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
+          userMarkerRef.current.setIcon(userIcon);
+        }
+
+        if (!userAccuracyCircleRef.current) {
+          userAccuracyCircleRef.current = L.circle([userLocation.lat, userLocation.lng], {
+            radius: Math.min(userLocation.accuracy, 250),
+            color: "#3b82f6",
+            weight: 1.5,
+            fillColor: "#60a5fa",
+            fillOpacity: 0.12,
+          }).addTo(map);
+        } else {
+          userAccuracyCircleRef.current.setLatLng([userLocation.lat, userLocation.lng]);
+          userAccuracyCircleRef.current.setRadius(Math.min(userLocation.accuracy, 250));
+        }
+      }
     });
 
     return () => {
@@ -709,6 +1019,10 @@ export default function CampusFleetMap({
     draftPinLocation,
     draftGeofenceRadius,
     interactiveMode,
+    userLocation,
+    showUserLocation,
+    showCampusLandmark,
+    campusTerminalStop,
   ]);
 
   return (
@@ -731,6 +1045,88 @@ export default function CampusFleetMap({
         }}
       />
 
+      {/* Floating Google Maps Style Controls: Locate Me & Center on Campus */}
+      <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
+        {showUserLocation && (
+          <button
+            onClick={handleLocateUser}
+            type="button"
+            title={userLocation ? "Your GPS Location is Active (Click to Re-center)" : "Locate My Position (GPS)"}
+            aria-label="Locate me"
+            className={`p-2.5 rounded-2xl shadow-xl border backdrop-blur-md transition-all flex items-center justify-center group ${
+              userLocation
+                ? "bg-blue-600 text-white border-blue-400 ring-2 ring-blue-300 hover:bg-blue-700"
+                : "bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+            }`}
+          >
+            <Crosshair className={`w-4 h-4 ${isLocating ? "animate-spin text-amber-400" : ""}`} />
+          </button>
+        )}
+
+        {showCampusLandmark && campusTerminalStop && (
+          <button
+            onClick={handlePanToCampus}
+            type="button"
+            title={`Center on ${campusTerminalStop.name}`}
+            aria-label="Center on Campus"
+            className="p-2.5 rounded-2xl shadow-xl border bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800 backdrop-blur-md transition-all flex items-center justify-center"
+          >
+            <Building2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Floating GPS Location Status Toast */}
+      {locationNotice && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1.5 rounded-full bg-slate-900/90 text-white text-xs font-bold shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2">
+          <Navigation className="w-3.5 h-3.5 text-blue-400" />
+          <span>{locationNotice}</span>
+        </div>
+      )}
+
+      {/* Google Maps Style Navigation Legend in Bottom Left */}
+      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 shadow-lg text-[10px] font-bold text-slate-700 dark:text-slate-300 select-none">
+        <div className="flex items-center gap-1" title="Already traveled road path">
+          <span className="w-3.5 h-1.5 rounded-full bg-slate-400 inline-block"></span>
+          <span>Covered</span>
+        </div>
+        <span className="text-slate-300 dark:text-slate-700">•</span>
+        <div className="flex items-center gap-1" title="Upcoming road path ahead">
+          <span className="w-3.5 h-1.5 rounded-full bg-blue-500 inline-block shadow-xs shadow-blue-400"></span>
+          <span>Ahead</span>
+        </div>
+        {campusTerminalStop && (
+          <>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <div
+              onClick={handlePanToCampus}
+              className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline"
+              title={`Pan to ${campusTerminalStop.name}`}
+            >
+              <span>🎓</span>
+              <span>{campusTerminalStop.code}</span>
+            </div>
+          </>
+        )}
+        {userLocation && (
+          <>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <div
+              onClick={() => {
+                if (mapInstanceRef.current && userLocation) {
+                  mapInstanceRef.current.setView([userLocation.lat, userLocation.lng], 15, { animate: true });
+                }
+              }}
+              className="flex items-center gap-1 text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+              title="Your Live GPS Location"
+            >
+              <span className="w-2 h-2 rounded-full bg-blue-600 border border-white inline-block"></span>
+              <span>You</span>
+            </div>
+          </>
+        )}
+      </div>
+
       {interactiveMode === "PIN_DROP" && (
         <div className="absolute top-3 left-3 z-10 bg-rose-600 text-white font-bold text-xs px-3.5 py-2 rounded-2xl shadow-xl flex items-center gap-2 border border-white/30 animate-pulse pointer-events-none">
           <MapPin className="w-4 h-4 shrink-0" />
@@ -739,7 +1135,7 @@ export default function CampusFleetMap({
       )}
 
       {isExpressDirect && (
-        <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-white/40 animate-pulse pointer-events-none">
+        <div className="absolute top-16 right-3 z-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-white/40 animate-pulse pointer-events-none">
           <Zap className="w-3.5 h-3.5 fill-current shrink-0" />
           <span>Direct Non-Stop to Campus</span>
         </div>

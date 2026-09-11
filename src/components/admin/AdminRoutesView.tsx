@@ -92,12 +92,19 @@ export default function AdminRoutesView({
   const [stopFormData, setStopFormData] = useState({
     name: "",
     code: "",
-    latitude: 29.3516,
-    longitude: 79.5583,
+    latitude: 0,
+    longitude: 0,
     landmark: "",
     geofenceRadiusMeters: 80,
     isBusMergeStop: false,
   });
+
+  // Central Campus Terminal Management States (100% Dynamic from PostgreSQL)
+  const [isEditCampusModalOpen, setIsEditCampusModalOpen] = useState(false);
+  const [campusInputMode, setCampusInputMode] = useState<"MAP_PIN" | "MANUAL">("MAP_PIN");
+  const [isSavingCampus, setIsSavingCampus] = useState(false);
+  const [designatedCampusId, setDesignatedCampusId] = useState<string>("");
+  const [campusFormData, setCampusFormData] = useState<Stop | null>(null);
 
   // Flowchart Route Builder States
   const [isRouteBuilderOpen, setIsRouteBuilderOpen] = useState(false);
@@ -151,6 +158,22 @@ export default function AdminRoutesView({
   // -------------------------------------------------------------
   // STOP MANAGEMENT
   // -------------------------------------------------------------
+  // Dynamically resolved Campus Terminal from database stops
+  const currentCampusStop = useMemo(() => {
+    if (designatedCampusId) {
+      const designated = stops.find(s => s.id === designatedCampusId);
+      if (designated) return designated;
+    }
+    return (
+      stops.find(s => s.name.toLowerCase().includes("campus terminal")) ||
+      stops.find(s => s.campus && s.name.toLowerCase().includes("campus")) ||
+      stops.find(s => s.name.toLowerCase().includes("campus")) ||
+      stops.find(s => s.campus && s.campus.trim().length > 0) ||
+      stops[0] ||
+      null
+    );
+  }, [stops, designatedCampusId]);
+
   const handleOpenCreateStop = () => {
     setEditingStop(null);
     setStopInputMode("MAP_PIN");
@@ -159,13 +182,83 @@ export default function AdminRoutesView({
     setStopFormData({
       name: "",
       code: nextCode,
-      latitude: stops[0]?.latitude || 29.3516,
-      longitude: stops[0]?.longitude || 79.5583,
+      latitude: currentCampusStop?.latitude || stops[0]?.latitude || 0,
+      longitude: currentCampusStop?.longitude || stops[0]?.longitude || 0,
       landmark: "",
       geofenceRadiusMeters: 80,
       isBusMergeStop: false,
     });
     setIsAddStopModalOpen(true);
+  };
+
+  // -------------------------------------------------------------
+  // CENTRAL CAMPUS TERMINAL MANAGEMENT (DYNAMIC POSTGRESQL CRUD)
+  // -------------------------------------------------------------
+  const handleOpenEditCampus = (stopToEdit?: Stop | null) => {
+    const target = stopToEdit || currentCampusStop;
+
+    if (target) {
+      setCampusFormData({
+        id: target.id,
+        name: target.name,
+        code: target.code,
+        latitude: target.latitude,
+        longitude: target.longitude,
+        landmark: target.landmark || "",
+        geofenceRadiusMeters: target.geofenceRadiusMeters || 80,
+        campus: target.campus || "",
+        isBusMergeStop: target.isBusMergeStop,
+        zoneCode: target.zoneCode,
+      });
+      setCampusInputMode("MAP_PIN");
+      setIsEditCampusModalOpen(true);
+    }
+  };
+
+  const handleSaveCampus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!campusFormData) return;
+    if (!campusFormData.name.trim()) {
+      alert("Please enter a valid Campus Terminal name.");
+      return;
+    }
+    setIsSavingCampus(true);
+    try {
+      const stopId = campusFormData.id;
+      const payload = {
+        id: stopId,
+        name: campusFormData.name.trim(),
+        code: campusFormData.code.trim().toUpperCase(),
+        latitude: Number(campusFormData.latitude),
+        longitude: Number(campusFormData.longitude),
+        landmark: (campusFormData.landmark || "").trim(),
+        geofenceRadiusMeters: Number(campusFormData.geofenceRadiusMeters),
+        campus: (campusFormData.campus || "").trim(),
+      };
+
+      // 1. Update in local reactive store
+      await store.updateStop(stopId, payload);
+
+      // 2. Persist to API & Audit Log
+      const res = await fetch("/api/campus", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to persist campus terminal to database.");
+      }
+
+      setDesignatedCampusId(stopId);
+      setIsEditCampusModalOpen(false);
+      setCampusFormData(null);
+    } catch (err: any) {
+      alert("Error saving campus terminal: " + (err?.message || "Unknown error"));
+    } finally {
+      setIsSavingCampus(false);
+    }
   };
 
   const handleOpenEditStop = (st: Stop) => {
@@ -959,8 +1052,79 @@ export default function AdminRoutesView({
       {/* TAB 2: STOPS ROSTER                                           */}
       {/* ============================================================= */}
       {activeTab === "STOPS" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-5">
+          {/* Central Campus Terminal & Fleet Depot Hero Card */}
+          {currentCampusStop && (
+            <div className="p-5 rounded-3xl bg-gradient-to-r from-blue-900/40 via-indigo-950/40 to-slate-900 border border-blue-500/30 shadow-lg text-white space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/40 text-blue-400 flex items-center justify-center text-xl shadow-inner">
+                    🏛️
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold uppercase tracking-wider border border-blue-500/30">
+                        Central University Campus & Fleet Depot
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold">
+                        PostgreSQL Synced
+                      </span>
+                      {/* Station Selector Dropdown */}
+                      <select
+                        value={currentCampusStop.id}
+                        onChange={e => setDesignatedCampusId(e.target.value)}
+                        className="px-2 py-0.5 rounded-lg bg-slate-800/90 border border-slate-700 text-[11px] font-bold text-blue-300 cursor-pointer hover:border-blue-400 outline-none"
+                        title="Designate a different stop as the Campus Terminal"
+                      >
+                        {stops.map(st => (
+                          <option key={st.id} value={st.id} className="bg-slate-900 text-white">
+                            Switch Terminal: {st.name} ({st.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <h3 className="text-base font-black text-white mt-0.5">
+                      {currentCampusStop.name}
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Anchor of all university transit corridors, bus parking bays, and arrival dispatching
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleOpenEditCampus(currentCampusStop)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all self-start sm:self-auto"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Edit Campus Terminal & Depot</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase">Terminal Code</span>
+                  <span className="font-mono font-black text-blue-300">{currentCampusStop.code}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase">GPS Anchor</span>
+                  <span className="font-mono font-bold text-slate-200">
+                    {currentCampusStop.latitude.toFixed(4)}° N, {currentCampusStop.longitude.toFixed(4)}° E
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase">Geofence Radius</span>
+                  <span className="font-mono font-bold text-emerald-400">{currentCampusStop.geofenceRadiusMeters} meters</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase">Depot Landmark</span>
+                  <span className="font-medium text-slate-300 truncate block">{currentCampusStop.landmark || "Main Terminal Area"}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
             <span className="text-xs font-bold text-slate-500">
               {stops.length} physical boarding stations configured
             </span>
@@ -1262,6 +1426,238 @@ export default function AdminRoutesView({
                   className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20"
                 >
                   {editingStop ? "Save Station Changes" : "Confirm & Create Stop"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* MODAL 1B: EDIT CENTRAL CAMPUS TERMINAL & FLEET DEPOT          */}
+      {/* ============================================================= */}
+      {isEditCampusModalOpen && campusFormData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl max-h-[95vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                  🏛️
+                </div>
+                <div>
+                  <h3 className="font-black text-base">
+                    Edit University Campus Terminal & Depot
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Sourced dynamically from PostgreSQL database. Zero hardcoded constants.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsEditCampusModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Input Mode Switcher */}
+            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setCampusInputMode("MAP_PIN")}
+                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  campusInputMode === "MAP_PIN"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Mark on Interactive Map</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCampusInputMode("MANUAL")}
+                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  campusInputMode === "MANUAL"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>⌨️ Enter GPS Coordinates</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCampus} className="space-y-4 text-xs">
+              {/* If in MAP PIN MODE: Embedded Map with Pin Dropper */}
+              {campusInputMode === "MAP_PIN" && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-slate-500 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                      Click on the map to anchor campus terminal pin
+                    </span>
+                    <span className="font-mono text-slate-400 font-bold">
+                      {campusFormData.latitude.toFixed(5)}, {campusFormData.longitude.toFixed(5)}
+                    </span>
+                  </div>
+
+                  <CampusFleetMap
+                    stops={stops}
+                    height="240px"
+                    interactiveMode="PIN_DROP"
+                    draftPinLocation={[campusFormData.latitude, campusFormData.longitude]}
+                    draftGeofenceRadius={campusFormData.geofenceRadiusMeters}
+                    onMapClick={(lat, lng) => {
+                      setCampusFormData(prev => prev ? ({
+                        ...prev,
+                        latitude: Number(lat.toFixed(6)),
+                        longitude: Number(lng.toFixed(6)),
+                      }) : null);
+                    }}
+                  />
+                  <p className="text-[10px] text-slate-400 italic">
+                    💡 Click anywhere on the map to drop the anchor coordinates for the campus terminal and depot slots.
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                    Campus Terminal Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={campusFormData.name}
+                    onChange={e => setCampusFormData({ ...campusFormData, name: e.target.value })}
+                    placeholder="e.g. University Main Campus Terminal"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                    Terminal Station Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={campusFormData.code}
+                    onChange={e => setCampusFormData({ ...campusFormData, code: e.target.value.toUpperCase() })}
+                    placeholder="e.g. CAMPUS-01"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono uppercase focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                    Geofence Radius (Meters)
+                  </label>
+                  <input
+                    type="number"
+                    min="20"
+                    max="500"
+                    step="5"
+                    value={campusFormData.geofenceRadiusMeters}
+                    onChange={e =>
+                      setCampusFormData({
+                        ...campusFormData,
+                        geofenceRadiusMeters: parseInt(e.target.value) || 80,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                    Latitude Coordinates *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    required
+                    value={campusFormData.latitude}
+                    onChange={e =>
+                      setCampusFormData({
+                        ...campusFormData,
+                        latitude: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                    Longitude Coordinates *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    required
+                    value={campusFormData.longitude}
+                    onChange={e =>
+                      setCampusFormData({
+                        ...campusFormData,
+                        longitude: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                    Campus Landmark / Gate Info
+                  </label>
+                  <input
+                    type="text"
+                    value={campusFormData.landmark || ""}
+                    onChange={e => setCampusFormData({ ...campusFormData, landmark: e.target.value })}
+                    placeholder="e.g. University Main Gate 1 & Fleet Depot"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                    Campus Affiliation
+                  </label>
+                  <input
+                    type="text"
+                    value={campusFormData.campus || ""}
+                    onChange={e => setCampusFormData({ ...campusFormData, campus: e.target.value })}
+                    placeholder="e.g. Main Campus"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsEditCampusModalOpen(false)}
+                  disabled={isSavingCampus}
+                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCampus}
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20 flex items-center justify-center gap-1.5"
+                >
+                  {isSavingCampus ? (
+                    <span>Persisting to Database...</span>
+                  ) : (
+                    <span>Save Campus Terminal</span>
+                  )}
                 </button>
               </div>
             </form>

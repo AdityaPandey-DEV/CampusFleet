@@ -1,16 +1,32 @@
 import { Bus, Route, Stop, Trip, Staff, LiveBusLocation, FleetBusMarkerData, TripDirection } from "./types";
 
-export const CAMPUS_TERMINAL_COORDS = {
-  latitude: 29.3516,
-  longitude: 79.5583,
-  name: "GEHU Bhimtal Campus Terminal & Fleet Depot",
-};
+/**
+ * Resolves the primary university campus terminal stop dynamically from database records.
+ * Zero hardcoded constants: respects admin edits from PostgreSQL.
+ */
+export function getCampusTerminalFromStops(stops: Stop[]): Stop | null {
+  if (!stops || stops.length === 0) return null;
+  return (
+    stops.find((s) => s.name.toLowerCase().includes("campus terminal")) ||
+    stops.find((s) => s.campus && s.name.toLowerCase().includes("campus")) ||
+    stops.find((s) => s.name.toLowerCase().includes("campus")) ||
+    stops.find((s) => s.campus && s.campus.trim().length > 0) ||
+    stops[0] ||
+    null
+  );
+}
 
 /**
- * Calculates a dedicated parking bay slot inside the GEHU Bhimtal Campus Transit Depot
- * so parked vehicles form an organized fleet lineup rather than overlapping on a single pixel.
+ * Calculates a dedicated parking bay slot inside the University Transit Depot
+ * dynamically anchored to the database-configured campus coordinates.
  */
-export function getCampusDepotSlot(busIndex: number): { latitude: number; longitude: number } {
+export function getCampusDepotSlot(
+  busIndex: number,
+  campusLocation?: { latitude: number; longitude: number }
+): { latitude: number; longitude: number } {
+  const baseLat = campusLocation?.latitude ?? 0;
+  const baseLng = campusLocation?.longitude ?? 0;
+
   // 4 rows of 4 bays each in the campus transit depot grounds
   const col = busIndex % 4;
   const row = Math.floor(busIndex / 4);
@@ -20,8 +36,8 @@ export function getCampusDepotSlot(busIndex: number): { latitude: number; longit
   const lngOffset = (row - 1.5) * 0.00048;
 
   return {
-    latitude: Number((CAMPUS_TERMINAL_COORDS.latitude + latOffset).toFixed(6)),
-    longitude: Number((CAMPUS_TERMINAL_COORDS.longitude + lngOffset).toFixed(6)),
+    latitude: Number((baseLat + latOffset).toFixed(6)),
+    longitude: Number((baseLng + lngOffset).toFixed(6)),
   };
 }
 
@@ -49,7 +65,7 @@ export function getShortBusLabel(busNumber: string): string {
  * Interpolates coordinates along an array of route stops based on progress percentage [0, 1]
  */
 function interpolateRouteProgress(stops: Stop[], progress: number): { latitude: number; longitude: number; headingDeg: number } {
-  if (stops.length === 0) return { latitude: CAMPUS_TERMINAL_COORDS.latitude, longitude: CAMPUS_TERMINAL_COORDS.longitude, headingDeg: 0 };
+  if (stops.length === 0) return { latitude: 0, longitude: 0, headingDeg: 0 };
   if (stops.length === 1) return { latitude: stops[0].latitude, longitude: stops[0].longitude, headingDeg: 45 };
 
   const clamped = Math.max(0, Math.min(1, progress));
@@ -89,7 +105,7 @@ export interface FleetPositionOptions {
  * Core Algorithm: Resolves live operational coordinates for ALL vehicles in the fleet.
  * 
  * Rules:
- * 1. Default / Idle: Positioned in GEHU Bhimtal Campus Parking Depot.
+ * 1. Default / Idle: Positioned in University Campus Parking Depot (dynamically from database).
  * 2. 1 Hour Before Departure (Standby): Positioned at the route's starting point (first stop).
  * 3. In Transit (Departure -> Arrival or trip.status === 'IN_PROGRESS'):
  *    Moves with live driver GPS coordinates (telematics) or interpolated corridor position.
@@ -106,6 +122,9 @@ export function computeFleetBusMarkers(
   // Current local time
   const now = new Date();
   const actualCurrentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // Resolve primary university campus terminal stop dynamically from database records
+  const campusStop = getCampusTerminalFromStops(allStops);
 
   return buses.map((bus, busIdx) => {
     // 1. Find assigned route
@@ -131,27 +150,17 @@ export function computeFleetBusMarkers(
       routeStops = allStops.filter((s) => s.id.includes(route?.code?.toLowerCase() || "bht")).slice(0, 7);
     }
 
-    // Ensure campus terminal is the destination stop if not present
-    const campusStop = allStops.find((s) => s.code === "GEHU-BHT" || s.id === "stop-bhimtal-campus") || {
-      id: "stop-bhimtal-campus",
-      name: "GEHU Bhimtal Campus Terminal",
-      code: "GEHU-BHT",
-      latitude: CAMPUS_TERMINAL_COORDS.latitude,
-      longitude: CAMPUS_TERMINAL_COORDS.longitude,
-      landmark: "Main Gate",
-      geofenceRadiusMeters: 80,
-      campus: "GEHU Bhimtal",
-    };
-
+    // Ensure campus terminal is the destination stop if not present (sourced dynamically from DB)
     if (routeStops.length === 0) {
-      routeStops = [allStops[busIdx % allStops.length] || campusStop, campusStop];
-    } else if (routeStops[routeStops.length - 1].id !== campusStop.id) {
+      const fallbackStop = allStops[busIdx % allStops.length] || campusStop;
+      routeStops = fallbackStop ? (campusStop && fallbackStop.id !== campusStop.id ? [fallbackStop, campusStop] : [fallbackStop]) : [];
+    } else if (campusStop && routeStops[routeStops.length - 1]?.id !== campusStop.id) {
       routeStops = [...routeStops, campusStop];
     }
 
     // 5. Identify Starting Point and Destination Stop
-    const startingStop = routeStops[0] || campusStop;
-    const destinationStop = routeStops[routeStops.length - 1] || campusStop;
+    const startingStop = routeStops[0] || campusStop || allStops[0];
+    const destinationStop = routeStops[routeStops.length - 1] || campusStop || allStops[0];
 
     // 6. Departure & Arrival Times
     const tripDirection: TripDirection = (activeTrip?.direction as TripDirection) || "HOME_TO_CAMPUS";
@@ -197,19 +206,19 @@ export function computeFleetBusMarkers(
       // Case 1: TRIP COMPLETED / PARKED AT DEPOT OR TERMINAL STOP
       if (tripDirection === "CAMPUS_TO_HOME") {
         // Evening route parked at outer town stop
-        latitude = destinationStop.latitude;
-        longitude = destinationStop.longitude;
+        latitude = destinationStop?.latitude ?? 0;
+        longitude = destinationStop?.longitude ?? 0;
         speedKmh = 0;
         headingDeg = 0;
-        statusText = `Trip Completed • Stationed at ${destinationStop.name}`;
+        statusText = `Trip Completed • Stationed at ${destinationStop?.name || "Terminal"}`;
       } else {
-        // Inbound route parked in dedicated bay inside GEHU Bhimtal Campus Depot
-        const depotSlot = getCampusDepotSlot(busIdx);
+        // Inbound route parked in dedicated bay inside University Campus Depot (dynamic from DB)
+        const depotSlot = getCampusDepotSlot(busIdx, campusStop || undefined);
         latitude = depotSlot.latitude;
         longitude = depotSlot.longitude;
         speedKmh = 0;
         headingDeg = 0;
-        statusText = `Trip Completed • Parked in Depot Bay ${busIdx + 1} (GEHU Bhimtal Campus)`;
+        statusText = `Trip Completed • Parked in Depot Bay ${busIdx + 1} (${campusStop?.name || "Campus Terminal"})`;
       }
     } else if (state === "IN_TRANSIT") {
       // Case 2: IN TRANSIT — moving with driver coordinates or live corridor telemetry
@@ -239,12 +248,12 @@ export function computeFleetBusMarkers(
       }
     } else {
       // Case 3: Standby — stationed at designated starting point
-      latitude = startingStop.latitude;
-      longitude = startingStop.longitude;
+      latitude = startingStop?.latitude ?? 0;
+      longitude = startingStop?.longitude ?? 0;
       speedKmh = 0;
       headingDeg = 0;
       const minsToDep = Math.max(0, depMinutes - currentMinutes);
-      statusText = `Standby at Starting Point (${startingStop.name}) • Boarding in ${minsToDep}m (Dep: ${departureTime})`;
+      statusText = `Standby at Starting Point (${startingStop?.name || "Starting Point"}) • Boarding in ${minsToDep}m (Dep: ${departureTime})`;
     }
 
     return {
@@ -268,8 +277,8 @@ export function computeFleetBusMarkers(
       departureTime,
       arrivalTime,
       direction: tripDirection,
-      startingStopName: startingStop.name,
-      destinationStopName: destinationStop.name,
+      startingStopName: startingStop?.name || "Campus Terminal",
+      destinationStopName: destinationStop?.name || "Campus Terminal",
     };
   });
 }
