@@ -27,21 +27,28 @@ export async function GET() {
       const routeTripIds = (trips || []).filter(t => t.route_id === route.id).map(t => t.id);
       const routeBookings = (bookings || []).filter(b => routeTripIds.includes(b.trip_id) && b.status !== "CANCELLED");
 
-      // Stops on this route
-      const stopsOnRoute = (routeStops || [])
-        .filter(rs => rs.route_id === route.id)
-        .sort((a, b) => (a.stop_order || 0) - (b.stop_order || 0))
-        .map(rs => {
-          const stopStudents = routeStudents.filter(s => s.primary_stop_id === rs.stop_id);
-          const stopBookings = routeBookings.filter(b => b.boarding_stop_id === rs.stop_id);
-          return {
-            stopId: rs.stop_id,
-            stopName: rs.stops?.name || "Stop",
-            zoneCode: rs.stops?.zone_code || "ZONE_B",
-            registeredCount: stopStudents.length,
-            activeBookingsCount: stopBookings.length,
-          };
-        });
+      // Stops on this route from database stops_data
+      let rawStops: any[] = [];
+      if (Array.isArray(route.stops_data) && route.stops_data.length > 0) {
+        rawStops = route.stops_data;
+      } else if (Array.isArray((route as any).stops) && (route as any).stops.length > 0) {
+        rawStops = (route as any).stops;
+      }
+
+      const stopsOnRoute = rawStops.map((rs: any, idx: number) => {
+        const stopId = rs.stopId || rs.stop_id || rs.id || `stop-${idx}`;
+        const stopName = rs.stop?.name || rs.name || `Stop ${idx + 1}`;
+        const zoneCode = rs.stop?.zoneCode || rs.zone_code || "ZONE_B";
+        const stopStudents = routeStudents.filter(s => s.primary_stop_id === stopId);
+        const stopBookings = routeBookings.filter(b => b.boarding_stop_id === stopId);
+        return {
+          stopId,
+          stopName,
+          zoneCode,
+          registeredCount: stopStudents.length,
+          activeBookingsCount: stopBookings.length,
+        };
+      });
 
       const totalCommuterDemand = Math.max(routeStudents.length, routeBookings.length);
 
@@ -54,8 +61,9 @@ export async function GET() {
         ? Math.max(1, Math.ceil(bufferDemand / avgBusCapacity))
         : 1;
 
-      // Currently assigned buses to this route
-      const assignedBusesCount = (trips || []).filter(t => t.route_id === route.id && t.status !== "COMPLETED").length || 1;
+      // Currently assigned unique buses to this corridor
+      const routeTrips = (trips || []).filter(t => t.route_id === route.id && t.status !== "COMPLETED");
+      const assignedBusesCount = new Set(routeTrips.map(t => t.bus_id)).size || 1;
 
       let fleetStatus: "OPTIMAL" | "UNDER_ALLOCATED" | "OVER_ALLOCATED" = "OPTIMAL";
       if (assignedBusesCount < recommendedBuses) {
