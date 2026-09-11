@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { signToken, createSessionCookie } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { findOrCreateUser } from "@/lib/account-service";
 
 /**
  * POST /api/auth/verify-otp
@@ -45,36 +46,11 @@ export async function POST(req: NextRequest) {
     // Mark OTP as used
     await supabaseAdmin.from("otp_codes").update({ used: true }).eq("id", otpRecord.id);
 
-    // Find or create user
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-    let user: any = null;
-
-    const { data: existingUser } = await supabaseAdmin
-      .from("users")
-      .select("*")
-      .eq("email", cleanEmail)
-      .single();
-
-    if (existingUser) {
-      user = existingUser;
-    } else {
-      // Create new user
-      const role = (adminEmail && cleanEmail === adminEmail) ? "admin" : "student";
-      const userId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const fullName = cleanEmail.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
-
-      const { data: newUser } = await supabaseAdmin.from("users").insert({
-        id: userId,
-        email: cleanEmail,
-        full_name: fullName,
-        role,
-        campus: "GEHU Bhimtal",
-        provider: "email_otp",
-        created_at: new Date().toISOString(),
-      }).select().single();
-
-      user = newUser || { id: userId, email: cleanEmail, full_name: fullName, role, campus: "GEHU Bhimtal" };
-    }
+    // Find or create user via centralized account service
+    const { user } = await findOrCreateUser({
+      email: cleanEmail,
+      provider: "email_otp",
+    });
 
     // Create JWT session
     const token = await signToken({

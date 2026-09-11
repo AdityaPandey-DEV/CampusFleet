@@ -972,14 +972,40 @@ class CampusFleetStore {
       emergencyContact?: { name: string; relationship: string; phone: string };
     }
   ) {
-    const student = this.students.find(s => s.id === studentId || s.userId === studentId || s.email?.toLowerCase() === this.currentUser?.email?.toLowerCase());
-    if (!student) return { success: false, message: "Student profile not found." };
+    let student = this.students.find(s => s.id === studentId || s.userId === studentId || s.email?.toLowerCase() === this.currentUser?.email?.toLowerCase());
+
+    if (!student) {
+      const u = this.currentUser;
+      const targetId = studentId && studentId.startsWith("stud-") ? studentId : `stud-${u?.id || Date.now()}`;
+      student = {
+        id: targetId,
+        userId: u?.id || studentId,
+        enrollmentNo: profileData.enrollmentNo || "",
+        fullName: profileData.fullName || u?.fullName || "",
+        email: u?.email || "",
+        phone: profileData.phone || "",
+        department: profileData.department || "",
+        semester: profileData.semester || "",
+        campus: profileData.campus || (u as any)?.campus || "",
+        primaryStopId: profileData.primaryStopId || "",
+        primaryRouteId: "",
+        emergencyContact: profileData.emergencyContact || { name: "", relationship: "", phone: "" },
+        transportAccessSuspended: false,
+        hasActiveSubscription: false,
+        subscriptionExpiryDate: "2026-12-31",
+        zoneCode: profileData.zoneCode || "",
+        paymentStatus: "UNPAID",
+        totalFeeDue: 0,
+        totalFeePaid: 0,
+      };
+      this.students.push(student);
+    }
 
     const updatedStudent: Student = {
       ...student,
       fullName: profileData.fullName || student.fullName,
       enrollmentNo: profileData.enrollmentNo || student.enrollmentNo,
-      campus: profileData.campus || student.campus || "GEHU Bhimtal",
+      campus: profileData.campus || student.campus,
       department: profileData.department || student.department,
       semester: profileData.semester || student.semester,
       classId: profileData.classId || student.classId,
@@ -1011,7 +1037,33 @@ class CampusFleetStore {
     this.saveToLocalStorage();
     this.notify();
 
-    // Persist to Supabase
+    // Persist via Server API (using supabaseAdmin for guaranteed privileges)
+    try {
+      if (typeof window !== "undefined") {
+        await fetch("/api/students/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId: updatedStudent.id,
+            fullName: updatedStudent.fullName,
+            enrollmentNo: updatedStudent.enrollmentNo,
+            campus: updatedStudent.campus,
+            department: updatedStudent.department,
+            semester: updatedStudent.semester,
+            classId: updatedStudent.classId,
+            className: updatedStudent.className,
+            zoneCode: updatedStudent.zoneCode,
+            phone: updatedStudent.phone,
+            primaryStopId: updatedStudent.primaryStopId,
+            emergencyContact: updatedStudent.emergencyContact,
+          }),
+        });
+      }
+    } catch (apiErr) {
+      console.warn("API /api/students/profile error:", apiErr);
+    }
+
+    // Secondary client-side fallback
     try {
       await supabase.from("students").upsert({
         id: updatedStudent.id,
@@ -1024,7 +1076,7 @@ class CampusFleetStore {
         class_id: updatedStudent.classId || null,
         class_name: updatedStudent.className || null,
         zone_code: updatedStudent.zoneCode || "ZONE_B",
-        campus: updatedStudent.campus || "GEHU Bhimtal",
+        campus: updatedStudent.campus,
         enrollment_no: updatedStudent.enrollmentNo,
         primary_stop_id: updatedStudent.primaryStopId || null,
         primary_route_id: updatedStudent.primaryRouteId || null,

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { signToken, createSessionCookie } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { findOrCreateUser } from "@/lib/account-service";
 
 /**
  * POST /api/auth/login
- * Email + password login. Verifies credentials against the users table.
- * Falls back to OTP-only flow if password_hash is not set.
+ * Email + password login. Uses centralized findOrCreateUser account service.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -16,28 +16,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    // Look up user in database
-    const { data: user, error } = await supabaseAdmin
+    // Check password if existing user has a password hash set
+    const { data: existingUser } = await supabaseAdmin
       .from("users")
-      .select("*")
+      .select("password_hash")
       .eq("email", cleanEmail)
-      .single();
+      .maybeSingle();
 
-    if (error || !user) {
-      return NextResponse.json(
-        { error: "No account found with this email. Please sign up first." },
-        { status: 404 }
-      );
-    }
-
-    // If user has a password hash, verify it
-    if (user.password_hash && password) {
+    if (existingUser?.password_hash && password) {
       const bcrypt = await import("bcryptjs");
-      const valid = await bcrypt.compare(password, user.password_hash);
+      const valid = await bcrypt.compare(password, existingUser.password_hash);
       if (!valid) {
         return NextResponse.json({ error: "Invalid password" }, { status: 401 });
       }
     }
+
+    // Find existing or auto-create student account via centralized service
+    const { user } = await findOrCreateUser({
+      email: cleanEmail,
+      provider: "password",
+    });
 
     // Create JWT session
     const token = await signToken({
@@ -45,8 +43,8 @@ export async function POST(req: NextRequest) {
       email: user.email,
       fullName: user.full_name || cleanEmail.split("@")[0],
       role: user.role || "student",
-      campus: user.campus || "GEHU Bhimtal",
-      avatarUrl: user.avatar_url,
+      campus: user.campus || undefined,
+      avatarUrl: user.avatar_url || undefined,
     });
 
     const response = NextResponse.json({
