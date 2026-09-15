@@ -119,7 +119,7 @@ export default function ShiftBookingView({
         primaryRouteId: "",
         emergencyContact: { name: "Campus Desk", relationship: "Admin", phone: "+91 0000000000" },
         transportAccessSuspended: false,
-        hasActiveSubscription: true,
+        hasActiveSubscription: false,
         zoneCode: "ZONE_B",
       } as unknown as Student
     : null;
@@ -143,7 +143,6 @@ export default function ShiftBookingView({
   const bus = buses.find(b => b.id === targetTrip?.busId) || buses[0];
   const tripBookings = targetTrip ? bookings.filter(b => b.tripId === targetTrip.id) : [];
   const confirmedCount = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
-  const waitlistCount = tripBookings.filter(b => b.status === "WAITLISTED").length;
   const isFull = bus ? confirmedCount >= bus.capacity : false;
 
   const userExistingBooking = currentUser && activeStudent
@@ -232,7 +231,7 @@ export default function ShiftBookingView({
   };
 
   const handleCancelBooking = (bookingId: string) => {
-    if (confirm("Are you sure you want to cancel your seat? The earliest waitlisted passenger will be automatically promoted to take your physical seat.")) {
+    if (confirm("Are you sure you want to cancel your seat? The seat will be released and reallocated to the earliest eligible commuter on standby.")) {
       const res = store.cancelBooking(bookingId);
       setBookingMessage({ type: "success", text: res.message });
       setIsQRModalOpen(false);
@@ -650,16 +649,16 @@ export default function ShiftBookingView({
               {/* Selected Seat Callout Card */}
               <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-teal-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/80 border border-blue-200 dark:border-slate-700 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-teal-500 text-slate-950 font-black font-mono text-xl flex items-center justify-center shadow-md">
-                    {isFull ? `WL-${waitlistCount + 1}` : selectedSeatNumber || "1A"}
+                  <div className={`w-12 h-12 rounded-2xl ${isFull ? "bg-rose-500 text-white" : "bg-teal-500 text-slate-950"} font-black font-mono text-base flex items-center justify-center shadow-md`}>
+                    {isFull ? "FULL" : selectedSeatNumber || "1A"}
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-900 dark:text-white">
-                      {isFull ? "Railway Sequential Waitlist Position" : "Selected Physical Seat"}
+                      {isFull ? "Bus Fully Booked" : "Selected Reserved Seat"}
                     </div>
                     <div className="text-[11px] text-slate-500 font-medium">
                       {isFull
-                        ? `Position WL-${waitlistCount + 1} (Auto-promoted on cancellation)`
+                        ? "All physical seats occupied • Please select an alternate shift"
                         : `Seat ${selectedSeatNumber || "1A"} • Window / Campus Corridor View`}
                     </div>
                   </div>
@@ -672,7 +671,7 @@ export default function ShiftBookingView({
                   </div>
                   {shortestPath && (
                     <div className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">
-                      ~{shortestPath.totalEstimatedMins}m via Dijkstra
+                      ~{shortestPath.totalEstimatedMins}m transit corridor
                     </div>
                   )}
                 </div>
@@ -710,7 +709,7 @@ export default function ShiftBookingView({
                       <span>Seat Reservation Confirmed & Ready!</span>
                     </div>
                     <div className="text-sm font-black text-emerald-700 dark:text-emerald-400">
-                      {userExistingBooking.status === "BOARDED" ? "Boarded / Present ✓" : userExistingBooking.status} {userExistingBooking.seatNumber ? `(Physical Seat ${userExistingBooking.seatNumber})` : `(WL-${userExistingBooking.waitlistPosition})`}
+                      {userExistingBooking.status === "BOARDED" ? "Boarded / Present ✓" : userExistingBooking.status} {userExistingBooking.seatNumber ? `(Physical Seat ${userExistingBooking.seatNumber})` : ""}
                     </div>
                     <div className="text-[11px] text-slate-500 font-mono">
                       Confirmation email & dynamic QR pass generated
@@ -747,24 +746,30 @@ export default function ShiftBookingView({
                   <Sparkles className="w-4 h-4" />
                   <span>Sign In to Confirm Seat Reservation ({selectedSeatNumber || "1A"}) →</span>
                 </Link>
+              ) : isFull ? (
+                <button
+                  disabled
+                  className="w-full py-4 bg-slate-200 dark:bg-slate-800 text-slate-400 font-extrabold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Bus Fully Booked — Please Select Alternate Shift</span>
+                </button>
               ) : (
                 <button
                   onClick={handleBook}
                   className="w-full py-4 bg-gradient-to-r from-blue-600 via-teal-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
                 >
                   <Sparkles className="w-4 h-4" />
-                  {isFull
-                    ? `Enroll in Waitlist Queue (WL-0${waitlistCount + 1})`
-                    : `Confirm Seat Reservation (${selectedSeatNumber || "1A"})`}
+                  <span>Confirm Seat Reservation ({selectedSeatNumber || "1A"})</span>
                 </button>
               )}
             </div>
 
-            {/* redBus-inspired Cancellation & Institutional Policy Table */}
+            {/* Institutional Cancellation & Reservation Policy Table */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Shield className="w-4 h-4 text-blue-600" />
-                Reservation & Cancellation Rules (Railway Model)
+                Seat Reservation & Cancellation Policy
               </h4>
 
               <div className="overflow-x-auto">
@@ -773,19 +778,19 @@ export default function ShiftBookingView({
                     <tr>
                       <th className="p-3">Timeline Prior to Departure</th>
                       <th className="p-3">Action & Policy</th>
-                      <th className="p-3">Waitlist Impact</th>
+                      <th className="p-3">Seat Inventory Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
                     <tr>
                       <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">&gt; 45 Minutes</td>
                       <td className="p-3">Free cancellation with zero strike penalty</td>
-                      <td className="p-3">Auto-promotes WL-01 passenger instantly</td>
+                      <td className="p-3">Seat released immediately back to available shift inventory</td>
                     </tr>
                     <tr>
                       <td className="p-3 font-mono font-bold text-amber-600 dark:text-amber-400">15 - 45 Minutes</td>
-                      <td className="p-3">Late release warning recorded to student record</td>
-                      <td className="p-3">Immediate SMS/Notification to waitlisted commuter</td>
+                      <td className="p-3">Late release recorded to student record</td>
+                      <td className="p-3">Seat opened for immediate last-minute student booking</td>
                     </tr>
                     <tr>
                       <td className="p-3 font-mono font-bold text-rose-600 dark:text-rose-400">&lt; 15 Minutes (Finalized)</td>

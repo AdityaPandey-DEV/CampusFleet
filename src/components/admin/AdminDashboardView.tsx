@@ -66,6 +66,7 @@ export interface AdminDashboardProps {
   initialStaff?: Staff[];
   initialBookings?: Booking[];
   initialIssues?: VehicleIssue[];
+  initialPayments?: any[];
   initialUser?: any;
 }
 
@@ -78,6 +79,7 @@ export default function AdminDashboardView({
   initialStaff = [],
   initialBookings = [],
   initialIssues = [],
+  initialPayments = [],
   initialUser,
 }: AdminDashboardProps) {
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
@@ -88,6 +90,7 @@ export default function AdminDashboardView({
   const [staff, setStaff] = useState<Staff[]>(() => initialStaff.length > 0 ? initialStaff : store.getStaff());
   const [bookings, setBookings] = useState<Booking[]>(() => initialBookings.length > 0 ? initialBookings : store.getBookings());
   const [issues, setIssues] = useState<VehicleIssue[]>(() => initialIssues.length > 0 ? initialIssues : store.getIssues());
+  const [payments, setPayments] = useState<any[]>(() => initialPayments.length > 0 ? initialPayments : store.getPayments());
   const [liveLocation, setLiveLocation] = useState(store.getLiveLocation());
   const [notifications, setNotifications] = useState(store.getNotifications());
 
@@ -100,6 +103,7 @@ export default function AdminDashboardView({
     if (initialStaff.length > 0 && staff.length === 0) setStaff(initialStaff);
     if (initialBookings.length > 0 && bookings.length === 0) setBookings(initialBookings);
     if (initialIssues.length > 0 && issues.length === 0) setIssues(initialIssues);
+    if (initialPayments.length > 0 && payments.length === 0) setPayments(initialPayments);
 
     const unsub = store.subscribe(() => {
       setBuses(store.getBuses());
@@ -110,6 +114,7 @@ export default function AdminDashboardView({
       setStaff(store.getStaff());
       setBookings(store.getBookings());
       setIssues(store.getIssues());
+      setPayments(store.getPayments());
       setLiveLocation(store.getLiveLocation());
       setNotifications(store.getNotifications());
     });
@@ -123,6 +128,7 @@ export default function AdminDashboardView({
     initialStaff,
     initialBookings,
     initialIssues,
+    initialPayments,
     buses.length,
     routes.length,
     stops.length,
@@ -131,6 +137,7 @@ export default function AdminDashboardView({
     staff.length,
     bookings.length,
     issues.length,
+    payments.length,
   ]);
 
   const [focusedBusId, setFocusedBusId] = useState<string | undefined>();
@@ -163,10 +170,22 @@ export default function AdminDashboardView({
 
   const activeBuses = buses.filter(b => b.status === "ACTIVE").length;
   const confirmedBookings = bookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
-  const waitlistedBookings = bookings.filter(b => b.status === "WAITLISTED").length;
   const boardedCount = bookings.filter(b => b.status === "BOARDED").length;
   const openIssues = issues.filter(i => i.status === "OPEN" || i.status === "IN_PROGRESS");
   const sosAlerts = notifications.filter(n => n.type === "SOS");
+
+  // Calculate live pass revenue from database payments (and verified student fee records)
+  const totalPaymentsRevenue = payments
+    .filter((p: any) => p.status === "PAID" || p.status === "SUCCESS")
+    .reduce((acc: number, p: any) => acc + (Number(p.amount) || 0), 0);
+
+  const studentFeeRevenue = students.reduce(
+    (acc, s) => acc + (Number(s.totalFeePaid) || 0),
+    0
+  );
+
+  const passRevenue = totalPaymentsRevenue > 0 ? totalPaymentsRevenue : studentFeeRevenue;
+  const verifiedTxCount = payments.filter((p: any) => p.status === "PAID" || p.status === "SUCCESS").length;
 
   // Chart Data: Route Demand & Capacity — computed from real DB data
   const routeDemandData = routes.slice(0, 6).map(r => {
@@ -177,7 +196,6 @@ export default function AdminDashboardView({
       name: r.name.split(" to ")[0] || r.name.substring(0, 16),
       capacity: routeBus?.capacity || 40,
       booked: routeBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length,
-      waitlist: routeBookings.filter(b => b.status === "WAITLISTED").length,
     };
   });
 
@@ -200,7 +218,7 @@ export default function AdminDashboardView({
             Fleet Operations & Dispatch HUD
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Real-time campus transit metrics, railway reservation load, and fleet safety telemetry.
+            Real-time campus transit metrics, capacity utilization load, and fleet safety telemetry.
           </p>
         </div>
 
@@ -262,10 +280,10 @@ export default function AdminDashboardView({
             <CalendarCheck className="w-4 h-4 text-teal-600" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono mt-2">
-            {confirmedBookings} <span className="text-xs text-amber-500 font-bold">({waitlistedBookings} WL)</span>
+            {confirmedBookings}
           </div>
           <div className="text-[11px] text-teal-600 dark:text-teal-400 font-semibold mt-1">
-            Railway Auto-Promotion Active
+            Confirmed Shift Reservations
           </div>
         </div>
 
@@ -284,15 +302,15 @@ export default function AdminDashboardView({
 
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider">Monthly Pass Revenue</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Pass Revenue</span>
             <CreditCard className="w-4 h-4 text-indigo-600" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono mt-2">
-            ₹1,84,500
+            ₹{passRevenue.toLocaleString("en-IN")}
           </div>
-          <div className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            +14% from last semester
+          <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1 flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            {verifiedTxCount > 0 ? `${verifiedTxCount} Verified Receipts` : "Live Payment Ledger"}
           </div>
         </div>
       </div>
@@ -313,7 +331,7 @@ export default function AdminDashboardView({
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                All campus buses live on GIS: stationed at GEHU Campus depot, moving to route starting points 1 hr prior to departure, and tracking live driver GPS in transit.
+                All campus buses live on GIS: stationed at campus depot, moving to route starting points 1 hr prior to departure, and tracking live driver GPS in transit.
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -506,7 +524,6 @@ export default function AdminDashboardView({
                 <Tooltip />
                 <Bar dataKey="capacity" name="Bus Capacity" fill="#94A3B8" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="booked" name="Confirmed Bookings" fill="#1D4ED8" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="waitlist" name="Waitlisted (WL)" fill="#F59E0B" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

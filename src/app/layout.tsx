@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "CampusFleet | Smart Campus Transport & Fleet Management System",
   description:
-    "Production-quality academic transport and fleet management system inspired by modern rapid transit operations, featuring railway seat reservations, live GPS tracking, and cryptographic digital QR pass validation.",
+    "Enterprise campus fleet management system featuring reserved seat bookings, automated standby queue management, live GPS telematics, and cryptographic digital QR pass validation.",
   manifest: "/manifest.webmanifest",
   applicationName: "CampusFleet",
   appleWebApp: {

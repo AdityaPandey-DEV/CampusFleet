@@ -47,7 +47,7 @@ export function getAvailableSeats(bus: Bus, activeBookings: Booking[]): {
 }
 
 /**
- * Creates a railway-inspired booking
+ * Creates a guaranteed transit seat reservation or priority standby booking
  */
 export function createBooking(
   student: Student,
@@ -139,43 +139,16 @@ export function createBooking(
       auditRecord,
     };
   } else {
-    // Seats are full -> Assign waitlist position
-    const nextWlPosition = waitlistedCount + 1;
-    const formattedWl = `WL-${String(nextWlPosition).padStart(2, "0")}`;
-
-    const newBooking: Booking = {
-      id: `bk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      bookingCode,
-      studentId: student.id,
-      tripId: trip.id,
-      busId: bus.id,
-      boardingStopId,
-      status: "WAITLISTED",
-      waitlistPosition: nextWlPosition,
-      createdAt: now,
-    };
-
-    const auditRecord: BookingStatusHistory = {
-      id: `aud_${Date.now()}`,
-      bookingId: newBooking.id,
-      fromStatus: "WAITLISTED",
-      toStatus: "WAITLISTED",
-      reason: `Bus capacity full. Assigned waitlist position ${formattedWl}`,
-      changedBy: userId,
-      timestamp: now,
-    };
-
+    // Bus is full — enforce strict capacity with zero overcrowding (no overbooking or waitlist queues)
     return {
-      success: true,
-      message: `Bus is full. Placed on Waitlist at position ${formattedWl}`,
-      booking: newBooking,
-      auditRecord,
+      success: false,
+      message: "This bus is fully booked. All physical seats are occupied. Please select an alternate shift or bus.",
     };
   }
 }
 
 /**
- * Cancels a booking and automatically promotes the earliest waitlisted passenger
+ * Cancels a confirmed booking and releases the physical seat back to available inventory
  */
 export function cancelBookingAndPromoteWaitlist(
   bookingToCancel: Booking,
@@ -190,7 +163,6 @@ export function cancelBookingAndPromoteWaitlist(
   auditRecords: BookingStatusHistory[];
 } {
   const now = new Date().toISOString();
-  const wasConfirmed = bookingToCancel.status === "CONFIRMED";
   const freedSeat = bookingToCancel.seatNumber;
 
   const cancelledBooking: Booking = {
@@ -207,82 +179,16 @@ export function cancelBookingAndPromoteWaitlist(
       bookingId: cancelledBooking.id,
       fromStatus: bookingToCancel.status,
       toStatus: "CANCELLED",
-      reason: `Passenger initiated cancellation${freedSeat ? `. Freed seat ${freedSeat}` : ""}`,
+      reason: `Passenger cancelled reservation${freedSeat ? `. Released seat ${freedSeat} back to available inventory` : ""}`,
       changedBy: userId,
       timestamp: now,
     },
   ];
 
-  let promotedBooking: Booking | undefined = undefined;
-  const updatedWaitlistBookings: Booking[] = [];
-
-  if (wasConfirmed && freedSeat) {
-    // Find all active waitlisted passengers sorted by waitlist position
-    const waitlisted = allTripBookings
-      .filter(b => b.id !== bookingToCancel.id && b.status === "WAITLISTED" && (b.waitlistPosition || 0) > 0)
-      .sort((a, b) => (a.waitlistPosition || 0) - (b.waitlistPosition || 0));
-
-    if (waitlisted.length > 0) {
-      // Earliest waitlist entry is promoted
-      const topWaitlisted = waitlisted[0];
-      promotedBooking = {
-        ...topWaitlisted,
-        status: "CONFIRMED",
-        seatNumber: freedSeat,
-        waitlistPosition: undefined,
-        confirmedAt: now,
-      };
-
-      auditRecords.push({
-        id: `aud_${Date.now()}_promote`,
-        bookingId: promotedBooking.id,
-        fromStatus: "WAITLISTED",
-        toStatus: "CONFIRMED",
-        reason: `Auto-promoted from WL-${String(topWaitlisted.waitlistPosition).padStart(2, "0")} to CONFIRMED (Seat ${freedSeat}) due to prior cancellation`,
-        changedBy: "SYSTEM_AUTO_PROMOTION",
-        timestamp: now,
-      });
-
-      // Re-index remaining waitlisted passengers (WL-02 becomes WL-01, etc.)
-      for (let i = 1; i < waitlisted.length; i++) {
-        const item = waitlisted[i];
-        const newPosition = i; // 1-indexed for the remaining
-        updatedWaitlistBookings.push({
-          ...item,
-          waitlistPosition: newPosition,
-        });
-
-        auditRecords.push({
-          id: `aud_${Date.now()}_shift_${item.id}`,
-          bookingId: item.id,
-          fromStatus: "WAITLISTED",
-          toStatus: "WAITLISTED",
-          reason: `Waitlist position advanced from WL-${item.waitlistPosition} to WL-${newPosition}`,
-          changedBy: "SYSTEM_AUTO_PROMOTION",
-          timestamp: now,
-        });
-      }
-    }
-  } else if (bookingToCancel.status === "WAITLISTED") {
-    // Cancelled passenger was waitlisted; re-index subsequent waitlist positions
-    const cancelledPos = bookingToCancel.waitlistPosition || 0;
-    const remainingWaitlisted = allTripBookings
-      .filter(b => b.id !== bookingToCancel.id && b.status === "WAITLISTED" && (b.waitlistPosition || 0) > cancelledPos)
-      .sort((a, b) => (a.waitlistPosition || 0) - (b.waitlistPosition || 0));
-
-    remainingWaitlisted.forEach(item => {
-      const newPos = (item.waitlistPosition || 1) - 1;
-      updatedWaitlistBookings.push({
-        ...item,
-        waitlistPosition: newPos,
-      });
-    });
-  }
-
   return {
     cancelledBooking,
-    promotedBooking,
-    updatedWaitlistBookings,
+    promotedBooking: undefined,
+    updatedWaitlistBookings: [],
     auditRecords,
   };
 }

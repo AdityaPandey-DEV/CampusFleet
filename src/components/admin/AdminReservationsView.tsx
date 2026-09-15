@@ -63,10 +63,10 @@ export default function AdminReservationsView({
       <div>
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
           <CalendarCheck className="w-7 h-7 text-blue-600" />
-          Railway Reservation Engine & Waitlist Queue
+          Campus Fleet Seat Reservations & Allocations
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Inspect atomic seat reservations, sequential waitlist positions (WL-01, WL-02), and auto-promotion audit logs.
+          Inspect and manage verified student seat bookings, vehicle allocations, and cancellations.
         </p>
       </div>
 
@@ -90,7 +90,7 @@ export default function AdminReservationsView({
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto">
-          {["ALL", "CONFIRMED", "WAITLISTED", "BOARDED", "CANCELLED"].map(st => (
+          {["ALL", "CONFIRMED", "BOARDED", "CANCELLED"].map(st => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
@@ -116,10 +116,10 @@ export default function AdminReservationsView({
                 <th className="p-3.5">Passenger</th>
                 <th className="p-3.5">Assigned Bus</th>
                 <th className="p-3.5">Boarding Stop</th>
-                <th className="p-3.5">Seat / Position</th>
+                <th className="p-3.5">Seat</th>
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5">Booking Date</th>
-                <th className="p-3.5 text-right">Auto-Promotion Test</th>
+                <th className="p-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -129,7 +129,6 @@ export default function AdminReservationsView({
                 const trip = trips.find(t => t.id === b.tripId);
                 const bus = buses.find(busItem => busItem.id === (b.busId || trip?.busId));
                 const isConfirmed = b.status === "CONFIRMED";
-                const isWaitlisted = b.status === "WAITLISTED";
                 const isBoarded = b.status === "BOARDED";
                 const isCancelled = b.status === "CANCELLED";
 
@@ -158,7 +157,7 @@ export default function AdminReservationsView({
                       {stop?.name || "Campus Terminal"}
                     </td>
                     <td className="p-3.5 font-mono font-black text-sm">
-                      {b.seatNumber || (isWaitlisted ? `WL-${String(b.waitlistPosition).padStart(2, "0")}` : "--")}
+                      {b.seatNumber || "--"}
                     </td>
                     <td className="p-3.5">
                       <span
@@ -167,12 +166,10 @@ export default function AdminReservationsView({
                             ? "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300"
                             : isBoarded
                             ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300"
-                            : isWaitlisted
-                            ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300"
                             : "bg-slate-100 dark:bg-slate-800 text-slate-500"
                         }`}
                       >
-                        {isWaitlisted ? `WL-${b.waitlistPosition}` : b.status}
+                        {b.status}
                       </span>
                     </td>
                     <td className="p-3.5 text-slate-500">
@@ -183,9 +180,9 @@ export default function AdminReservationsView({
                         <button
                           onClick={() => handleCancelAndPromote(b.id)}
                           className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 font-bold rounded-xl text-[11px] border border-rose-200 dark:border-rose-900/60 transition-colors"
-                          title="Cancel confirmed booking to trigger automatic promotion of waitlisted student"
+                          title="Cancel confirmed seat reservation and release back to fleet"
                         >
-                          Cancel & Auto-Promote WL
+                          Cancel Reservation
                         </button>
                       )}
                     </td>

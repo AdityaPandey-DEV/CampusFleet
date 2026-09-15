@@ -617,14 +617,14 @@ export function StudentParentProductDemo() {
                     </div>
                   </div>
 
-                  {/* Railway-style waitlist explanation */}
+                  {/* Standby waitlist queue explanation */}
                   <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs text-amber-800 dark:text-amber-200 space-y-1">
                     <div className="font-bold flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-amber-600" />
                       Zero Overcrowding Guarantee:
                     </div>
                     <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
-                      If capacity reaches 42/42, subsequent bookings receive <strong>WL-01, WL-02</strong>. When an enrolled student cancels, waitlisted students are automatically promoted with SMS alerts!
+                      If capacity reaches 42/42, subsequent commuters join the <strong>Priority Standby Queue (WL-01, WL-02)</strong>. When a seat is released, standby commuters receive verified seat reallocations with instant notification alerts!
                     </p>
                   </div>
                 </div>

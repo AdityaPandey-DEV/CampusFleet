@@ -8,7 +8,7 @@ import {
 import { calculateHaversineDistanceKm, calculateETA } from "../lib/eta-calculator";
 import { Student, Trip, Bus, Booking, Stop } from "../lib/types";
 
-describe("CampusFleet Railway Reservation Engine Tests", () => {
+describe("CampusFleet Fleet Reservation Engine Tests", () => {
   const mockStudent1: Student = {
     id: "stud-1",
     userId: "u-stud-1",
@@ -84,7 +84,7 @@ describe("CampusFleet Railway Reservation Engine Tests", () => {
     expect(result.booking?.busId).toBe("bus-test");
   });
 
-  it("places passenger on sequential WAITLIST (WL-01) when physical seats are full", () => {
+  it("rejects booking with clear message when physical seats are full (strict capacity enforcement)", () => {
     // 2 seats already confirmed
     const existingBookings: Booking[] = [
       {
@@ -118,13 +118,12 @@ describe("CampusFleet Railway Reservation Engine Tests", () => {
       "admin-user"
     );
 
-    expect(result.success).toBe(true);
-    expect(result.booking?.status).toBe("WAITLISTED");
-    expect(result.booking?.waitlistPosition).toBe(1); // WL-01
-    expect(result.booking?.busId).toBe("bus-test");
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("This bus is fully booked");
+    expect(result.booking).toBeUndefined();
   });
 
-  it("automatically promotes earliest waitlisted passenger (WL-01 -> CONFIRMED) on cancellation", () => {
+  it("cancels booking and releases seat inventory cleanly without waitlist auto-promotions", () => {
     const confirmedBooking: Booking = {
       id: "b-1",
       bookingCode: "BS-01",
@@ -136,18 +135,7 @@ describe("CampusFleet Railway Reservation Engine Tests", () => {
       createdAt: "2026-08-30T06:00:00Z",
     };
 
-    const waitlistedBooking1: Booking = {
-      id: "b-3",
-      bookingCode: "BS-03",
-      studentId: "stud-3",
-      tripId: "trip-test",
-      boardingStopId: "stop-1",
-      status: "WAITLISTED",
-      waitlistPosition: 1, // WL-01
-      createdAt: "2026-08-30T06:10:00Z",
-    };
-
-    const allBookings = [confirmedBooking, waitlistedBooking1];
+    const allBookings = [confirmedBooking];
 
     const { cancelledBooking, promotedBooking, updatedWaitlistBookings } =
       cancelBookingAndPromoteWaitlist(
@@ -159,10 +147,8 @@ describe("CampusFleet Railway Reservation Engine Tests", () => {
       );
 
     expect(cancelledBooking.status).toBe("CANCELLED");
-    expect(promotedBooking).toBeDefined();
-    expect(promotedBooking?.id).toBe("b-3");
-    expect(promotedBooking?.status).toBe("CONFIRMED");
-    expect(promotedBooking?.seatNumber).toBe("1A"); // Inherits freed seat 1A!
+    expect(promotedBooking).toBeUndefined();
+    expect(updatedWaitlistBookings).toEqual([]);
   });
 
   it("calculates accurate Haversine distance and dynamic ETA", () => {

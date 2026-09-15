@@ -71,11 +71,11 @@ export default async function ReportsAndExportsPage() {
       phone: s.emergency_contact_phone || s.phone || "+91 9876543210",
     },
     transportAccessSuspended: Boolean(s.transport_access_suspended),
-    hasActiveSubscription: s.has_active_subscription ?? true,
+    hasActiveSubscription: Boolean(s.has_active_subscription),
     subscriptionExpiryDate: s.subscription_expiry_date || "2026-12-31",
     classId: s.class_id,
     className: s.class_name,
-    paymentStatus: s.payment_status || "APPROVED",
+    paymentStatus: s.payment_status || "UNPAID",
     totalFeeDue: Number(s.total_fee_due) || 0,
     totalFeePaid: Number(s.total_fee_paid) || 0,
   }));

@@ -43,7 +43,7 @@ export default function AdminStaffView({
   const [newUser, setNewUser] = useState({
     fullName: "",
     email: "",
-    phone: "+91 98765 43210",
+    phone: "",
     role: "student" as UserRole,
     campus: store.getPrimaryCampus()?.name || "Main Campus",
     campusId: store.getPrimaryCampus()?.id || "",

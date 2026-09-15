@@ -451,7 +451,8 @@ class CampusFleetStore {
             enrollment_no: newStudent.enrollmentNo,
             primary_stop_id: newStudent.primaryStopId || null,
             primary_route_id: newStudent.primaryRouteId || null,
-            has_active_subscription: true,
+            has_active_subscription: false,
+            payment_status: "UNPAID",
           }).then(() => {});
         }
       }
@@ -2041,7 +2042,7 @@ class CampusFleetStore {
       primaryRouteId: trip?.routeId || "",
       emergencyContact: { name: "Campus Desk", relationship: "Admin", phone: "+91 0000000000" },
       transportAccessSuspended: false,
-      hasActiveSubscription: true,
+      hasActiveSubscription: Boolean(this.currentUser?.role === "admin"),
       subscriptionExpiryDate: "2027-12-31",
     };
 
@@ -2124,9 +2125,6 @@ class CampusFleetStore {
 
     this.bookings = this.bookings.map(b => {
       if (b.id === cancelledBooking.id) return cancelledBooking;
-      if (promotedBooking && b.id === promotedBooking.id) return promotedBooking;
-      const waitlistUpdated = updatedWaitlistBookings.find(w => w.id === b.id);
-      if (waitlistUpdated) return waitlistUpdated;
       return b;
     });
 
@@ -2135,14 +2133,6 @@ class CampusFleetStore {
       supabase.from("bookings").update({
         status: "CANCELLED",
       }).eq("id", cancelledBooking.id).then(() => {});
-
-      if (promotedBooking) {
-        supabase.from("bookings").update({
-          status: "CONFIRMED",
-          seat_number: promotedBooking.seatNumber,
-          waitlist_position: null,
-        }).eq("id", promotedBooking.id).then(() => {});
-      }
     } catch (e) {
       console.warn("DB cancelBooking sync notice:", e);
     }
@@ -2151,9 +2141,7 @@ class CampusFleetStore {
     this.notify();
     return {
       success: true,
-      message: promotedBooking
-        ? `Seat cancelled. Waitlisted passenger (${promotedBooking.studentId}) was promoted to confirmed seat!`
-        : "Seat cancelled successfully.",
+      message: "Seat reservation cancelled successfully. The seat has been released back to available fleet inventory.",
     };
   }
 

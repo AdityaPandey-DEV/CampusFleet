@@ -126,7 +126,7 @@ export default function CampusFleetLandingPage() {
   const faqs = [
     {
       q: "How does guaranteed seat reservation work for students?",
-      a: "CampusFleet eliminates university bus standing and rush. Students select their preferred morning (07:30 AM / 08:30 AM) or evening (04:30 PM) shift on an interactive 2x2 bus chassis (redBus-style). If the 42-seat bus is full, subsequent bookings automatically receive numbered waitlists (WL-01, WL-02) and get promoted instantly if any student cancels.",
+      a: "CampusFleet eliminates campus bus standing and rush. Students select their preferred morning (07:30 AM / 08:30 AM) or evening (04:30 PM) shift on an interactive bus seating layout. If the bus reaches capacity, subsequent bookings enter an automated standby queue (WL-01, WL-02) and receive confirmed seat reallocations as soon as any seat is released.",
     },
     {
       q: "How can parents track their son or daughter's daily transit?",
@@ -317,7 +317,7 @@ export default function CampusFleetLandingPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                  <span>Numbered Railway-style waitlist (WL-01..) with auto-promotion</span>
+                  <span>Smart priority standby queue (WL-01..) with instant seat reallocation</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />

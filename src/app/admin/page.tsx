@@ -37,6 +37,7 @@ export default async function AdminPage() {
     { data: dbIssues },
     { data: dbRouteStops },
     { data: dbShifts },
+    { data: dbPayments },
   ] = await Promise.all([
     supabaseAdmin.from("buses").select("*"),
     supabaseAdmin.from("routes").select("*"),
@@ -48,6 +49,7 @@ export default async function AdminPage() {
     supabaseAdmin.from("vehicle_issues").select("*").order("reported_at", { ascending: false }).limit(50),
     supabaseAdmin.from("route_stops").select("*").order("stop_sequence", { ascending: true }),
     supabaseAdmin.from("shifts").select("*"),
+    supabaseAdmin.from("payments").select("*").order("created_at", { ascending: false }),
   ]);
 
   // 4. Map DB records to typed domain models
@@ -234,11 +236,11 @@ export default async function AdminPage() {
       phone: s.emergency_contact_phone || s.phone || "+91 9876543210",
     },
     transportAccessSuspended: Boolean(s.transport_access_suspended),
-    hasActiveSubscription: s.has_active_subscription ?? true,
+    hasActiveSubscription: Boolean(s.has_active_subscription),
     subscriptionExpiryDate: s.subscription_expiry_date || "2026-12-31",
     classId: s.class_id,
     className: s.class_name,
-    paymentStatus: s.payment_status || "APPROVED",
+    paymentStatus: s.payment_status || "UNPAID",
     totalFeeDue: Number(s.total_fee_due) || 0,
     totalFeePaid: Number(s.total_fee_paid) || 0,
   }));
@@ -284,6 +286,7 @@ export default async function AdminPage() {
       initialStaff={staff}
       initialBookings={bookings}
       initialIssues={issues}
+      initialPayments={dbPayments || []}
     />
   );
 }
