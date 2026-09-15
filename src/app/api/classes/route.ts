@@ -72,7 +72,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { course, year, section } = body;
+    const { course, year, section, assignedTeacherId } = body;
 
     if (!course || !year || !section) {
       return NextResponse.json(
@@ -113,12 +113,21 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
+    // If a teacher was assigned during creation, allocate them
+    if (assignedTeacherId) {
+      await supabaseAdmin.from("class_teachers").insert({
+        class_id: newClass.id,
+        teacher_id: assignedTeacherId,
+        is_primary: true,
+      });
+    }
+
     // Log audit trail
     await supabaseAdmin.from("audit_logs").insert({
       action: "CREATE_CLASS",
       entity: "Class",
       entity_id: newClass.id,
-      reason: `Created class ${name}`,
+      reason: `Created class ${name}${assignedTeacherId ? " with primary teacher assigned" : ""}`,
       new_value: newClass,
     });
 

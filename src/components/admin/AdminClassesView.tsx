@@ -21,7 +21,9 @@ import {
   AlertCircle,
   RefreshCw,
   X,
+  UserPlus,
 } from "lucide-react";
+import SearchableDropdown, { DropdownOption } from "@/components/ui/SearchableDropdown";
 
 interface ClassItem {
   id: string;
@@ -73,7 +75,7 @@ export default function AdminClassesView({
   const [isLoading, setIsLoading] = useState(initialClasses.length === 0);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(initialClasses[0] || null);
-  const [activeTab, setActiveTab] = useState<"overview" | "timetable" | "students" | "teachers">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "timetable" | "students">("overview");
 
   // Timetable state
   const [timetableSlots, setTimetableSlots] = useState<TimetableSlot[]>([]);
@@ -95,6 +97,14 @@ export default function AdminClassesView({
     course: "B.Tech CSE",
     year: "3rd Year",
     section: "A",
+    assignedTeacherId: "",
+  });
+
+  const [editFormData, setEditFormData] = useState({
+    id: "",
+    course: "B.Tech CSE",
+    year: "3rd Year",
+    section: "A",
   });
 
   const [slotFormData, setSlotFormData] = useState({
@@ -110,6 +120,7 @@ export default function AdminClassesView({
   const [isPrimaryTeacher, setIsPrimaryTeacher] = useState(false);
   const [actionError, setActionError] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -121,8 +132,12 @@ export default function AdminClassesView({
       const data = await res.json();
       if (data.success) {
         setClasses(data.classes || []);
-        if (data.classes?.length > 0 && !selectedClass) {
-          setSelectedClass(data.classes[0]);
+        if (data.classes?.length > 0) {
+          setSelectedClass((prev) => {
+            if (!prev) return data.classes[0];
+            const updated = data.classes.find((c: ClassItem) => c.id === prev.id);
+            return updated || data.classes[0];
+          });
         }
       }
     } catch (err) {
@@ -135,15 +150,19 @@ export default function AdminClassesView({
   // Fetch teacher list for dropdowns
   const fetchTeachers = async () => {
     try {
-      const res = await fetch("/api/classes"); // Or we can fetch teachers from users table
-      // Let's call /api/classes/teachers or fetch from supabase/API
+      const res = await fetch("/api/classes/teachers");
+      const data = await res.json();
+      if (data.success && data.teachers) {
+        setTeachersList(data.teachers);
+      }
     } catch (e) {
-      console.error(e);
+      console.error("Failed to load teachers list", e);
     }
   };
 
   useEffect(() => {
     fetchClasses();
+    fetchTeachers();
   }, []);
 
   // When selectedClass changes, load its details
@@ -155,7 +174,7 @@ export default function AdminClassesView({
     } else if (activeTab === "students") {
       loadStudents(selectedClass.id);
     }
-  }, [selectedClass, activeTab]);
+  }, [selectedClass?.id, activeTab]);
 
   const loadTimetable = async (classId: string) => {
     try {
@@ -187,16 +206,23 @@ export default function AdminClassesView({
     }
   };
 
+  // 1. CREATE CLASS
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionError("");
     setActionSuccess("");
+    setIsSubmitting(true);
 
     try {
       const res = await fetch("/api/classes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          course: formData.course,
+          year: formData.year,
+          section: formData.section,
+          assignedTeacherId: formData.assignedTeacherId || undefined,
+        }),
       });
       const data = await res.json();
 
@@ -207,12 +233,98 @@ export default function AdminClassesView({
 
       setActionSuccess(`Class ${data.class.name} created successfully!`);
       setIsCreateModalOpen(false);
-      fetchClasses();
+      setFormData({
+        course: "B.Tech CSE",
+        year: "3rd Year",
+        section: "A",
+        assignedTeacherId: "",
+      });
+      await fetchClasses();
+    } catch (err: any) {
+      setActionError(err.message || "Network error.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 2. OPEN EDIT CLASS MODAL
+  const handleOpenEditModal = (classItem: ClassItem, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditFormData({
+      id: classItem.id,
+      course: classItem.course,
+      year: classItem.year,
+      section: classItem.section,
+    });
+    setActionError("");
+    setIsEditModalOpen(true);
+  };
+
+  // 3. UPDATE CLASS
+  const handleUpdateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionError("");
+    setActionSuccess("");
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/classes/${editFormData.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course: editFormData.course,
+          year: editFormData.year,
+          section: editFormData.section,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setActionError(data.message || "Failed to update class.");
+        return;
+      }
+
+      setActionSuccess(`Class updated successfully!`);
+      setIsEditModalOpen(false);
+      await fetchClasses();
+    } catch (err: any) {
+      setActionError(err.message || "Network error.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 4. DELETE CLASS
+  const handleDeleteClass = async (classId: string, className: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!confirm(`Are you sure you want to delete class "${className}"?\n\nThis will unenroll all students in this class and delete its timetable schedules.`)) {
+      return;
+    }
+    setActionError("");
+    setActionSuccess("");
+
+    try {
+      const res = await fetch(`/api/classes/${classId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setActionError(data.message || "Failed to delete class.");
+        return;
+      }
+
+      setActionSuccess(`Class "${className}" deleted successfully.`);
+      if (selectedClass?.id === classId) {
+        setSelectedClass(null);
+      }
+      await fetchClasses();
     } catch (err: any) {
       setActionError(err.message || "Network error.");
     }
   };
 
+  // 5. TOGGLE CLASS STATUS
   const handleToggleStatus = async (classItem: ClassItem) => {
     try {
       const res = await fetch(`/api/classes/${classItem.id}`, {
@@ -229,10 +341,73 @@ export default function AdminClassesView({
     }
   };
 
+  // 6. ALLOCATE TEACHER TO CLASS
+  const handleAllocateTeacher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClass || !selectedTeacherToAllocate) return;
+    setActionError("");
+    setActionSuccess("");
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/classes/${selectedClass.id}/teachers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teacherId: selectedTeacherToAllocate,
+          isPrimary: isPrimaryTeacher,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setActionError(data.message || "Failed to allocate teacher.");
+        return;
+      }
+
+      setActionSuccess("Teacher allocated to class successfully!");
+      setIsAllocateTeacherModalOpen(false);
+      setSelectedTeacherToAllocate("");
+      setIsPrimaryTeacher(false);
+      await fetchClasses();
+    } catch (err: any) {
+      setActionError(err.message || "Network error.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 7. REMOVE TEACHER FROM CLASS
+  const handleRemoveTeacher = async (teacherId: string, teacherName: string) => {
+    if (!selectedClass) return;
+    if (!confirm(`Remove ${teacherName} from ${selectedClass.name}?`)) return;
+    setActionError("");
+    setActionSuccess("");
+
+    try {
+      const res = await fetch(`/api/classes/${selectedClass.id}/teachers?teacherId=${teacherId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setActionError(data.message || "Failed to remove teacher.");
+        return;
+      }
+
+      setActionSuccess(`Removed ${teacherName} from ${selectedClass.name}.`);
+      await fetchClasses();
+    } catch (err: any) {
+      setActionError(err.message || "Network error.");
+    }
+  };
+
+  // 8. ADD TIMETABLE SLOT
   const handleAddSlot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClass) return;
     setActionError("");
+    setIsSubmitting(true);
 
     try {
       const res = await fetch(`/api/classes/${selectedClass.id}/timetable`, {
@@ -251,13 +426,16 @@ export default function AdminClassesView({
       }
 
       setIsAddSlotModalOpen(false);
-      setSlotFormData({ ...slotFormData, subject: "" });
+      setSlotFormData({ ...slotFormData, subject: "", teacherId: "" });
       loadTimetable(selectedClass.id);
     } catch (err: any) {
       setActionError(err.message || "Network error.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  // 9. DELETE TIMETABLE SLOT
   const handleDeleteSlot = async (slotId: string) => {
     if (!selectedClass || !confirm("Delete this timetable lecture slot?")) return;
 
@@ -274,6 +452,13 @@ export default function AdminClassesView({
     }
   };
 
+  // Convert teacher list to options for SearchableDropdown
+  const teacherOptions: DropdownOption[] = teachersList.map((t) => ({
+    value: t.id,
+    label: t.full_name || t.fullName || "Faculty",
+    sublabel: `${t.role ? `[${t.role.toUpperCase()}] ` : ""}${t.email || ""}`,
+  }));
+
   const filteredClasses = classes.filter(
     (c) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -285,6 +470,31 @@ export default function AdminClassesView({
 
   return (
     <div className="space-y-6">
+      {/* Notifications */}
+      {actionSuccess && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <span>{actionSuccess}</span>
+          </div>
+          <button onClick={() => setActionSuccess("")} className="text-emerald-500 hover:text-emerald-700">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{actionError}</span>
+          </div>
+          <button onClick={() => setActionError("")} className="text-rose-500 hover:text-rose-700">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/20 border border-blue-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl">
         <div>
@@ -296,7 +506,7 @@ export default function AdminClassesView({
             Class & Timetable Management
           </h1>
           <p className="text-sm text-slate-300 mt-1 max-w-xl">
-            Configure courses, sections, and class timetables. The bus-entry validation engine actively cross-references these schedules to deny boarding during student lecture hours.
+            Configure courses, sections, and assigned faculty advisors. The bus-entry validation engine actively cross-references these schedules to deny boarding during student lecture hours.
           </p>
         </div>
 
@@ -305,7 +515,7 @@ export default function AdminClassesView({
             setActionError("");
             setIsCreateModalOpen(true);
           }}
-          className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all active:scale-95"
+          className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all active:scale-95 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>New Class</span>
@@ -314,7 +524,7 @@ export default function AdminClassesView({
 
       {/* Main Grid: Left Class List, Right Class Details & Timetable */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Classes Roster (4 cols) */}
+        {/* Left Column: Classes Roster (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
           <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-md space-y-3">
             <div className="flex items-center justify-between">
@@ -324,8 +534,8 @@ export default function AdminClassesView({
               </h2>
               <button
                 onClick={fetchClasses}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
-                title="Refresh"
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                title="Refresh Classes"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
               </button>
@@ -343,8 +553,8 @@ export default function AdminClassesView({
               />
             </div>
 
-            {/* Class Cards */}
-            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+            {/* Class Cards List */}
+            <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
               {filteredClasses.length === 0 ? (
                 <div className="text-center py-10 text-slate-400 text-xs">
                   {isLoading ? "Loading classes from database..." : "No classes found matching search."}
@@ -356,16 +566,16 @@ export default function AdminClassesView({
                     <div
                       key={item.id}
                       onClick={() => setSelectedClass(item)}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer text-left ${
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer text-left group ${
                         isSelected
                           ? "bg-blue-50/80 dark:bg-blue-950/50 border-blue-300 dark:border-blue-700/80 shadow-md ring-1 ring-blue-400/30"
                           : "bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                            <span>{item.name}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                            <span className="truncate">{item.name}</span>
                             {item.isActive ? (
                               <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
                                 Active
@@ -381,25 +591,45 @@ export default function AdminClassesView({
                           </div>
                         </div>
 
-                        <div className="text-right">
+                        <div className="flex items-center gap-1">
                           <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                             <Users className="w-3 h-3 text-blue-500" />
                             {item.studentCount}
                           </span>
+
+                          {/* Quick Edit and Delete buttons on card */}
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center ml-1">
+                            <button
+                              type="button"
+                              onClick={(e) => handleOpenEditModal(item, e)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors"
+                              title="Edit Class"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteClass(item.id, item.name, e)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 transition-colors"
+                              title="Delete Class"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Teachers */}
+                      {/* Teachers list row */}
                       <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500">
-                        <div className="flex items-center gap-1 truncate">
-                          <UserCheck className="w-3.5 h-3.5 text-teal-500" />
-                          <span>
+                        <div className="flex items-center gap-1.5 truncate max-w-[85%]">
+                          <UserCheck className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" />
+                          <span className="truncate">
                             {item.assignedTeachers?.length > 0
                               ? item.assignedTeachers.map((t) => t.fullName).join(", ")
                               : "No Faculty Assigned"}
                           </span>
                         </div>
-                        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? "text-blue-500 translate-x-0.5" : "text-slate-400"}`} />
+                        <ChevronRight className={`w-3.5 h-3.5 transition-transform flex-shrink-0 ${isSelected ? "text-blue-500 translate-x-0.5" : "text-slate-400"}`} />
                       </div>
                     </div>
                   );
@@ -413,8 +643,8 @@ export default function AdminClassesView({
         <div className="lg:col-span-7 space-y-4">
           {selectedClass ? (
             <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md space-y-6">
-              {/* Header Info */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+              {/* Header Info & Actions */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-blue-500">
                     Selected Class Details
@@ -431,16 +661,34 @@ export default function AdminClassesView({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Class Actions: Edit, Status, Delete */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => handleOpenEditModal(selectedClass)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-blue-500" />
+                    <span>Edit</span>
+                  </button>
+
                   <button
                     onClick={() => handleToggleStatus(selectedClass)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
                       selectedClass.isActive
-                        ? "bg-rose-50 dark:bg-rose-950/40 text-rose-600 border-rose-200 dark:border-rose-900/50 hover:bg-rose-100"
+                        ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 border-amber-200 dark:border-amber-900/50 hover:bg-amber-100"
                         : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100"
                     }`}
                   >
-                    {selectedClass.isActive ? "Deactivate Class" : "Activate Class"}
+                    {selectedClass.isActive ? "Deactivate" : "Activate"}
+                  </button>
+
+                  <button
+                    onClick={() => handleDeleteClass(selectedClass.id, selectedClass.name)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 transition-colors cursor-pointer"
+                    title="Delete Class"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Delete</span>
                   </button>
                 </div>
               </div>
@@ -448,7 +696,7 @@ export default function AdminClassesView({
               {/* Navigation Tabs */}
               <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2">
                 {[
-                  { id: "overview", label: "Overview", icon: Layers },
+                  { id: "overview", label: "Overview & Teachers", icon: Layers },
                   { id: "timetable", label: "Class Timetable", icon: Clock },
                   { id: "students", label: `Enrolled Students (${selectedClass.studentCount})`, icon: GraduationCap },
                 ].map((tab) => {
@@ -458,7 +706,7 @@ export default function AdminClassesView({
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all ${
+                      className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                         isActive
                           ? "border-blue-600 text-blue-600 dark:text-blue-400"
                           : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -471,9 +719,9 @@ export default function AdminClassesView({
                 })}
               </div>
 
-              {/* TAB 1: OVERVIEW */}
+              {/* TAB 1: OVERVIEW & TEACHER CRUD */}
               {activeTab === "overview" && (
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
                       <div className="text-[10px] font-bold text-slate-400 uppercase">Enrolled Students</div>
@@ -511,18 +759,37 @@ export default function AdminClassesView({
                         )}
                       </div>
                       <div className="text-[11px] text-slate-400 mt-1">
-                        Available in registration
+                        Bus check validation active
                       </div>
                     </div>
                   </div>
 
-                  {/* Faculty Allocation Card */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-tr from-slate-50 to-blue-50/30 dark:from-slate-800/40 dark:to-blue-950/20 border border-slate-200 dark:border-slate-800 space-y-3">
+                  {/* Teacher Allocation Section */}
+                  <div className="p-5 rounded-3xl bg-gradient-to-tr from-slate-50 to-blue-50/30 dark:from-slate-800/40 dark:to-blue-950/20 border border-slate-200 dark:border-slate-800 space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <UserCheck className="w-4 h-4 text-teal-500" />
-                        <span>Allocated Faculty Advisors</span>
+                      <div>
+                        <div className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                          <UserCheck className="w-4 h-4 text-teal-500" />
+                          <span>Allocated Faculty Advisors</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Teachers assigned to manage or advise this class section.
+                        </p>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTeacherToAllocate("");
+                          setIsPrimaryTeacher(false);
+                          setActionError("");
+                          setIsAllocateTeacherModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md shadow-teal-500/20 transition-all active:scale-95 cursor-pointer"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Allocate Teacher</span>
+                      </button>
                     </div>
 
                     <div className="space-y-2">
@@ -530,24 +797,35 @@ export default function AdminClassesView({
                         selectedClass.assignedTeachers.map((t) => (
                           <div
                             key={t.id}
-                            className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between"
+                            className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
                           >
-                            <div>
-                              <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-2">
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
                                 <span>{t.fullName}</span>
                                 {t.isPrimary && (
-                                  <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-bold">
+                                  <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase">
                                     Primary Advisor
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[11px] text-slate-400">{t.email || "Faculty Account"}</div>
+                              <div className="text-[11px] text-slate-400 mt-0.5 truncate">
+                                {t.email || "Faculty Account"}
+                              </div>
                             </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTeacher(t.id, t.fullName)}
+                              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex-shrink-0 cursor-pointer"
+                              title="Remove teacher from class"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         ))
                       ) : (
-                        <div className="text-xs text-slate-400 p-2">
-                          No teachers assigned yet.
+                        <div className="text-center py-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-400">
+                          No teachers allocated to this class yet. Click "Allocate Teacher" above to assign faculty.
                         </div>
                       )}
                     </div>
@@ -565,85 +843,82 @@ export default function AdminClassesView({
                         <button
                           key={d}
                           onClick={() => setSelectedDay(d)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                             selectedDay === d
                               ? "bg-blue-600 text-white shadow-sm"
-                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
                           }`}
                         >
-                          {d.slice(0, 3)}
+                          {d}
                         </button>
                       ))}
                     </div>
 
                     <button
                       onClick={() => {
+                        setSlotFormData({
+                          dayOfWeek: selectedDay,
+                          startTime: "10:00",
+                          endTime: "11:00",
+                          subject: "",
+                          teacherId: "",
+                          roomNumber: "LH-301",
+                        });
                         setActionError("");
                         setIsAddSlotModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-bold hover:bg-blue-500/20"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm transition-all flex-shrink-0 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Add Slot</span>
+                      <span>Add Lecture</span>
                     </button>
                   </div>
 
-                  {/* Scheduled Slots for this day */}
-                  <div className="space-y-2">
-                    {isLoadingSlots ? (
-                      <div className="text-center py-10 text-xs text-slate-400">Loading timetable...</div>
-                    ) : daySlots.length === 0 ? (
-                      <div className="text-center py-12 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-400 space-y-1">
-                        <Clock className="w-6 h-6 mx-auto text-slate-300 dark:text-slate-600" />
-                        <p className="font-bold">No lectures scheduled on {selectedDay}</p>
-                        <p className="text-[11px] text-slate-500">
-                          Students of this class have no boarding restrictions during these hours.
-                        </p>
-                      </div>
-                    ) : (
-                      daySlots.map((slot) => (
+                  {/* Slots list */}
+                  {isLoadingSlots ? (
+                    <div className="text-center py-12 text-xs text-slate-400">Loading schedule...</div>
+                  ) : daySlots.length === 0 ? (
+                    <div className="text-center py-12 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-400">
+                      No lecture slots scheduled for {selectedDay}. Click "Add Lecture" to configure hours.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {daySlots.map((slot) => (
                         <div
                           key={slot.id}
-                          className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between gap-4"
+                          className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 font-mono text-xs font-black flex items-center justify-center">
-                              {slot.startTime.slice(0, 5)}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="px-2.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono text-xs font-bold whitespace-nowrap">
+                              {slot.startTime} - {slot.endTime}
                             </div>
-
-                            <div>
-                              <div className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                                <span>{slot.subject}</span>
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                                {slot.subject}
+                              </div>
+                              <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                <span>{slot.teacherName || "Assigned Faculty"}</span>
                                 {slot.roomNumber && (
-                                  <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-bold">
-                                    {slot.roomNumber}
-                                  </span>
+                                  <>
+                                    <span>•</span>
+                                    <span>Room: {slot.roomNumber}</span>
+                                  </>
                                 )}
                               </div>
-                              <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
-                                <Clock className="w-3 h-3 text-slate-400" />
-                                <span>
-                                  {slot.startTime.slice(0, 5)} - {slot.endTime.slice(0, 5)}
-                                </span>
-                                <span>•</span>
-                                <span>{slot.teacherName || "Assigned Faculty"}</span>
-                              </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleDeleteSlot(slot.id)}
-                              className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors"
-                              title="Delete Slot"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleDeleteSlot(slot.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex-shrink-0 cursor-pointer"
+                            title="Delete Slot"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                      ))
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -688,13 +963,13 @@ export default function AdminClassesView({
             </div>
           ) : (
             <div className="h-full min-h-[300px] flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-8 text-center text-slate-400 text-xs">
-              Select a class from the list to manage its timetable and student roster.
+              Select a class from the list to manage its timetable and faculty advisors.
             </div>
           )}
         </div>
       </div>
 
-      {/* CREATE CLASS MODAL */}
+      {/* MODAL 1: CREATE CLASS */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
@@ -705,7 +980,7 @@ export default function AdminClassesView({
               </div>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600"
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -763,6 +1038,22 @@ export default function AdminClassesView({
                 </div>
               </div>
 
+              {/* SEARCHABLE DROPDOWN FOR ASSIGNING TEACHER ON CREATION */}
+              <div>
+                <SearchableDropdown
+                  label="Assign Faculty Advisor (Optional)"
+                  placeholder="Search and select a teacher..."
+                  searchPlaceholder="Type teacher name or email..."
+                  options={teacherOptions}
+                  value={formData.assignedTeacherId}
+                  onChange={(val) => setFormData({ ...formData, assignedTeacherId: val })}
+                  clearable
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  The chosen teacher will automatically be assigned as this class's primary advisor.
+                </span>
+              </div>
+
               <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-[11px] text-blue-700 dark:text-blue-300">
                 Generated Identity: <strong>{formData.course} - {formData.year} (Sec {formData.section.toUpperCase()})</strong>
               </div>
@@ -771,15 +1062,16 @@ export default function AdminClassesView({
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 shadow-md"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 shadow-md cursor-pointer disabled:opacity-50"
                 >
-                  Save Class to Database
+                  {isSubmitting ? "Creating..." : "Save Class to Database"}
                 </button>
               </div>
             </form>
@@ -787,7 +1079,174 @@ export default function AdminClassesView({
         </div>
       )}
 
-      {/* ADD TIMETABLE SLOT MODAL */}
+      {/* MODAL 2: EDIT CLASS */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-blue-500" />
+                <h3 className="font-black text-base text-slate-900 dark:text-white">Edit Class Details</h3>
+              </div>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {actionError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-rose-600 text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{actionError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateClass} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  Course
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.course}
+                  onChange={(e) => setEditFormData({ ...editFormData, course: e.target.value })}
+                  placeholder="e.g. B.Tech CSE"
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Year / Semester
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.year}
+                    onChange={(e) => setEditFormData({ ...editFormData, year: e.target.value })}
+                    placeholder="e.g. 3rd Year"
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Section
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.section}
+                    onChange={(e) => setEditFormData({ ...editFormData, section: e.target.value })}
+                    placeholder="e.g. A, B, C"
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-[11px] text-blue-700 dark:text-blue-300">
+                New Name: <strong>{editFormData.course} - {editFormData.year} (Sec {editFormData.section.toUpperCase()})</strong>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmitting ? "Updating..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: ALLOCATE TEACHER TO CLASS */}
+      {isAllocateTeacherModalOpen && selectedClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-teal-500" />
+                <h3 className="font-black text-base text-slate-900 dark:text-white">
+                  Allocate Faculty to {selectedClass.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsAllocateTeacherModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {actionError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-rose-600 text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{actionError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAllocateTeacher} className="space-y-4">
+              <div>
+                <SearchableDropdown
+                  label="Select Faculty / Teacher"
+                  placeholder="Search and select faculty member..."
+                  searchPlaceholder="Search by teacher name or email..."
+                  required
+                  options={teacherOptions}
+                  value={selectedTeacherToAllocate}
+                  onChange={(val) => setSelectedTeacherToAllocate(val)}
+                />
+              </div>
+
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <input
+                  type="checkbox"
+                  id="primaryAdvisorCheck"
+                  checked={isPrimaryTeacher}
+                  onChange={(e) => setIsPrimaryTeacher(e.target.checked)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <label htmlFor="primaryAdvisorCheck" className="text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
+                  Designate as Primary Class Advisor
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAllocateTeacherModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!selectedTeacherToAllocate || isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-500 shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmitting ? "Allocating..." : "Allocate Teacher"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: ADD TIMETABLE SLOT */}
       {isAddSlotModalOpen && selectedClass && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
@@ -800,7 +1259,7 @@ export default function AdminClassesView({
               </div>
               <button
                 onClick={() => setIsAddSlotModalOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600"
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -825,6 +1284,19 @@ export default function AdminClassesView({
                   onChange={(e) => setSlotFormData({ ...slotFormData, subject: e.target.value })}
                   placeholder="e.g. Database Management Systems (DBMS)"
                   className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* SEARCHABLE DROPDOWN FOR ASSIGNING TEACHER TO THIS TIMETABLE SLOT */}
+              <div>
+                <SearchableDropdown
+                  label="Assign Faculty / Lecturer (Optional)"
+                  placeholder="Select lecturer for this period..."
+                  searchPlaceholder="Search teacher by name or email..."
+                  options={teacherOptions}
+                  value={slotFormData.teacherId}
+                  onChange={(val) => setSlotFormData({ ...slotFormData, teacherId: val })}
+                  clearable
                 />
               </div>
 
@@ -877,15 +1349,16 @@ export default function AdminClassesView({
                 <button
                   type="button"
                   onClick={() => setIsAddSlotModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 shadow-md"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 shadow-md cursor-pointer disabled:opacity-50"
                 >
-                  Add to Class Schedule
+                  {isSubmitting ? "Adding..." : "Add to Class Schedule"}
                 </button>
               </div>
             </form>

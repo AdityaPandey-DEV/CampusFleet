@@ -26,11 +26,29 @@ export default async function AdminClassesPage() {
     { data: dbClasses },
     { data: dbStudents },
     { data: dbTeachers },
+    { data: dbClassTeachers },
   ] = await Promise.all([
     supabaseAdmin.from("classes").select("*").order("name"),
     supabaseAdmin.from("students").select("id, class_id"),
     supabaseAdmin.from("users").select("id, full_name, email, role").in("role", ["teacher", "staff", "admin"]),
+    supabaseAdmin.from("class_teachers").select("class_id, is_primary, users(id, full_name, email)"),
   ]);
+
+  const teachersMap = new Map<string, any[]>();
+  if (dbClassTeachers) {
+    for (const ct of dbClassTeachers) {
+      const list = teachersMap.get(ct.class_id) || [];
+      if (ct.users) {
+        list.push({
+          id: (ct.users as any).id,
+          fullName: (ct.users as any).full_name,
+          email: (ct.users as any).email,
+          isPrimary: ct.is_primary,
+        });
+      }
+      teachersMap.set(ct.class_id, list);
+    }
+  }
 
   const classes = (dbClasses || []).map((c: any) => ({
     id: c.id,
@@ -40,7 +58,7 @@ export default async function AdminClassesPage() {
     section: c.section || "A",
     isActive: c.is_active ?? true,
     studentCount: (dbStudents || []).filter((s: any) => s.class_id === c.id).length,
-    assignedTeachers: [],
+    assignedTeachers: teachersMap.get(c.id) || [],
     createdAt: c.created_at || new Date().toISOString(),
   }));
 
