@@ -488,7 +488,7 @@ class CampusFleetStore {
           enrollmentNo: s.enrollment_no || "PENDING",
           fullName: s.full_name,
           email: s.email,
-          phone: s.phone || "+91 0000000000",
+          phone: s.phone || null,
           department: s.department || "B.Tech CSE",
           semester: s.semester || "5th",
           campusId: s.campus_id || s.campus || "",
@@ -498,7 +498,7 @@ class CampusFleetStore {
           emergencyContact: s.emergency_contact || {
             name: s.emergency_contact_name || "Campus Desk",
             relationship: s.emergency_contact_relation || "Admin",
-            phone: s.emergency_contact_phone || "+91 0000000000",
+            phone: s.emergency_contact_phone || null,
           },
           transportAccessSuspended: s.transport_access_suspended || false,
           hasActiveSubscription: s.has_active_subscription || false,
@@ -549,7 +549,7 @@ class CampusFleetStore {
             user_id: u.id,
             full_name: newStudent.fullName,
             email: newStudent.email,
-            phone: newStudent.phone,
+            phone: null, // never overwrite a real phone with placeholder
             department: newStudent.department,
             semester: newStudent.semester,
             campus_id: newStudent.campusId || newStudent.campus || "",
@@ -558,7 +558,7 @@ class CampusFleetStore {
             primary_route_id: newStudent.primaryRouteId || null,
             has_active_subscription: false,
             payment_status: "UNPAID",
-          }).then(() => {});
+          }, { ignoreDuplicates: true }).then(() => {}); // ignoreDuplicates: never overwrite existing student rows
         }
       }
 

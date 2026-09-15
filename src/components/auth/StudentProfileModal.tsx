@@ -169,11 +169,12 @@ export function StudentProfileModal() {
       return;
     }
 
-    // Profile is complete when: student record exists AND has a real phone number
+    // Profile is complete when: student record exists AND has a real non-placeholder phone
     const isIncomplete =
       !activeStudent ||
       !activeStudent.phone ||
-      activeStudent.phone === "+91 0000000000";
+      activeStudent.phone === "+91 0000000000" ||
+      activeStudent.phone === null;
 
     if (isIncomplete) {
       setIsOpen(true);
