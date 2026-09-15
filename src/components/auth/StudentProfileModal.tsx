@@ -30,8 +30,8 @@ export function StudentProfileModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  // Guard: don't evaluate completeness until students list has actually loaded from DB
-  const [studentsLoaded, setStudentsLoaded] = useState(() => store.getStudents().length > 0);
+  // Guard: don't evaluate completeness until DB sync is done OR students list has loaded
+  const [studentsLoaded, setStudentsLoaded] = useState(() => store.getStudents().length > 0 || store.isReady());
 
   const activeStudent: Student | undefined = students.find(
     s => s.email?.toLowerCase() === currentUser?.email?.toLowerCase() || s.userId === currentUser?.id
@@ -112,13 +112,34 @@ export function StudentProfileModal() {
       setCurrentUser(store.getCurrentUser());
       const s = store.getStudents();
       setStudents(s);
-      if (s.length > 0) setStudentsLoaded(true);
+      // Release guard when students load OR when store finishes initializing (new users have 0 students)
+      if (s.length > 0 || store.isReady()) setStudentsLoaded(true);
       setCampuses(store.getCampuses());
       setStops(store.getStops());
       setTransitZones(store.getTransitZones(campusId));
     });
     return unsub;
   }, [campusId]);
+
+  // Fallback: if store hasn't loaded campuses yet, fetch directly from API
+  useEffect(() => {
+    if (campuses.length === 0) {
+      fetch("/api/campus")
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.campuses && data.campuses.length > 0) {
+            setCampuses(data.campuses);
+            // Auto-select primary campus if none selected
+            const primary = data.primaryCampus || data.campuses.find((c: any) => c.isPrimary) || data.campuses[0];
+            if (primary && !campusId) {
+              setCampusId(primary.id);
+              setCampus(primary.name);
+            }
+          }
+        })
+        .catch(console.error);
+    }
+  }, [campuses.length, campusId]);
 
   useEffect(() => {
     setTransitZones(store.getTransitZones(campusId));
@@ -201,6 +222,15 @@ export function StudentProfileModal() {
       setIsOpen(false);
     }
   }, [currentUser, activeStudent, stops, studentsLoaded]);
+
+  // Release studentsLoaded guard after a timeout for new users with no student record yet
+  useEffect(() => {
+    if (studentsLoaded) return;
+    const timer = setTimeout(() => {
+      if (!studentsLoaded) setStudentsLoaded(true);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [studentsLoaded]);
 
   if (!isOpen) return null;
 

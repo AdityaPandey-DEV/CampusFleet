@@ -999,6 +999,68 @@ export default function CampusFleetMap({
             fillColor: "#6366F1",
             fillOpacity: 0.12,
           }).addTo(campusMarkerGroupRef.current);
+
+          // Render ALL secondary campuses from campuses table (e.g. Dehradun, other branches)
+          if (campuses && campuses.length > 1) {
+            campuses.forEach((sc) => {
+              // Skip the primary campus — already rendered above
+              if (
+                sc.id === campusTerminalStop.id ||
+                sc.id === campusTerminalStop.campusId ||
+                sc.code === campusTerminalStop.code ||
+                sc.isPrimary
+              ) return;
+              if (!sc.latitude || !sc.longitude) return;
+
+              const secondaryIcon = L.divIcon({
+                className: "custom-secondary-campus-icon",
+                html: `
+                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-violet-900 via-purple-950 to-slate-900 text-white rounded-2xl shadow-xl border-2 border-violet-400 font-bold text-xs select-none hover:scale-105 transition-transform cursor-pointer -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ring-4 ring-violet-500/20">
+                    <span class="p-1 rounded-xl bg-violet-600 text-white shadow-xs">${universitySvg}</span>
+                    <div class="leading-tight text-left">
+                      <div class="text-[11px] font-black text-white">${sc.name}</div>
+                      <div class="text-[9px] text-violet-300 font-semibold tracking-wide">${sc.code} \u2022 Branch Campus</div>
+                    </div>
+                  </div>
+                `,
+                iconSize: [200, 38],
+                iconAnchor: [100, 19],
+              });
+
+              const secondaryMarker = L.marker([sc.latitude, sc.longitude], {
+                icon: secondaryIcon,
+                zIndexOffset: 800,
+              }).addTo(campusMarkerGroupRef.current);
+
+              secondaryMarker.bindPopup(`
+                <div style="font-family: sans-serif; font-size: 12px; line-height: 1.45; min-width: 220px; padding: 2px;">
+                  <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
+                    <span style="font-size: 18px;">🏛️</span>
+                    <div>
+                      <strong style="color: #2e1065; font-size: 13px;">${sc.name}</strong><br/>
+                      <span style="color: #7c3aed; font-size: 11px; font-weight: 800;">${sc.code} \u2022 Branch Campus</span>
+                    </div>
+                  </div>
+                  <div style="color: #334155; font-size: 11px; border-top: 1px solid #e2e8f0; padding-top: 5px; margin-top: 5px;">
+                    ${sc.address ? `<div><strong>Address:</strong> ${sc.address}</div>` : ""}
+                    ${sc.landmark ? `<div><strong>Landmark:</strong> ${sc.landmark}</div>` : ""}
+                    <div><strong>GPS:</strong> ${sc.latitude.toFixed(4)}° N, ${sc.longitude.toFixed(4)}° E</div>
+                    ${sc.geofenceRadiusMeters ? `<div><strong>Geofence:</strong> ${sc.geofenceRadiusMeters}m</div>` : ""}
+                    <div style="margin-top: 4px;"><a href="https://www.google.com/maps/search/?api=1&query=${sc.latitude},${sc.longitude}" target="_blank" rel="noopener noreferrer" style="color: #7c3aed; font-weight: 700; text-decoration: none; font-size: 11px;">View in Google Maps ↗</a></div>
+                  </div>
+                </div>
+              `);
+
+              L.circle([sc.latitude, sc.longitude], {
+                radius: Math.max(sc.geofenceRadiusMeters || 80, 250),
+                color: "#7c3aed",
+                weight: 2,
+                dashArray: "6, 4",
+                fillColor: "#a78bfa",
+                fillOpacity: 0.10,
+              }).addTo(campusMarkerGroupRef.current);
+            });
+          }
         }
       }
 

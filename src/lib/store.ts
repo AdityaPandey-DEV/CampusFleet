@@ -1492,6 +1492,9 @@ class CampusFleetStore {
     if (!student) {
       const u = this.currentUser;
       const targetId = studentId && /^[0-9a-f-]{36}$/i.test(studentId) ? studentId : crypto.randomUUID();
+      // Compute fee from zone — never hardcode 0 for a new student
+      const zoneCode = profileData.zoneCode || "ZONE_B";
+      const zoneFee = this.transitZones.find(z => z.code === zoneCode)?.semesterFee || 12000;
       student = {
         id: targetId,
         userId: u?.id || studentId,
@@ -1509,9 +1512,9 @@ class CampusFleetStore {
         transportAccessSuspended: false,
         hasActiveSubscription: false,
         subscriptionExpiryDate: "2026-12-31",
-        zoneCode: profileData.zoneCode || "",
+        zoneCode,
         paymentStatus: "UNPAID",
-        totalFeeDue: 0,
+        totalFeeDue: zoneFee,
         totalFeePaid: 0,
         photoUrl: profileData.photoUrl || "",
         photoLocked: Boolean(profileData.photoUrl && profileData.photoUrl.trim() !== ""),
@@ -1533,6 +1536,14 @@ class CampusFleetStore {
       targetPhotoLocked = true;
     }
 
+    // Recompute fee if zone changed, otherwise preserve existing fee/payment state
+    const newZoneCode = profileData.zoneCode || student.zoneCode || "ZONE_B";
+    const zoneChanged = newZoneCode !== student.zoneCode;
+    const newZoneFee = this.transitZones.find(z => z.code === newZoneCode)?.semesterFee;
+    const preservedFeeDue = zoneChanged && newZoneFee
+      ? newZoneFee
+      : (student.totalFeeDue && student.totalFeeDue > 0 ? student.totalFeeDue : (newZoneFee || 12000));
+
     const updatedStudent: Student = {
       ...student,
       fullName: profileData.fullName || student.fullName,
@@ -1543,12 +1554,19 @@ class CampusFleetStore {
       semester: profileData.semester || student.semester,
       classId: profileData.classId || student.classId,
       className: profileData.className || student.className,
-      zoneCode: profileData.zoneCode || student.zoneCode || "ZONE_B",
+      zoneCode: newZoneCode,
       phone: profileData.phone || student.phone,
       primaryStopId: profileData.primaryStopId || student.primaryStopId,
       emergencyContact: profileData.emergencyContact || student.emergencyContact,
       photoUrl: targetPhotoUrl,
       photoLocked: targetPhotoLocked,
+      // Preserve all payment & subscription fields — never overwrite with defaults
+      totalFeeDue: preservedFeeDue,
+      totalFeePaid: student.totalFeePaid || 0,
+      paymentStatus: student.paymentStatus || "UNPAID",
+      hasActiveSubscription: student.hasActiveSubscription || false,
+      subscriptionExpiryDate: student.subscriptionExpiryDate,
+      transportAccessSuspended: student.transportAccessSuspended || false,
     };
 
     this.students = this.students.map(s => s.id === student.id ? updatedStudent : s);
