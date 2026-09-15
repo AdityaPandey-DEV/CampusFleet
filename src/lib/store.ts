@@ -128,6 +128,7 @@ class CampusFleetStore {
       this.initTelematicsSync();
       this.initCrossTabSync();
       this.initSupabaseRealtime();
+      this.initStudentPaymentSync();
     }
   }
 
@@ -183,6 +184,81 @@ class CampusFleetStore {
     } catch (err) {
       console.warn("Supabase realtime sync warning:", err);
     }
+  }
+
+  /**
+   * Polls /api/students/me every 30s and on tab focus to instantly reflect
+   * payment approval, subscription activation, and photo changes made by
+   * admin/staff — without requiring a page reload or re-login.
+   */
+  private initStudentPaymentSync() {
+    if (typeof window === "undefined") return;
+
+    const syncStudentStatus = async () => {
+      // Only run for authenticated students
+      const user = this.currentUser;
+      if (!user || user.role !== "student") return;
+
+      try {
+        const res = await fetch("/api/students/me", { credentials: "include" });
+        if (!res.ok) return;
+        const { student } = await res.json();
+        if (!student) return;
+
+        // Patch just the payment/subscription/photo fields in the existing student record
+        let changed = false;
+        this.students = this.students.map(s => {
+          if (s.email?.toLowerCase() !== user.email?.toLowerCase() && s.userId !== user.id) return s;
+
+          const needsUpdate =
+            s.paymentStatus !== student.paymentStatus ||
+            s.hasActiveSubscription !== student.hasActiveSubscription ||
+            s.totalFeePaid !== student.totalFeePaid ||
+            s.photoUrl !== student.photoUrl ||
+            s.photoLocked !== student.photoLocked ||
+            s.transportAccessSuspended !== student.transportAccessSuspended;
+
+          if (!needsUpdate) return s;
+
+          changed = true;
+          return {
+            ...s,
+            paymentStatus: student.paymentStatus,
+            hasActiveSubscription: student.hasActiveSubscription,
+            totalFeeDue: student.totalFeeDue,
+            totalFeePaid: student.totalFeePaid,
+            subscriptionExpiryDate: student.subscriptionExpiryDate || s.subscriptionExpiryDate,
+            photoUrl: student.photoUrl || s.photoUrl,
+            photoLocked: student.photoLocked || s.photoLocked,
+            transportAccessSuspended: student.transportAccessSuspended,
+            // Also update profile fields if they changed
+            phone: student.phone || s.phone,
+            zoneCode: student.zoneCode || s.zoneCode,
+            emergencyContact: student.emergencyContact?.name ? student.emergencyContact : s.emergencyContact,
+          };
+        });
+
+        if (changed) {
+          this.saveToLocalStorage();
+          this.notify();
+        }
+      } catch {
+        // Silent fail — non-critical background poll
+      }
+    };
+
+    // Poll every 30 seconds
+    setInterval(syncStudentStatus, 30_000);
+
+    // Sync immediately on tab becoming visible (catches approvals made while tab was in background)
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        syncStudentStatus();
+      }
+    });
+
+    // Also sync on window focus
+    window.addEventListener("focus", syncStudentStatus);
   }
 
   /** Broadcast local mutations across open browser tabs & windows */
