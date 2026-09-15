@@ -40,9 +40,11 @@ export function StudentProfileModal() {
   const [campusId, setCampusId] = useState(() => store.getPrimaryCampus()?.id || "");
   const [campus, setCampus] = useState(() => store.getPrimaryCampus()?.name || "Main Campus");
   const [enrollmentNo, setEnrollmentNo] = useState("");
-  const [department, setDepartment] = useState("B.Tech Computer Science & Engineering");
-  const [semester, setSemester] = useState("5th Semester");
+  const [department, setDepartment] = useState("");
+  const [semester, setSemester] = useState("");
   const [classesList, setClassesList] = useState<any[]>([]);
+  const [departmentsList, setDepartmentsList] = useState<{ id: string; code: string; name: string }[]>([]);
+  const [semestersList, setSemestersList] = useState<{ id: string; code: string; name: string }[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedZoneCode, setSelectedZoneCode] = useState("ZONE_B");
   const [phone, setPhone] = useState("");
@@ -88,6 +90,16 @@ export function StudentProfileModal() {
   }, [campusId]);
 
   useEffect(() => {
+    fetch("/api/academic/programs")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (data.departments) setDepartmentsList(data.departments);
+          if (data.semesters) setSemestersList(data.semesters);
+        }
+      })
+      .catch(console.error);
+
     fetch("/api/classes")
       .then(res => res.json())
       .then(data => {
@@ -116,8 +128,8 @@ export function StudentProfileModal() {
       setPhone(activeStudent?.phone !== "+91 0000000000" ? (activeStudent?.phone || "") : "");
       setCampusId(activeStudent?.campusId || store.getPrimaryCampus()?.id || "");
       setCampus(activeStudent?.campus || store.getPrimaryCampus()?.name || "Main Campus");
-      setDepartment(activeStudent?.department || "B.Tech Computer Science & Engineering");
-      setSemester(activeStudent?.semester || "5th Semester");
+      setDepartment(activeStudent?.department || "");
+      setSemester(activeStudent?.semester || "");
       setSelectedClassId(activeStudent?.classId || "");
       setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
       setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
@@ -378,10 +390,18 @@ export function StudentProfileModal() {
               <select
                 required
                 value={selectedClassId}
-                onChange={e => setSelectedClassId(e.target.value)}
+                onChange={e => {
+                  const classId = e.target.value;
+                  setSelectedClassId(classId);
+                  const chosen = classesList.find(c => c.id === classId);
+                  if (chosen) {
+                    if (chosen.course) setDepartment(chosen.course);
+                    if (chosen.year) setSemester(chosen.year);
+                  }
+                }}
                 className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-bold"
               >
-                <option value="">-- Select Your Class & Section --</option>
+                <option value="">-- Select Your Class & Section (Database) --</option>
                 {classesList.map(c => (
                   <option key={c.id} value={c.id}>
                     {c.name} ({c.course} • {c.year} • Sec {c.section})
@@ -390,45 +410,51 @@ export function StudentProfileModal() {
               </select>
             </div>
 
-            {/* Department */}
+            {/* Department (From Database) */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Department / Program
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>Department / Program *</span>
+                <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold lowercase">(from database)</span>
               </label>
               <select
+                required
                 value={department}
                 onChange={e => setDepartment(e.target.value)}
                 className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
               >
-                <option value="B.Tech Computer Science & Engineering">B.Tech CSE</option>
-                <option value="B.Tech Artificial Intelligence & Data Science">B.Tech AI & Data Science</option>
-                <option value="BCA - Bachelor of Computer Applications">BCA</option>
-                <option value="MCA - Master of Computer Applications">MCA</option>
-                <option value="MBA - Master of Business Administration">MBA</option>
-                <option value="BBA - Bachelor of Business Administration">BBA</option>
-                <option value="B.Pharma - Bachelor of Pharmacy">B.Pharma</option>
-                <option value="B.Sc Biotechnology / Physics">B.Sc Science</option>
+                <option value="">-- Select Department / Program --</option>
+                {department && !departmentsList.some(d => d.name === department) && (
+                  <option value={department}>{department}</option>
+                )}
+                {departmentsList.map(dept => (
+                  <option key={dept.id || dept.code} value={dept.name}>
+                    {dept.name}
+                  </option>
+                ))}
               </select>
             </div>
 
-            {/* Semester */}
+            {/* Semester (From Database) */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Academic Semester
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>Academic Semester *</span>
+                <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold lowercase">(from database)</span>
               </label>
               <select
+                required
                 value={semester}
                 onChange={e => setSemester(e.target.value)}
                 className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
               >
-                <option value="1st Semester">1st Semester (Freshman)</option>
-                <option value="2nd Semester">2nd Semester</option>
-                <option value="3rd Semester">3rd Semester (Sophomore)</option>
-                <option value="4th Semester">4th Semester</option>
-                <option value="5th Semester">5th Semester (Junior)</option>
-                <option value="6th Semester">6th Semester</option>
-                <option value="7th Semester">7th Semester (Senior)</option>
-                <option value="8th Semester">8th Semester</option>
+                <option value="">-- Select Academic Semester --</option>
+                {semester && !semestersList.some(s => s.name === semester) && (
+                  <option value={semester}>{semester}</option>
+                )}
+                {semestersList.map(sem => (
+                  <option key={sem.id || sem.code} value={sem.name}>
+                    {sem.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

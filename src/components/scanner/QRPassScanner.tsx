@@ -118,6 +118,9 @@ export function QRPassScanner({
     studentName?: string;
     enrollmentNo?: string;
     seatNumber?: string;
+    photoUrl?: string;
+    department?: string;
+    boardedAt?: string;
     method?: string;
     message: string;
     timestamp?: string;
@@ -171,12 +174,18 @@ export function QRPassScanner({
               message: data.message || `❌ BOARDING DENIED: Student has a scheduled lecture (${data.activeClass?.subject || data.subject || "Lecture"}) at this time.`,
               timestamp: new Date().toLocaleTimeString(),
             });
-          } else if (data.code === "ALREADY_BOARDED") {
+          } else if (data.code === "ALREADY_BOARDED" || data.status === "DUPLICATE") {
             if (soundEnabled) playChime("duplicate");
             triggerHaptic("warning");
             setLastResult({
               status: "DUPLICATE",
-              message: `DUPLICATE REPLAY: Pass was already checked in earlier today. Each student can board strictly once per shift.`,
+              studentName: data.student?.fullName || data.studentName || "Commuter",
+              enrollmentNo: data.student?.enrollmentNo || data.enrollmentNo || "VERIFIED",
+              seatNumber: data.booking?.seatNumber || data.seatNumber || "Seat Assigned",
+              photoUrl: data.student?.photoUrl || data.photoUrl || "",
+              department: data.student?.department || data.department || "",
+              boardedAt: data.booking?.boardedAt || data.boardedAt || "",
+              message: data.message || `DUPLICATE REPLAY: Pass belongs to ${data.student?.fullName || "Student"} (Roll: ${data.student?.enrollmentNo || "N/A"}), who was ALREADY checked in earlier today. Each student can board strictly once per shift.`,
               timestamp: new Date().toLocaleTimeString(),
             });
           } else {
@@ -277,6 +286,7 @@ export function QRPassScanner({
           fullName: parsedPayload?.studentName || "University Student",
           enrollmentNo: "VERIFIED",
           photoUrl: "",
+          department: "",
         };
 
       if (targetBooking.status === "BOARDED") {
@@ -287,7 +297,10 @@ export function QRPassScanner({
           studentName: student.fullName,
           enrollmentNo: student.enrollmentNo,
           seatNumber: targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`,
-          message: `DUPLICATE REPLAY: ${student.fullName} was checked in at ${new Date(targetBooking.boardedAt || "").toLocaleTimeString() || "earlier today"}. Duplicate scan blocked.`,
+          photoUrl: student.photoUrl,
+          department: (student as any).department || "",
+          boardedAt: targetBooking.boardedAt,
+          message: `DUPLICATE REPLAY: Pass belongs to ${student.fullName} (Roll: ${student.enrollmentNo}), who was checked in at ${new Date(targetBooking.boardedAt || "").toLocaleTimeString() || "earlier today"}. Duplicate scan blocked.`,
           timestamp: new Date().toLocaleTimeString(),
         });
         setIsProcessing(false);
@@ -343,12 +356,18 @@ export function QRPassScanner({
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        if (data.code === "ALREADY_BOARDED") {
+        if (data.code === "ALREADY_BOARDED" || data.status === "DUPLICATE") {
           if (soundEnabled) playChime("duplicate");
           triggerHaptic("warning");
           setLastResult({
             status: "DUPLICATE",
-            message: "DUPLICATE REPLAY: Pass was already checked in earlier today.",
+            studentName: student.fullName,
+            enrollmentNo: student.enrollmentNo,
+            seatNumber: booking.seatNumber || booking.seat_number,
+            photoUrl: student.photoUrl,
+            department: student.department,
+            boardedAt: booking.boardedAt,
+            message: `DUPLICATE REPLAY: Pass belongs to ${student.fullName} (Roll: ${student.enrollmentNo}), who was ALREADY checked in earlier today. Duplicate scan blocked.`,
             timestamp: new Date().toLocaleTimeString(),
           });
         } else {
@@ -869,6 +888,58 @@ export function QRPassScanner({
               </div>
 
               <div className="text-xs font-semibold">{lastResult.message}</div>
+
+              {lastResult.status === "DUPLICATE" && lastResult.studentName && (
+                <div className="mt-3 p-3 rounded-2xl bg-amber-100/70 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/80 flex items-center gap-3">
+                  {lastResult.photoUrl ? (
+                    <div className="relative flex-shrink-0">
+                      <img
+                        src={lastResult.photoUrl}
+                        alt={lastResult.studentName}
+                        className="w-14 h-18 sm:w-16 sm:h-20 object-cover rounded-xl border-2 border-amber-500 shadow-md bg-slate-900"
+                      />
+                      <div className="absolute -bottom-1.5 inset-x-0 mx-auto w-max px-1.5 py-0.5 rounded-full bg-amber-600 text-[8px] font-black text-white uppercase tracking-wider shadow">
+                        QR Owner
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 flex flex-col items-center justify-center flex-shrink-0 text-amber-700 dark:text-amber-300">
+                      <User className="w-6 h-6" />
+                      <span className="text-[8px] font-bold mt-0.5">No Photo</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-0.5 flex-1 min-w-0">
+                    <div className="text-[10px] uppercase font-black tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                      <ShieldAlert className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                      Registered QR Pass Commuter
+                    </div>
+                    <div className="font-black text-sm text-slate-900 dark:text-white truncate">
+                      {lastResult.studentName}
+                    </div>
+                    <div className="font-mono text-xs font-bold text-amber-900 dark:text-amber-200">
+                      Roll / ID: {lastResult.enrollmentNo || "VERIFIED"}
+                    </div>
+                    {lastResult.department && (
+                      <div className="text-[11px] text-slate-700 dark:text-slate-300 truncate">
+                        {lastResult.department}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] font-bold">
+                      {lastResult.seatNumber && (
+                        <span className="px-2 py-0.5 rounded-lg bg-amber-200/80 dark:bg-amber-900/60 text-amber-950 dark:text-amber-100 font-mono">
+                          Allocated Seat: {lastResult.seatNumber}
+                        </span>
+                      )}
+                      {lastResult.boardedAt && (
+                        <span className="px-2 py-0.5 rounded-lg bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200">
+                          Checked-In: {new Date(lastResult.boardedAt).toLocaleTimeString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {lastResult.method && (
                 <div className="text-[10px] font-mono opacity-80 text-teal-700 dark:text-teal-300">

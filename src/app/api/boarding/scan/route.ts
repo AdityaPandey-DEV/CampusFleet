@@ -59,25 +59,46 @@ export async function POST(req: NextRequest) {
     let targetBooking = bookingsData.find(b => !tripId || b.trip_id === tripId) || bookingsData[0];
     const resolvedStudentId = targetBooking.student_id;
 
-    // 3. Prevent duplicate check-in
-    if (targetBooking.status === "BOARDED") {
-      return NextResponse.json(
-        {
-          success: false,
-          status: "DUPLICATE",
-          message: `DUPLICATE REPLAY: Passenger was already verified and checked in at ${new Date(targetBooking.boarded_at || targetBooking.created_at).toLocaleTimeString()}.`,
-          seatNumber: targetBooking.seat_number,
-        },
-        { status: 409 }
-      );
-    }
-
-    // 4. Retrieve Student and Class Details from Database (including official passport photo)
+    // 3. Retrieve Student and Class Details from Database (including official passport photo)
     const { data: student, error: studentErr } = await supabaseAdmin
       .from("students")
       .select("id, full_name, enrollment_no, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status")
       .or(`id.eq.${resolvedStudentId},user_id.eq.${resolvedStudentId}`)
       .single();
+
+    // 4. Prevent duplicate check-in (Single-Use Attendance Per Shift)
+    if (targetBooking.status === "BOARDED") {
+      const boardedTime = targetBooking.boarded_at ? new Date(targetBooking.boarded_at).toLocaleTimeString() : "earlier today";
+      return NextResponse.json(
+        {
+          success: false,
+          status: "DUPLICATE",
+          code: "ALREADY_BOARDED",
+          message: `DUPLICATE REPLAY: Pass belongs to ${student?.full_name || "Student"} (Roll: ${student?.enrollment_no || "N/A"}), who was ALREADY checked in at ${boardedTime}. Duplicate scan blocked.`,
+          student: {
+            id: student?.id || resolvedStudentId,
+            fullName: student?.full_name || "University Student",
+            enrollmentNo: student?.enrollment_no || "VERIFIED",
+            photoUrl: student?.photo_url || null,
+            department: student?.department || "Academic Department",
+            semester: student?.semester || "Enrolled Semester",
+            className: student?.class_name || "Academic Class",
+          },
+          booking: {
+            id: targetBooking.id,
+            seatNumber: targetBooking.seat_number,
+            bookingCode: targetBooking.booking_code,
+            boardedAt: targetBooking.boarded_at,
+          },
+          studentName: student?.full_name || "Student",
+          enrollmentNo: student?.enrollment_no || "VERIFIED",
+          seatNumber: targetBooking.seat_number,
+          photoUrl: student?.photo_url || null,
+          boardedAt: targetBooking.boarded_at,
+        },
+        { status: 409 }
+      );
+    }
 
     if (student?.transport_access_suspended) {
       return NextResponse.json(
