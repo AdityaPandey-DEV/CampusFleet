@@ -149,7 +149,7 @@ describe("Student Subscription Lifecycle Engine", () => {
 
       const navLinks = isActive
         ? [
-            { href: "/portal", label: "Commute" },
+            { href: "/portal/profile", label: "Profile" },
             { href: "/portal/booking", label: "Seat Booking" },
             { href: "/portal/pass", label: "Digital Pass" },
             { href: "/portal/tracker", label: "Live Radar" },
@@ -172,7 +172,7 @@ describe("Student Subscription Lifecycle Engine", () => {
 
       const navLinks = isActive
         ? [
-            { href: "/portal", label: "Commute" },
+            { href: "/portal/profile", label: "Profile" },
             { href: "/portal/booking", label: "Seat Booking" },
             { href: "/portal/pass", label: "Digital Pass" },
             { href: "/portal/tracker", label: "Live Radar" },
@@ -180,7 +180,7 @@ describe("Student Subscription Lifecycle Engine", () => {
         : [{ href: "/portal/payments", label: "Pass Activation & Fees" }];
 
       expect(navLinks).toHaveLength(4);
-      expect(navLinks.map((l) => l.href)).toContain("/portal");
+      expect(navLinks.map((l) => l.href)).toContain("/portal/profile");
       expect(navLinks.map((l) => l.href)).toContain("/portal/booking");
       expect(navLinks.map((l) => l.href)).toContain("/portal/pass");
       expect(navLinks.map((l) => l.href)).toContain("/portal/tracker");

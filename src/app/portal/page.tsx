@@ -1,17 +1,14 @@
 import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import StudentPortalView from "@/components/portal/StudentPortalView";
-import { getTodayIST } from "@/lib/time-manager";
-import type { Student, Bus, Route, Stop, Shift, Trip, Booking, Staff } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Server Component: Student Commute Cockpit Shell
+ * Server Component: Student Portal Gateway
  * - Authenticates commuter session server-side
- * - Pre-queries active trips, buses, stops, bookings, and live shifts
- * - Instantly delivers pre-rendered HTML to eliminate loading flicker and data shift
+ * - If seat is already booked (CONFIRMED/BOARDED/WAITLISTED) -> defaults to Digital Pass (/portal/pass)
+ * - If seat is not booked -> defaults to Seat Booking (/portal/booking)
  */
 export default async function StudentPortalPage() {
   // 1. Authenticate server-side via HttpOnly JWT session
@@ -21,248 +18,34 @@ export default async function StudentPortalPage() {
     redirect("/login?redirect=/portal");
   }
 
-  const todayIST = getTodayIST();
-
-  // 2. Direct Server-Side Database Queries
-  const [
-    { data: rawDbTrips },
-    { data: dbBuses },
-    { data: dbRoutes },
-    { data: dbBookings },
-    { data: dbStops },
-    { data: dbShifts },
-    { data: dbStudents },
-    { data: dbStaff },
-    { data: dbRouteStops },
-  ] = await Promise.all([
-    supabaseAdmin
-      .from("trips")
-      .select("*")
-      .gte("trip_date", todayIST)
-      .order("trip_date", { ascending: true })
-      .order("trip_code"),
-    supabaseAdmin.from("buses").select("*"),
-    supabaseAdmin.from("routes").select("*"),
-    supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
-    supabaseAdmin.from("stops").select("*"),
-    supabaseAdmin.from("shifts").select("*"),
-    supabaseAdmin.from("students").select("*"),
-    supabaseAdmin.from("staff").select("*"),
-    supabaseAdmin.from("route_stops").select("*").order("stop_sequence", { ascending: true }),
-  ]);
-
-  let dbTrips = rawDbTrips;
-  if (!dbTrips || dbTrips.length === 0) {
-    const { data: allTrips } = await supabaseAdmin
-      .from("trips")
-      .select("*")
-      .order("trip_date", { ascending: false })
-      .limit(50);
-    dbTrips = allTrips;
+  // 2. Identify student from database
+  let studentQuery = supabaseAdmin.from("students").select("id, user_id, email");
+  if (session.email) {
+    studentQuery = studentQuery.or(
+      `user_id.eq.${session.id},id.eq.${session.id},email.ilike.${session.email}`
+    );
+  } else {
+    studentQuery = studentQuery.or(`user_id.eq.${session.id},id.eq.${session.id}`);
   }
 
-  // 3. Map DB records to typed domain models
-  const stops: Stop[] = (dbStops || []).map((s: any) => ({
-    id: s.id,
-    name: s.name,
-    code: s.code,
-    latitude: s.latitude,
-    longitude: s.longitude,
-    landmark: s.landmark,
-    geofenceRadiusMeters: s.geofence_radius || 80,
-    campusId: s.campus_id || s.campus || "",
-    campus: s.campus || "",
-    isBusMergeStop: Boolean(s.is_bus_merge_stop),
-    zoneCode: s.zone_code || "ZONE_B",
-  }));
+  const { data: dbStudents } = await studentQuery.limit(1);
+  const currentStudent = dbStudents?.[0];
+  const studentId = currentStudent?.id || session.id;
+  const userId = currentStudent?.user_id || session.id;
 
-  const stopMap = new Map(stops.map(s => [s.id, s]));
+  // 3. Check for active seat booking (CONFIRMED, BOARDED, WAITLISTED)
+  const { data: activeBookings } = await supabaseAdmin
+    .from("bookings_full")
+    .select("id, status")
+    .or(
+      `student_id.eq.${studentId},student_id.eq.${userId},student_id.eq.${session.id},student_id.eq.stud-${session.id}`
+    )
+    .in("status", ["CONFIRMED", "BOARDED", "WAITLISTED"])
+    .limit(1);
 
-  const routes: Route[] = (dbRoutes || []).map((r: any) => {
-    const routeStops = (dbRouteStops || [])
-      .filter((rs: any) => rs.route_id === r.id)
-      .sort((a: any, b: any) => a.stop_sequence - b.stop_sequence)
-      .map((rs: any) => ({
-        stopId: rs.stop_id,
-        stopOrder: rs.stop_sequence || 0,
-        stopSequence: rs.stop_sequence,
-        arrivalOffsetMinutes: rs.arrival_offset_minutes || 0,
-        bufferTimeMinutes: rs.buffer_time_minutes || 2,
-        stop: stopMap.get(rs.stop_id) || {
-          id: rs.stop_id,
-          name: rs.stop_id,
-          code: rs.stop_id,
-          latitude: 29.35,
-          longitude: 79.55,
-          landmark: "",
-          geofenceRadiusMeters: 80,
-          campusId: "",
-          campus: "",
-          isBusMergeStop: false,
-          zoneCode: "ZONE_B",
-        },
-      }));
-
-    return {
-      id: r.id,
-      code: r.code,
-      name: r.name,
-      description: r.description || "",
-      direction: r.direction || "HOME_TO_CAMPUS",
-      color: r.color || "#2563EB",
-      totalDistanceKm: Number(r.total_distance_km) || 28.0,
-      estimatedDurationMins: Number(r.estimated_duration_mins) || 55,
-      isActive: r.is_active ?? true,
-      stops: routeStops,
-    };
-  });
-
-  const trips: Trip[] = (dbTrips || []).map((t: any) => ({
-    id: t.id,
-    tripCode: t.trip_code,
-    routeId: t.route_id,
-    busId: t.bus_id,
-    shiftId: t.shift_id,
-    driverId: t.driver_id || "",
-    conductorId: t.conductor_id || "",
-    tripDate: t.trip_date,
-    status: t.status || "SCHEDULED",
-    delayMinutes: t.delay_minutes || 0,
-    manifestLocked: t.manifest_locked || false,
-    manifestLockedAt: t.manifest_locked_at,
-    startedAt: t.started_at,
-    completedAt: t.completed_at,
-    currentStopIndex: t.current_stop_index || 0,
-    direction: t.direction || undefined,
-    scheduleType: t.schedule_type || undefined,
-    customDays: t.custom_days || undefined,
-    departureTime: t.departure_time || undefined,
-    arrivalTime: t.arrival_time || undefined,
-    isSpecial: Boolean(t.is_special),
-    facilityType: t.facility_type || (Boolean(t.is_special) ? "PLACEMENT_DRIVE" : "REGULAR"),
-  }));
-
-  const buses: Bus[] = (dbBuses || []).map((b: any) => ({
-    id: b.id,
-    busNumber: b.bus_number,
-    registrationNo: b.registration_no || b.bus_number,
-    model: b.model || "Eicher Skyline Pro 36-Seater",
-    capacity: b.capacity || 36,
-    seatLayout: (b.seat_layout as any) || "2x2",
-    status: b.status || "ACTIVE",
-    gpsDeviceId: b.gps_device_id || "",
-    insuranceExpiry: b.insurance_expiry || "2026-12-31",
-    maintenanceDueDate: b.maintenance_due_date || "2026-12-31",
-    currentRouteId: b.current_route_id,
-  }));
-
-  const bookings: Booking[] = (dbBookings || []).map((b: any) => ({
-    id: b.id,
-    bookingCode: b.booking_code || `BK-${b.id.slice(0, 6)}`,
-    studentId: b.student_id,
-    tripId: b.trip_id,
-    busId: b.bus_id || "",
-    bookingDate: b.booking_date || (b.created_at ? b.created_at.split("T")[0] : ""),
-    boardingStopId: b.boarding_stop_id || b.stop_id || "",
-    status: b.status || "CONFIRMED",
-    waitlistPosition: b.waitlist_position,
-    seatNumber: b.seat_number,
-    passengerType: b.passenger_type || "SEATED",
-    mergeStopId: b.merge_stop_id,
-    createdAt: b.created_at || new Date().toISOString(),
-  }));
-
-  const students: Student[] = (dbStudents || []).map((s: any) => ({
-    id: s.id,
-    userId: s.user_id || s.id,
-    fullName: s.full_name || s.name || "Student",
-    enrollmentNo: s.enrollment_no || s.enrollment_number || "",
-    email: s.email || "",
-    phone: s.phone || "",
-    department: s.department || "Computer Science",
-    semester: String(s.semester || "4"),
-    zoneCode: s.zone_code || "ZONE_B",
-    primaryStopId: s.primary_stop_id || s.stop_id || "",
-    primaryRouteId: s.primary_route_id || s.route_id || "",
-    campusId: s.campus_id || s.campus || "",
-    campus: s.campus || "",
-    emergencyContact: {
-      name: s.emergency_contact_name || "Parent/Guardian",
-      relationship: "Parent",
-      phone: s.emergency_contact_phone || s.phone || "+91 9876543210",
-    },
-    transportAccessSuspended: Boolean(s.transport_access_suspended),
-    hasActiveSubscription: Boolean(s.has_active_subscription),
-    subscriptionExpiryDate: s.subscription_expiry_date || "2026-12-31",
-    classId: s.class_id,
-    className: s.class_name,
-    paymentStatus: s.payment_status || "UNPAID",
-    totalFeeDue: Number(s.total_fee_due) || 0,
-    totalFeePaid: Number(s.total_fee_paid) || 0,
-  }));
-
-  // Identify current student and fetch special shift allocations
-  const currentStudent = students.find(
-    s => s.userId === session.id || s.id === session.id || s.email?.toLowerCase() === session.email?.toLowerCase()
-  );
-
-  let allocatedShiftIds = new Set<string>();
-  if (currentStudent) {
-    const { data: dbAllocations } = await supabaseAdmin
-      .from("special_shift_allocations")
-      .select("shift_id")
-      .eq("student_id", currentStudent.id);
-    if (dbAllocations) {
-      allocatedShiftIds = new Set(dbAllocations.map((a: any) => a.shift_id));
-    }
+  if (activeBookings && activeBookings.length > 0) {
+    redirect("/portal/pass");
+  } else {
+    redirect("/portal/booking");
   }
-
-  const shifts: Shift[] = (dbShifts || []).map((sh: any) => ({
-    id: sh.id,
-    name: sh.name,
-    shiftType: sh.type || "MORNING",
-    startTime: (sh.start_time || "07:30").substring(0, 5),
-    endTime: (sh.end_time || "08:45").substring(0, 5),
-    bookingCutoffMins: sh.booking_cutoff_minutes || 30,
-    isSpecial: Boolean(
-      sh.is_special ||
-      sh.type === "CUSTOM" ||
-      sh.name?.toLowerCase().includes("placement") ||
-      sh.name?.toLowerCase().includes("conclave") ||
-      sh.name?.toLowerCase().includes("special")
-    ),
-    isPlacement: Boolean(sh.name?.toLowerCase().includes("placement")),
-  }));
-
-  // Only show regular shifts to all students; special shifts only to allocated students
-  const visibleShifts = shifts.filter(sh => !sh.isSpecial || allocatedShiftIds.has(sh.id));
-
-  const staff: Staff[] = (dbStaff || []).map((st: any) => ({
-    id: st.id,
-    userId: st.user_id || st.id,
-    employeeCode: st.employee_code || st.employee_id || `EMP-${st.id.slice(0, 4)}`,
-    fullName: st.full_name || st.name || "Staff Member",
-    email: st.email || "",
-    phone: st.phone || "",
-    category: (st.category || "TRANSPORT_OPS") as any,
-    rank: (st.rank || "REGULAR") as any,
-    role: (st.role || "driver") as any,
-    permissions: st.permissions || [],
-    licenseNo: st.license_no || st.license_number,
-    isActive: st.is_active ?? true,
-  }));
-
-  return (
-    <StudentPortalView
-      initialUser={session}
-      initialStudents={students}
-      initialBuses={buses}
-      initialRoutes={routes}
-      initialStops={stops}
-      initialShifts={visibleShifts}
-      initialTrips={trips}
-      initialBookings={bookings}
-      initialStaff={staff}
-    />
-  );
 }

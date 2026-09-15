@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BusFront, Compass, QrCode, CalendarCheck, CreditCard, Zap } from "lucide-react";
+import { BusFront, Compass, QrCode, CalendarCheck, CreditCard, Zap, User } from "lucide-react";
 
 interface MobileBottomNavProps {
   isPaymentApproved?: boolean;
@@ -15,9 +15,9 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
   const navItems = isPaymentApproved
     ? [
         {
-          href: "/portal",
-          label: "Commute",
-          icon: BusFront,
+          href: "/portal/profile",
+          label: "Profile",
+          icon: User,
         },
         {
           href: "/portal/booking",

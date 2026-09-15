@@ -22,6 +22,7 @@ import {
   ShieldAlert,
   Navigation,
   Zap,
+  User,
 } from "lucide-react";
 
 export default function StudentPortalLayout({
@@ -113,7 +114,7 @@ export default function StudentPortalLayout({
   // 2. If Paid & Active: Show Commute Cockpit, Seat Booking, Digital Pass, Live Radar (Fee payment form deactivated)
   const navLinks = isSubscriptionActive
     ? [
-        { href: "/portal", label: "Commute", icon: BusFront, requiresPayment: false },
+        { href: "/portal/profile", label: "Profile", icon: User, requiresPayment: false },
         { href: "/portal/booking", label: "Seat Booking", icon: CalendarCheck, requiresPayment: false },
         { href: "/portal/pass", label: "Digital Pass", icon: QrCode, requiresPayment: false },
         { href: "/portal/tracker", label: "Live Radar", icon: Navigation, requiresPayment: false },
