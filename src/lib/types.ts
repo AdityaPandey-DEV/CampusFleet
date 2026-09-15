@@ -124,6 +124,18 @@ export interface Shift {
   startTime: string; // "07:30"
   endTime: string;   // "09:00"
   bookingCutoffMins: number; // Cutoff prior to departure (e.g. 45 mins)
+  isSpecial?: boolean;
+  isPlacement?: boolean;
+}
+
+export interface SpecialShiftAllocation {
+  id: string;
+  shiftId: string;
+  studentId: string;
+  tripId?: string;
+  notes?: string;
+  allocatedBy?: string;
+  createdAt?: string;
 }
 
 export type TripDirection = "HOME_TO_CAMPUS" | "CAMPUS_TO_HOME" | "CAMPUS_TO_CAMPUS";

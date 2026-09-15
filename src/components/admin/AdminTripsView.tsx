@@ -30,8 +30,11 @@ import {
   CalendarDays,
   Shuffle,
   Tag,
+  GraduationCap,
+  UserCheck,
+  UserPlus,
 } from "lucide-react";
-import type { Trip, Bus, Route, Shift, Staff, Booking, TripDirection, TripScheduleType } from "@/lib/types";
+import type { Trip, Bus, Route, Shift, Staff, Booking, TripDirection, TripScheduleType, Student, SpecialShiftAllocation } from "@/lib/types";
 
 export interface AdminTripsProps {
   initialTrips?: Trip[];
@@ -64,6 +67,8 @@ export default function AdminTripsView({
   const [shifts, setShifts] = useState<Shift[]>(() => initialShifts.length > 0 ? initialShifts : store.getShifts());
   const [staff, setStaff] = useState<Staff[]>(() => initialStaff.length > 0 ? initialStaff : store.getStaff());
   const [bookings, setBookings] = useState<Booking[]>(() => initialBookings.length > 0 ? initialBookings : store.getBookings());
+  const [students, setStudents] = useState<Student[]>(() => store.getStudents());
+  const [allocations, setAllocations] = useState<SpecialShiftAllocation[]>(() => store.getSpecialShiftAllocations());
 
   // Filter States
   const [selectedDirection, setSelectedDirection] = useState<"ALL" | TripDirection>("ALL");
@@ -73,6 +78,8 @@ export default function AdminTripsView({
 
   // Modal State
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
+  const [allocatingTrip, setAllocatingTrip] = useState<Trip | null>(null);
+  const [studentSearch, setStudentSearch] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
 
@@ -108,6 +115,8 @@ export default function AdminTripsView({
       setShifts(store.getShifts());
       setStaff(store.getStaff());
       setBookings(store.getBookings());
+      setStudents(store.getStudents());
+      setAllocations(store.getSpecialShiftAllocations());
     });
     return unsub;
   }, []);
@@ -873,8 +882,8 @@ export default function AdminTripsView({
                 </div>
 
                 {/* Manifest Status & Bottom Actions */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-                  <div className="flex-1">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex-1 min-w-[140px]">
                     {trip.manifestLocked ? (
                       <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                         <Lock className="w-4 h-4 shrink-0" />
@@ -890,6 +899,19 @@ export default function AdminTripsView({
                       </button>
                     )}
                   </div>
+
+                  {/* Special Campus-to-Campus / Placement Allocation Button */}
+                  {(shift?.isSpecial || dir === "CAMPUS_TO_CAMPUS" || trip.shiftId === "shift-placement" || trip.shiftId === "shift-conclave" || route?.name?.toLowerCase().includes("placement")) && (
+                    <button
+                      type="button"
+                      onClick={() => setAllocatingTrip(trip)}
+                      className="px-3.5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all shrink-0 active:scale-95"
+                      title="Allocate eligible students who can view and book this special facility"
+                    >
+                      <GraduationCap className="w-4 h-4" />
+                      <span>Allocate ({allocations.filter(a => a.shiftId === trip.shiftId).length})</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -1228,6 +1250,183 @@ export default function AdminTripsView({
           </form>
         </div>
       )}
+
+      {/* Special Facility Student Allocation Modal */}
+      {allocatingTrip && (() => {
+        const tripShift = shifts.find(s => s.id === allocatingTrip.shiftId);
+        const tripRoute = routes.find(r => r.id === allocatingTrip.routeId);
+        const tripBus = buses.find(b => b.id === allocatingTrip.busId);
+        const shiftAllocations = allocations.filter(a => a.shiftId === allocatingTrip.shiftId);
+        const allocatedStudentIds = new Set(shiftAllocations.map(a => a.studentId));
+
+        const filteredStudents = students.filter(s => {
+          const query = studentSearch.toLowerCase();
+          return (
+            s.fullName.toLowerCase().includes(query) ||
+            s.enrollmentNo.toLowerCase().includes(query) ||
+            s.department.toLowerCase().includes(query) ||
+            s.email.toLowerCase().includes(query)
+          );
+        });
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in overflow-y-auto">
+            <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 space-y-5 text-slate-900 dark:text-white shadow-2xl my-8 max-h-[90vh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="p-2 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      <GraduationCap className="w-5 h-5" />
+                    </span>
+                    <h3 className="font-black text-lg">
+                      Allocate Commuters to Special Facility
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    <strong>{tripShift?.name || "Special Placement Shift"}</strong> • Route: {tripRoute?.name || "Campus-to-Campus Express"}
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                      🔒 Access Controlled: Only allocated students will see this shift on their portal.
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAllocatingTrip(null);
+                    setStudentSearch("");
+                  }}
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Stats Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Total Allocated</div>
+                  <div className="text-lg font-black text-slate-900 dark:text-white">
+                    {shiftAllocations.length} Students
+                  </div>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Bus Capacity</div>
+                  <div className="text-lg font-black text-slate-900 dark:text-white">
+                    {tripBus?.capacity || 36} Seats ({tripBus?.busNumber || "Bus"})
+                  </div>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 col-span-2 sm:col-span-1">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Shift Code</div>
+                  <div className="text-sm font-mono font-bold text-slate-900 dark:text-white truncate">
+                    {allocatingTrip.tripCode}
+                  </div>
+                </div>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search student by name, enrollment no, or department..."
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              {/* Students List */}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[360px]">
+                {filteredStudents.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-slate-400 font-bold">
+                    No matching students found.
+                  </div>
+                ) : (
+                  filteredStudents.map(student => {
+                    const isAllocated = allocatedStudentIds.has(student.id);
+                    return (
+                      <div
+                        key={student.id}
+                        className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${
+                          isAllocated
+                            ? "bg-amber-50/70 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800"
+                            : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                            isAllocated ? "bg-amber-500 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                          }`}>
+                            {student.fullName.charAt(0)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-xs text-slate-900 dark:text-white truncate flex items-center gap-2">
+                              <span>{student.fullName}</span>
+                              {isAllocated && (
+                                <span className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200">
+                                  Allocated ✓
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono truncate">
+                              {student.enrollmentNo} • {student.department} (Sem {student.semester})
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        {isAllocated ? (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await store.removeStudentFromSpecialShift(allocatingTrip.shiftId, student.id);
+                              setAllocations([...store.getSpecialShiftAllocations()]);
+                              showToast(`Removed ${student.fullName} from facility allocation.`);
+                            }}
+                            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-200 dark:border-rose-900 transition-all shrink-0"
+                          >
+                            Remove
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await store.allocateStudentToSpecialShift(allocatingTrip.shiftId, student.id, allocatingTrip.id);
+                              setAllocations([...store.getSpecialShiftAllocations()]);
+                              showToast(`Allocated ${student.fullName} to ${tripShift?.name || "facility"}.`);
+                            }}
+                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 flex items-center gap-1"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                            <span>Allocate +</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAllocatingTrip(null);
+                    setStudentSearch("");
+                  }}
+                  className="px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-xs transition-all"
+                >
+                  Done & Save Allocations
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

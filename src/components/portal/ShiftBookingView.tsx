@@ -264,6 +264,19 @@ export default function ShiftBookingView({
     return store.getBusesForStop(selectedStopId);
   }, [selectedStopId]);
 
+  // Special Facility Access Control: Only allocated students see special placement/event shifts
+  const visibleShifts = useMemo(() => {
+    if (!activeStudent) return shifts.filter(s => !s.isSpecial);
+    const allocatedShiftIds = new Set(store.getAllocatedShiftIdsForStudent(activeStudent.id));
+    return shifts.filter(s => !s.isSpecial || allocatedShiftIds.has(s.id));
+  }, [shifts, activeStudent]);
+
+  useEffect(() => {
+    if (visibleShifts.length > 0 && !visibleShifts.some(s => s.id === selectedShiftId)) {
+      setSelectedShiftId(visibleShifts[0].id);
+    }
+  }, [visibleShifts, selectedShiftId]);
+
   const handleBook = async () => {
     if (!currentUser || !activeStudent) {
       router.push("/login?redirect=/portal/booking");
@@ -394,9 +407,9 @@ export default function ShiftBookingView({
 
         {/* Shift Selection Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pt-1">
-          {shifts.map(sh => {
+          {visibleShifts.map(sh => {
             const isSelected = selectedShiftId === sh.id;
-            const isSpecial = sh.name.toLowerCase().includes("special");
+            const isSpecial = Boolean(sh.isSpecial || sh.name.toLowerCase().includes("special") || sh.name.toLowerCase().includes("placement"));
             const status = getShiftStatus(sh);
             return (
               <button
@@ -419,6 +432,11 @@ export default function ShiftBookingView({
                 <Clock className="w-3.5 h-3.5" />
                 <span>{sh.name}</span>
                 <span className="font-mono opacity-80 font-normal">({formatTime(sh.startTime)})</span>
+                {isSpecial && (
+                  <span className="text-[9px] uppercase px-1.5 py-0.5 rounded-md font-extrabold bg-amber-500/20 text-amber-900 dark:text-amber-200">
+                    Special Facility
+                  </span>
+                )}
                 <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded-md font-extrabold ${isSelected ? "bg-black/25 text-white" : status.badgeColor}`}>
                   {status.status === "BOOKING_OPEN" ? `${status.minutesToCutoff}m left` : status.status === "CUTOFF_PASSED" ? "Locked" : status.status === "IN_TRANSIT" ? "En Route" : status.status === "COMPLETED" ? "Done" : "Upcoming"}
                 </span>

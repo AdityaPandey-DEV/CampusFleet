@@ -147,15 +147,6 @@ export default async function StudentPortalPage() {
     createdAt: b.created_at || new Date().toISOString(),
   }));
 
-  const shifts: Shift[] = (dbShifts || []).map((sh: any) => ({
-    id: sh.id,
-    name: sh.name,
-    shiftType: sh.type || "MORNING",
-    startTime: (sh.start_time || "07:30").substring(0, 5),
-    endTime: (sh.end_time || "08:45").substring(0, 5),
-    bookingCutoffMins: sh.booking_cutoff_minutes || 30,
-  }));
-
   const students: Student[] = (dbStudents || []).map((s: any) => ({
     id: s.id,
     userId: s.user_id || s.id,
@@ -185,6 +176,42 @@ export default async function StudentPortalPage() {
     totalFeePaid: Number(s.total_fee_paid) || 0,
   }));
 
+  // Identify current student and fetch special shift allocations
+  const currentStudent = students.find(
+    s => s.userId === session.id || s.id === session.id || s.email?.toLowerCase() === session.email?.toLowerCase()
+  );
+
+  let allocatedShiftIds = new Set<string>();
+  if (currentStudent) {
+    const { data: dbAllocations } = await supabaseAdmin
+      .from("special_shift_allocations")
+      .select("shift_id")
+      .eq("student_id", currentStudent.id);
+    if (dbAllocations) {
+      allocatedShiftIds = new Set(dbAllocations.map((a: any) => a.shift_id));
+    }
+  }
+
+  const shifts: Shift[] = (dbShifts || []).map((sh: any) => ({
+    id: sh.id,
+    name: sh.name,
+    shiftType: sh.type || "MORNING",
+    startTime: (sh.start_time || "07:30").substring(0, 5),
+    endTime: (sh.end_time || "08:45").substring(0, 5),
+    bookingCutoffMins: sh.booking_cutoff_minutes || 30,
+    isSpecial: Boolean(
+      sh.is_special ||
+      sh.type === "CUSTOM" ||
+      sh.name?.toLowerCase().includes("placement") ||
+      sh.name?.toLowerCase().includes("conclave") ||
+      sh.name?.toLowerCase().includes("special")
+    ),
+    isPlacement: Boolean(sh.name?.toLowerCase().includes("placement")),
+  }));
+
+  // Only show regular shifts to all students; special shifts only to allocated students
+  const visibleShifts = shifts.filter(sh => !sh.isSpecial || allocatedShiftIds.has(sh.id));
+
   const staff: Staff[] = (dbStaff || []).map((st: any) => ({
     id: st.id,
     userId: st.user_id || st.id,
@@ -207,7 +234,7 @@ export default async function StudentPortalPage() {
       initialBuses={buses}
       initialRoutes={routes}
       initialStops={stops}
-      initialShifts={shifts}
+      initialShifts={visibleShifts}
       initialTrips={trips}
       initialBookings={bookings}
       initialStaff={staff}

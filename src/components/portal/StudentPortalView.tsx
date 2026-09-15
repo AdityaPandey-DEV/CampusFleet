@@ -164,6 +164,44 @@ export default function StudentPortalView({
       ) || null
     : null;
 
+  // Filter shifts: regular academic shifts open to all; special facility shifts only visible to allocated students
+  const visibleShifts = useMemo(() => {
+    if (!activeStudent) {
+      return shifts.filter(sh => !sh.isSpecial);
+    }
+    const allocatedShiftIds = new Set(store.getAllocatedShiftIdsForStudent(activeStudent.id));
+    return shifts.filter(sh => !sh.isSpecial || allocatedShiftIds.has(sh.id));
+  }, [shifts, activeStudent]);
+
+  useEffect(() => {
+    if (visibleShifts.length > 0 && !visibleShifts.some(s => s.id === selectedShiftId)) {
+      setSelectedShiftId(visibleShifts[0].id);
+    }
+  }, [visibleShifts, selectedShiftId]);
+
+  const getShiftBadgeAndCategory = (sh: Shift) => {
+    const isSpecial = Boolean(sh.isSpecial || sh.shiftType === "CUSTOM" || sh.name.toLowerCase().includes("placement") || sh.name.toLowerCase().includes("conclave") || sh.name.toLowerCase().includes("special"));
+    const isPlacement = Boolean(sh.isPlacement || sh.name.toLowerCase().includes("placement"));
+    const isConclave = Boolean(sh.name.toLowerCase().includes("conclave") || sh.name.toLowerCase().includes("event"));
+
+    if (isPlacement) {
+      return { category: "🎓 Special Placement Facility", isSpecial: true };
+    }
+    if (isConclave) {
+      return { category: "🏢 Campus Event & Conclave", isSpecial: true };
+    }
+    if (isSpecial) {
+      return { category: "⭐ Special Campus Facility", isSpecial: true };
+    }
+    if (sh.shiftType === "MORNING" || sh.name.toLowerCase().includes("morning") || sh.name.toLowerCase().includes("inbound")) {
+      return { category: "🌅 Morning Shift", isSpecial: false };
+    }
+    if (sh.shiftType === "AFTERNOON" || sh.name.toLowerCase().includes("afternoon")) {
+      return { category: "☀️ Afternoon Shift", isSpecial: false };
+    }
+    return { category: "🌆 Evening Shift", isSpecial: false };
+  };
+
   // Set default stop based on student's profile or first stop
   useEffect(() => {
     if (!selectedStopId && stops.length > 0) {
@@ -720,12 +758,9 @@ export default function StudentPortalView({
 
             {/* Shift Toggle Tabs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {shifts.map(sh => {
+              {visibleShifts.map(sh => {
                 const isSelected = selectedShiftId === sh.id;
-                const isInbound =
-                  sh.shiftType === "MORNING" ||
-                  sh.name.toLowerCase().includes("morning") ||
-                  sh.name.toLowerCase().includes("inbound");
+                const { category, isSpecial } = getShiftBadgeAndCategory(sh);
                 const status = getShiftStatus(sh);
                 return (
                   <button
@@ -733,20 +768,27 @@ export default function StudentPortalView({
                     onClick={() => setSelectedShiftId(sh.id)}
                     className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
                       isSelected
-                        ? "bg-blue-50/70 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 shadow-sm"
+                        ? isSpecial
+                          ? "bg-amber-50/80 dark:bg-amber-950/40 border-amber-500 dark:border-amber-500 shadow-sm ring-2 ring-amber-500/20"
+                          : "bg-blue-50/70 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 shadow-sm"
                         : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-slate-300"
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-extrabold uppercase text-slate-500">
-                        {isInbound ? "🌅 Morning Shift" : "🌆 Evening Shift"}
+                      <span className="text-[11px] font-extrabold uppercase text-slate-500 flex items-center gap-1.5">
+                        {category}
                       </span>
                       <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${status.badgeColor}`}>
                         {status.status === "BOOKING_OPEN" ? `${status.minutesToCutoff}m left` : status.label}
                       </span>
                     </div>
-                    <div className="text-sm font-black text-slate-900 dark:text-white mt-1">
-                      {sh.name}
+                    <div className="text-sm font-black text-slate-900 dark:text-white mt-1 flex items-center gap-1.5">
+                      <span>{sh.name}</span>
+                      {isSpecial && (
+                        <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[9px] font-bold rounded-md">
+                          Allocated Facility ✓
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-slate-500 font-mono mt-0.5">
                       {formatTime(sh.startTime)} - {formatTime(sh.endTime)}

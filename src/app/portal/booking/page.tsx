@@ -35,15 +35,6 @@ export default async function ShiftBookingPage() {
     supabaseAdmin.from("students").select("*"),
   ]);
 
-  const shifts: Shift[] = (dbShifts || []).map((sh: any) => ({
-    id: sh.id,
-    name: sh.name,
-    shiftType: sh.type || "MORNING",
-    startTime: (sh.start_time || "07:30").substring(0, 5),
-    endTime: (sh.end_time || "08:45").substring(0, 5),
-    bookingCutoffMins: sh.booking_cutoff_minutes || 30,
-  }));
-
   const stops: Stop[] = (dbStops || []).map((s: any) => ({
     id: s.id,
     name: s.name,
@@ -135,11 +126,46 @@ export default async function ShiftBookingPage() {
     totalFeePaid: Number(s.total_fee_paid) || 0,
   }));
 
+  // Identify student and check special shift allocations
+  const currentStudent = students.find(
+    s => s.userId === session.id || s.id === session.id || s.email?.toLowerCase() === session.email?.toLowerCase()
+  );
+
+  let allocatedShiftIds = new Set<string>();
+  if (currentStudent) {
+    const { data: dbAllocations } = await supabaseAdmin
+      .from("special_shift_allocations")
+      .select("shift_id")
+      .eq("student_id", currentStudent.id);
+    if (dbAllocations) {
+      allocatedShiftIds = new Set(dbAllocations.map((a: any) => a.shift_id));
+    }
+  }
+
+  const shifts: Shift[] = (dbShifts || []).map((sh: any) => ({
+    id: sh.id,
+    name: sh.name,
+    shiftType: sh.type || "MORNING",
+    startTime: (sh.start_time || "07:30").substring(0, 5),
+    endTime: (sh.end_time || "08:45").substring(0, 5),
+    bookingCutoffMins: sh.booking_cutoff_minutes || 30,
+    isSpecial: Boolean(
+      sh.is_special ||
+      sh.type === "CUSTOM" ||
+      sh.name?.toLowerCase().includes("placement") ||
+      sh.name?.toLowerCase().includes("conclave") ||
+      sh.name?.toLowerCase().includes("special")
+    ),
+    isPlacement: Boolean(sh.name?.toLowerCase().includes("placement")),
+  }));
+
+  const visibleShifts = shifts.filter(sh => !sh.isSpecial || allocatedShiftIds.has(sh.id));
+
   return (
     <ShiftBookingView
       initialUser={session}
       initialStudents={students}
-      initialShifts={shifts}
+      initialShifts={visibleShifts}
       initialStops={stops}
       initialBuses={buses}
       initialTrips={trips}

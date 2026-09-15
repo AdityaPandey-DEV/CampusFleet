@@ -21,6 +21,7 @@ import {
   UserAccount,
   TransitZone,
   TRANSIT_ZONES,
+  SpecialShiftAllocation,
 } from "./types";
 import { createBooking, cancelBookingAndPromoteWaitlist, lockFinalManifest } from "./reservation-engine";
 import { supabase } from "./supabaseClient";
@@ -96,6 +97,7 @@ class CampusFleetStore {
   private transitZones: TransitZone[] = [];
   private attendanceRecords: AttendanceRecord[] = [];
   private users: UserAccount[] = [];
+  private specialShiftAllocations: SpecialShiftAllocation[] = [];
   private stopRoutes: { stopId: string; routeId: string; busId: string; stopOrder: number }[] = [];
   private cachedGraph: StopGraph | null = null;
 
@@ -333,6 +335,28 @@ class CampusFleetStore {
           startTime: (sh.start_time || "07:30").substring(0, 5),
           endTime: (sh.end_time || "08:45").substring(0, 5),
           bookingCutoffMins: sh.booking_cutoff_minutes || 30,
+          isSpecial: Boolean(
+            sh.is_special ||
+            sh.type === "CUSTOM" ||
+            sh.name?.toLowerCase().includes("placement") ||
+            sh.name?.toLowerCase().includes("conclave") ||
+            sh.name?.toLowerCase().includes("special")
+          ),
+          isPlacement: Boolean(sh.name?.toLowerCase().includes("placement")),
+        }));
+      }
+
+      // 4.1 Fetch Special Shift Allocations
+      const { data: dbAllocations } = await supabase.from("special_shift_allocations").select("*");
+      if (dbAllocations) {
+        this.specialShiftAllocations = dbAllocations.map(a => ({
+          id: a.id,
+          shiftId: a.shift_id,
+          studentId: a.student_id,
+          tripId: a.trip_id || undefined,
+          notes: a.notes || undefined,
+          allocatedBy: a.allocated_by || undefined,
+          createdAt: a.created_at || undefined,
         }));
       }
 
@@ -732,6 +756,83 @@ class CampusFleetStore {
     return this.campuses.find(c => c.isPrimary) || this.campuses[0];
   }
   public getShifts() { return this.shifts; }
+  public getSpecialShiftAllocations() { return this.specialShiftAllocations; }
+
+  public getAllocatedShiftIdsForStudent(studentId: string): string[] {
+    if (!studentId) return [];
+    return this.specialShiftAllocations
+      .filter(a => a.studentId === studentId)
+      .map(a => a.shiftId);
+  }
+
+  public isStudentAllocatedForShift(studentId: string, shiftId: string): boolean {
+    const shift = this.shifts.find(s => s.id === shiftId);
+    if (!shift || !shift.isSpecial) return true; // Regular shifts open to all
+    if (!studentId) return false;
+    return this.specialShiftAllocations.some(a => a.studentId === studentId && a.shiftId === shiftId);
+  }
+
+  public getVisibleShiftsForStudent(studentId?: string): Shift[] {
+    if (!studentId) {
+      return this.shifts.filter(sh => !sh.isSpecial);
+    }
+    const allocatedShiftIds = new Set(this.getAllocatedShiftIdsForStudent(studentId));
+    return this.shifts.filter(sh => !sh.isSpecial || allocatedShiftIds.has(sh.id));
+  }
+
+  public async allocateStudentToSpecialShift(shiftId: string, studentId: string, tripId?: string, notes?: string) {
+    const existing = this.specialShiftAllocations.find(a => a.shiftId === shiftId && a.studentId === studentId);
+    if (existing) {
+      return { success: true, message: "Student already allocated to this facility" };
+    }
+
+    const newAlloc: SpecialShiftAllocation = {
+      id: `alloc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      shiftId,
+      studentId,
+      tripId,
+      notes,
+      allocatedBy: this.currentUser?.id,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.specialShiftAllocations.push(newAlloc);
+    this.notify();
+
+    if (typeof window !== "undefined") {
+      try {
+        await supabase.from("special_shift_allocations").insert([{
+          shift_id: shiftId,
+          student_id: studentId,
+          trip_id: tripId || null,
+          notes: notes || null,
+          allocated_by: this.currentUser?.id || null,
+        }]);
+      } catch (err) {
+        console.warn("DB special shift allocation notice:", err);
+      }
+    }
+    return { success: true, message: "Student allocated successfully" };
+  }
+
+  public async removeStudentFromSpecialShift(shiftId: string, studentId: string) {
+    this.specialShiftAllocations = this.specialShiftAllocations.filter(
+      a => !(a.shiftId === shiftId && a.studentId === studentId)
+    );
+    this.notify();
+
+    if (typeof window !== "undefined") {
+      try {
+        await supabase
+          .from("special_shift_allocations")
+          .delete()
+          .match({ shift_id: shiftId, student_id: studentId });
+      } catch (err) {
+        console.warn("DB special shift deallocation notice:", err);
+      }
+    }
+    return { success: true, message: "Student allocation removed" };
+  }
   public getTrips() { return this.trips; }
   public getTodayTrips() {
     const now = new Date();
