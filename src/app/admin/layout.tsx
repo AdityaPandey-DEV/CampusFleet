@@ -67,12 +67,14 @@ export default function AdminLayout({
   };
   const [notifications, setNotifications] = useState(store.getNotifications());
   const [issues, setIssues] = useState(store.getIssues());
+  const [campuses, setCampuses] = useState(() => store.getCampuses());
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
       setNotifications(store.getNotifications());
       setIssues(store.getIssues());
+      setCampuses(store.getCampuses());
     });
     return unsub;
   }, []);
@@ -97,6 +99,7 @@ export default function AdminLayout({
 
   const navItems = [
     { href: "/admin", label: "Overview HUD", icon: LayoutDashboard },
+    { href: "/admin/campuses", label: "Campuses & Zones", icon: Building2 },
     { href: "/admin/classes", label: "Classes & Timetable", icon: BookOpen },
     { href: "/admin/merges", label: "Merge & Dispatch", icon: GitMerge },
     { href: "/admin/buses", label: "Bus Fleet", icon: BusFront },
@@ -407,6 +410,14 @@ export default function AdminLayout({
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-mono truncate">
               CAMPUS FLEET OPS • SYSTEM v2.4
             </span>
+            <Link
+              href="/admin/campuses"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-950/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-bold transition-all shadow-2xs"
+              title="Manage Multi-Campus Entities & Zones"
+            >
+              <Building2 className="w-3.5 h-3.5 text-blue-500" />
+              <span>Campus: {store.getPrimaryCampus()?.code || campuses[0]?.code || "GEHU"}</span>
+            </Link>
           </div>
 
           <div className="flex items-center gap-2.5 flex-shrink-0">
