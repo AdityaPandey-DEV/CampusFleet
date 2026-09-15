@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
+import { getTodayIST } from "@/lib/time-manager";
 import {
   Navigation,
   Lock,
@@ -90,7 +91,7 @@ export default function AdminTripsView({
     direction: "HOME_TO_CAMPUS",
     scheduleType: "EVERY_DAY",
     customDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-    tripDate: new Date().toISOString().split("T")[0],
+    tripDate: getTodayIST(),
     departureTime: "07:20",
     routeId: "",
     busId: "",

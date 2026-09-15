@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
+import { useCampusTime } from "@/components/common/CampusTimeProvider";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { NearestStopFinder } from "@/components/booking/NearestStopFinder";
 import { IncomingShuttleRadar } from "@/components/booking/IncomingShuttleRadar";
@@ -83,6 +84,20 @@ export default function ShiftBookingView({
   const [bookingMessage, setBookingMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
 
+  const {
+    currentTime,
+    currentDate,
+    nextShift,
+    getShiftStatus,
+  } = useCampusTime();
+
+  // Smart Auto-selection: Default to the next upcoming shift if on default
+  useEffect(() => {
+    if (nextShift && shifts.some(s => s.id === nextShift.id)) {
+      setSelectedShiftId(nextShift.id);
+    }
+  }, [nextShift, shifts]);
+
   useEffect(() => {
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
@@ -132,9 +147,10 @@ export default function ShiftBookingView({
     }
   }, [activeStudent, selectedStopId, stops]);
 
-  const now = new Date();
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const todayStr = new Date(now.getTime() + istOffset).toISOString().split("T")[0];
+  const todayStr = currentDate;
+  const selectedShift = shifts.find(s => s.id === selectedShiftId) || shifts[0];
+  const shiftStatus = selectedShift ? getShiftStatus(selectedShift) : null;
+  const isCutoffPassed = shiftStatus ? !shiftStatus.isBookingOpen : false;
 
   const targetTrip =
     trips.find(t => t.shiftId === selectedShiftId && t.tripDate === todayStr) ||
@@ -207,6 +223,17 @@ export default function ShiftBookingView({
     }
     if (!bus || !targetTrip) {
       setBookingMessage({ type: "error", text: "No active bus or trip scheduled for this shift yet. Please contact the Transport Admin." });
+      return;
+    }
+    if (isCutoffPassed) {
+      setBookingMessage({
+        type: "error",
+        text: `Booking is closed for ${selectedShift?.name || "this shift"} (${shiftStatus?.label}). Departure manifest is locked. Please select an upcoming shift.`,
+      });
+      return;
+    }
+    if (!targetTrip) {
+      setBookingMessage({ type: "error", text: "No scheduled trip found for this shift." });
       return;
     }
     if (!selectedStopId) {
@@ -308,17 +335,18 @@ export default function ShiftBookingView({
         {/* Shift Selection Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pt-1">
           {shifts.map(sh => {
-            const isSelected = sh.id === selectedShiftId;
-            const isSpecial = sh.shiftType === "CUSTOM";
+            const isSelected = selectedShiftId === sh.id;
+            const isSpecial = sh.name.toLowerCase().includes("special");
+            const status = getShiftStatus(sh);
             return (
               <button
                 key={sh.id}
-                type="button"
                 onClick={() => {
                   setSelectedShiftId(sh.id);
+                  setSelectedSeatNumber(null);
                   setBookingMessage(null);
                 }}
-                className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all flex-shrink-0 ${
+                className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all flex-shrink-0 cursor-pointer ${
                   isSelected
                     ? isSpecial
                       ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-600/20"
@@ -331,15 +359,32 @@ export default function ShiftBookingView({
                 <Clock className="w-3.5 h-3.5" />
                 <span>{sh.name}</span>
                 <span className="font-mono opacity-80 font-normal">({formatTime(sh.startTime)})</span>
-                {isSpecial && (
-                  <span className="text-[9px] uppercase px-1.5 py-0.5 bg-black/20 text-white rounded-md font-extrabold">
-                    Special
-                  </span>
-                )}
+                <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded-md font-extrabold ${isSelected ? "bg-black/25 text-white" : status.badgeColor}`}>
+                  {status.status === "BOOKING_OPEN" ? `${status.minutesToCutoff}m left` : status.status === "CUTOFF_PASSED" ? "Locked" : status.status === "IN_TRANSIT" ? "En Route" : status.status === "COMPLETED" ? "Done" : "Upcoming"}
+                </span>
               </button>
             );
           })}
         </div>
+
+        {/* Operational Cutoff Status Banner */}
+        {shiftStatus && (
+          <div className={`p-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
+            shiftStatus.isBookingOpen
+              ? "bg-teal-50/80 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800 text-teal-950 dark:text-teal-200"
+              : "bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200"
+          }`}>
+            <div className="flex items-center gap-2">
+              <Clock className={`w-4 h-4 shrink-0 ${shiftStatus.isBookingOpen ? "text-teal-600 dark:text-teal-400" : "text-amber-600 dark:text-amber-400"}`} />
+              <span>
+                <strong>{selectedShift?.name}:</strong> {shiftStatus.isBookingOpen ? `Reservation Open • Closes in ${shiftStatus.minutesToCutoff} mins (${selectedShift?.bookingCutoffMins}m cutoff window prior to departure)` : `Booking Closed (${shiftStatus.label}). Manifest finalized for dispatch.`}
+              </span>
+            </div>
+            <span className="font-mono text-[11px] font-bold opacity-80 shrink-0">
+              Campus Clock: {currentTime} IST
+            </span>
+          </div>
+        )}
       </div>
 
       {/* redBus-inspired Step Navigation Bar */}
@@ -746,6 +791,14 @@ export default function ShiftBookingView({
                   <Sparkles className="w-4 h-4" />
                   <span>Sign In to Confirm Seat Reservation ({selectedSeatNumber || "1A"}) →</span>
                 </Link>
+              ) : isCutoffPassed ? (
+                <button
+                  disabled
+                  className="w-full py-4 bg-amber-100 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-extrabold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Manifest Locked — Booking Closed for this Shift</span>
+                </button>
               ) : isFull ? (
                 <button
                   disabled

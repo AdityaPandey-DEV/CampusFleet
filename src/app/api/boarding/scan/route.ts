@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getDayOfWeekIST, getCurrentTimeIST } from "@/lib/time-manager";
 
 /**
  * QR-Based Bus Boarding with Class-Time Entry Restrictions
@@ -142,16 +143,9 @@ export async function POST(req: NextRequest) {
     const isLeavingCampus = routeDirection === "CAMPUS_TO_HOME";
 
     if (isLeavingCampus && student?.class_id) {
-      // Determine day of week in local time
-      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      const now = new Date();
-      const currentDay = days[now.getDay()];
-
-      // Format current local time as HH:MM:SS
-      const hours = String(now.getHours()).padStart(2, "0");
-      const minutes = String(now.getMinutes()).padStart(2, "0");
-      const seconds = String(now.getSeconds()).padStart(2, "0");
-      const currentTimeStr = `${hours}:${minutes}:${seconds}`;
+      // Determine day of week and current time in Indian Standard Time (IST, UTC+5:30)
+      const currentDay = getDayOfWeekIST();
+      const currentTimeStr = getCurrentTimeIST(true); // "HH:MM:SS"
 
       // Query timetable slots for this student's class on today's day
       const { data: timetableSlots } = await supabaseAdmin

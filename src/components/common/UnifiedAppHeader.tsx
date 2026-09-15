@@ -7,6 +7,7 @@ import { store } from "@/lib/store";
 import { authService } from "@/lib/auth-service";
 import { UserRole } from "@/lib/types";
 import { useTheme } from "./ThemeProvider";
+import { CampusTimeHUD } from "./CampusTimeHUD";
 import {
   BusFront,
   GraduationCap,
@@ -381,6 +382,8 @@ export function UnifiedAppHeader({
 
           {/* Right Action Items & Command Pill */}
           <div className="flex items-center gap-2 flex-shrink-0 z-10">
+            <CampusTimeHUD showSimControl={false} />
+
             {showInstall && onOpenInstall && (
               <button
                 onClick={onOpenInstall}

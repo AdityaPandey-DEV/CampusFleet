@@ -1,5 +1,6 @@
 import { Booking, BookingStatus, Bus, Trip, Student, BookingStatusHistory } from "./types";
 import { generateSeatLayout } from "./utils";
+import { isTripCutoffPassed } from "./time-manager";
 
 export interface BookingResult {
   success: boolean;
@@ -13,12 +14,7 @@ export interface BookingResult {
  * Checks if booking cutoff time has passed for a given trip
  */
 export function isCutoffPassed(trip: Trip, cutoffMins: number = 45): boolean {
-  if (trip.manifestLocked) return true;
-  // In demo simulation, we also check trip status
-  if (trip.status === "IN_PROGRESS" || trip.status === "COMPLETED" || trip.status === "CANCELLED") {
-    return true;
-  }
-  return false;
+  return isTripCutoffPassed(trip, { id: trip.shiftId, bookingCutoffMins: cutoffMins } as any);
 }
 
 /**

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "./supabaseClient";
+import { getTodayIST } from "./time-manager";
 
 export interface DailyRolloverResult {
   success: boolean;
@@ -23,11 +24,7 @@ export async function executeDailyRollover(
   targetDateParam?: string,
   options: { force?: boolean; triggeredBy?: string } = {}
 ): Promise<DailyRolloverResult> {
-  const now = new Date();
-  // Calculate date in Indian Standard Time (UTC+5:30)
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const istDate = new Date(now.getTime() + istOffset);
-  const targetDate = targetDateParam || istDate.toISOString().split("T")[0];
+  const targetDate = targetDateParam || getTodayIST();
 
   try {
     // 1. Check if trips already exist for targetDate

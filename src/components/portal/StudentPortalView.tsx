@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
+import { useCampusTime } from "@/components/common/CampusTimeProvider";
 import { StationLineProgress } from "@/components/ui/StationLineProgress";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { BoardingPassCard } from "@/components/ticket/BoardingPassCard";
@@ -92,11 +93,23 @@ export default function StudentPortalView({
   const [selectedStopId, setSelectedStopId] = useState("");
   const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>("1A");
   const [bookingMessage, setBookingMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  // QR Modal State (for State B)
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isChangeSeatOpen, setIsChangeSeatOpen] = useState(false);
   const [studentTrackerMode, setStudentTrackerMode] = useState<"FLOWCHART" | "MAP">("FLOWCHART");
+
+  const {
+    currentTime,
+    currentDate,
+    nextShift,
+    getShiftStatus,
+  } = useCampusTime();
+
+  // Smart default shift: select next upcoming shift if available
+  useEffect(() => {
+    if (nextShift && shifts.some(s => s.id === nextShift.id)) {
+      setSelectedShiftId(nextShift.id);
+    }
+  }, [nextShift, shifts]);
 
   useEffect(() => {
     if (initialStudents.length > 0 && students.length === 0) setStudents(initialStudents);
@@ -274,6 +287,15 @@ export default function StudentPortalView({
   const handleBook = () => {
     if (!currentUser || !activeStudent) {
       alert("Please sign in as an enrolled student to book your bus seat.");
+      return;
+    }
+    const selectedShift = shifts.find(s => s.id === selectedShiftId) || shifts[0];
+    const shiftStatus = selectedShift ? getShiftStatus(selectedShift) : null;
+    if (shiftStatus && !shiftStatus.isBookingOpen) {
+      setBookingMessage({
+        type: "error",
+        text: `Booking closed for ${selectedShift?.name || "this shift"} (${shiftStatus.label}). Departure manifest is locked.`,
+      });
       return;
     }
     if (!planningBus || !targetTrip) {
@@ -697,6 +719,7 @@ export default function StudentPortalView({
                   sh.shiftType === "MORNING" ||
                   sh.name.toLowerCase().includes("morning") ||
                   sh.name.toLowerCase().includes("inbound");
+                const status = getShiftStatus(sh);
                 return (
                   <button
                     key={sh.id}
@@ -711,9 +734,9 @@ export default function StudentPortalView({
                       <span className="text-[11px] font-extrabold uppercase text-slate-500">
                         {isInbound ? "🌅 Morning Shift" : "🌆 Evening Shift"}
                       </span>
-                      {isSelected && (
-                        <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400" />
-                      )}
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${status.badgeColor}`}>
+                        {status.status === "BOOKING_OPEN" ? `${status.minutesToCutoff}m left` : status.label}
+                      </span>
                     </div>
                     <div className="text-sm font-black text-slate-900 dark:text-white mt-1">
                       {sh.name}
