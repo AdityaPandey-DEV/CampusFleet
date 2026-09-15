@@ -323,23 +323,23 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-blue-500 selection:text-white">
       {/* Navbar */}
-      <header className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+      <header className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 overflow-x-clip">
+        <Link href="/" className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 flex-shrink-0">
             <BusFront className="w-5 h-5" />
           </div>
-          <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+          <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
             Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
           </span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           <ThemeToggle />
           <Link
             href="/"
-            className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
           >
-            ← Back to Home
+            ← <span className="hidden sm:inline">Back to </span>Home
           </Link>
         </div>
       </header>

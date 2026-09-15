@@ -252,7 +252,7 @@ export default function ConductorCockpitView({
               <select
                 value={activeTrip?.id || ""}
                 onChange={e => setSelectedTripId(e.target.value)}
-                className="text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-2.5 py-1.5 outline-none cursor-pointer max-w-[120px] sm:max-w-[190px] truncate shadow-2xs"
+                className="hidden sm:inline-block text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-2.5 py-1.5 outline-none cursor-pointer max-w-[190px] truncate shadow-2xs"
               >
                 {trips.map(t => {
                   const b = buses.find(busItem => busItem.id === t.busId);

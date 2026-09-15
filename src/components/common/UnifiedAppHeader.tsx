@@ -315,10 +315,10 @@ export function UnifiedAppHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-xs transition-colors">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 sm:gap-4 min-w-0">
+      <header className="sticky top-0 z-40 w-full max-w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-xs transition-colors overflow-x-clip">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
           {/* Brand Identity / Left Section (Strictly Non-Shrinkable) */}
-          <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0 z-10">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 z-10 min-w-0">
             <Link
               href={currentPortalConfig.path}
               className="flex items-center gap-2 sm:gap-2.5 group flex-shrink-0"
@@ -381,8 +381,8 @@ export function UnifiedAppHeader({
           )}
 
           {/* Right Action Items & Command Pill */}
-          <div className="flex items-center gap-2 flex-shrink-0 z-10">
-            <CampusTimeHUD showSimControl={false} />
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-10">
+            <CampusTimeHUD showSimControl={false} className="hidden sm:inline-block" />
 
             {showInstall && onOpenInstall && (
               <button
@@ -401,7 +401,7 @@ export function UnifiedAppHeader({
             {showSOS && onOpenSOS && (
               <button
                 onClick={onOpenSOS}
-                className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white rounded-xl text-xs font-black shadow-sm shadow-rose-600/30 transition-transform active:scale-95 animate-pulse flex-shrink-0 cursor-pointer"
+                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white rounded-xl text-xs font-black shadow-sm shadow-rose-600/30 transition-transform active:scale-95 animate-pulse flex-shrink-0 cursor-pointer"
                 title="Emergency SOS Dispatch Alert"
               >
                 <AlertOctagon className="w-3.5 h-3.5" />
@@ -414,18 +414,18 @@ export function UnifiedAppHeader({
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center gap-1.5 sm:gap-2 pl-1.5 pr-2.5 py-1 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs active:scale-98"
+                  className="flex items-center gap-1 sm:gap-2 p-1 sm:pl-1.5 sm:pr-2.5 sm:py-1 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs active:scale-98"
                   aria-expanded={isProfileOpen}
                   title="Open User & Workspace Menu"
                 >
                   <div className="w-6 h-6 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-[10px] font-black shadow-2xs flex-shrink-0">
                     {initials}
                   </div>
-                  <span className="hidden sm:inline max-w-[100px] truncate">
+                  <span className="hidden md:inline max-w-[100px] truncate">
                     {currentUser.fullName.split(" ")[0]}
                   </span>
                   <span
-                    className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border ${getRoleBadgeClasses(
+                    className={`hidden sm:inline-block text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border ${getRoleBadgeClasses(
                       currentUser.role
                     )}`}
                   >
@@ -700,6 +700,12 @@ export function UnifiedAppHeader({
               </span>
             </div>
           )}
+
+          {/* Live Campus Clock in Mobile Drawer */}
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
+            <span className="text-[11px] font-bold text-slate-500">Live Campus Clock</span>
+            <CampusTimeHUD showSimControl={false} />
+          </div>
 
           {/* Mobile Primary Action / Launch Portal inside sliding navbar */}
           {resolvedMobileAction && (
