@@ -57,24 +57,26 @@ export function StudentProfileModal() {
     return list;
   }, [classesList, department]);
 
-  const yearsList = useMemo(() => {
+  // Step 2: list of semesters for chosen course
+  const semestersList = useMemo(() => {
     const filtered = (selectedCourse || department)
       ? classesList.filter(c => c.course === (selectedCourse || department))
       : classesList;
-    const list = Array.from(new Set(filtered.map(c => c.year).filter(Boolean))) as string[];
-    if (semester && !list.includes(semester)) list.push(semester);
+    const list = Array.from(new Set(filtered.map(c => c.semester).filter(Boolean))) as string[];
+    // sort numerically by the leading number
+    list.sort((a, b) => parseInt(a) - parseInt(b));
     return list;
-  }, [classesList, selectedCourse, department, semester]);
+  }, [classesList, selectedCourse, department]);
 
+  // Step 3: sections filtered by course + semester
   const sectionsList = useMemo(() => {
     return classesList.filter(c => {
       const crs = selectedCourse || department;
-      const yr = selectedYear || semester;
       if (crs && c.course !== crs) return false;
-      if (yr && c.year !== yr) return false;
+      if (selectedYear && c.semester !== selectedYear) return false;
       return true;
     });
-  }, [classesList, selectedCourse, department, selectedYear, semester]);
+  }, [classesList, selectedCourse, department, selectedYear]);
   const [selectedZoneCode, setSelectedZoneCode] = useState("ZONE_B");
   const [phone, setPhone] = useState("");
   const [primaryStopId, setPrimaryStopId] = useState("");
@@ -143,7 +145,7 @@ export function StudentProfileModal() {
         setSelectedClassId(activeStudent?.classId || "");
         // Resolve cascaded fields from existing classId
         const ec = classesList.find(c => c.id === activeStudent?.classId);
-        if (ec) { setSelectedCourse(ec.course || ""); setSelectedYear(ec.year || ""); setSelectedSection(ec.section || ""); }
+        if (ec) { setSelectedCourse(ec.course || ""); setSelectedYear(ec.semester || ""); setSelectedSection(ec.section || ""); }
         setSelectedZoneCode(activeStudent?.zoneCode || "ZONE_B");
         setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
         setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
@@ -184,7 +186,7 @@ export function StudentProfileModal() {
       setSemester(activeStudent?.semester || "");
       setSelectedClassId(activeStudent?.classId || "");
       const ec2 = classesList.find(c => c.id === activeStudent?.classId);
-      if (ec2) { setSelectedCourse(ec2.course || ""); setSelectedYear(ec2.year || ""); setSelectedSection(ec2.section || ""); }
+      if (ec2) { setSelectedCourse(ec2.course || ""); setSelectedYear(ec2.semester || ""); setSelectedSection(ec2.section || ""); }
       setSelectedZoneCode(activeStudent?.zoneCode || "ZONE_B");
       setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
       setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
@@ -469,15 +471,15 @@ export function StudentProfileModal() {
               </select>
             </div>
 
-            {/* Step 2: Academic Year / Semester */}
+            {/* Step 2: Semester */}
             <div className="space-y-1">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>2. Year / Semester *</span>
+                <span>2. Academic Semester *</span>
                 <span className="text-[10px] text-blue-500 lowercase">(from database)</span>
               </label>
               <select
                 required
-                value={selectedYear || semester}
+                value={selectedYear}
                 onChange={e => {
                   const val = e.target.value;
                   setSelectedYear(val);
@@ -486,11 +488,12 @@ export function StudentProfileModal() {
                   setSelectedClassId("");
                 }}
                 className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-medium"
+                disabled={!selectedCourse && !department}
               >
-                <option value="">-- Select Year / Sem --</option>
-                {yearsList.map(yr => (
-                  <option key={yr} value={yr}>
-                    {yr}
+                <option value="">-- Select Semester --</option>
+                {semestersList.map(sem => (
+                  <option key={sem} value={sem}>
+                    {sem}
                   </option>
                 ))}
               </select>
@@ -515,9 +518,9 @@ export function StudentProfileModal() {
                       setSelectedCourse(chosen.course);
                       setDepartment(chosen.course);
                     }
-                    if (chosen.year) {
-                      setSelectedYear(chosen.year);
-                      setSemester(chosen.year);
+                    if (chosen.semester) {
+                      setSelectedYear(chosen.semester);
+                      setSemester(chosen.semester);
                     }
                   }
                 }}
@@ -526,7 +529,7 @@ export function StudentProfileModal() {
                 <option value="">-- Select Section --</option>
                 {sectionsList.map(c => (
                   <option key={c.id} value={c.id}>
-                    {c.name} {c.section ? `(Section ${c.section})` : ""}
+                    {c.section}
                   </option>
                 ))}
               </select>

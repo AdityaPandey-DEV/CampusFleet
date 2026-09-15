@@ -50,6 +50,7 @@ export async function GET() {
       id: c.id,
       course: c.course,
       year: c.year,
+      semester: c.semester,
       section: c.section,
       name: c.name,
       isActive: c.is_active,
