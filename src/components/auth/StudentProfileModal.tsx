@@ -30,12 +30,14 @@ export function StudentProfileModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  // Guard: don't evaluate completeness until DB sync is done OR students list has loaded
   const [studentsLoaded, setStudentsLoaded] = useState(() => store.getStudents().length > 0 || store.isReady());
+  const [serverStudent, setServerStudent] = useState<Student | null>(null);
 
-  const activeStudent: Student | undefined = students.find(
-    s => s.email?.toLowerCase() === currentUser?.email?.toLowerCase() || s.userId === currentUser?.id
-  );
+  const activeStudent: Student | undefined =
+    serverStudent ||
+    students.find(
+      s => s.email?.toLowerCase() === currentUser?.email?.toLowerCase() || (currentUser?.id && s.userId === currentUser.id)
+    );
 
   // Form State
   const [fullName, setFullName] = useState("");
@@ -159,6 +161,8 @@ export function StudentProfileModal() {
       .then(data => {
         if (data && data.student) {
           const s = data.student;
+          setServerStudent(s);
+          setStudents(prev => [s, ...prev.filter(p => p.id !== s.id && p.email?.toLowerCase() !== s.email?.toLowerCase())]);
           setFullName(s.fullName || "");
           setEnrollmentNo(s.enrollmentNo && s.enrollmentNo !== "PENDING" ? s.enrollmentNo : "");
           setPhone(s.phone || "");
@@ -179,9 +183,13 @@ export function StudentProfileModal() {
             setIsOpen(false);
           }
           setStudentsLoaded(true);
+        } else {
+          setStudentsLoaded(true);
         }
       })
-      .catch(console.error);
+      .catch(() => {
+        setStudentsLoaded(true);
+      });
   }, []);
 
   // Allow opening profile on demand via custom event
@@ -211,11 +219,11 @@ export function StudentProfileModal() {
 
     window.addEventListener("open-student-profile", handleOpen);
     return () => window.removeEventListener("open-student-profile", handleOpen);
-  }, [currentUser, activeStudent, stops]);
+  }, [currentUser, activeStudent, stops, classesList]);
 
   // Check if profile is incomplete on initial load
   useEffect(() => {
-    // Don't evaluate until students have loaded from DB — prevents flash-open on first render
+    // Don't evaluate until student record has loaded from DB
     if (!studentsLoaded) return;
 
     if (!currentUser || currentUser.role !== "student") {
@@ -223,13 +231,10 @@ export function StudentProfileModal() {
       return;
     }
 
-    // Profile is complete when: student record exists AND has a real non-placeholder phone
-    const isIncomplete =
-      !activeStudent ||
-      !activeStudent.phone ||
-      activeStudent.phone === null;
+    // Profile is complete when: student record exists AND has a real non-empty phone
+    const hasCompleteProfile = Boolean(activeStudent?.phone && activeStudent.phone.trim() !== "");
 
-    if (isIncomplete) {
+    if (!hasCompleteProfile) {
       setIsOpen(true);
       setFullName(activeStudent?.fullName || currentUser.fullName || "");
       setEnrollmentNo(activeStudent?.enrollmentNo && activeStudent?.enrollmentNo !== "PENDING" ? activeStudent.enrollmentNo : "");
@@ -248,19 +253,10 @@ export function StudentProfileModal() {
       setEmergencyRel(activeStudent?.emergencyContact?.relationship || "Parent / Guardian");
       setPhotoUrl(activeStudent?.photoUrl || "");
     } else {
-      // Profile is complete — ensure modal is closed (handles the store re-load case)
+      // Profile is verified complete — keep modal closed
       setIsOpen(false);
     }
-  }, [currentUser, activeStudent, stops, studentsLoaded]);
-
-  // Release studentsLoaded guard after a timeout for new users with no student record yet
-  useEffect(() => {
-    if (studentsLoaded) return;
-    const timer = setTimeout(() => {
-      if (!studentsLoaded) setStudentsLoaded(true);
-    }, 3500);
-    return () => clearTimeout(timer);
-  }, [studentsLoaded]);
+  }, [currentUser, activeStudent, stops, studentsLoaded, classesList]);
 
   if (!isOpen) return null;
 
