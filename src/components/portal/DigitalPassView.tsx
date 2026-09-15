@@ -220,7 +220,7 @@ export default function DigitalPassView({
                 </div>
                 <div>
                   <div className="text-[10px] uppercase font-bold tracking-wider text-white/80">
-                    Graphic Era Hill University
+                    {activeStudent?.campus || store.getPrimaryCampus()?.name || "Graphic Era Hill University"}
                   </div>
                   <div className="text-base font-black truncate tracking-tight">
                     {bus?.busNumber || "Bus 44"} • {bus?.registrationNo || "UK 04 PA 1234"}

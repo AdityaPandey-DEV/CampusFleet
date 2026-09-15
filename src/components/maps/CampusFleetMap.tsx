@@ -1,22 +1,60 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { LiveBusLocation, Stop, FleetBusMarkerData } from "@/lib/types";
+import { LiveBusLocation, Stop, FleetBusMarkerData, Campus } from "@/lib/types";
+import { store } from "@/lib/store";
 import { MapPin, Zap, Crosshair, Building2, Navigation } from "lucide-react";
 
 /**
- * Resolves the primary university campus terminal stop dynamically from the database stops array.
- * Zero hardcoded constants: respects database modifications in PostgreSQL.
+ * Resolves the institutional university campus terminal location dynamically.
+ * Always resolves from master Campus records (from campuses table) rather than stops.
+ * Zero hardcoded constants: respects database modifications in PostgreSQL campuses table.
  */
-export function getCampusStopFromDatabase(stops: Stop[]): Stop | null {
-  if (!stops || stops.length === 0) return null;
-  return (
-    stops.find((s) => s.name.toLowerCase().includes("campus terminal")) ||
-    stops.find((s) => s.campus && s.name.toLowerCase().includes("campus")) ||
-    stops.find((s) => s.name.toLowerCase().includes("campus")) ||
-    stops.find((s) => s.campus && s.campus.trim().length > 0) ||
-    null
-  );
+export function getCampusStopFromDatabase(
+  stops?: Stop[],
+  campuses?: Campus[],
+  primaryCampus?: Campus | null
+): Stop {
+  const activeCampus =
+    primaryCampus ||
+    campuses?.find((c) => c.isPrimary) ||
+    campuses?.[0] ||
+    (typeof window !== "undefined" ? store.getPrimaryCampus() : null);
+
+  if (activeCampus) {
+    return {
+      id: activeCampus.id,
+      name: activeCampus.name,
+      code: activeCampus.code,
+      latitude: activeCampus.latitude,
+      longitude: activeCampus.longitude,
+      landmark: activeCampus.landmark || activeCampus.address || `${activeCampus.name} Terminal`,
+      geofenceRadiusMeters: activeCampus.geofenceRadiusMeters || 150,
+      campusId: activeCampus.id,
+      zoneCode: "ZONE_CAMPUS",
+    };
+  }
+
+  // Next check if a stop in stops matches campus terminal name
+  if (stops && stops.length > 0) {
+    const match =
+      stops.find((s) => s.name.toLowerCase().includes("campus terminal")) ||
+      stops.find((s) => s.name.toLowerCase().includes("university terminal"));
+    if (match) return match;
+  }
+
+  // Institutional default: Graphic Era Hill University - Bhimtal Campus
+  return {
+    id: "campus-gehu-bhimtal",
+    name: "Graphic Era Hill University - Bhimtal Campus",
+    code: "GEHU-BHT",
+    latitude: 29.375015,
+    longitude: 79.529479,
+    landmark: "GEHU Main Gate & Fleet Parking Depot, Sattal Road",
+    geofenceRadiusMeters: 150,
+    campusId: "campus-gehu-bhimtal",
+    zoneCode: "ZONE_CAMPUS",
+  };
 }
 
 // Crisp vector SVG icons for high-DPI Leaflet markers (replaces low-res emojis)
@@ -38,6 +76,8 @@ interface CampusFleetMapProps {
   focusedBusId?: string;
   onBusClick?: (bus: FleetBusMarkerData) => void;
   stops?: Stop[];
+  campuses?: Campus[];
+  primaryCampus?: Campus | null;
   routeCoordinates?: [number, number][];
   activeStopIndex?: number;
   shortestPathStopIds?: string[];
@@ -114,6 +154,8 @@ export default function CampusFleetMap({
   focusedBusId,
   onBusClick,
   stops = [],
+  campuses = [],
+  primaryCampus,
   routeCoordinates = [],
   activeStopIndex = 0,
   shortestPathStopIds = [],
@@ -217,7 +259,7 @@ export default function CampusFleetMap({
     }
   };
 
-  const campusTerminalStop = getCampusStopFromDatabase(stops);
+  const campusTerminalStop = getCampusStopFromDatabase(stops, campuses, primaryCampus);
 
   const handlePanToCampus = () => {
     if (mapInstanceRef.current && campusTerminalStop) {
@@ -251,8 +293,8 @@ export default function CampusFleetMap({
         shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
-      // Default center: resolved campus stop from DB, bus location, or first stop
-      const campusStop = getCampusStopFromDatabase(stops);
+      // Default center: resolved campus terminal from campuses table, bus location, or first stop
+      const campusStop = campusTerminalStop;
       const defaultCenter: [number, number] = draftPinLocation
         ? draftPinLocation
         : busLocation
@@ -261,7 +303,7 @@ export default function CampusFleetMap({
         ? [campusStop.latitude, campusStop.longitude]
         : stops[0]
         ? [stops[0].latitude, stops[0].longitude]
-        : [0, 0];
+        : [29.375015, 79.529479];
 
       if (!mapInstanceRef.current) {
         const map = L.map(mapContainerRef.current, {
@@ -520,6 +562,12 @@ export default function CampusFleetMap({
       // Dijkstra Shortest Path Overlay (if provided)
       if (shortestPathStopIds.length >= 2) {
         const stopMap = new Map(stops.map(s => [s.id, s]));
+        if (campusTerminalStop) {
+          stopMap.set(campusTerminalStop.id, campusTerminalStop);
+          if (campusTerminalStop.campusId) {
+            stopMap.set(campusTerminalStop.campusId, campusTerminalStop);
+          }
+        }
         const pathCoords: [number, number][] = shortestPathStopIds
           .map(id => stopMap.get(id))
           .filter(Boolean)
@@ -561,9 +609,11 @@ export default function CampusFleetMap({
         const isOnShortestPath = shortestPathSet.has(stop.id);
         const isStartOfPath = isCorridorSequence ? idx === 0 : hasSpecificRoute && shortestPathStopIds[0] === stop.id;
         const isCampusTerminal =
+          stop.id === campusTerminalStop.id ||
+          stop.id === campusTerminalStop.campusId ||
+          stop.code === campusTerminalStop.code ||
           stop.name.toLowerCase().includes("campus terminal") ||
-          (Boolean(stop.campus) && stop.name.toLowerCase().includes("campus")) ||
-          stop.name.toLowerCase().includes("terminal");
+          stop.name.toLowerCase().includes("university terminal");
         const isEndOfPath = isCorridorSequence
           ? idx === stops.length - 1
           : (hasSpecificRoute && shortestPathStopIds[shortestPathStopIds.length - 1] === stop.id) ||

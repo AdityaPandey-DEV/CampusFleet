@@ -279,25 +279,24 @@ export default function AdminRoutesView({
   // -------------------------------------------------------------
   // STOP MANAGEMENT
   // -------------------------------------------------------------
-  // Dynamically resolved Campus Terminal from database stops
+  // Dynamically resolved Campus Terminal directly from campuses master table
   const currentCampusStop = useMemo(() => {
-    if (designatedCampusId) {
-      const designated = stops.find(s => s.id === designatedCampusId);
-      if (designated) return designated;
-    }
-    const primaryCampus = campuses.find(c => c.isPrimary) || campuses[0];
+    const primaryCampus = campuses.find(c => c.isPrimary) || campuses[0] || store.getPrimaryCampus();
     if (primaryCampus) {
-      const matched = stops.find(s => s.campusId === primaryCampus.id || s.code === primaryCampus.code || s.name.toLowerCase().includes(primaryCampus.name.toLowerCase()));
-      if (matched) return matched;
+      return {
+        id: primaryCampus.id,
+        name: primaryCampus.name,
+        code: primaryCampus.code,
+        latitude: primaryCampus.latitude,
+        longitude: primaryCampus.longitude,
+        landmark: primaryCampus.landmark || primaryCampus.address || `${primaryCampus.name} Hub`,
+        geofenceRadiusMeters: primaryCampus.geofenceRadiusMeters || 150,
+        campusId: primaryCampus.id,
+        zoneCode: "ZONE_CAMPUS",
+      };
     }
-    return (
-      stops.find(s => Boolean(s.campusId)) ||
-      stops.find(s => s.name.toLowerCase().includes("campus terminal")) ||
-      stops.find(s => s.name.toLowerCase().includes("campus")) ||
-      stops[0] ||
-      null
-    );
-  }, [stops, designatedCampusId, campuses]);
+    return stops[0] || null;
+  }, [stops, campuses]);
 
   const handleOpenCreateStop = () => {
     setEditingStop(null);
@@ -479,10 +478,9 @@ export default function AdminRoutesView({
   // -------------------------------------------------------------
   const handleOpenCreateRoute = () => {
     setEditingRouteId(null);
-    const primaryCampus = campuses.find(c => c.isPrimary) || campuses[0];
+    const primaryCampus = campuses.find(c => c.isPrimary) || campuses[0] || store.getPrimaryCampus();
     const defaultCampusId = primaryCampus?.id || "";
-    const nonCampusStops = stops.filter(s => !s.campusId);
-    const startStop = nonCampusStops[0] || stops[0];
+    const startStop = stops[0];
     const nextRouteNum = routes.length + 101;
 
     setRouteBuilderData({
@@ -1046,6 +1044,7 @@ export default function AdminRoutesView({
                     <CampusFleetMap
                       stops={activeRoute.stops.map(rs => rs.stop)}
                       routeCoordinates={activeRouteCoordinates}
+                      campuses={campuses}
                       height="420px"
                       selectedStopId={selectedStopId}
                       onStopClick={stop => setSelectedStopId(stop.id)}
@@ -2126,8 +2125,8 @@ export default function AdminRoutesView({
                       onChange={e => {
                         const newDir = e.target.value as any;
                         setRouteBuilderData(prev => {
-                          const primary = campuses.find(c => c.isPrimary) || campuses[0];
-                          const nonCampusStops = stops.filter(s => !s.campusId);
+                          const primary = campuses.find(c => c.isPrimary) || campuses[0] || store.getPrimaryCampus();
+                          const nonCampusStops = stops;
                           let startId = prev.startStopId;
                           let endId = prev.endStopId;
                           let origCampId = prev.originCampusId;
@@ -2138,7 +2137,7 @@ export default function AdminRoutesView({
                             destCampId = destCampId || primary?.id || campuses[0]?.id || "";
                             endId = destCampId;
                             origCampId = undefined;
-                            // If start was a campus, reset to first non-campus stop
+                            // If start was a campus, reset to first stop
                             if (campuses.some(c => c.id === startId)) {
                               startId = nonCampusStops[0]?.id || "";
                             }
@@ -2147,7 +2146,7 @@ export default function AdminRoutesView({
                             origCampId = origCampId || primary?.id || campuses[0]?.id || "";
                             startId = origCampId;
                             destCampId = undefined;
-                            // If end was a campus, reset to first non-campus stop
+                            // If end was a campus, reset to first stop
                             if (campuses.some(c => c.id === endId)) {
                               endId = nonCampusStops[nonCampusStops.length - 1]?.id || nonCampusStops[0]?.id || "";
                             }
@@ -2247,7 +2246,7 @@ export default function AdminRoutesView({
                             className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
                           >
                             <option value="">-- Choose Origin Passenger Station --</option>
-                            {(stops.filter(st => !st.campusId).length > 0 ? stops.filter(st => !st.campusId) : stops).map(st => (
+                            {stops.map(st => (
                               <option key={st.id} value={st.id}>
                                 {st.name} ({st.code}) {st.landmark ? `• ${st.landmark}` : ""}
                               </option>
@@ -2508,7 +2507,7 @@ export default function AdminRoutesView({
                             className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
                           >
                             <option value="">-- Choose Final Drop-off Station --</option>
-                            {(stops.filter(st => !st.campusId).length > 0 ? stops.filter(st => !st.campusId) : stops).map(st => (
+                            {stops.map(st => (
                               <option key={st.id} value={st.id}>
                                 {st.name} ({st.code}) {st.landmark ? `• ${st.landmark}` : ""}
                               </option>
@@ -2536,6 +2535,7 @@ export default function AdminRoutesView({
                 <div className="flex-1 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 min-h-[360px] h-full relative flex flex-col">
                   <CampusFleetMap
                     stops={builderStops}
+                    campuses={campuses}
                     routeCoordinates={builderStops.map(s => [s.latitude, s.longitude])}
                     height="100%"
                   />

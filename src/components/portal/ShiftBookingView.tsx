@@ -252,6 +252,8 @@ export default function ShiftBookingView({
   );
 
   const selectedStop = stops.find(s => s.id === selectedStopId) || stops[0];
+  const primaryCampus = useMemo(() => store.getPrimaryCampus(), []);
+  const studentCampusName = activeStudent?.campus || primaryCampus?.name || "Graphic Era Hill University - Bhimtal Campus";
 
   // Guaranteed QR Booking payload
   const displayBookingForQR = useMemo(() => {
@@ -412,9 +414,9 @@ export default function ShiftBookingView({
               <BusFront className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Destination</div>
+              <div className="text-[10px] uppercase font-bold text-slate-400">Destination Campus</div>
               <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                Main University Campus Terminal
+                {studentCampusName}
               </div>
             </div>
           </div>
@@ -595,7 +597,7 @@ export default function ShiftBookingView({
                 <Sparkles className="w-3.5 h-3.5" /> Dijkstra Shortest Path Computed
               </div>
               <h3 className="font-black text-xl">
-                {selectedStop?.name} → Campus Terminal
+                {selectedStop?.name} → {studentCampusName}
               </h3>
               <p className="text-xs opacity-90">
                 Optimal transit corridor sequenced through graph optimization algorithm.
@@ -632,6 +634,8 @@ export default function ShiftBookingView({
 
             <CampusFleetMap
               stops={stops}
+              campuses={store.getCampuses()}
+              primaryCampus={primaryCampus}
               shortestPathStopIds={shortestPath?.path || []}
               height="380px"
               zoom={13}

@@ -321,6 +321,8 @@ export default function LiveTrackerView({
                 busName={assignedBus?.busNumber ? `${assignedBus.busNumber} (${assignedRoute?.name || "Campus Express"})` : (assignedRoute?.name || "Campus Shuttle")}
                 tripStatus={activeTrip?.status || "SCHEDULED"}
                 stops={currentRouteStops}
+                campuses={store.getCampuses()}
+                primaryCampus={store.getPrimaryCampus()}
                 shortestPathStopIds={shortestPath?.path || []}
                 routeCoordinates={currentRouteStops.map(s => [s.latitude, s.longitude])}
                 selectedStopId={pickupStop?.id}

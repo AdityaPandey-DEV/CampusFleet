@@ -223,7 +223,7 @@ export default function StudentProfilePageView({
                   Verified Student Commuter
                 </span>
                 <span className="text-xs text-blue-200/70 font-mono">
-                  {activeStudent?.campus || "GEHU Bhimtal"}
+                  {activeStudent?.campus || store.getPrimaryCampus()?.name || "Graphic Era Hill University - Bhimtal Campus"}
                 </span>
               </div>
 
@@ -541,7 +541,7 @@ export default function StudentProfilePageView({
                   Institutional Campus
                 </div>
                 <div className="font-black text-slate-900 dark:text-white text-sm">
-                  {activeStudent?.campus || "GEHU Bhimtal Campus"}
+                  {activeStudent?.campus || store.getPrimaryCampus()?.name || "Graphic Era Hill University - Bhimtal Campus"}
                 </div>
               </div>
 

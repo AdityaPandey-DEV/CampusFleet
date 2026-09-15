@@ -1,35 +1,62 @@
 import { Bus, Route, Stop, Trip, Staff, LiveBusLocation, FleetBusMarkerData, TripDirection, Campus } from "./types";
 
 /**
- * Resolves the primary university campus terminal stop dynamically from database records.
- * Zero hardcoded constants: respects admin edits from PostgreSQL.
+ * Resolves the institutional university campus terminal location dynamically from master Campus records.
+ * Uses dedicated campuses table data (lat 29.375015, lng 79.529479 for GEHU Bhimtal)
+ * and never falls back to arbitrary corridor boarding stops.
  */
-export function getCampusTerminalFromStops(stops: Stop[], campus?: Campus | null): Stop | null {
-  if (!stops || stops.length === 0) return null;
-  if (campus) {
-    const match = stops.find(s => s.campusId === campus.id || s.code === campus.code || s.name.toLowerCase().includes(campus.name.toLowerCase()));
+export function getCampusTerminalFromStops(
+  stops?: Stop[],
+  campus?: Campus | null,
+  campuses?: Campus[]
+): Stop {
+  const activeCampus = campus || campuses?.find(c => c.isPrimary) || campuses?.[0];
+  if (activeCampus) {
+    return {
+      id: activeCampus.id,
+      name: activeCampus.name,
+      code: activeCampus.code,
+      latitude: activeCampus.latitude,
+      longitude: activeCampus.longitude,
+      landmark: activeCampus.landmark || activeCampus.address || `${activeCampus.name} Terminal`,
+      geofenceRadiusMeters: activeCampus.geofenceRadiusMeters || 150,
+      campusId: activeCampus.id,
+      zoneCode: "ZONE_CAMPUS",
+    };
+  }
+
+  // If a stop explicitly matches campus terminal by name
+  if (stops && stops.length > 0) {
+    const match =
+      stops.find(s => s.name.toLowerCase().includes("campus terminal")) ||
+      stops.find(s => s.name.toLowerCase().includes("university terminal"));
     if (match) return match;
   }
-  return (
-    stops.find((s) => s.name.toLowerCase().includes("campus terminal")) ||
-    stops.find((s) => s.campusId && s.name.toLowerCase().includes("campus")) ||
-    stops.find((s) => s.name.toLowerCase().includes("campus")) ||
-    stops.find((s) => Boolean(s.campusId)) ||
-    stops[0] ||
-    null
-  );
+
+  // Primary Default Anchor: Graphic Era Hill University - Bhimtal Campus
+  return {
+    id: "campus-gehu-bhimtal",
+    name: "Graphic Era Hill University - Bhimtal Campus",
+    code: "GEHU-BHT",
+    latitude: 29.375015,
+    longitude: 79.529479,
+    landmark: "GEHU Main Gate & Fleet Parking Depot, Sattal Road",
+    geofenceRadiusMeters: 150,
+    campusId: "campus-gehu-bhimtal",
+    zoneCode: "ZONE_CAMPUS",
+  };
 }
 
 /**
  * Calculates a dedicated parking bay slot inside the University Transit Depot
- * dynamically anchored to the database-configured campus coordinates.
+ * dynamically anchored to the master campus coordinates.
  */
 export function getCampusDepotSlot(
   busIndex: number,
   campusLocation?: { latitude: number; longitude: number }
 ): { latitude: number; longitude: number } {
-  const baseLat = campusLocation?.latitude ?? 0;
-  const baseLng = campusLocation?.longitude ?? 0;
+  const baseLat = campusLocation?.latitude && campusLocation.latitude !== 0 ? campusLocation.latitude : 29.375015;
+  const baseLng = campusLocation?.longitude && campusLocation.longitude !== 0 ? campusLocation.longitude : 79.529479;
 
   // 4 rows of 4 bays each in the campus transit depot grounds
   const col = busIndex % 4;
@@ -104,13 +131,14 @@ export interface FleetPositionOptions {
   simulatedTimeMinutes?: number; // Optional override for testing dispatch scenarios
   simulatedMode?: "AUTO" | "MORNING_STANDBY" | "IN_TRANSIT" | "CAMPUS_PARKED";
   campus?: Campus;
+  campuses?: Campus[];
 }
 
 /**
  * Core Algorithm: Resolves live operational coordinates for ALL vehicles in the fleet.
  * 
  * Rules:
- * 1. Default / Idle: Positioned in University Campus Parking Depot (dynamically from database).
+ * 1. Default / Idle: Positioned in University Campus Parking Depot (dynamically from campuses master table).
  * 2. 1 Hour Before Departure (Standby): Positioned at the route's starting point (first stop).
  * 3. In Transit (Departure -> Arrival or trip.status === 'IN_PROGRESS'):
  *    Moves with live driver GPS coordinates (telematics) or interpolated corridor position.
@@ -128,8 +156,8 @@ export function computeFleetBusMarkers(
   const now = new Date();
   const actualCurrentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  // Resolve primary university campus terminal stop dynamically from database records
-  const campusStop = getCampusTerminalFromStops(allStops, options?.campus);
+  // Resolve institutional university campus terminal dynamically from master campuses records
+  const campusStop = getCampusTerminalFromStops(allStops, options?.campus, options?.campuses);
 
   return buses.map((bus, busIdx) => {
     // 1. Find assigned route
@@ -157,15 +185,15 @@ export function computeFleetBusMarkers(
 
     // Ensure campus terminal is the destination stop if not present (sourced dynamically from DB)
     if (routeStops.length === 0) {
-      const fallbackStop = allStops[busIdx % allStops.length] || campusStop;
-      routeStops = fallbackStop ? (campusStop && fallbackStop.id !== campusStop.id ? [fallbackStop, campusStop] : [fallbackStop]) : [];
+      const fallbackStop = allStops[busIdx % allStops.length];
+      routeStops = fallbackStop ? [fallbackStop, campusStop] : [campusStop];
     } else if (campusStop && routeStops[routeStops.length - 1]?.id !== campusStop.id) {
       routeStops = [...routeStops, campusStop];
     }
 
     // 5. Identify Starting Point and Destination Stop
-    const startingStop = routeStops[0] || campusStop || allStops[0];
-    const destinationStop = routeStops[routeStops.length - 1] || campusStop || allStops[0];
+    const startingStop = routeStops[0] || allStops[0] || campusStop;
+    const destinationStop = routeStops[routeStops.length - 1] || campusStop;
 
     // 6. Departure & Arrival Times
     const tripDirection: TripDirection = (activeTrip?.direction as TripDirection) || "HOME_TO_CAMPUS";
@@ -218,12 +246,12 @@ export function computeFleetBusMarkers(
         statusText = `Trip Completed • Stationed at ${destinationStop?.name || "Terminal"}`;
       } else {
         // Inbound route parked in dedicated bay inside University Campus Depot (dynamic from DB)
-        const depotSlot = getCampusDepotSlot(busIdx, options?.campus || campusStop || undefined);
+        const depotSlot = getCampusDepotSlot(busIdx, campusStop);
         latitude = depotSlot.latitude;
         longitude = depotSlot.longitude;
         speedKmh = 0;
         headingDeg = 0;
-        statusText = `Trip Completed • Parked in Depot Bay ${busIdx + 1} (${options?.campus?.name || campusStop?.name || "Campus Terminal"})`;
+        statusText = `Trip Completed • Parked in Depot Bay ${busIdx + 1} (${campusStop.name})`;
       }
     } else if (state === "IN_TRANSIT") {
       // Case 2: IN TRANSIT — moving with driver coordinates or live corridor telemetry
@@ -282,8 +310,8 @@ export function computeFleetBusMarkers(
       departureTime,
       arrivalTime,
       direction: tripDirection,
-      startingStopName: startingStop?.name || "Campus Terminal",
-      destinationStopName: destinationStop?.name || "Campus Terminal",
+      startingStopName: startingStop?.name || (tripDirection === "CAMPUS_TO_HOME" ? campusStop.name : "Starting Station"),
+      destinationStopName: tripDirection === "HOME_TO_CAMPUS" ? campusStop.name : (destinationStop?.name || "Terminal Station"),
     };
   });
 }

@@ -7,7 +7,7 @@ import dynamic from "next/dynamic";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 import { computeFleetBusMarkers } from "@/lib/fleetPositioning";
-import type { FleetBusMarkerData } from "@/lib/types";
+import type { FleetBusMarkerData, Campus } from "@/lib/types";
 
 // Dynamic import for Leaflet map with no SSR
 const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
@@ -91,6 +91,7 @@ export default function AdminDashboardView({
   const [bookings, setBookings] = useState<Booking[]>(() => initialBookings.length > 0 ? initialBookings : store.getBookings());
   const [issues, setIssues] = useState<VehicleIssue[]>(() => initialIssues.length > 0 ? initialIssues : store.getIssues());
   const [payments, setPayments] = useState<any[]>(() => initialPayments.length > 0 ? initialPayments : store.getPayments());
+  const [campuses, setCampuses] = useState<Campus[]>(() => store.getCampuses());
   const [liveLocation, setLiveLocation] = useState(store.getLiveLocation());
   const [notifications, setNotifications] = useState(store.getNotifications());
 
@@ -109,6 +110,7 @@ export default function AdminDashboardView({
       setBuses(store.getBuses());
       setRoutes(store.getRoutes());
       setStops(store.getStops());
+      setCampuses(store.getCampuses());
       setTrips(store.getTrips());
       setStudents(store.getStudents());
       setStaff(store.getStaff());
@@ -149,11 +151,17 @@ export default function AdminDashboardView({
     return () => clearInterval(timer);
   }, []);
 
+  const primaryCampus = useMemo(() => {
+    return campuses.find(c => c.isPrimary) || campuses[0] || store.getPrimaryCampus();
+  }, [campuses]);
+
   const fleetBuses: FleetBusMarkerData[] = useMemo(() => {
     return computeFleetBusMarkers(buses, trips, routes, stops, staff, liveLocation, {
       simulatedMode: previewMode,
+      campus: primaryCampus || undefined,
+      campuses,
     });
-  }, [buses, trips, routes, stops, staff, liveLocation, previewMode, clockTick]);
+  }, [buses, trips, routes, stops, staff, liveLocation, previewMode, clockTick, primaryCampus, campuses]);
 
   const inTransitCount = fleetBuses.filter(fb => fb.state === "IN_TRANSIT").length;
   const standbyCount = fleetBuses.filter(fb => fb.state === "STANDBY_STARTING_POINT").length;
@@ -453,6 +461,8 @@ export default function AdminDashboardView({
             focusedBusId={focusedBusId}
             onBusClick={(bus) => setFocusedBusId(bus.busId)}
             stops={stops}
+            campuses={campuses}
+            primaryCampus={primaryCampus}
             routeCoordinates={corridorCoordinates}
             height="380px"
           />

@@ -1,6 +1,7 @@
 import {
   Bus,
   Route,
+  RouteStop,
   Stop,
   Campus,
   Shift,
@@ -1175,10 +1176,70 @@ class CampusFleetStore {
 
   // ─── Graph-Based Routing (Dijkstra + Bellman-Ford) ──────────────────────
 
+  public getCampusTerminalStop(campusId?: string): Stop {
+    const target = (campusId ? this.campuses.find(c => c.id === campusId) : null) || this.getPrimaryCampus() || this.campuses[0];
+    if (target) {
+      return {
+        id: target.id,
+        name: target.name,
+        code: target.code,
+        latitude: target.latitude,
+        longitude: target.longitude,
+        landmark: target.landmark || target.address || `${target.name} Hub`,
+        geofenceRadiusMeters: target.geofenceRadiusMeters || 150,
+        campusId: target.id,
+        zoneCode: "ZONE_CAMPUS",
+      };
+    }
+    return {
+      id: "campus-gehu-bhimtal",
+      name: "Graphic Era Hill University - Bhimtal Campus",
+      code: "GEHU-BHT",
+      latitude: 29.375015,
+      longitude: 79.529479,
+      landmark: "GEHU Main Gate & Fleet Parking Depot, Sattal Road",
+      geofenceRadiusMeters: 150,
+      campusId: "campus-gehu-bhimtal",
+      zoneCode: "ZONE_CAMPUS",
+    };
+  }
+
+  public getAllStopsIncludingCampus(): Stop[] {
+    const campusStop = this.getCampusTerminalStop();
+    if (this.stops.some(s => s.id === campusStop.id)) return this.stops;
+    return [...this.stops, campusStop];
+  }
+
+  public getRoutesWithCampusTerminus(): Route[] {
+    const campusStop = this.getCampusTerminalStop();
+    return this.routes.map(r => {
+      if (!r.isActive || !r.stops || r.stops.length === 0) return r;
+      if (r.direction === "HOME_TO_CAMPUS" || !r.direction) {
+        const sorted = [...r.stops].sort((a, b) => a.stopOrder - b.stopOrder);
+        const last = sorted[sorted.length - 1];
+        if (last && last.stopId !== campusStop.id) {
+          const nextOrder = last.stopOrder + 1;
+          const campusRouteStop: RouteStop = {
+            stopId: campusStop.id,
+            stopOrder: nextOrder,
+            arrivalOffsetMinutes: (last.arrivalOffsetMinutes || 0) + 15,
+            bufferTimeMinutes: 5,
+            stop: campusStop,
+          };
+          return {
+            ...r,
+            stops: [...r.stops, campusRouteStop],
+          };
+        }
+      }
+      return r;
+    });
+  }
+
   /** Get or rebuild the stop network graph (cached, invalidated on data change) */
   public getStopGraph(): StopGraph {
     if (!this.cachedGraph) {
-      this.cachedGraph = buildStopGraph(this.routes, this.stops);
+      this.cachedGraph = buildStopGraph(this.getRoutesWithCampusTerminus(), this.getAllStopsIncludingCampus());
     }
     return this.cachedGraph;
   }
@@ -1197,7 +1258,7 @@ class CampusFleetStore {
   /** Bellman-Ford: Find nearest stops from home GPS with connectivity scoring */
   public findNearestStops(homeLat: number, homeLng: number, maxResults: number = 5): NearestStopResult[] {
     const graph = this.getStopGraph();
-    return bellmanFordNearestStops(homeLat, homeLng, this.stops, graph, maxResults);
+    return bellmanFordNearestStops(homeLat, homeLng, this.getAllStopsIncludingCampus(), graph, maxResults);
   }
 
   /** Combined: Best route recommendation (nearest stop + shortest path to campus) */
@@ -1207,41 +1268,17 @@ class CampusFleetStore {
     campusStopId?: string
   ): RouteRecommendation[] {
     const graph = this.getStopGraph();
-    // Dynamically resolve campus terminal stop if not provided
+    // Dynamically resolve campus terminal stop from master campuses table
     const resolvedCampusId = campusStopId || this.resolveCampusStopId();
     if (!resolvedCampusId) return [];
-    return recommendBestRoute(homeLat, homeLng, resolvedCampusId, this.stops, this.routes, graph);
+    return recommendBestRoute(homeLat, homeLng, resolvedCampusId, this.getAllStopsIncludingCampus(), this.getRoutesWithCampusTerminus(), graph);
   }
 
-  /** Dynamically find the campus terminal stop (admin can rename/recreate stops) */
+  /** Dynamically find the master campus ID from campuses table */
   public resolveCampusStopId(): string | null {
-    // Priority 0: Matches primary institutional campus code or name
     const primary = this.getPrimaryCampus();
-    if (primary) {
-      const match = this.stops.find(s =>
-        s.campusId === primary.id ||
-        s.code === primary.code ||
-        s.name.toLowerCase().includes(primary.name.toLowerCase()) ||
-        primary.name.toLowerCase().includes(s.name.toLowerCase())
-      );
-      if (match) return match.id;
-    }
-
-    // Priority 1: stop name contains "campus" (case-insensitive)
-    const campusStop = this.stops.find(s =>
-      s.name.toLowerCase().includes("campus") ||
-      s.name.toLowerCase().includes("gehu") ||
-      s.code?.toLowerCase().includes("campus")
-    );
-    if (campusStop) return campusStop.id;
-    // Priority 2: first stop in the first active route's last position (terminal)
-    const activeRoute = this.routes.find(r => r.isActive && r.stops.length > 0);
-    if (activeRoute) {
-      const sorted = [...activeRoute.stops].sort((a, b) => b.stopOrder - a.stopOrder);
-      return sorted[0]?.stopId || null;
-    }
-    // Priority 3: first stop
-    return this.stops[0]?.id || null;
+    if (primary) return primary.id;
+    return this.campuses[0]?.id || "campus-gehu-bhimtal";
   }
 
   /** Dijkstra: Find shortest path from a given stop directly to the campus terminal */
