@@ -162,6 +162,8 @@ export interface Trip {
   customDays?: string[]; // e.g. ["Mon", "Wed", "Fri"]
   departureTime?: string; // e.g. "07:20", "16:30"
   arrivalTime?: string;   // e.g. "08:40", "17:45"
+  isSpecial?: boolean;
+  facilityType?: "REGULAR" | "PLACEMENT_DRIVE" | "EVENT";
 }
 
 export interface Student {

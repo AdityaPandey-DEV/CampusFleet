@@ -110,6 +110,8 @@ export default async function TripsAndManifestPage() {
       customDays: t.custom_days || undefined,
       departureTime,
       arrivalTime,
+      isSpecial: Boolean(t.is_special),
+      facilityType: t.facility_type || (Boolean(t.is_special) ? "PLACEMENT_DRIVE" : "REGULAR"),
     };
   });
 

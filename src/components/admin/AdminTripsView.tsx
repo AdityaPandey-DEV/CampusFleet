@@ -94,6 +94,8 @@ export default function AdminTripsView({
     shiftId: string;
     driverId: string;
     conductorId: string;
+    isSpecial: boolean;
+    facilityType: "REGULAR" | "PLACEMENT_DRIVE" | "EVENT";
   }>({
     direction: "HOME_TO_CAMPUS",
     scheduleType: "EVERY_DAY",
@@ -105,6 +107,8 @@ export default function AdminTripsView({
     shiftId: "",
     driverId: "",
     conductorId: "",
+    isSpecial: false,
+    facilityType: "REGULAR",
   });
 
   useEffect(() => {
@@ -364,6 +368,8 @@ export default function AdminTripsView({
         customDays: newTrip.scheduleType === "CUSTOM" ? newTrip.customDays : undefined,
         departureTime: newTrip.departureTime,
         arrivalTime,
+        isSpecial: newTrip.isSpecial,
+        facilityType: newTrip.facilityType,
       });
 
       setTrips(store.getTrips());
@@ -717,6 +723,13 @@ export default function AdminTripsView({
 
                     {/* Status & Recurrence Tags */}
                     <div className="flex items-center gap-2">
+                      {trip.isSpecial && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60">
+                          <GraduationCap className="w-3 h-3" />
+                          <span>{trip.facilityType === "PLACEMENT_DRIVE" ? "Placement Special" : trip.facilityType === "EVENT" ? "Campus Event" : "Special Facility"}</span>
+                        </span>
+                      )}
+
                       <span
                         className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
                           freq === "EVERY_DAY"
@@ -901,7 +914,7 @@ export default function AdminTripsView({
                   </div>
 
                   {/* Special Campus-to-Campus / Placement Allocation Button */}
-                  {(shift?.isSpecial || dir === "CAMPUS_TO_CAMPUS" || trip.shiftId === "shift-placement" || trip.shiftId === "shift-conclave" || route?.name?.toLowerCase().includes("placement")) && (
+                  {(trip.isSpecial || shift?.isSpecial) && (
                     <button
                       type="button"
                       onClick={() => setAllocatingTrip(trip)}
@@ -1002,7 +1015,7 @@ export default function AdminTripsView({
                 {/* Campus to Campus */}
                 <button
                   type="button"
-                  onClick={() => setNewTrip((prev) => ({ ...prev, direction: "CAMPUS_TO_CAMPUS", departureTime: "11:30" }))}
+                  onClick={() => setNewTrip((prev) => ({ ...prev, direction: "CAMPUS_TO_CAMPUS", departureTime: "11:30", isSpecial: true, facilityType: "PLACEMENT_DRIVE" }))}
                   className={`p-3 rounded-2xl border text-left transition-all ${
                     newTrip.direction === "CAMPUS_TO_CAMPUS"
                       ? "border-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/60 ring-2 ring-emerald-500/20"
@@ -1014,10 +1027,69 @@ export default function AdminTripsView({
                   </div>
                   <div className="font-black text-xs text-slate-900 dark:text-white mt-2">Campus ⇄ Campus</div>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
-                    Inter-Campus Shuttle
+                    Inter-Campus Shuttle (Special)
                   </div>
                 </button>
               </div>
+            </div>
+
+            {/* Special Facility Classification */}
+            <div className="p-3.5 bg-amber-50/80 dark:bg-amber-950/30 rounded-2xl border border-amber-200 dark:border-amber-800/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 flex items-center justify-center">
+                    <GraduationCap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-slate-900 dark:text-white">
+                      Special Facility / Exclusive Allocation
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Restricts booking visibility to only admin-allocated students
+                    </div>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  id="isSpecialToggle"
+                  checked={newTrip.isSpecial}
+                  onChange={(e) =>
+                    setNewTrip((prev) => ({
+                      ...prev,
+                      isSpecial: e.target.checked,
+                      facilityType: e.target.checked ? (prev.facilityType === "REGULAR" ? "PLACEMENT_DRIVE" : prev.facilityType) : "REGULAR",
+                    }))
+                  }
+                  className="w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-amber-500"
+                />
+              </div>
+
+              {newTrip.isSpecial && (
+                <div className="pt-2 border-t border-amber-200/60 dark:border-amber-800/40 flex items-center gap-4 text-xs font-bold">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-800 dark:text-slate-200">
+                    <input
+                      type="radio"
+                      name="facilityType"
+                      value="PLACEMENT_DRIVE"
+                      checked={newTrip.facilityType === "PLACEMENT_DRIVE"}
+                      onChange={() => setNewTrip((prev) => ({ ...prev, facilityType: "PLACEMENT_DRIVE" }))}
+                      className="text-amber-600"
+                    />
+                    <span>🎓 Placement Drive</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-800 dark:text-slate-200">
+                    <input
+                      type="radio"
+                      name="facilityType"
+                      value="EVENT"
+                      checked={newTrip.facilityType === "EVENT"}
+                      onChange={() => setNewTrip((prev) => ({ ...prev, facilityType: "EVENT" }))}
+                      className="text-amber-600"
+                    />
+                    <span>🏢 Campus Event / Conclave</span>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* STEP 2: Desired Departure Time & Quick Presets */}

@@ -400,6 +400,8 @@ class CampusFleetStore {
           customDays: t.custom_days || undefined,
           departureTime: t.departure_time || undefined,
           arrivalTime: t.arrival_time || undefined,
+          isSpecial: Boolean(t.is_special),
+          facilityType: t.facility_type || (Boolean(t.is_special) ? "PLACEMENT_DRIVE" : "REGULAR"),
         }));
       }
 
@@ -1931,6 +1933,8 @@ class CampusFleetStore {
       if (newTrip.customDays) payload.custom_days = newTrip.customDays;
       if (newTrip.departureTime) payload.departure_time = newTrip.departureTime;
       if (newTrip.arrivalTime) payload.arrival_time = newTrip.arrivalTime;
+      if (newTrip.isSpecial !== undefined) payload.is_special = newTrip.isSpecial;
+      if (newTrip.facilityType) payload.facility_type = newTrip.facilityType;
 
       await supabase.from("trips").insert(payload);
     } catch (e) { console.warn("DB createTrip:", e); }
