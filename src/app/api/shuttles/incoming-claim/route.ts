@@ -50,26 +50,7 @@ export async function GET(req: NextRequest) {
     const { data: rawTrips, error: tripsErr } = await tripsQuery;
     if (tripsErr) throw tripsErr;
 
-    let trips = rawTrips || [];
-
-    // Fallback: If no trips scheduled for today on these routes, look for upcoming active/scheduled trips
-    if (trips.length === 0) {
-      let fallbackQuery = supabaseAdmin
-        .from("trips")
-        .select("*, buses(*), routes(*), shifts(*)")
-        .in("status", ["IN_PROGRESS", "SCHEDULED"])
-        .not("buses.status", "in", '("MAINTENANCE","OUT_OF_SERVICE","INACTIVE")')
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      if (routeIds.length > 0) {
-        fallbackQuery = fallbackQuery.in("route_id", routeIds);
-      }
-      const { data: fallbackTrips } = await fallbackQuery;
-      if (fallbackTrips && fallbackTrips.length > 0) {
-        trips = fallbackTrips;
-      }
-    }
+    const trips = rawTrips || [];
 
     // 4. Deduplicate by physical bus (1 entry per physical bus)
     // Always prioritize IN_PROGRESS over SCHEDULED

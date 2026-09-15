@@ -15,13 +15,10 @@ export async function GET(req: NextRequest) {
 
     const { data: classesData, error } = await classQuery;
     if (error) {
-      // Fallback: If no specific teacher filter or join issues, fetch all active classes
-      const { data: fallbackClasses, error: fbErr } = await supabaseAdmin
-        .from("classes")
-        .select("*")
-        .eq("is_active", true);
-      if (fbErr) throw fbErr;
-      return NextResponse.json({ success: true, classes: fallbackClasses || [] });
+      if (teacherId) {
+        return NextResponse.json({ success: true, classes: [] });
+      }
+      throw error;
     }
 
     // Enrich with student count and timetable count
