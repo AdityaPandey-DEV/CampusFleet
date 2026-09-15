@@ -130,11 +130,15 @@ export default function LiveTrackerView({
     return stops.slice(0, 8);
   }, [assignedRoute, stops]);
 
+  const studentCampus = useMemo(() => {
+    return store.getStudentPrimaryCampus(activeStudent);
+  }, [activeStudent]);
+
   // Compute Dijkstra shortest path from pickup stop to campus
   const shortestPath = useMemo(() => {
     if (!pickupStop) return null;
-    return store.findShortestPathToCampus(pickupStop.id);
-  }, [pickupStop, stops]);
+    return store.findShortestPathToCampus(pickupStop.id, studentCampus.id);
+  }, [pickupStop, stops, studentCampus]);
 
   const isTripInProgress = activeTrip?.status === "IN_PROGRESS";
 
@@ -234,8 +238,10 @@ export default function LiveTrackerView({
             <Compass className="w-6 h-6 text-blue-600" />
             Live Fleet Tracking & Telematics Radar
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Real-time geospatial telemetry for {assignedRoute?.name || "Campus Transit System"}
+          <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+            <span>Real-time geospatial telemetry for {assignedRoute?.name || "Campus Transit System"}</span>
+            <span className="text-slate-400 dark:text-slate-600">•</span>
+            <span className="font-semibold text-blue-600 dark:text-blue-400">Campus: {studentCampus.name}</span>
           </p>
         </div>
 
@@ -322,7 +328,7 @@ export default function LiveTrackerView({
                 tripStatus={activeTrip?.status || "SCHEDULED"}
                 stops={currentRouteStops}
                 campuses={store.getCampuses()}
-                primaryCampus={store.getPrimaryCampus()}
+                primaryCampus={studentCampus}
                 shortestPathStopIds={shortestPath?.path || []}
                 routeCoordinates={currentRouteStops.map(s => [s.latitude, s.longitude])}
                 selectedStopId={pickupStop?.id}

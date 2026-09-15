@@ -5,6 +5,7 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { Booking, Student, Bus, Stop, Shift, Trip } from "@/lib/types";
 import { formatTime, formatDate } from "@/lib/utils";
+import { store } from "@/lib/store";
 import { BusFront, Clock, User, ShieldCheck, Download, Share2, AlertCircle } from "lucide-react";
 
 interface BoardingPassCardProps {
@@ -82,8 +83,8 @@ export function BoardingPassCard({
             <BusFront className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wider text-white/80 font-medium">
-              CampusFleet Digital Pass
+            <div className="text-xs uppercase tracking-wider text-white/80 font-medium truncate max-w-[200px]">
+              {student?.campus || (student ? store.getStudentPrimaryCampus(student).name : "CampusFleet Digital Pass")}
             </div>
             <div className="text-sm font-bold truncate">
               {bus?.busNumber || "Campus Express Shuttle"}

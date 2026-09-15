@@ -135,7 +135,7 @@ export default function StudentPortalLayout({
       <UnifiedAppHeader
         role="student"
         portalTitle="CampusFleet"
-        portalSubtitle="Student & Mobility Portal"
+        portalSubtitle={activeStudent ? (activeStudent.campus || store.getStudentPrimaryCampus(activeStudent).name) : "Student & Mobility Portal"}
         navLinks={processedNavLinks}
         showSOS={true}
         onOpenSOS={() => setIsSOSOpen(true)}

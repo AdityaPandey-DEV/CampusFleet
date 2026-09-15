@@ -17,6 +17,7 @@ import {
   AlertCircle,
   CheckCircle2,
   X,
+  Building,
 } from "lucide-react";
 import type { Student, Bus, Route, Stop, Shift, Trip, Booking, Staff } from "@/lib/types";
 
@@ -147,6 +148,11 @@ export default function StudentPortalView({
 
     return students[0] || null;
   }, [currentUser, students, activeChildId]);
+
+  // Primary campus for active student
+  const studentCampus = useMemo(() => {
+    return store.getStudentPrimaryCampus(activeStudent);
+  }, [activeStudent]);
 
   // Ensure Bhakda & Laldant Road Chauraha stop is available and pre-selected
   useEffect(() => {
@@ -336,15 +342,15 @@ export default function StudentPortalView({
         code: "BHT-BHK",
         zoneCode: "ZONE_B",
         geofenceRadiusMeters: 80,
-        campusId: "campus-gehu-bhimtal",
-        campus: "GEHU Bhimtal",
+        campusId: studentCampus.id,
+        campus: studentCampus.name,
         isBusMergeStop: true,
         latitude: 29.220554,
         longitude: 79.510529,
         landmark: "Lal Danth Tiraha / Kaladhungi Road",
       }
     );
-  }, [stops, selectedStopId]);
+  }, [stops, selectedStopId, studentCampus]);
 
   // Helper for Shift Status Badge
   const getShiftBadgeInfo = (sh: Shift) => {
@@ -436,10 +442,14 @@ export default function StudentPortalView({
           </div>
 
           <div className="space-y-1.5 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full bg-blue-500/30 border border-blue-400/30 text-blue-200 text-xs font-semibold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 Live Academic Transit Active
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/30 border border-indigo-400/30 text-indigo-200 text-xs font-semibold flex items-center gap-1.5">
+                <Building className="w-3.5 h-3.5 text-indigo-300" />
+                {studentCampus.name}
               </span>
               <span className="text-xs text-blue-300 font-mono">15 Sept 2026</span>
             </div>
@@ -447,7 +457,7 @@ export default function StudentPortalView({
               {`Welcome, ${activeStudent?.fullName?.split(" ")[0] || "Ananya"}! 👋`}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300">
-              {`${activeStudent?.department || "B.Tech Computer Science & Engineering"} • ${activeStudent?.enrollmentNo || "GEHU/2023/1092"} • Zone: ${activeStudent?.zoneCode || "ZONE_B"}`}
+              {`${activeStudent?.department || "B.Tech Computer Science & Engineering"} • ${activeStudent?.enrollmentNo || "GEHU/2023/1092"} • ${studentCampus.name} • Zone: ${activeStudent?.zoneCode || "ZONE_B"}`}
             </p>
           </div>
         </div>
