@@ -10,6 +10,7 @@ import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { SOSModal } from "@/components/common/SOSModal";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { StudentProfileModal } from "@/components/auth/StudentProfileModal";
+import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
 import {
   BusFront,
   Compass,
@@ -65,13 +66,16 @@ export default function StudentPortalLayout({
     : null;
 
   const isStudent = currentUser?.role === "student";
-  const isPaymentApproved = Boolean(
-    activeStudent?.paymentStatus === "APPROVED" ||
-      activeStudent?.hasActiveSubscription ||
-      currentUser?.role === "admin"
-  );
+  const isSubscriptionActive = isStudentSubscriptionActive(activeStudent) || currentUser?.role === "admin";
   const isPaymentPage = pathname === "/portal/payments";
-  const isAccessBlocked = isStudent && !isPaymentApproved && !isPaymentPage;
+  const isAccessBlocked = isStudent && !isSubscriptionActive && !isPaymentPage;
+
+  // Auto-redirect unpaid student to payment & activation page
+  useEffect(() => {
+    if (isStudent && !isSubscriptionActive && pathname !== "/portal/payments") {
+      router.replace("/portal/payments");
+    }
+  }, [isStudent, isSubscriptionActive, pathname, router]);
 
   if (currentUser && !isAuthorizedStudent) {
     const role = currentUser.role;
@@ -103,16 +107,23 @@ export default function StudentPortalLayout({
     );
   }
 
-  const navLinks = [
-    { href: "/portal/booking", label: "Seat Booking", icon: BusFront, requiresPayment: true },
-    { href: "/portal/pass", label: "Digital Pass", icon: QrCode, requiresPayment: true },
-    { href: "/portal/tracker", label: "Live Radar", icon: Navigation, requiresPayment: true },
-    { href: "/portal/payments", label: "Pass Fees", icon: CreditCard, requiresPayment: false },
-  ];
+  // Dynamic Navigation Links:
+  // 1. If Inactive/Unpaid/Expired: ONLY show Pass Activation & Fees (other pages are hidden)
+  // 2. If Paid & Active: Show Commute Cockpit, Seat Booking, Digital Pass, Live Radar (Fee payment form deactivated)
+  const navLinks = isSubscriptionActive
+    ? [
+        { href: "/portal", label: "Commute", icon: BusFront, requiresPayment: false },
+        { href: "/portal/booking", label: "Seat Booking", icon: CalendarCheck, requiresPayment: false },
+        { href: "/portal/pass", label: "Digital Pass", icon: QrCode, requiresPayment: false },
+        { href: "/portal/tracker", label: "Live Radar", icon: Navigation, requiresPayment: false },
+      ]
+    : [
+        { href: "/portal/payments", label: "Pass Activation & Fees", icon: CreditCard, requiresPayment: false },
+      ];
 
   const processedNavLinks = navLinks.map(link => ({
     ...link,
-    isLocked: link.requiresPayment && !isPaymentApproved,
+    isLocked: false,
   }));
 
   return (
@@ -125,12 +136,21 @@ export default function StudentPortalLayout({
         navLinks={processedNavLinks}
         showSOS={true}
         onOpenSOS={() => setIsSOSOpen(true)}
-        mobilePrimaryAction={{
-          label: "Live GPS Bus Radar",
-          href: "/portal/tracker",
-          subtitle: "Track real-time bus locations & arrival ETA",
-          icon: Navigation,
-        }}
+        mobilePrimaryAction={
+          isSubscriptionActive
+            ? {
+                label: "Live GPS Bus Radar",
+                href: "/portal/tracker",
+                subtitle: "Track real-time bus locations & arrival ETA",
+                icon: Navigation,
+              }
+            : {
+                label: "Activate Transit Pass",
+                href: "/portal/payments",
+                subtitle: "Select zone & complete fee payment to unlock pass",
+                icon: CreditCard,
+              }
+        }
       />
 
       {/* Main Content Container with Top-to-Down Progressive Flow */}
@@ -193,7 +213,7 @@ export default function StudentPortalLayout({
       </main>
 
       {/* Modern Floating Bottom Navigation Bar for Mobile Commuters */}
-      <MobileBottomNav isPaymentApproved={isPaymentApproved} />
+      <MobileBottomNav isPaymentApproved={isSubscriptionActive} />
 
       {/* SOS Modal */}
       <SOSModal
