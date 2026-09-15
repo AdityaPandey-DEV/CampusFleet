@@ -37,18 +37,23 @@ export async function POST(req: NextRequest) {
     const userId = session.userId;
     const isStaffOrAdmin = session.role === "admin" || session.role === "staff" || Boolean(body.performedByStaff);
 
-    // 1. Check if student already exists by user_id or email and inspect photo lock status
+    // 1. Check if student already exists by user_id or email and inspect photo/campus lock status
     let existingStudentId: string | null = null;
     let existingPhotoUrl: string | null = null;
+    let existingCampusId: string | null = null;
+    let existingCampus: string | null = null;
+
     const { data: existingStudent } = await supabaseAdmin
       .from("students")
-      .select("id, photo_url, photo_locked")
+      .select("id, photo_url, photo_locked, campus_id, campus")
       .or(`user_id.eq.${userId},email.ilike.${cleanEmail}`)
       .maybeSingle();
 
     if (existingStudent?.id) {
       existingStudentId = existingStudent.id;
       existingPhotoUrl = existingStudent.photo_url;
+      existingCampusId = existingStudent.campus_id;
+      existingCampus = existingStudent.campus;
     }
 
     // Anti-fraud guardrail: Students cannot modify an existing photo once uploaded!
@@ -63,6 +68,10 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+
+    // Campus Lock Guardrail: Once set, non-admin students cannot change their campus
+    const effectiveCampusId = (!isStaffOrAdmin && existingCampusId) ? existingCampusId : (campusId || existingCampusId || null);
+    const effectiveCampus = (!isStaffOrAdmin && existingCampus) ? existingCampus : (campus || existingCampus || session.campus || "").trim() || null;
 
     const finalStudentId =
       existingStudentId ||
@@ -79,8 +88,8 @@ export async function POST(req: NextRequest) {
       full_name: (fullName || session.fullName || "").trim(),
       email: cleanEmail,
       phone: (phone || "").trim() || null,
-      campus_id: campusId || null,
-      campus: (campus || session.campus || "").trim() || null,
+      campus_id: effectiveCampusId,
+      campus: effectiveCampus,
       department: (department || "").trim() || null,
       semester: (semester || "").trim() || null,
       enrollment_no: (enrollmentNo || "").trim().toUpperCase() || null,

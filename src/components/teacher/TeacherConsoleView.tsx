@@ -19,6 +19,11 @@ import {
   ChevronRight,
   BookOpen,
   Navigation,
+  FileText,
+  ShieldAlert,
+  Check,
+  X,
+  MessageSquare,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import BusLoadingScreen from "@/components/common/BusLoadingScreen";
@@ -83,6 +88,13 @@ export default function TeacherConsoleView({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Gate-Pass Management State
+  const [activeTab, setActiveTab] = useState<"attendance" | "gate_passes">("attendance");
+  const [gatePassRequests, setGatePassRequests] = useState<any[]>([]);
+  const [isLoadingGatePasses, setIsLoadingGatePasses] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [teacherRemarks, setTeacherRemarks] = useState<{ [key: string]: string }>({});
+
   // Load assigned classes
   const loadClasses = async () => {
     try {
@@ -122,6 +134,51 @@ export default function TeacherConsoleView({
     }
   };
 
+  // Load student early departure requests
+  const loadGatePasses = async () => {
+    try {
+      setIsLoadingGatePasses(true);
+      const url = `/api/teacher/early-departures${selectedClassId && selectedClassId !== "ALL" ? `?classId=${selectedClassId}` : ""}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        setGatePassRequests(data.requests || []);
+      }
+    } catch (e) {
+      console.error("Failed to load gate pass requests", e);
+    } finally {
+      setIsLoadingGatePasses(false);
+    }
+  };
+
+  const handleGatePassAction = async (requestId: string, status: "APPROVED" | "REJECTED") => {
+    try {
+      setActionLoadingId(requestId);
+      const remarks = teacherRemarks[requestId] || "";
+      const res = await fetch("/api/teacher/early-departures", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId, status, remarks }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGatePassRequests((prev) =>
+          prev.map((r) =>
+            r.id === requestId
+              ? { ...r, status, teacher_remarks: remarks, reviewed_at: new Date().toISOString() }
+              : r
+          )
+        );
+      } else {
+        alert(data.error || "Failed to update request");
+      }
+    } catch (e: any) {
+      alert(e.message || "Error processing gate pass");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   useEffect(() => {
     if (classes.length === 0) {
       loadClasses();
@@ -130,15 +187,19 @@ export default function TeacherConsoleView({
 
   useEffect(() => {
     loadArrivals();
+    loadGatePasses();
   }, [selectedClassId]);
 
   // Periodic refresh every 10 seconds to catch conductor QR scans in real time
   useEffect(() => {
     const interval = setInterval(() => {
       loadArrivals();
+      if (activeTab === "gate_passes") {
+        loadGatePasses();
+      }
     }, 10000);
     return () => clearInterval(interval);
-  }, [selectedClassId]);
+  }, [selectedClassId, activeTab]);
 
   // Filtered & sorted ascending by student name
   const filteredArrivals = useMemo(() => {
@@ -308,7 +369,186 @@ export default function TeacherConsoleView({
           </div>
         </div>
 
-        {/* Main Card: Today's Bus Arrival Manifest */}
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+          <button
+            onClick={() => setActiveTab("attendance")}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "attendance"
+                ? "bg-teal-600 text-white shadow-sm"
+                : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
+            }`}
+          >
+            <BusFront className="w-4 h-4" />
+            <span>Transit Attendance Manifest</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab("gate_passes");
+              loadGatePasses();
+            }}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "gate_passes"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>Emergency Gate-Pass Requests</span>
+            {gatePassRequests.filter((r) => r.status === "PENDING").length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-amber-950 animate-pulse">
+                {gatePassRequests.filter((r) => r.status === "PENDING").length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Tab Content: Emergency Gate-Passes */}
+        {activeTab === "gate_passes" && (
+          <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h2 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-blue-500" />
+                  <span>Student Emergency Early Departure Requests</span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Students requesting early shuttle booking during class hours. Approval grants gate-pass authorization.
+                </p>
+              </div>
+
+              <button
+                onClick={loadGatePasses}
+                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 transition-colors"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingGatePasses ? "animate-spin" : ""}`} />
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            {isLoadingGatePasses ? (
+              <div className="py-12 text-center text-xs text-slate-500">
+                Loading gate pass requests...
+              </div>
+            ) : gatePassRequests.length === 0 ? (
+              <div className="py-12 text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+                <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                  No Emergency Requests Pending
+                </div>
+                <div className="text-xs text-slate-500">
+                  All students in your assigned class are attending scheduled timetable classes.
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {gatePassRequests.map((req) => {
+                  const isPending = req.status === "PENDING";
+                  const isApproved = req.status === "APPROVED";
+                  const isRejected = req.status === "REJECTED";
+
+                  return (
+                    <div
+                      key={req.id}
+                      className={`p-4 rounded-2xl border transition-all ${
+                        isPending
+                          ? "bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60"
+                          : isApproved
+                          ? "bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-800/40"
+                          : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-75"
+                      }`}
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-sm text-slate-900 dark:text-white">
+                              {req.student?.full_name || "Student"}
+                            </span>
+                            <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                              {req.student?.enrollment_no || "N/A"}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                              {req.class?.name || "Class"}
+                            </span>
+                            <span
+                              className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                isPending
+                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 animate-pulse"
+                                  : isApproved
+                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300"
+                                  : "bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300"
+                              }`}
+                            >
+                              {req.status}
+                            </span>
+                          </div>
+
+                          <div className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold">Shift: {req.shift?.name || "Corridor Shift"}</span>
+                            <span>•</span>
+                            <span>Requested for: {req.request_date}</span>
+                            <span>•</span>
+                            <span className="text-slate-400">
+                              Submitted: {new Date(req.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+
+                          <div className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200">
+                            <span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">Emergency Reason:</span>
+                            {req.reason}
+                          </div>
+
+                          {req.teacher_remarks && (
+                            <div className="text-xs text-slate-500 italic">
+                              Remarks: {req.teacher_remarks}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons for Pending Requests */}
+                        {isPending && (
+                          <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0 w-full md:w-64">
+                            <input
+                              type="text"
+                              placeholder="Remarks (Optional)..."
+                              value={teacherRemarks[req.id] || ""}
+                              onChange={(e) =>
+                                setTeacherRemarks((prev) => ({ ...prev, [req.id]: e.target.value }))
+                              }
+                              className="w-full text-xs p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
+                            />
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleGatePassAction(req.id, "APPROVED")}
+                                disabled={actionLoadingId === req.id}
+                                className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>{actionLoadingId === req.id ? "Saving..." : "Approve Pass"}</span>
+                              </button>
+                              <button
+                                onClick={() => handleGatePassAction(req.id, "REJECTED")}
+                                disabled={actionLoadingId === req.id}
+                                className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                <span>Reject</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab Content: Transit Manifest */}
+        {activeTab === "attendance" && (
         <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <div>
@@ -326,6 +566,7 @@ export default function TeacherConsoleView({
               <span>Conductor Live Feed</span>
             </div>
           </div>
+
 
           {/* Table with S.No. and Present/Absent */}
           <div className="overflow-x-auto">
@@ -445,6 +686,7 @@ export default function TeacherConsoleView({
             </table>
           </div>
         </div>
+        )}
       </main>
     </div>
   );

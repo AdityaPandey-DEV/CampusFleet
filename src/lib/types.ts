@@ -4,7 +4,8 @@ export type BookingStatus = "CONFIRMED" | "WAITLISTED" | "CANCELLED" | "BOARDED"
 
 export type TripStatus = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "DELAYED";
 
-export type ShiftType = "MORNING" | "AFTERNOON" | "EVENING" | "CUSTOM";
+export type ShiftType = "MORNING" | "AFTERNOON" | "EVENING" | "CUSTOM" | string;
+
 
 export type VehicleStatus = "ACTIVE" | "MAINTENANCE" | "INACTIVE" | "DECOMMISSIONED";
 

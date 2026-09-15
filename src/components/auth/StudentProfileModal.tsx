@@ -87,6 +87,7 @@ export function StudentProfileModal() {
 
   const isPhotoLocked = Boolean(activeStudent?.photoUrl || activeStudent?.photoLocked);
   const isZoneLocked = activeStudent?.paymentStatus === "APPROVED" || Boolean(activeStudent?.hasActiveSubscription);
+  const isCampusLocked = Boolean(activeStudent?.campusId || activeStudent?.campus);
 
   const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isPhotoLocked) {
@@ -394,17 +395,25 @@ export function StudentProfileModal() {
 
             {/* University Campus */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                University Campus
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>University Campus</span>
+                {isCampusLocked && (
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">
+                    <Lock className="w-3 h-3" /> Enrolled (Locked)
+                  </span>
+                )}
               </label>
               <select
                 value={campusId}
+                disabled={isCampusLocked}
                 onChange={e => {
                   setCampusId(e.target.value);
                   const c = campuses.find(camp => camp.id === e.target.value);
                   if (c) setCampus(c.name);
                 }}
-                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                className={`w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 ${
+                  isCampusLocked ? "opacity-75 cursor-not-allowed bg-slate-100 dark:bg-slate-850" : ""
+                }`}
               >
                 {campuses.map(c => (
                   <option key={c.id} value={c.id}>
@@ -412,6 +421,11 @@ export function StudentProfileModal() {
                   </option>
                 ))}
               </select>
+              {isCampusLocked && (
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  Campus is locked to your enrolled institutional campus. Contact Transport Desk to request transfer.
+                </p>
+              )}
             </div>
 
             {/* Enrollment / Roll No (Optional) */}

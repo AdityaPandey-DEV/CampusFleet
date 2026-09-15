@@ -179,14 +179,29 @@ export default function StudentPortalView({
     return istDate.toISOString().split("T")[0];
   }, []);
 
-  // Filter shifts: standard academic shifts + any allocated special shifts
+  // Filter shifts: dynamic list of all shifts configured in database + any allocated special shifts
   const visibleShifts = useMemo(() => {
     const allocatedShiftIds = new Set(
       activeStudent ? store.getAllocatedShiftIdsForStudent(activeStudent.id) : []
     );
 
-    // Standard shifts template with exact names and timings
-    const regularShifts: Shift[] = [
+    // Support N shifts from database:
+    // Non-special shifts are available to all students.
+    // Special facility shifts are visible to students who have an allocation.
+    const available = (shifts || []).filter(sh => {
+      if (sh.isSpecial) {
+        return allocatedShiftIds.has(sh.id);
+      }
+      return true;
+    });
+
+    if (available.length > 0) {
+      // Sort shifts chronologically by startTime
+      return [...available].sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+    }
+
+    // Fallback if shifts haven't loaded yet from DB
+    return [
       {
         id: "shift-1",
         name: "Morning Academic Daily Shift",
@@ -206,48 +221,21 @@ export default function StudentPortalView({
         isSpecial: false,
       },
     ];
-
-    // Merge with DB shifts if available
-    const shiftMap = new Map<string, Shift>();
-    regularShifts.forEach(s => shiftMap.set(s.id, s));
-
-    shifts.forEach(sh => {
-      const isMorning = sh.shiftType === "MORNING" || sh.id === "shift-1" || sh.name.toLowerCase().includes("morning");
-      const isEvening = sh.shiftType === "EVENING" || sh.id === "shift-2" || sh.name.toLowerCase().includes("evening");
-
-      if (isMorning) {
-        shiftMap.set("shift-1", {
-          ...sh,
-          id: "shift-1",
-          name: "Morning Academic Daily Shift",
-          shiftType: "MORNING",
-          startTime: "07:30",
-          endTime: "08:45",
-        });
-      } else if (isEvening) {
-        shiftMap.set("shift-2", {
-          ...sh,
-          id: "shift-2",
-          name: "Evening Return Daily Corridor",
-          shiftType: "EVENING",
-          startTime: "16:30",
-          endTime: "17:45",
-        });
-      } else if (sh.isSpecial && allocatedShiftIds.has(sh.id)) {
-        shiftMap.set(sh.id, sh);
-      }
-    });
-
-    return Array.from(shiftMap.values());
   }, [shifts, activeStudent]);
 
-  // Set default selected shift to Evening Return if Morning has passed
+  // Set default selected shift to next upcoming shift or first available
   useEffect(() => {
     if (visibleShifts.length > 0 && !visibleShifts.some(s => s.id === selectedShiftId)) {
-      const evening = visibleShifts.find(s => s.shiftType === "EVENING");
-      setSelectedShiftId(evening ? evening.id : visibleShifts[0].id);
+      const now = new Date();
+      const currentMins = now.getHours() * 60 + now.getMinutes();
+      const upcoming = visibleShifts.find(s => {
+        const [h, m] = (s.endTime || "23:59").split(":").map(Number);
+        return (h * 60 + (m || 0)) >= currentMins;
+      });
+      setSelectedShiftId(upcoming ? upcoming.id : visibleShifts[0].id);
     }
   }, [visibleShifts, selectedShiftId]);
+
 
   // Active Confirmed/Boarded Booking for Current Student
   const activeBooking = useMemo(() => {
@@ -352,33 +340,40 @@ export default function StudentPortalView({
     );
   }, [stops, selectedStopId, studentCampus]);
 
-  // Helper for Shift Status Badge
+  // Helper for Shift Status Badge: completely dynamic based on shift timings
   const getShiftBadgeInfo = (sh: Shift) => {
-    const isMorning = sh.shiftType === "MORNING" || sh.id === "shift-1";
-    const isEvening = sh.shiftType === "EVENING" || sh.id === "shift-2";
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
 
-    if (isMorning) {
-      return {
-        category: "🌅 Morning Shift",
-        statusText: "Shift Completed",
-        statusColor: "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
-        isSelectable: true,
-      };
+    const parseMins = (tStr?: string) => {
+      if (!tStr) return 0;
+      const [h, m] = tStr.split(":").map(Number);
+      return (h || 0) * 60 + (m || 0);
+    };
+
+    const startMins = parseMins(sh.startTime);
+    const endMins = parseMins(sh.endTime);
+
+    let statusText = "Scheduled / Upcoming";
+    let statusColor = "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-bold";
+
+    if (currentMins > endMins) {
+      statusText = "Shift Completed";
+      statusColor = "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
+    } else if (currentMins >= startMins && currentMins <= endMins) {
+      statusText = "Active / In Transit";
+      statusColor = "bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 font-black animate-pulse";
     }
 
-    if (isEvening) {
-      return {
-        category: "🌆 Evening Shift",
-        statusText: "Scheduled / Upcoming",
-        statusColor: "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-black",
-        isSelectable: true,
-      };
+    let category = sh.shiftType || "DAILY SHIFT";
+    if (sh.isSpecial) {
+      category = "⭐ Special Facility";
     }
 
     return {
-      category: "⭐ Special Shift",
-      statusText: "Active",
-      statusColor: "bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 font-bold",
+      category,
+      statusText,
+      statusColor,
       isSelectable: true,
     };
   };
@@ -613,7 +608,7 @@ export default function StudentPortalView({
                   Trip Summary
                 </div>
                 <div className="text-xs text-slate-500 font-mono mt-0.5">
-                  Shift: {visibleShifts.find(s => s.id === selectedShiftId)?.name || "Evening Return Daily Corridor"}
+                  Shift: {visibleShifts.find(s => s.id === selectedShiftId)?.name || "Academic Shift"}
                 </div>
               </div>
               <div className="text-right">

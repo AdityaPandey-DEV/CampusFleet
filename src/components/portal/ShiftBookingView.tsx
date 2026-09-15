@@ -36,6 +36,8 @@ import {
   Building2,
   RefreshCw,
   Lock,
+  GraduationCap,
+  FileText,
 } from "lucide-react";
 
 // Dynamic import for Leaflet map with no SSR
@@ -88,6 +90,20 @@ export default function ShiftBookingView({
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isBookingLoading, setIsBookingLoading] = useState(false);
   const [showMissedBusRadar, setShowMissedBusRadar] = useState(false);
+
+  // Timetable & Emergency Departure Pass state
+  const [timetableEligibility, setTimetableEligibility] = useState<{
+    hasClassesAfterCurrentTime: boolean;
+    hasClassesAfter1330: boolean;
+    lastClassEndTime: string;
+    hasApprovedEmergencyPass: boolean;
+    pendingRequest: any;
+    canBookHalfDay: boolean;
+  } | null>(null);
+
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+  const [emergencyReason, setEmergencyReason] = useState("");
+  const [isSubmittingEmergency, setIsSubmittingEmergency] = useState(false);
 
   const {
     currentTime,
@@ -148,6 +164,30 @@ export default function ShiftBookingView({
         zoneCode: "ZONE_B",
       } as unknown as Student
     : null;
+
+  const fetchEligibility = async () => {
+    if (!activeStudent?.id) return;
+    try {
+      const res = await fetch(`/api/students/timetable-eligibility?studentId=${encodeURIComponent(activeStudent.id)}`);
+      const data = await res.json();
+      if (data.success) {
+        setTimetableEligibility({
+          hasClassesAfterCurrentTime: data.hasClassesAfterCurrentTime ?? data.hasClassesAfter1330 ?? false,
+          hasClassesAfter1330: data.hasClassesAfter1330 ?? data.hasClassesAfterCurrentTime ?? false,
+          lastClassEndTime: data.lastClassEndTime,
+          hasApprovedEmergencyPass: data.hasApprovedEmergencyPass,
+          pendingRequest: data.pendingRequest,
+          canBookHalfDay: data.canBookHalfDay,
+        });
+      }
+    } catch (e) {
+      console.warn("Could not load timetable eligibility:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchEligibility();
+  }, [activeStudent?.id]);
 
   useEffect(() => {
     if (activeStudent && !selectedStopId) {
@@ -493,6 +533,51 @@ export default function ShiftBookingView({
             </span>
           </div>
         )}
+
+        {/* Dynamic Timetable & Gate-Pass Status Banner */}
+        {timetableEligibility?.hasApprovedEmergencyPass ? (
+          <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-semibold flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div>
+                <strong>Emergency Early Departure Gate-Pass Authorized:</strong> Approved by your class teacher. Gate departure card is unlocked for {selectedShift?.name || "this shift"}.
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-emerald-200/60 dark:bg-emerald-800/60 text-emerald-900 dark:text-emerald-100 text-[10px] font-mono font-bold shrink-0">
+              GATE-PASS VERIFIED
+            </span>
+          </div>
+        ) : timetableEligibility?.hasClassesAfterCurrentTime ? (
+          <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-2">
+              <GraduationCap className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-bold">
+                  Academic Lectures In Session (Scheduled until {timetableEligibility.lastClassEndTime})
+                </div>
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">
+                  To board a departure corridor before your academic lectures conclude, obtain early leave authorization from your Class Teacher.
+                </p>
+              </div>
+            </div>
+
+            {timetableEligibility.pendingRequest ? (
+              <div className="px-3 py-1.5 rounded-xl bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100 text-xs font-bold shrink-0 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 animate-spin" />
+                <span>Gate-Pass Pending Teacher Review</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsEmergencyModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-xs shadow-md shadow-amber-600/20 shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Request Teacher Gate-Pass</span>
+              </button>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* redBus-inspired Step Navigation Bar */}
@@ -1011,6 +1096,25 @@ export default function ShiftBookingView({
                   <AlertCircle className="w-4 h-4" />
                   <span>Bus Fully Booked — Please Select Alternate Shift</span>
                 </button>
+              ) : timetableEligibility?.hasClassesAfterCurrentTime && !timetableEligibility?.hasApprovedEmergencyPass ? (
+                timetableEligibility.pendingRequest ? (
+                  <button
+                    disabled
+                    className="w-full py-4 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-extrabold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <Clock className="w-4 h-4 animate-spin" />
+                    <span>Early Departure Gate-Pass Pending Teacher Approval</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsEmergencyModalOpen(true)}
+                    className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-amber-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Request Early Departure Gate-Pass to Book {selectedShift?.name || "Shift"}</span>
+                  </button>
+                )
               ) : (
                 <button
                   onClick={handleBook}
@@ -1025,7 +1129,9 @@ export default function ShiftBookingView({
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      <span>Confirm Seat Reservation ({selectedSeatNumber || "1A"})</span>
+                      <span>
+                        Confirm Seat Reservation {timetableEligibility?.hasApprovedEmergencyPass ? "(Gate-Pass Approved • " : "("}{selectedSeatNumber || "1A"})
+                      </span>
                     </>
                   )}
                 </button>
@@ -1094,6 +1200,114 @@ export default function ShiftBookingView({
                 setIsQRModalOpen(false);
               }) : undefined}
             />
+          </div>
+        </div>
+      )}
+
+      {/* EMERGENCY EARLY DEPARTURE GATE-PASS REQUEST MODAL */}
+      {isEmergencyModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center font-bold">
+                  <GraduationCap className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                    Emergency Early Departure Gate-Pass
+                  </h3>
+                  <p className="text-[10px] text-slate-400">
+                    Requests are routed directly to your allocated Class Teacher
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEmergencyModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-1">
+                <div className="font-bold text-slate-800 dark:text-slate-200">
+                  Target Shift: {selectedShift?.name}
+                </div>
+                <div className="text-slate-500 text-[11px]">
+                  Scheduled Timing: {selectedShift?.startTime} – {selectedShift?.endTime}
+                </div>
+                {timetableEligibility?.lastClassEndTime && (
+                  <div className="text-amber-600 dark:text-amber-400 text-[11px] font-semibold">
+                    Current Lecture Schedule concludes at: {timetableEligibility.lastClassEndTime}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Emergency Reason *
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Explain your emergency reason (e.g. medical appointment, urgent family matter, etc.)"
+                  value={emergencyReason}
+                  onChange={(e) => setEmergencyReason(e.target.value)}
+                  className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEmergencyModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmittingEmergency || !emergencyReason.trim()}
+                  onClick={async () => {
+                    if (!emergencyReason.trim() || !activeStudent) return;
+                    setIsSubmittingEmergency(true);
+                    try {
+                      const res = await fetch("/api/students/early-departure", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          studentId: activeStudent.id,
+                          shiftId: selectedShiftId,
+                          reason: emergencyReason.trim(),
+                        }),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        setBookingMessage({
+                          type: "success",
+                          text: "Emergency Early Departure Gate-Pass request submitted to your class teacher.",
+                        });
+                        setIsEmergencyModalOpen(false);
+                        setEmergencyReason("");
+                        await fetchEligibility();
+                      } else {
+                        alert(data.error || "Submission failed");
+                      }
+                    } catch (e: any) {
+                      alert("Error: " + e.message);
+                    } finally {
+                      setIsSubmittingEmergency(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isSubmittingEmergency ? "Submitting..." : "Submit to Teacher"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

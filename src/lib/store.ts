@@ -933,6 +933,70 @@ class CampusFleetStore {
     return this.shifts.filter(sh => !sh.isSpecial || allocatedShiftIds.has(sh.id));
   }
 
+  public async createShift(shift: Partial<Shift> & { name: string; startTime: string; endTime: string }): Promise<Shift> {
+    const shiftId = shift.id || `shift-${Date.now()}`;
+    const newShift: Shift = {
+      id: shiftId,
+      name: shift.name,
+      shiftType: shift.shiftType || "MORNING",
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      bookingCutoffMins: shift.bookingCutoffMins || 30,
+      isSpecial: Boolean(shift.isSpecial),
+    };
+
+    try {
+      await fetch("/api/shifts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newShift),
+      });
+    } catch (e) {
+      console.warn("Could not save shift to /api/shifts, saving locally:", e);
+    }
+
+    const idx = this.shifts.findIndex(s => s.id === shiftId);
+    if (idx >= 0) {
+      this.shifts[idx] = newShift;
+    } else {
+      this.shifts.push(newShift);
+    }
+    this.notify();
+    return newShift;
+  }
+
+  public async updateShift(shiftId: string, updates: Partial<Shift>): Promise<Shift | null> {
+    const shift = this.shifts.find(s => s.id === shiftId);
+    if (!shift) return null;
+    Object.assign(shift, updates);
+
+    try {
+      await fetch("/api/shifts", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: shiftId, ...updates }),
+      });
+    } catch (e) {
+      console.warn("Could not sync shift update to /api/shifts:", e);
+    }
+
+    this.notify();
+    return shift;
+  }
+
+  public async deleteShift(shiftId: string): Promise<boolean> {
+    this.shifts = this.shifts.filter(s => s.id !== shiftId);
+    try {
+      await fetch(`/api/shifts?id=${encodeURIComponent(shiftId)}`, {
+        method: "DELETE",
+      });
+    } catch (e) {
+      console.warn("Could not sync shift deletion to /api/shifts:", e);
+    }
+    this.notify();
+    return true;
+  }
+
   public async allocateStudentToSpecialShift(shiftId: string, studentId: string, tripId?: string, notes?: string) {
     const existing = this.specialShiftAllocations.find(a => a.shiftId === shiftId && a.studentId === studentId);
     if (existing) {
