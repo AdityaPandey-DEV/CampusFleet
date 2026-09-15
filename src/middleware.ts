@@ -105,6 +105,37 @@ export async function middleware(req: NextRequest) {
   requestHeaders.set("x-user-email", session.email);
   requestHeaders.set("x-user-role", session.role);
 
+  // ── Cross-portal guard ─────────────────────────────────────────────
+  // If the user is on the wrong portal for their role, redirect to the correct one.
+  // This catches stale JWT sessions after an admin role change.
+  const correctPortal = getTargetRouteForRole(session.role);
+
+  // Only redirect if the user is on a portal that doesn't match their role at all
+  const portalForRole: Record<string, string> = {
+    student: "/portal",
+    admin: "/admin",
+    staff: "/staff",
+    transport_manager: "/staff",
+    supervisor: "/staff",
+    driver: "/driver",
+    conductor: "/conductor",
+    teacher: "/teacher",
+  };
+
+  const myPortalPrefix = portalForRole[session.role] || "/portal";
+
+  // Check if they're on a completely different portal (not their own)
+  const otherPortals = ["/portal", "/admin", "/staff", "/driver", "/conductor", "/teacher"].filter(
+    p => p !== myPortalPrefix
+  );
+  const isOnWrongPortal = otherPortals.some(
+    p => pathname === p || pathname.startsWith(p + "/")
+  );
+
+  if (isOnWrongPortal) {
+    return NextResponse.redirect(new URL(correctPortal, req.url));
+  }
+
   return NextResponse.next({
     request: { headers: requestHeaders },
   });
