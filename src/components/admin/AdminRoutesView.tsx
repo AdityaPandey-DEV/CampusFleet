@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { store } from "@/lib/store";
 import dynamic from "next/dynamic";
-import { Route, Stop, Bus } from "@/lib/types";
+import { Route, Stop, Bus, Campus } from "@/lib/types";
 import { WhereIsMyBusFlowchart } from "@/components/transit/WhereIsMyBusFlowchart";
 
 // Dynamic import for Leaflet map with no SSR
@@ -67,6 +67,7 @@ export interface AdminRoutesProps {
   initialStops?: Stop[];
   initialBuses?: Bus[];
   initialTrips?: Trip[];
+  initialCampuses?: Campus[];
 }
 
 export default function AdminRoutesView({
@@ -74,13 +75,37 @@ export default function AdminRoutesView({
   initialStops = [],
   initialBuses = [],
   initialTrips = [],
+  initialCampuses = [],
 }: AdminRoutesProps = {}) {
   const [routes, setRoutes] = useState<Route[]>(() => initialRoutes.length > 0 ? initialRoutes : store.getRoutes());
   const [stops, setStops] = useState<Stop[]>(() => initialStops.length > 0 ? initialStops : store.getStops());
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
   const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
 
-  const [activeTab, setActiveTab] = useState<"ROUTES" | "STOPS">("ROUTES");
+  const [campuses, setCampuses] = useState<Campus[]>(() => initialCampuses.length > 0 ? initialCampuses : store.getCampuses());
+
+  const [activeTab, setActiveTab] = useState<"ROUTES" | "CAMPUS_LOCATIONS" | "STOPS">("ROUTES");
+
+  // Campus Location Modal States
+  const [isCampusModalOpen, setIsCampusModalOpen] = useState(false);
+  const [editingCampus, setEditingCampus] = useState<Campus | null>(null);
+  const [campusLocationInputMode, setCampusLocationInputMode] = useState<"MAP_PIN" | "MANUAL">("MAP_PIN");
+  const [isSavingCampusLocation, setIsSavingCampusLocation] = useState(false);
+  const [campusLocationFormData, setCampusLocationFormData] = useState({
+    name: "",
+    code: "",
+    address: "",
+    landmark: "",
+    latitude: 29.375015,
+    longitude: 79.529479,
+    geofenceRadiusMeters: 100,
+    fleetCapacity: 50,
+    parkingBays: 20,
+    contactPhone: "",
+    contactEmail: "",
+    isPrimary: false,
+    isActive: true,
+  });
   const [selectedRouteId, setSelectedRouteId] = useState(routes[0]?.id || "");
   const [selectedStopId, setSelectedStopId] = useState<string | undefined>(undefined);
   const [isOverrideActive, setIsOverrideActive] = useState(false);
@@ -117,6 +142,8 @@ export default function AdminRoutesView({
     color: string;
     startStopId: string;
     endStopId: string;
+    originCampusId?: string;
+    destinationCampusId?: string;
     intermediateStopIds: string[];
   }>({
     name: "",
@@ -126,6 +153,8 @@ export default function AdminRoutesView({
     color: "#2563EB",
     startStopId: "",
     endStopId: "",
+    originCampusId: "",
+    destinationCampusId: "",
     intermediateStopIds: [],
   });
 
@@ -144,6 +173,7 @@ export default function AdminRoutesView({
       const r = store.getRoutes();
       setRoutes(r);
       setStops(store.getStops());
+      setCampuses(store.getCampuses());
       setBuses(store.getBuses());
       setTrips(store.getTrips());
       if (!selectedRouteId && r.length > 0) {
@@ -152,6 +182,97 @@ export default function AdminRoutesView({
     });
     return unsub;
   }, [selectedRouteId]);
+
+  // -------------------------------------------------------------
+  // CAMPUS LOCATION CRUD HANDLERS
+  // -------------------------------------------------------------
+  const handleOpenCreateCampusLocation = () => {
+    setEditingCampus(null);
+    setCampusLocationInputMode("MAP_PIN");
+    const primaryCampus = campuses.find(c => c.isPrimary);
+    setCampusLocationFormData({
+      name: "",
+      code: "",
+      address: "",
+      landmark: "",
+      latitude: primaryCampus?.latitude || 29.375015,
+      longitude: primaryCampus?.longitude || 79.529479,
+      geofenceRadiusMeters: 100,
+      fleetCapacity: 50,
+      parkingBays: 20,
+      contactPhone: "",
+      contactEmail: "",
+      isPrimary: campuses.length === 0,
+      isActive: true,
+    });
+    setIsCampusModalOpen(true);
+  };
+
+  const handleOpenEditCampusLocation = (campus: Campus) => {
+    setEditingCampus(campus);
+    setCampusLocationInputMode("MAP_PIN");
+    setCampusLocationFormData({
+      name: campus.name,
+      code: campus.code,
+      address: campus.address || "",
+      landmark: campus.landmark || "",
+      latitude: campus.latitude,
+      longitude: campus.longitude,
+      geofenceRadiusMeters: campus.geofenceRadiusMeters || 100,
+      fleetCapacity: campus.fleetCapacity || 50,
+      parkingBays: campus.parkingBays || 20,
+      contactPhone: campus.contactPhone || "",
+      contactEmail: campus.contactEmail || "",
+      isPrimary: Boolean(campus.isPrimary),
+      isActive: campus.isActive !== false,
+    });
+    setIsCampusModalOpen(true);
+  };
+
+  const handleSaveCampusLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!campusLocationFormData.name.trim() || !campusLocationFormData.code.trim()) {
+      alert("Please provide both Campus Name and Campus Code.");
+      return;
+    }
+    setIsSavingCampusLocation(true);
+    try {
+      if (editingCampus) {
+        await store.updateCampus(editingCampus.id, campusLocationFormData);
+      } else {
+        await store.createCampus(campusLocationFormData);
+      }
+      setIsCampusModalOpen(false);
+      setEditingCampus(null);
+    } catch (err: any) {
+      alert("Error saving campus location: " + (err?.message || "Unknown error"));
+    } finally {
+      setIsSavingCampusLocation(false);
+    }
+  };
+
+  const handleDeleteCampusLocation = async (campus: Campus) => {
+    if (campuses.length <= 1) {
+      alert("Cannot delete the sole campus location in the system.");
+      return;
+    }
+    if (!confirm(`Delete campus location "${campus.name}"? This action cannot be undone.`)) return;
+    try {
+      await store.deleteCampus(campus.id);
+    } catch (err: any) {
+      alert("Error deleting campus: " + (err?.message || "Unknown error"));
+    }
+  };
+
+  const handleSetPrimaryCampus = async (campus: Campus) => {
+    if (campus.isPrimary) return;
+    if (!confirm(`Set "${campus.name}" as the Primary Operational Hub?`)) return;
+    try {
+      await store.setPrimaryCampus(campus.id);
+    } catch (err: any) {
+      alert("Error setting primary campus: " + (err?.message || "Unknown error"));
+    }
+  };
 
   const activeRoute = routes.find(r => r.id === selectedRouteId) || routes[0];
 
@@ -164,15 +285,19 @@ export default function AdminRoutesView({
       const designated = stops.find(s => s.id === designatedCampusId);
       if (designated) return designated;
     }
+    const primaryCampus = campuses.find(c => c.isPrimary) || campuses[0];
+    if (primaryCampus) {
+      const matched = stops.find(s => s.campusId === primaryCampus.id || s.code === primaryCampus.code || s.name.toLowerCase().includes(primaryCampus.name.toLowerCase()));
+      if (matched) return matched;
+    }
     return (
+      stops.find(s => Boolean(s.campusId)) ||
       stops.find(s => s.name.toLowerCase().includes("campus terminal")) ||
-      stops.find(s => s.campus && s.name.toLowerCase().includes("campus")) ||
       stops.find(s => s.name.toLowerCase().includes("campus")) ||
-      stops.find(s => s.campus && s.campus.trim().length > 0) ||
       stops[0] ||
       null
     );
-  }, [stops, designatedCampusId]);
+  }, [stops, designatedCampusId, campuses]);
 
   const handleOpenCreateStop = () => {
     setEditingStop(null);
@@ -332,22 +457,44 @@ export default function AdminRoutesView({
   };
 
   // -------------------------------------------------------------
+  // Helper to dynamically get or create a terminal Stop representing a campus
+  const getTerminalStopForCampus = (campus: Campus, currentStops: Stop[]): Stop => {
+    const existing = currentStops.find(s => s.campusId === campus.id || s.code === campus.code);
+    if (existing) return existing;
+    return {
+      id: `campus-stop-${campus.id}`,
+      name: `${campus.name} Terminal`,
+      code: campus.code,
+      latitude: campus.latitude,
+      longitude: campus.longitude,
+      landmark: campus.landmark || campus.address || `${campus.name} Hub`,
+      geofenceRadiusMeters: campus.geofenceRadiusMeters || 100,
+      campusId: campus.id,
+      zoneCode: "ZONE_B",
+    };
+  };
+
+  // -------------------------------------------------------------
   // FLOWCHART ROUTE BUILDER
   // -------------------------------------------------------------
   const handleOpenCreateRoute = () => {
     setEditingRouteId(null);
-    const startId = stops[0]?.id || "";
-    const endId = stops.length > 1 ? stops[stops.length - 1]?.id : "";
+    const primaryCampus = campuses.find(c => c.isPrimary) || campuses[0];
+    const defaultCampusId = primaryCampus?.id || "";
+    const nonCampusStops = stops.filter(s => !s.campusId);
+    const startStop = nonCampusStops[0] || stops[0];
     const nextRouteNum = routes.length + 101;
 
     setRouteBuilderData({
-      name: stops[0] && stops[stops.length - 1] ? `${stops[0].name} ⇄ ${stops[stops.length - 1].name}` : "New Campus Route",
+      name: startStop && primaryCampus ? `${startStop.name} → ${primaryCampus.name} Corridor` : "New Academic Transit Corridor",
       code: `RT-${nextRouteNum}`,
       description: "University Transit Corridor with Multiple Stations",
       direction: "HOME_TO_CAMPUS",
       color: "#2563EB",
-      startStopId: startId,
-      endStopId: endId,
+      startStopId: startStop?.id || "",
+      endStopId: defaultCampusId,
+      originCampusId: "",
+      destinationCampusId: defaultCampusId,
       intermediateStopIds: [],
     });
     setInsertingAtGapIndex(null);
@@ -362,14 +509,22 @@ export default function AdminRoutesView({
     const endId = r.stops.length > 1 ? r.stops[r.stops.length - 1]?.stopId : "";
     const intermediates = r.stops.slice(1, -1).map(s => s.stopId);
 
+    const firstStopObj = r.stops[0]?.stop;
+    const lastStopObj = r.stops[r.stops.length - 1]?.stop;
+
+    const resolvedOriginCampusId = r.originCampusId || campuses.find(c => c.id === startId || firstStopObj?.campusId === c.id || firstStopObj?.code === c.code)?.id || (r.direction === "CAMPUS_TO_HOME" || r.direction === "CAMPUS_TO_CAMPUS" ? r.campusId : undefined);
+    const resolvedDestCampusId = r.destinationCampusId || campuses.find(c => c.id === endId || lastStopObj?.campusId === c.id || lastStopObj?.code === c.code)?.id || (r.direction === "HOME_TO_CAMPUS" || r.direction === "CAMPUS_TO_CAMPUS" ? r.campusId : undefined);
+
     setRouteBuilderData({
       name: r.name,
       code: r.code,
       description: r.description,
       direction: r.direction,
       color: r.color || "#2563EB",
-      startStopId: startId,
-      endStopId: endId,
+      startStopId: (r.direction === "CAMPUS_TO_HOME" || r.direction === "CAMPUS_TO_CAMPUS") ? (resolvedOriginCampusId || startId) : startId,
+      endStopId: (r.direction === "HOME_TO_CAMPUS" || r.direction === "CAMPUS_TO_CAMPUS") ? (resolvedDestCampusId || endId) : endId,
+      originCampusId: resolvedOriginCampusId,
+      destinationCampusId: resolvedDestCampusId,
       intermediateStopIds: intermediates,
     });
     setInsertingAtGapIndex(null);
@@ -389,11 +544,16 @@ export default function AdminRoutesView({
     return list;
   }, [routeBuilderData]);
 
-  // Stops objects corresponding to the builder sequence
+  // Stops objects corresponding to the builder sequence (including campus terminal nodes)
   const builderStops = useMemo(() => {
     const map = new Map(stops.map(s => [s.id, s]));
+    campuses.forEach(c => {
+      const cStop = getTerminalStopForCampus(c, stops);
+      map.set(c.id, cStop);
+      map.set(cStop.id, cStop);
+    });
     return builderOrderedStopIds.map(id => map.get(id)).filter(Boolean) as Stop[];
-  }, [builderOrderedStopIds, stops]);
+  }, [builderOrderedStopIds, stops, campuses]);
 
   // Calculate cumulative distances and arrival offsets
   const builderMetrics = useMemo(() => {
@@ -458,18 +618,23 @@ export default function AdminRoutesView({
   };
 
   const handleReverseRoute = () => {
-    setRouteBuilderData(prev => ({
-      ...prev,
-      startStopId: prev.endStopId,
-      endStopId: prev.startStopId,
-      intermediateStopIds: [...prev.intermediateStopIds].reverse(),
-      direction:
+    setRouteBuilderData(prev => {
+      const nextDir =
         prev.direction === "HOME_TO_CAMPUS"
           ? "CAMPUS_TO_HOME"
           : prev.direction === "CAMPUS_TO_HOME"
           ? "HOME_TO_CAMPUS"
-          : "CIRCULAR",
-    }));
+          : prev.direction;
+      return {
+        ...prev,
+        startStopId: prev.endStopId,
+        endStopId: prev.startStopId,
+        originCampusId: prev.destinationCampusId,
+        destinationCampusId: prev.originCampusId,
+        intermediateStopIds: [...prev.intermediateStopIds].reverse(),
+        direction: nextDir,
+      };
+    });
   };
 
   const handleSaveRouteFromBuilder = async (e: React.FormEvent) => {
@@ -487,12 +652,18 @@ export default function AdminRoutesView({
       return;
     }
 
-    // Build the ordered stops data structure
+    // Build the ordered stops data structure (including dynamic campus terminal nodes)
     const stopMap = new Map(stops.map(s => [s.id, s]));
+    campuses.forEach(c => {
+      const cStop = getTerminalStopForCampus(c, stops);
+      stopMap.set(c.id, cStop);
+      stopMap.set(cStop.id, cStop);
+    });
+
     const formattedStops = builderOrderedStopIds.map((sId, idx) => {
       const stopObj = stopMap.get(sId)!;
       return {
-        stopId: sId,
+        stopId: stopObj.id,
         stopOrder: idx + 1,
         arrivalOffsetMinutes: builderMetrics.stopOffsets[idx] || idx * 10,
         bufferTimeMinutes: 2,
@@ -500,12 +671,20 @@ export default function AdminRoutesView({
       };
     });
 
+    const originCampus = campuses.find(c => c.id === routeBuilderData.originCampusId || c.id === routeBuilderData.startStopId);
+    const destCampus = campuses.find(c => c.id === routeBuilderData.destinationCampusId || c.id === routeBuilderData.endStopId);
+    const primaryCampus = campuses.find(c => c.isPrimary) || campuses[0];
+    const resolvedCampusId = (routeBuilderData.direction === "HOME_TO_CAMPUS" ? destCampus?.id : (routeBuilderData.direction === "CAMPUS_TO_HOME" ? originCampus?.id : (destCampus?.id || originCampus?.id))) || primaryCampus?.id;
+
     if (editingRouteId) {
       await store.updateRoute(editingRouteId, {
         name: routeBuilderData.name,
         code: routeBuilderData.code,
         description: routeBuilderData.description,
         direction: routeBuilderData.direction,
+        campusId: resolvedCampusId,
+        originCampusId: originCampus?.id,
+        destinationCampusId: destCampus?.id,
         color: routeBuilderData.color,
         totalDistanceKm: builderMetrics.totalDistanceKm || 12,
         estimatedDurationMins: builderMetrics.estimatedDurationMins || 35,
@@ -518,6 +697,9 @@ export default function AdminRoutesView({
         code: routeBuilderData.code,
         description: routeBuilderData.description,
         direction: routeBuilderData.direction,
+        campusId: resolvedCampusId,
+        originCampusId: originCampus?.id,
+        destinationCampusId: destCampus?.id,
         color: routeBuilderData.color,
         isActive: true,
         totalDistanceKm: builderMetrics.totalDistanceKm || 12,
@@ -690,6 +872,18 @@ export default function AdminRoutesView({
           >
             <RouteIcon className="w-4 h-4" />
             <span>Corridors & Routes ({routes.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("CAMPUS_LOCATIONS")}
+            className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === "CAMPUS_LOCATIONS"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            <span>Campus Locations ({campuses.length})</span>
           </button>
 
           <button
@@ -1050,6 +1244,194 @@ export default function AdminRoutesView({
 
       {/* ============================================================= */}
       {/* TAB 2: STOPS ROSTER                                           */}
+      {/* ============================================================= */}
+      {/* ============================================================= */}
+      {/* TAB 2: CAMPUS LOCATIONS (Institutional Campus CRUD)           */}
+      {/* ============================================================= */}
+      {activeTab === "CAMPUS_LOCATIONS" && (
+        <div className="space-y-5">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">Institutional Campus Locations</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Manage university campuses, fleet depots, and primary dispatch hubs</p>
+            </div>
+            <button
+              onClick={handleOpenCreateCampusLocation}
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Add New Campus Location</span>
+            </button>
+          </div>
+
+          {/* Campus Cards Grid */}
+          {campuses.length === 0 ? (
+            <div className="text-center py-16 space-y-3">
+              <Building2 className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" />
+              <p className="text-sm font-bold text-slate-400">No campus locations configured yet</p>
+              <p className="text-xs text-slate-400">Add your first institutional campus to anchor all transit operations.</p>
+              <button
+                onClick={handleOpenCreateCampusLocation}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl mx-auto"
+              >
+                + Add Campus Location
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {campuses.map(campus => (
+                <div
+                  key={campus.id}
+                  className={`relative p-5 rounded-3xl border shadow-sm space-y-4 flex flex-col justify-between transition-all hover:shadow-md ${
+                    campus.isPrimary
+                      ? "bg-gradient-to-br from-blue-900/30 via-indigo-950/20 to-slate-900 border-blue-500/40 text-white"
+                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  }`}
+                >
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-inner flex-shrink-0 ${
+                        campus.isPrimary
+                          ? "bg-blue-600/20 border border-blue-500/40 text-blue-400"
+                          : "bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600"
+                      }`}>
+                        🏛️
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {campus.isPrimary && (
+                            <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold uppercase tracking-wider border border-blue-500/30">
+                              ⭐ Primary Hub
+                            </span>
+                          )}
+                          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold ${
+                            campus.isActive !== false
+                              ? "bg-emerald-500/20 text-emerald-400 dark:text-emerald-300"
+                              : "bg-rose-500/20 text-rose-400"
+                          }`}>
+                            {campus.isActive !== false ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                        <h4 className={`font-black text-sm mt-0.5 truncate ${
+                          campus.isPrimary ? "text-white" : "text-slate-900 dark:text-white"
+                        }`}>
+                          {campus.name}
+                        </h4>
+                        <p className={`text-[11px] truncate ${
+                          campus.isPrimary ? "text-slate-400" : "text-slate-400"
+                        }`}>
+                          {campus.address || campus.landmark || "No address set"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs ${
+                    campus.isPrimary ? "" : ""
+                  }`}>
+                    <div className={`p-2.5 rounded-xl ${
+                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                    }`}>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Code</span>
+                      <span className={`font-mono font-black ${
+                        campus.isPrimary ? "text-blue-300" : "text-blue-600 dark:text-blue-400"
+                      }`}>{campus.code}</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl ${
+                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                    }`}>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">GPS</span>
+                      <span className={`font-mono font-bold text-[11px] ${
+                        campus.isPrimary ? "text-slate-200" : "text-slate-600 dark:text-slate-300"
+                      }`}>
+                        {campus.latitude.toFixed(4)}°N
+                      </span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl ${
+                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                    }`}>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Fleet</span>
+                      <span className={`font-bold ${
+                        campus.isPrimary ? "text-emerald-400" : "text-emerald-600 dark:text-emerald-400"
+                      }`}>{campus.fleetCapacity || 50} buses</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl ${
+                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                    }`}>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Bays</span>
+                      <span className={`font-bold ${
+                        campus.isPrimary ? "text-amber-400" : "text-amber-600 dark:text-amber-400"
+                      }`}>{campus.parkingBays || 20} bays</span>
+                    </div>
+                  </div>
+
+                  {/* Geofence & Contact */}
+                  <div className={`grid grid-cols-2 gap-2 text-xs ${
+                    campus.isPrimary ? "" : ""
+                  }`}>
+                    <div className={`p-2.5 rounded-xl ${
+                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                    }`}>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Geofence</span>
+                      <span className={`font-mono font-bold ${
+                        campus.isPrimary ? "text-purple-300" : "text-purple-600 dark:text-purple-400"
+                      }`}>{campus.geofenceRadiusMeters}m radius</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl ${
+                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                    }`}>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Landmark</span>
+                      <span className={`font-medium truncate block ${
+                        campus.isPrimary ? "text-slate-300" : "text-slate-600 dark:text-slate-300"
+                      }`}>{campus.landmark || "—"}</span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className={`flex items-center gap-2 pt-3 border-t ${
+                    campus.isPrimary ? "border-slate-700/50" : "border-slate-100 dark:border-slate-800"
+                  }`}>
+                    {!campus.isPrimary && (
+                      <button
+                        onClick={() => handleSetPrimaryCampus(campus)}
+                        className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold border bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all flex items-center gap-1"
+                        title="Set as Primary Hub"
+                      >
+                        ⭐ Set Primary
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleOpenEditCampusLocation(campus)}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                        campus.isPrimary
+                          ? "bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30"
+                          : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      Edit Campus
+                    </button>
+                    {!campus.isPrimary && (
+                      <button
+                        onClick={() => handleDeleteCampusLocation(campus)}
+                        className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all"
+                        title="Delete Campus"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* TAB 3: STOPS                                                  */}
       {/* ============================================================= */}
       {activeTab === "STOPS" && (
         <div className="space-y-5">
@@ -1741,11 +2123,57 @@ export default function AdminRoutesView({
                     <label className="text-[10px] font-bold uppercase text-slate-400">Direction</label>
                     <select
                       value={routeBuilderData.direction}
-                      onChange={e => setRouteBuilderData({ ...routeBuilderData, direction: e.target.value as any })}
+                      onChange={e => {
+                        const newDir = e.target.value as any;
+                        setRouteBuilderData(prev => {
+                          const primary = campuses.find(c => c.isPrimary) || campuses[0];
+                          const nonCampusStops = stops.filter(s => !s.campusId);
+                          let startId = prev.startStopId;
+                          let endId = prev.endStopId;
+                          let origCampId = prev.originCampusId;
+                          let destCampId = prev.destinationCampusId;
+
+                          if (newDir === "HOME_TO_CAMPUS") {
+                            // Destination must be a campus terminal
+                            destCampId = destCampId || primary?.id || campuses[0]?.id || "";
+                            endId = destCampId;
+                            origCampId = undefined;
+                            // If start was a campus, reset to first non-campus stop
+                            if (campuses.some(c => c.id === startId)) {
+                              startId = nonCampusStops[0]?.id || "";
+                            }
+                          } else if (newDir === "CAMPUS_TO_HOME") {
+                            // Origin must be a campus terminal
+                            origCampId = origCampId || primary?.id || campuses[0]?.id || "";
+                            startId = origCampId;
+                            destCampId = undefined;
+                            // If end was a campus, reset to first non-campus stop
+                            if (campuses.some(c => c.id === endId)) {
+                              endId = nonCampusStops[nonCampusStops.length - 1]?.id || nonCampusStops[0]?.id || "";
+                            }
+                          } else if (newDir === "CAMPUS_TO_CAMPUS") {
+                            origCampId = origCampId || primary?.id || campuses[0]?.id || "";
+                            startId = origCampId;
+                            const otherCampus = campuses.find(c => c.id !== origCampId) || primary || campuses[0];
+                            destCampId = otherCampus?.id || "";
+                            endId = destCampId;
+                          }
+
+                          return {
+                            ...prev,
+                            direction: newDir,
+                            startStopId: startId,
+                            endStopId: endId,
+                            originCampusId: origCampId,
+                            destinationCampusId: destCampId,
+                          };
+                        });
+                      }}
                       className="w-full p-1.5 mt-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold outline-none text-xs"
                     >
-                      <option value="HOME_TO_CAMPUS">HOME_TO_CAMPUS</option>
-                      <option value="CAMPUS_TO_HOME">CAMPUS_TO_HOME</option>
+                      <option value="HOME_TO_CAMPUS">HOME_TO_CAMPUS (Inbound)</option>
+                      <option value="CAMPUS_TO_HOME">CAMPUS_TO_HOME (Outbound)</option>
+                      <option value="CAMPUS_TO_CAMPUS">CAMPUS_TO_CAMPUS (Inter-Campus)</option>
                       <option value="CIRCULAR">CIRCULAR (Loop)</option>
                     </select>
                   </div>
@@ -1754,41 +2182,81 @@ export default function AdminRoutesView({
                 {/* Flowchart Station Nodes List */}
                 <div className="flex-1 overflow-y-auto pr-2 space-y-2">
                   {/* --- 1. START STOP (ANCHOR 1) --- */}
-                  <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-500/50 shadow-sm space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
-                          <MapPin className="w-3.5 h-3.5" />
-                        </span>
-                        <div>
-                          <span className="text-[10px] font-black tracking-wider uppercase text-emerald-700 dark:text-emerald-400 block">
-                            Start Stop (Origin Terminal)
-                          </span>
-                          <span className="text-xs font-bold text-slate-900 dark:text-white">
-                            {stops.find(s => s.id === routeBuilderData.startStopId)?.name || "Select Starting Point"}
+                  {(() => {
+                    const isOriginCampus = routeBuilderData.direction === "CAMPUS_TO_HOME" || routeBuilderData.direction === "CAMPUS_TO_CAMPUS";
+                    const originCampusObj = campuses.find(c => c.id === routeBuilderData.startStopId || c.id === routeBuilderData.originCampusId);
+                    const originStopObj = stops.find(s => s.id === routeBuilderData.startStopId);
+                    const displayName = isOriginCampus
+                      ? originCampusObj?.name || "Select Origin Campus"
+                      : originStopObj?.name || "Select Starting Point";
+
+                    return (
+                      <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-500/50 shadow-sm space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
+                              {isOriginCampus ? <Building2 className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
+                            </span>
+                            <div>
+                              <span className="text-[10px] font-black tracking-wider uppercase text-emerald-700 dark:text-emerald-400 block">
+                                {isOriginCampus ? "Origin Campus Terminal (Departure)" : "Start Stop (Origin Passenger Pickup)"}
+                              </span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                {displayName}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-md">
+                            0.0 km • 0 min
                           </span>
                         </div>
+
+                        {/* Start Stop Selector (Campuses if Outbound/Inter-Campus, regular stops if Inbound) */}
+                        {isOriginCampus ? (
+                          <select
+                            value={routeBuilderData.startStopId}
+                            onChange={e => {
+                              const cid = e.target.value;
+                              setRouteBuilderData(prev => ({
+                                ...prev,
+                                startStopId: cid,
+                                originCampusId: cid,
+                              }));
+                            }}
+                            className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
+                          >
+                            <option value="">-- Choose Origin Campus Terminal --</option>
+                            {campuses.map(c => (
+                              <option key={c.id} value={c.id}>
+                                {c.name} ({c.code}){c.isPrimary ? " ★ Primary Campus" : ""} {c.city ? `• ${c.city}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <select
+                            value={routeBuilderData.startStopId}
+                            onChange={e => {
+                              const sid = e.target.value;
+                              setRouteBuilderData(prev => ({
+                                ...prev,
+                                startStopId: sid,
+                                originCampusId: undefined,
+                              }));
+                            }}
+                            className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
+                          >
+                            <option value="">-- Choose Origin Passenger Station --</option>
+                            {(stops.filter(st => !st.campusId).length > 0 ? stops.filter(st => !st.campusId) : stops).map(st => (
+                              <option key={st.id} value={st.id}>
+                                {st.name} ({st.code}) {st.landmark ? `• ${st.landmark}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </div>
-
-                      <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-md">
-                        0.0 km • 0 min
-                      </span>
-                    </div>
-
-                    {/* Searchable Start Stop Selector */}
-                    <select
-                      value={routeBuilderData.startStopId}
-                      onChange={e => setRouteBuilderData({ ...routeBuilderData, startStopId: e.target.value })}
-                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
-                    >
-                      <option value="">-- Choose Origin Station --</option>
-                      {stops.map(st => (
-                        <option key={st.id} value={st.id}>
-                          {st.name} ({st.code}) {st.landmark ? `• ${st.landmark}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                    );
+                  })()}
 
                   {/* --- CONNECTOR GAP 0 with (+) BUTTON --- */}
                   <div className="relative py-1 flex items-center justify-center">
@@ -1975,41 +2443,81 @@ export default function AdminRoutesView({
                   })}
 
                   {/* --- 3. END STOP (ANCHOR 2) --- */}
-                  <div className="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-500/50 shadow-sm space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
-                          <Building2 className="w-3.5 h-3.5" />
-                        </span>
-                        <div>
-                          <span className="text-[10px] font-black tracking-wider uppercase text-blue-700 dark:text-blue-400 block">
-                            End Stop (Destination Terminal)
-                          </span>
-                          <span className="text-xs font-bold text-slate-900 dark:text-white">
-                            {stops.find(s => s.id === routeBuilderData.endStopId)?.name || "Select Destination Campus"}
+                  {(() => {
+                    const isDestCampus = routeBuilderData.direction === "HOME_TO_CAMPUS" || routeBuilderData.direction === "CAMPUS_TO_CAMPUS";
+                    const destCampusObj = campuses.find(c => c.id === routeBuilderData.endStopId || c.id === routeBuilderData.destinationCampusId);
+                    const destStopObj = stops.find(s => s.id === routeBuilderData.endStopId);
+                    const displayName = isDestCampus
+                      ? destCampusObj?.name || "Select Destination Campus"
+                      : destStopObj?.name || "Select Final Drop-off Station";
+
+                    return (
+                      <div className="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-500/50 shadow-sm space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                              {isDestCampus ? <Building2 className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
+                            </span>
+                            <div>
+                              <span className="text-[10px] font-black tracking-wider uppercase text-blue-700 dark:text-blue-400 block">
+                                {isDestCampus ? "Destination Campus Terminal (Arrival)" : "Final Drop-off Stop (Terminal Station)"}
+                              </span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                {displayName}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className="text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950 px-2 py-0.5 rounded-md">
+                            {builderMetrics.totalDistanceKm} km • ~{builderMetrics.estimatedDurationMins} min
                           </span>
                         </div>
+
+                        {/* End Stop Selector (Campuses if Inbound/Inter-Campus, regular stops if Outbound) */}
+                        {isDestCampus ? (
+                          <select
+                            value={routeBuilderData.endStopId}
+                            onChange={e => {
+                              const cid = e.target.value;
+                              setRouteBuilderData(prev => ({
+                                ...prev,
+                                endStopId: cid,
+                                destinationCampusId: cid,
+                              }));
+                            }}
+                            className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
+                          >
+                            <option value="">-- Choose Destination Campus Terminal --</option>
+                            {campuses.map(c => (
+                              <option key={c.id} value={c.id}>
+                                {c.name} ({c.code}){c.isPrimary ? " ★ Primary Campus" : ""} {c.city ? `• ${c.city}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <select
+                            value={routeBuilderData.endStopId}
+                            onChange={e => {
+                              const sid = e.target.value;
+                              setRouteBuilderData(prev => ({
+                                ...prev,
+                                endStopId: sid,
+                                destinationCampusId: undefined,
+                              }));
+                            }}
+                            className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
+                          >
+                            <option value="">-- Choose Final Drop-off Station --</option>
+                            {(stops.filter(st => !st.campusId).length > 0 ? stops.filter(st => !st.campusId) : stops).map(st => (
+                              <option key={st.id} value={st.id}>
+                                {st.name} ({st.code}) {st.landmark ? `• ${st.landmark}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </div>
-
-                      <span className="text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950 px-2 py-0.5 rounded-md">
-                        {builderMetrics.totalDistanceKm} km • ~{builderMetrics.estimatedDurationMins} min
-                      </span>
-                    </div>
-
-                    {/* Searchable End Stop Selector */}
-                    <select
-                      value={routeBuilderData.endStopId}
-                      onChange={e => setRouteBuilderData({ ...routeBuilderData, endStopId: e.target.value })}
-                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
-                    >
-                      <option value="">-- Choose Destination Station --</option>
-                      {stops.map(st => (
-                        <option key={st.id} value={st.id}>
-                          {st.name} ({st.code}) {st.landmark ? `• ${st.landmark}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -2154,6 +2662,276 @@ export default function AdminRoutesView({
               </button>
             </div>
           </form>
+        </div>
+      )}
+      {/* ============================================================= */}
+      {/* MODAL: CREATE / EDIT CAMPUS LOCATION                          */}
+      {/* ============================================================= */}
+      {isCampusModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl max-h-[95vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base">
+                    {editingCampus ? `Edit: ${editingCampus.name}` : "Create New Campus Location"}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {editingCampus ? "Update campus coordinates, details & fleet configuration" : "Add a new institutional campus location for fleet operations"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCampusModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Input Mode Switcher */}
+            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setCampusLocationInputMode("MAP_PIN")}
+                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  campusLocationInputMode === "MAP_PIN"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Mark on Interactive Map</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCampusLocationInputMode("MANUAL")}
+                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  campusLocationInputMode === "MANUAL"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>⌨️ Enter GPS Coordinates</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCampusLocation} className="space-y-4 text-xs">
+              {/* Map Pin Drop */}
+              {campusLocationInputMode === "MAP_PIN" && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-slate-500 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                      Click on the map to place campus pin
+                    </span>
+                    <span className="font-mono text-slate-400 font-bold">
+                      {campusLocationFormData.latitude.toFixed(5)}, {campusLocationFormData.longitude.toFixed(5)}
+                    </span>
+                  </div>
+                  <CampusFleetMap
+                    stops={stops}
+                    height="220px"
+                    interactiveMode="PIN_DROP"
+                    draftPinLocation={[campusLocationFormData.latitude, campusLocationFormData.longitude]}
+                    draftGeofenceRadius={campusLocationFormData.geofenceRadiusMeters}
+                    onMapClick={(lat, lng) => {
+                      setCampusLocationFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Name & Code */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Campus Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Graphic Era Hill University - Bhimtal Campus"
+                    value={campusLocationFormData.name}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, name: e.target.value })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Campus Code</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. GEHU-BHT"
+                    value={campusLocationFormData.code}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, code: e.target.value })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Address & Landmark */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Address</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Sattal Road, Bhimtal, Nainital"
+                    value={campusLocationFormData.address}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, address: e.target.value })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Landmark</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. GEHU Main Gate & Fleet Parking Depot"
+                    value={campusLocationFormData.landmark}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, landmark: e.target.value })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Coordinates */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Latitude (°N)</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    required
+                    value={campusLocationFormData.latitude}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, latitude: parseFloat(e.target.value) || 0 })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Longitude (°E)</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    required
+                    value={campusLocationFormData.longitude}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, longitude: parseFloat(e.target.value) || 0 })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Geofence, Fleet Capacity, Parking Bays */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Geofence Radius (m)</label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="500"
+                    value={campusLocationFormData.geofenceRadiusMeters}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, geofenceRadiusMeters: parseInt(e.target.value) || 100 })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Fleet Capacity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={campusLocationFormData.fleetCapacity}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, fleetCapacity: parseInt(e.target.value) || 50 })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Parking Bays</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={campusLocationFormData.parkingBays}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, parkingBays: parseInt(e.target.value) || 20 })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Contact Phone</label>
+                  <input
+                    type="tel"
+                    placeholder="e.g. +91 8057999901"
+                    value={campusLocationFormData.contactPhone}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, contactPhone: e.target.value })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-slate-400">Contact Email</label>
+                  <input
+                    type="email"
+                    placeholder="e.g. transport@gehu.ac.in"
+                    value={campusLocationFormData.contactEmail}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, contactEmail: e.target.value })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <div className="flex items-center gap-6 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={campusLocationFormData.isPrimary}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, isPrimary: e.target.checked })}
+                    className="w-4 h-4 rounded accent-blue-600"
+                  />
+                  <span className="font-bold text-slate-600 dark:text-slate-300">⭐ Set as Primary Operational Hub</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={campusLocationFormData.isActive}
+                    onChange={e => setCampusLocationFormData({ ...campusLocationFormData, isActive: e.target.checked })}
+                    className="w-4 h-4 rounded accent-emerald-600"
+                  />
+                  <span className="font-bold text-slate-600 dark:text-slate-300">Active</span>
+                </label>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCampusModalOpen(false)}
+                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCampusLocation}
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2"
+                >
+                  {isSavingCampusLocation ? (
+                    <>
+                      <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      {editingCampus ? "Update Campus Location" : "Create Campus Location"}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

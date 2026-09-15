@@ -112,7 +112,8 @@ export default async function ConductorPage() {
     longitude: s.longitude,
     landmark: s.landmark,
     geofenceRadiusMeters: s.geofence_radius || 80,
-    campus: s.campus || "GEHU Bhimtal",
+    campusId: s.campus_id || s.campus || "",
+    campus: s.campus || "",
     isBusMergeStop: Boolean(s.is_bus_merge_stop),
     zoneCode: s.zone_code || "ZONE_B",
   }));

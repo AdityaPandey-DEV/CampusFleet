@@ -26,16 +26,37 @@ export default async function RouteAndStopManagementPage() {
   const [
     { data: dbRoutes },
     { data: dbStops },
+    { data: dbCampuses },
     { data: dbBuses },
     { data: dbTrips },
     { data: dbRouteStops },
   ] = await Promise.all([
     supabaseAdmin.from("routes").select("*"),
     supabaseAdmin.from("stops").select("*"),
+    supabaseAdmin.from("campuses").select("*").order("is_primary", { ascending: false }).order("name", { ascending: true }),
     supabaseAdmin.from("buses").select("*"),
     supabaseAdmin.from("trips").select("*").order("trip_code"),
     supabaseAdmin.from("route_stops").select("*").order("stop_sequence", { ascending: true }),
   ]);
+
+  const campuses: any[] = (dbCampuses || []).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    code: c.code,
+    address: c.address || "",
+    landmark: c.landmark || "",
+    latitude: Number(c.latitude),
+    longitude: Number(c.longitude),
+    geofenceRadiusMeters: Number(c.geofence_radius ?? 100),
+    fleetCapacity: Number(c.fleet_capacity ?? 50),
+    parkingBays: Number(c.parking_bays ?? 20),
+    contactPhone: c.contact_phone || "",
+    contactEmail: c.contact_email || "",
+    isPrimary: Boolean(c.is_primary),
+    isActive: Boolean(c.is_active ?? true),
+    createdAt: c.created_at,
+    updatedAt: c.updated_at,
+  }));
 
   const stops: Stop[] = (dbStops || []).map((s: any) => ({
     id: s.id,
@@ -45,7 +66,8 @@ export default async function RouteAndStopManagementPage() {
     longitude: s.longitude,
     landmark: s.landmark,
     geofenceRadiusMeters: s.geofence_radius || 80,
-    campus: s.campus || "GEHU Bhimtal",
+    campusId: s.campus_id || s.campus || "",
+    campus: s.campus || "",
     isBusMergeStop: Boolean(s.is_bus_merge_stop),
     zoneCode: s.zone_code || "ZONE_B",
   }));
@@ -70,7 +92,8 @@ export default async function RouteAndStopManagementPage() {
           longitude: 79.55,
           landmark: "",
           geofenceRadiusMeters: 80,
-          campus: "GEHU Bhimtal",
+          campusId: "",
+          campus: "",
           isBusMergeStop: false,
           zoneCode: "ZONE_B",
         },
@@ -87,6 +110,9 @@ export default async function RouteAndStopManagementPage() {
       estimatedDurationMins: Number(r.estimated_duration_mins) || 55,
       isActive: r.is_active ?? true,
       stops: routeStops,
+      campusId: r.campus_id || undefined,
+      originCampusId: r.origin_campus_id || undefined,
+      destinationCampusId: r.destination_campus_id || undefined,
     };
   });
 
@@ -128,6 +154,7 @@ export default async function RouteAndStopManagementPage() {
       initialStops={stops}
       initialBuses={buses}
       initialTrips={trips}
+      initialCampuses={campuses}
     />
   );
 }

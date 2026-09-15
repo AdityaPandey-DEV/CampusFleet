@@ -16,13 +16,13 @@ export async function GET() {
       return NextResponse.json({
         success: true,
         config: {
-          upi_id: "gehubhimtal.transit@upi",
-          merchant_name: "GEHU Bhimtal Transport Department",
+          upi_id: "transit.fees@upi",
+          merchant_name: "University Transport Department",
           qr_image_url: "",
           instructions: "Scan via Google Pay, PhonePe, Paytm, or any BHIM UPI app. Ensure the 12-digit transaction ID / UTR is clear on the receipt.",
           account_number: "50200012345678",
           ifsc_code: "HDFC0001234",
-          bank_name: "HDFC Bank, Haldwani Branch",
+          bank_name: "HDFC Bank, Main Branch",
         },
       });
     }
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     const newConfig = {
       upi_id: upi_id.trim(),
-      merchant_name: merchant_name || "GEHU Bhimtal Transport",
+      merchant_name: merchant_name || "University Transport Department",
       qr_image_url: qr_image_url || "",
       instructions: instructions || "Scan via any UPI app and enter the 12-digit UTR on the receipt.",
       account_number: account_number || "",

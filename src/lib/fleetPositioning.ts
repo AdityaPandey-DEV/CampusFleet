@@ -1,16 +1,20 @@
-import { Bus, Route, Stop, Trip, Staff, LiveBusLocation, FleetBusMarkerData, TripDirection } from "./types";
+import { Bus, Route, Stop, Trip, Staff, LiveBusLocation, FleetBusMarkerData, TripDirection, Campus } from "./types";
 
 /**
  * Resolves the primary university campus terminal stop dynamically from database records.
  * Zero hardcoded constants: respects admin edits from PostgreSQL.
  */
-export function getCampusTerminalFromStops(stops: Stop[]): Stop | null {
+export function getCampusTerminalFromStops(stops: Stop[], campus?: Campus | null): Stop | null {
   if (!stops || stops.length === 0) return null;
+  if (campus) {
+    const match = stops.find(s => s.campusId === campus.id || s.code === campus.code || s.name.toLowerCase().includes(campus.name.toLowerCase()));
+    if (match) return match;
+  }
   return (
     stops.find((s) => s.name.toLowerCase().includes("campus terminal")) ||
-    stops.find((s) => s.campus && s.name.toLowerCase().includes("campus")) ||
+    stops.find((s) => s.campusId && s.name.toLowerCase().includes("campus")) ||
     stops.find((s) => s.name.toLowerCase().includes("campus")) ||
-    stops.find((s) => s.campus && s.campus.trim().length > 0) ||
+    stops.find((s) => Boolean(s.campusId)) ||
     stops[0] ||
     null
   );
@@ -99,6 +103,7 @@ function interpolateRouteProgress(stops: Stop[], progress: number): { latitude: 
 export interface FleetPositionOptions {
   simulatedTimeMinutes?: number; // Optional override for testing dispatch scenarios
   simulatedMode?: "AUTO" | "MORNING_STANDBY" | "IN_TRANSIT" | "CAMPUS_PARKED";
+  campus?: Campus;
 }
 
 /**
@@ -124,7 +129,7 @@ export function computeFleetBusMarkers(
   const actualCurrentMinutes = now.getHours() * 60 + now.getMinutes();
 
   // Resolve primary university campus terminal stop dynamically from database records
-  const campusStop = getCampusTerminalFromStops(allStops);
+  const campusStop = getCampusTerminalFromStops(allStops, options?.campus);
 
   return buses.map((bus, busIdx) => {
     // 1. Find assigned route
@@ -213,12 +218,12 @@ export function computeFleetBusMarkers(
         statusText = `Trip Completed • Stationed at ${destinationStop?.name || "Terminal"}`;
       } else {
         // Inbound route parked in dedicated bay inside University Campus Depot (dynamic from DB)
-        const depotSlot = getCampusDepotSlot(busIdx, campusStop || undefined);
+        const depotSlot = getCampusDepotSlot(busIdx, options?.campus || campusStop || undefined);
         latitude = depotSlot.latitude;
         longitude = depotSlot.longitude;
         speedKmh = 0;
         headingDeg = 0;
-        statusText = `Trip Completed • Parked in Depot Bay ${busIdx + 1} (${campusStop?.name || "Campus Terminal"})`;
+        statusText = `Trip Completed • Parked in Depot Bay ${busIdx + 1} (${options?.campus?.name || campusStop?.name || "Campus Terminal"})`;
       }
     } else if (state === "IN_TRANSIT") {
       // Case 2: IN TRANSIT — moving with driver coordinates or live corridor telemetry

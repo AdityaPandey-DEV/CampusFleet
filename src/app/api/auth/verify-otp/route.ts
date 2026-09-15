@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
       email: user.email,
       fullName: user.full_name || cleanEmail.split("@")[0],
       role: user.role || "student",
-      campus: user.campus || "GEHU Bhimtal",
+      campusId: user.campus_id || user.campus || "",
+      campus: user.campus || "",
       avatarUrl: user.avatar_url,
     });
 
@@ -67,7 +68,8 @@ export async function POST(req: NextRequest) {
       email: user.email,
       fullName: user.full_name || cleanEmail.split("@")[0],
       role: user.role || "student",
-      campus: user.campus || "GEHU Bhimtal",
+      campusId: user.campus_id || user.campus || "",
+      campus: user.campus || "",
       avatarUrl: user.avatar_url,
       studentId: user.role === "student" ? user.id : undefined,
       token: `tok_jwt_${Date.now()}`,

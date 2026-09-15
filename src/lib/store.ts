@@ -2,6 +2,7 @@ import {
   Bus,
   Route,
   Stop,
+  Campus,
   Shift,
   Trip,
   Student,
@@ -78,6 +79,7 @@ class CampusFleetStore {
   private buses: Bus[] = [];
   private routes: Route[] = [];
   private stops: Stop[] = [];
+  private campuses: Campus[] = [];
   private shifts: Shift[] = [];
   private trips: Trip[] = [];
   private students: Student[] = [];
@@ -104,6 +106,8 @@ class CampusFleetStore {
     fullName: string;
     role: UserRole;
     studentId?: string;
+    campusId?: string;
+    campus?: string;
   } | null = null;
 
   private isInitialized: boolean = false;
@@ -190,6 +194,33 @@ class CampusFleetStore {
         }));
       }
 
+      // 0.1 Fetch Campus Locations (PostgreSQL Master Data)
+      const { data: dbCampuses } = await supabase
+        .from("campuses")
+        .select("*")
+        .order("is_primary", { ascending: false })
+        .order("name", { ascending: true });
+      if (dbCampuses && dbCampuses.length > 0) {
+        this.campuses = dbCampuses.map(c => ({
+          id: c.id,
+          name: c.name,
+          code: c.code,
+          address: c.address || "",
+          landmark: c.landmark || "",
+          latitude: Number(c.latitude),
+          longitude: Number(c.longitude),
+          geofenceRadiusMeters: Number(c.geofence_radius ?? 100),
+          fleetCapacity: Number(c.fleet_capacity ?? 50),
+          parkingBays: Number(c.parking_bays ?? 20),
+          contactPhone: c.contact_phone || "",
+          contactEmail: c.contact_email || "",
+          isPrimary: Boolean(c.is_primary),
+          isActive: Boolean(c.is_active ?? true),
+          createdAt: c.created_at,
+          updatedAt: c.updated_at,
+        }));
+      }
+
       // 1. Fetch Stops
       const { data: dbStops } = await supabase.from("stops").select("*");
       if (dbStops && dbStops.length > 0) {
@@ -201,7 +232,7 @@ class CampusFleetStore {
           longitude: s.longitude,
           landmark: s.landmark,
           geofenceRadiusMeters: s.geofence_radius || 80,
-          campus: s.campus || "",
+          campusId: s.campus_id || s.campus || "",
           isBusMergeStop: Boolean(s.is_bus_merge_stop),
           zoneCode: s.zone_code || "ZONE_B",
         }));
@@ -308,7 +339,8 @@ class CampusFleetStore {
           role: u.role || "student",
           provider: u.provider || "Google",
           phone: u.phone,
-          campus: u.campus || "GEHU Bhimtal",
+          campusId: u.campus_id || u.campus || "",
+          campus: u.campus || "",
           createdAt: u.created_at || new Date().toISOString(),
         }));
       }
@@ -353,7 +385,8 @@ class CampusFleetStore {
           phone: s.phone || "+91 0000000000",
           department: s.department || "B.Tech CSE",
           semester: s.semester || "5th",
-          campus: s.campus || "GEHU Bhimtal",
+          campusId: s.campus_id || s.campus || "",
+          campus: s.campus || "",
           primaryStopId: s.primary_stop_id || "",
           primaryRouteId: s.primary_route_id || "",
           emergencyContact: s.emergency_contact || {
@@ -387,7 +420,8 @@ class CampusFleetStore {
             phone: u.phone || "+91 0000000000",
             department: "B.Tech CSE",
             semester: "1st",
-            campus: u.campus || "GEHU Bhimtal",
+            campusId: u.campusId || u.campus || "",
+            campus: u.campusId || u.campus || "",
             primaryStopId: this.stops[0]?.id || "",
             primaryRouteId: this.routes[0]?.id || "",
             emergencyContact: { name: "Campus Desk", relationship: "Admin", phone: "+91 0000000000" },
@@ -408,7 +442,7 @@ class CampusFleetStore {
             phone: newStudent.phone,
             department: newStudent.department,
             semester: newStudent.semester,
-            campus: newStudent.campus || "GEHU Bhimtal",
+            campus_id: newStudent.campusId || newStudent.campus || "",
             enrollment_no: newStudent.enrollmentNo,
             primary_stop_id: newStudent.primaryStopId || null,
             primary_route_id: newStudent.primaryRouteId || null,
@@ -609,6 +643,7 @@ class CampusFleetStore {
           buses: this.buses,
           routes: this.routes,
           stops: this.stops,
+          campuses: this.campuses,
           shifts: this.shifts,
           trips: this.trips,
           bookings: this.bookings,
@@ -647,6 +682,7 @@ class CampusFleetStore {
             if (snapshot.buses) this.buses = snapshot.buses;
             if (snapshot.routes) this.routes = snapshot.routes;
             if (snapshot.stops) this.stops = snapshot.stops;
+            if (snapshot.campuses) this.campuses = snapshot.campuses;
             if (snapshot.shifts) this.shifts = snapshot.shifts;
             if (snapshot.trips) this.trips = snapshot.trips;
             if (snapshot.bookings) this.bookings = snapshot.bookings;
@@ -679,6 +715,10 @@ class CampusFleetStore {
   public getBuses() { return this.buses; }
   public getRoutes() { return this.routes; }
   public getStops() { return this.stops; }
+  public getCampuses() { return this.campuses; }
+  public getPrimaryCampus(): Campus | undefined {
+    return this.campuses.find(c => c.isPrimary) || this.campuses[0];
+  }
   public getShifts() { return this.shifts; }
   public getTrips() { return this.trips; }
   public getTodayTrips() {
@@ -893,6 +933,18 @@ class CampusFleetStore {
 
   /** Dynamically find the campus terminal stop (admin can rename/recreate stops) */
   public resolveCampusStopId(): string | null {
+    // Priority 0: Matches primary institutional campus code or name
+    const primary = this.getPrimaryCampus();
+    if (primary) {
+      const match = this.stops.find(s =>
+        s.campusId === primary.id ||
+        s.code === primary.code ||
+        s.name.toLowerCase().includes(primary.name.toLowerCase()) ||
+        primary.name.toLowerCase().includes(s.name.toLowerCase())
+      );
+      if (match) return match.id;
+    }
+
     // Priority 1: stop name contains "campus" (case-insensitive)
     const campusStop = this.stops.find(s =>
       s.name.toLowerCase().includes("campus") ||
@@ -971,6 +1023,7 @@ class CampusFleetStore {
     profileData: {
       fullName?: string;
       enrollmentNo?: string;
+      campusId?: string;
       campus?: string;
       department?: string;
       semester?: string;
@@ -984,6 +1037,9 @@ class CampusFleetStore {
   ) {
     let student = this.students.find(s => s.id === studentId || s.userId === studentId || s.email?.toLowerCase() === this.currentUser?.email?.toLowerCase());
 
+    const resolvedCampusId = profileData.campusId || (profileData.campus ? (this.campuses.find(c => c.name === profileData.campus || c.id === profileData.campus)?.id || profileData.campus) : undefined);
+    const resolvedCampusName = profileData.campus || (resolvedCampusId ? this.campuses.find(c => c.id === resolvedCampusId)?.name : "") || this.getPrimaryCampus()?.name || "";
+
     if (!student) {
       const u = this.currentUser;
       const targetId = studentId && studentId.startsWith("stud-") ? studentId : `stud-${u?.id || Date.now()}`;
@@ -996,7 +1052,8 @@ class CampusFleetStore {
         phone: profileData.phone || "",
         department: profileData.department || "",
         semester: profileData.semester || "",
-        campus: profileData.campus || (u as any)?.campus || "",
+        campusId: resolvedCampusId || u?.campusId || this.getPrimaryCampus()?.id || "",
+        campus: resolvedCampusName || (u as any)?.campus || "",
         primaryStopId: profileData.primaryStopId || "",
         primaryRouteId: "",
         emergencyContact: profileData.emergencyContact || { name: "", relationship: "", phone: "" },
@@ -1015,7 +1072,8 @@ class CampusFleetStore {
       ...student,
       fullName: profileData.fullName || student.fullName,
       enrollmentNo: profileData.enrollmentNo || student.enrollmentNo,
-      campus: profileData.campus || student.campus,
+      campusId: resolvedCampusId || student.campusId || this.getPrimaryCampus()?.id || "",
+      campus: resolvedCampusName || student.campus || this.getPrimaryCampus()?.name || "",
       department: profileData.department || student.department,
       semester: profileData.semester || student.semester,
       classId: profileData.classId || student.classId,
@@ -1033,6 +1091,7 @@ class CampusFleetStore {
       ...u,
       fullName: updatedStudent.fullName,
       phone: updatedStudent.phone,
+      campusId: updatedStudent.campusId,
       campus: updatedStudent.campus,
     } : u);
 
@@ -1041,6 +1100,8 @@ class CampusFleetStore {
         ...this.currentUser,
         fullName: updatedStudent.fullName,
         studentId: updatedStudent.id,
+        campusId: updatedStudent.campusId,
+        campus: updatedStudent.campus,
       };
     }
 
@@ -1057,6 +1118,7 @@ class CampusFleetStore {
             studentId: updatedStudent.id,
             fullName: updatedStudent.fullName,
             enrollmentNo: updatedStudent.enrollmentNo,
+            campusId: updatedStudent.campusId,
             campus: updatedStudent.campus,
             department: updatedStudent.department,
             semester: updatedStudent.semester,
@@ -1086,6 +1148,7 @@ class CampusFleetStore {
         class_id: updatedStudent.classId || null,
         class_name: updatedStudent.className || null,
         zone_code: updatedStudent.zoneCode || "ZONE_B",
+        campus_id: updatedStudent.campusId || null,
         campus: updatedStudent.campus,
         enrollment_no: updatedStudent.enrollmentNo,
         primary_stop_id: updatedStudent.primaryStopId || null,
@@ -1098,6 +1161,7 @@ class CampusFleetStore {
         await supabase.from("users").update({
           full_name: updatedStudent.fullName,
           phone: updatedStudent.phone,
+          campus_id: updatedStudent.campusId || null,
           campus: updatedStudent.campus,
         }).eq("id", updatedStudent.userId);
       }
@@ -1246,7 +1310,8 @@ class CampusFleetStore {
         longitude: newStop.longitude,
         landmark: newStop.landmark,
         geofence_radius: newStop.geofenceRadiusMeters,
-        campus: newStop.campus || "GEHU Bhimtal",
+        campus_id: newStop.campusId || null,
+        campus: newStop.campus || (newStop.campusId ? this.campuses.find(c => c.id === newStop.campusId)?.name : "") || null,
         is_bus_merge_stop: Boolean(newStop.isBusMergeStop),
       });
     } catch (e) {
@@ -1274,6 +1339,7 @@ class CampusFleetStore {
       if (updates.longitude !== undefined) dbUpdates.longitude = updates.longitude;
       if (updates.landmark !== undefined) dbUpdates.landmark = updates.landmark;
       if (updates.geofenceRadiusMeters !== undefined) dbUpdates.geofence_radius = updates.geofenceRadiusMeters;
+      if (updates.campusId !== undefined) dbUpdates.campus_id = updates.campusId;
       if (updates.campus !== undefined) dbUpdates.campus = updates.campus;
       if (updates.isBusMergeStop !== undefined) dbUpdates.is_bus_merge_stop = Boolean(updates.isBusMergeStop);
 
@@ -1303,6 +1369,134 @@ class CampusFleetStore {
     } catch (e) {
       console.warn("DB deleteStop:", e);
     }
+  }
+
+  public async createCampus(campusData: Omit<Campus, "id"> & { id?: string }): Promise<Campus> {
+    const id = campusData.id || `campus-${campusData.code.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Date.now().toString(36)}`;
+    const newCampus: Campus = {
+      ...campusData,
+      id,
+      geofenceRadiusMeters: campusData.geofenceRadiusMeters ?? 100,
+      fleetCapacity: campusData.fleetCapacity ?? 50,
+      parkingBays: campusData.parkingBays ?? 20,
+      isActive: campusData.isActive ?? true,
+      isPrimary: Boolean(campusData.isPrimary),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (newCampus.isPrimary) {
+      this.campuses = this.campuses.map(c => ({ ...c, isPrimary: false }));
+    }
+
+    this.campuses = [...this.campuses, newCampus];
+    this.saveToLocalStorage();
+    this.notify();
+
+    try {
+      if (newCampus.isPrimary) {
+        await supabase.from("campuses").update({ is_primary: false }).neq("id", id);
+      }
+      await supabase.from("campuses").upsert({
+        id: newCampus.id,
+        name: newCampus.name,
+        code: newCampus.code,
+        address: newCampus.address,
+        landmark: newCampus.landmark,
+        latitude: newCampus.latitude,
+        longitude: newCampus.longitude,
+        geofence_radius: newCampus.geofenceRadiusMeters,
+        fleet_capacity: newCampus.fleetCapacity,
+        parking_bays: newCampus.parkingBays,
+        contact_phone: newCampus.contactPhone,
+        contact_email: newCampus.contactEmail,
+        is_primary: newCampus.isPrimary,
+        is_active: newCampus.isActive,
+      });
+    } catch (e) {
+      console.warn("DB createCampus:", e);
+    }
+    return newCampus;
+  }
+
+  public async updateCampus(id: string, updates: Partial<Campus>): Promise<Campus | null> {
+    if (updates.isPrimary) {
+      this.campuses = this.campuses.map(c => (c.id === id ? { ...c, ...updates, isPrimary: true } : { ...c, isPrimary: false }));
+    } else {
+      this.campuses = this.campuses.map(c => (c.id === id ? { ...c, ...updates } : c));
+    }
+    this.saveToLocalStorage();
+    this.notify();
+
+    try {
+      if (updates.isPrimary) {
+        await supabase.from("campuses").update({ is_primary: false }).neq("id", id);
+      }
+
+      const dbUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.code !== undefined) dbUpdates.code = updates.code;
+      if (updates.address !== undefined) dbUpdates.address = updates.address;
+      if (updates.landmark !== undefined) dbUpdates.landmark = updates.landmark;
+      if (updates.latitude !== undefined) dbUpdates.latitude = updates.latitude;
+      if (updates.longitude !== undefined) dbUpdates.longitude = updates.longitude;
+      if (updates.geofenceRadiusMeters !== undefined) dbUpdates.geofence_radius = updates.geofenceRadiusMeters;
+      if (updates.fleetCapacity !== undefined) dbUpdates.fleet_capacity = updates.fleetCapacity;
+      if (updates.parkingBays !== undefined) dbUpdates.parking_bays = updates.parkingBays;
+      if (updates.contactPhone !== undefined) dbUpdates.contact_phone = updates.contactPhone;
+      if (updates.contactEmail !== undefined) dbUpdates.contact_email = updates.contactEmail;
+      if (updates.isPrimary !== undefined) dbUpdates.is_primary = updates.isPrimary;
+      if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+
+      if (Object.keys(dbUpdates).length > 0) {
+        await supabase.from("campuses").update(dbUpdates).eq("id", id);
+      }
+
+      const updated = this.campuses.find(c => c.id === id);
+      if (updated && (updated.isPrimary || updated.code === "GEHU-BHT")) {
+        await supabase.from("stops").update({
+          name: `${updated.name} Terminal`,
+          latitude: updated.latitude,
+          longitude: updated.longitude,
+          landmark: updated.landmark || updated.address,
+          geofence_radius: updated.geofenceRadiusMeters,
+          campus: updated.name,
+        }).or(`id.eq.stop-bhimtal-campus,code.eq.${updated.code}`);
+      }
+    } catch (e) {
+      console.warn("DB updateCampus:", e);
+    }
+    return this.campuses.find(c => c.id === id) || null;
+  }
+
+  public async deleteCampus(id: string): Promise<boolean> {
+    const target = this.campuses.find(c => c.id === id);
+    if (!target) return false;
+    if (this.campuses.length <= 1) {
+      throw new Error("Cannot delete the sole campus location.");
+    }
+
+    this.campuses = this.campuses.filter(c => c.id !== id);
+    if (target.isPrimary && this.campuses.length > 0) {
+      this.campuses[0].isPrimary = true;
+    }
+    this.saveToLocalStorage();
+    this.notify();
+
+    try {
+      await supabase.from("campuses").delete().eq("id", id);
+      if (target.isPrimary && this.campuses.length > 0) {
+        await supabase.from("campuses").update({ is_primary: true }).eq("id", this.campuses[0].id);
+      }
+      return true;
+    } catch (e) {
+      console.warn("DB deleteCampus:", e);
+      return false;
+    }
+  }
+
+  public async setPrimaryCampus(id: string): Promise<boolean> {
+    return !!(await this.updateCampus(id, { isPrimary: true }));
   }
 
   public async createRoute(routeData: Omit<Route, "id">) {

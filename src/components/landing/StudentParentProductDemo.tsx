@@ -20,6 +20,7 @@ import {
   Smartphone,
   Check,
 } from "lucide-react";
+import { store } from "@/lib/store";
 
 export function StudentParentProductDemo() {
   const [activeTab, setActiveTab] = useState<"radar" | "seats" | "qr" | "billing">("radar");
@@ -28,12 +29,14 @@ export function StudentParentProductDemo() {
   const [isBusMoving, setIsBusMoving] = useState(true);
   const [etaSeconds, setEtaSeconds] = useState(220); // 3m 40s
 
+  const primaryCampusName = store.getPrimaryCampus()?.name || "University Campus";
+
   const stops = [
     { name: "Haldwani Tikonia", time: "07:20 AM", passed: true, dist: "Origin" },
     { name: "Kathgodam Rly Station", time: "07:35 AM", passed: true, dist: "Passed 4m ago" },
     { name: "Ranibagh Toll Plaza", time: "07:50 AM", passed: false, current: true, dist: "Arriving in 3m" },
     { name: "Bhimtal Lake Crossing", time: "08:15 AM", passed: false, dist: "6.5 km away" },
-    { name: "GEHU Bhimtal Campus", time: "08:35 AM", passed: false, isCampus: true, dist: "Terminus" },
+    { name: `${primaryCampusName} Terminal`, time: "08:35 AM", passed: false, isCampus: true, dist: "Terminus" },
   ];
 
   useEffect(() => {
@@ -645,7 +648,7 @@ export function StudentParentProductDemo() {
                   </div>
                   <div>
                     <div className="text-[11px] sm:text-xs font-black tracking-wider uppercase">CampusFleet Pass</div>
-                    <div className="text-[9px] sm:text-[10px] text-blue-300 font-mono">GEHU Bhimtal</div>
+                    <div className="text-[9px] sm:text-[10px] text-blue-300 font-mono">{primaryCampusName}</div>
                   </div>
                 </div>
                 <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 whitespace-nowrap">

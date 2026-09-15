@@ -6,6 +6,7 @@ export interface AuthUser {
   fullName: string;
   role: UserRole;
   studentId?: string;
+  campusId?: string;
   campus?: string;
   primaryStopId?: string;
   primaryStopName?: string;
@@ -210,13 +211,14 @@ class AuthService {
   /**
    * Update user profile via our API.
    */
-  public async updateProfile(updates: { fullName?: string; campus?: string; primaryStopId?: string }): Promise<void> {
+  public async updateProfile(updates: { fullName?: string; campusId?: string; campus?: string; primaryStopId?: string }): Promise<void> {
     if (!this.currentUser) return;
 
     // Update local state immediately
     this.currentUser = {
       ...this.currentUser,
       fullName: updates.fullName || this.currentUser.fullName,
+      campusId: updates.campusId || this.currentUser.campusId,
       campus: updates.campus || this.currentUser.campus,
     };
     this.saveLocalSession();

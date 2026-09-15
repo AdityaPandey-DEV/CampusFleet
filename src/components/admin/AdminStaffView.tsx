@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
-import { UserAccount, UserRole } from "@/lib/types";
+import { UserAccount, UserRole, Campus } from "@/lib/types";
 import {
   Users,
   ShieldCheck,
@@ -38,13 +38,15 @@ export default function AdminStaffView({
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [campuses, setCampuses] = useState<Campus[]>(() => store.getCampuses());
 
   const [newUser, setNewUser] = useState({
     fullName: "",
     email: "",
     phone: "+91 98765 43210",
     role: "student" as UserRole,
-    campus: "GEHU Bhimtal",
+    campus: store.getPrimaryCampus()?.name || "Main Campus",
+    campusId: store.getPrimaryCampus()?.id || "",
     provider: "Institutional SSO",
   });
 
@@ -125,7 +127,8 @@ export default function AdminStaffView({
       email: "",
       phone: "+91 98765 43210",
       role: "student",
-      campus: "GEHU Bhimtal",
+      campus: store.getPrimaryCampus()?.name || "Main Campus",
+      campusId: store.getPrimaryCampus()?.id || "",
       provider: "Institutional SSO",
     });
     setToastMessage(`Added new user ${createdUser.fullName} (${createdUser.role.toUpperCase()})`);
@@ -347,7 +350,7 @@ export default function AdminStaffView({
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-400">{user.campus || "GEHU Bhimtal"}</div>
+                            <div className="text-[11px] text-slate-400">{user.campus || store.getPrimaryCampus()?.name || "Campus Terminal"}</div>
                           </div>
                         </div>
                       </td>
@@ -466,12 +469,17 @@ export default function AdminStaffView({
                   </label>
                   <select
                     value={newUser.campus}
-                    onChange={e => setNewUser({ ...newUser, campus: e.target.value })}
+                    onChange={e => {
+                      const c = campuses.find(camp => camp.name === e.target.value || camp.id === e.target.value);
+                      setNewUser({ ...newUser, campus: c?.name || e.target.value, campusId: c?.id || "" });
+                    }}
                     className="w-full text-xs p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none mt-1 cursor-pointer"
                   >
-                    <option value="GEHU Bhimtal">GEHU Bhimtal</option>
-                    <option value="GEHU Haldwani">GEHU Haldwani</option>
-                    <option value="GEHU Dehradun">GEHU Dehradun</option>
+                    {campuses.map(c => (
+                      <option key={c.id} value={c.name}>
+                        {c.name} {c.isPrimary ? "(Primary)" : ""}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

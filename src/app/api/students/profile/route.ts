@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
       studentId,
       fullName,
       enrollmentNo,
+      campusId,
       campus,
       department,
       semester,
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
       full_name: (fullName || session.fullName || "").trim(),
       email: cleanEmail,
       phone: (phone || "").trim() || null,
+      campus_id: campusId || null,
       campus: (campus || session.campus || "").trim() || null,
       department: (department || "").trim() || null,
       semester: (semester || "").trim() || null,
@@ -106,9 +108,10 @@ export async function POST(req: NextRequest) {
         email: cleanEmail,
         full_name: studentData.full_name,
         phone: studentData.phone,
+        campus_id: studentData.campus_id,
         campus: studentData.campus,
         role: "student",
-        provider: session.provider || "google",
+        provider: "Institutional SSO",
       }, { onConflict: "id" });
 
     return NextResponse.json({

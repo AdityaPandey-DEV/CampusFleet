@@ -29,9 +29,31 @@ export interface UserAccount {
   role: UserRole;
   provider: string;
   phone?: string;
+  campusId?: string;
+  /** @deprecated Use campusId instead */
   campus?: string;
   avatarUrl?: string;
   createdAt: string;
+}
+
+export interface Campus {
+  id: string;
+  name: string;
+  code: string;
+  address?: string;
+  landmark?: string;
+  city?: string;
+  latitude: number;
+  longitude: number;
+  geofenceRadiusMeters: number;
+  fleetCapacity?: number;
+  parkingBays?: number;
+  contactPhone?: string;
+  contactEmail?: string;
+  isPrimary?: boolean;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Stop {
@@ -42,6 +64,8 @@ export interface Stop {
   longitude: number;
   landmark: string;
   geofenceRadiusMeters: number;
+  campusId?: string;
+  /** @deprecated Use campusId instead */
   campus?: string;
   isBusMergeStop?: boolean;
   zoneCode?: string;
@@ -66,6 +90,9 @@ export interface Route {
   stops: RouteStop[];
   totalDistanceKm: number;
   estimatedDurationMins: number;
+  campusId?: string;
+  originCampusId?: string;
+  destinationCampusId?: string;
 }
 
 export interface BusSeat {
@@ -141,6 +168,8 @@ export interface Student {
     relationship: string;
     phone: string;
   };
+  campusId?: string;
+  /** @deprecated Use campusId instead */
   campus?: string;
   medicalNote?: string;
   transportAccessSuspended: boolean;
@@ -343,8 +372,8 @@ export const TRANSIT_ZONES: TransitZone[] = [
   },
   {
     code: "ZONE_D",
-    name: "Zone D: Bhimtal Campus Local Vicinity",
-    corridorDescription: "GEHU Bhimtal Campus, Bhimtal Lake / Daant, Graphic Era IT Park",
+    name: "Zone D: Campus Local Vicinity",
+    corridorDescription: "University Campus Hub, Bhimtal Lake / Daant, Graphic Era IT Park",
     semesterFee: 6000,
     installmentsAllowed: 2,
   },

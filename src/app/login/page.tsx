@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
 
-import { UserRole } from "@/lib/types";
+import { UserRole, Stop, Campus } from "@/lib/types";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 import {
   BusFront,
   ShieldCheck,
@@ -28,13 +29,9 @@ import {
   Home,
   User,
 } from "lucide-react";
-
-import { calculateDistanceKm } from "@/lib/utils";
-import { Stop } from "@/lib/types";
 import { authService } from "@/lib/auth-service";
-import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 
-export default function UnifiedLoginPage() {
+export default function LoginPage() {
   const router = useRouter();
   const [authStep, setAuthStep] = useState<"LOGIN_FORM" | "EMAIL_OTP" | "ONBOARDING" | "SUCCESS">("LOGIN_FORM");
   const [email, setEmail] = useState("");
@@ -44,8 +41,9 @@ export default function UnifiedLoginPage() {
 
   // New Commuter Onboarding State
   const [stops, setStops] = useState<Stop[]>(store.getStops());
+  const [campuses, setCampuses] = useState<Campus[]>(() => store.getCampuses());
   const [onboardingName, setOnboardingName] = useState("");
-  const [onboardingCampus, setOnboardingCampus] = useState("GEHU Bhimtal");
+  const [onboardingCampusId, setOnboardingCampusId] = useState<string>(() => store.getPrimaryCampus()?.id || "");
   const [homeLocation, setHomeLocation] = useState("");
   const [selectedStopId, setSelectedStopId] = useState("");
   const [detectedDistanceText, setDetectedDistanceText] = useState<string | null>(null);
@@ -63,6 +61,13 @@ export default function UnifiedLoginPage() {
 
   React.useEffect(() => {
     const initialStops = store.getStops();
+    const initialCampuses = store.getCampuses();
+    if (initialCampuses.length > 0) {
+      setCampuses(initialCampuses);
+      if (!onboardingCampusId) {
+        setOnboardingCampusId(store.getPrimaryCampus()?.id || initialCampuses[0].id);
+      }
+    }
     if (initialStops.length > 0) {
       setStops(initialStops);
       const defaultStop = initialStops.find(s => s.name.includes("Laldant")) || initialStops[0];
@@ -71,27 +76,32 @@ export default function UnifiedLoginPage() {
 
     const unsub = store.subscribe(() => {
       const latestStops = store.getStops();
+      const latestCampuses = store.getCampuses();
       setStops(latestStops);
+      setCampuses(latestCampuses);
+      if (latestCampuses.length > 0 && !onboardingCampusId) {
+        setOnboardingCampusId(store.getPrimaryCampus()?.id || latestCampuses[0].id);
+      }
       if (latestStops.length > 0 && !selectedStopId) {
         const defaultStop = latestStops.find(s => s.name.includes("Laldant")) || latestStops[0];
         if (defaultStop) setSelectedStopId(defaultStop.id);
       }
     });
     return unsub;
-  }, [selectedStopId]);
+  }, [selectedStopId, onboardingCampusId]);
 
-  // Filter stops by selected campus (e.g. GEHU Bhimtal)
+  // Filter stops by selected campus
   const campusStops = React.useMemo(() => {
+    if (!onboardingCampusId) return stops;
+    const campus = campuses.find(c => c.id === onboardingCampusId);
     return stops.filter(st => {
-      if (onboardingCampus.includes("Bhimtal")) {
-        return st.campus === "GEHU Bhimtal" || st.id.includes("bht") || !st.id.includes("ddn");
-      }
-      if (onboardingCampus.includes("Dehradun")) {
-        return st.campus === "GEHU Dehradun" || st.id.includes("ddn");
+      if (st.campusId) return st.campusId === onboardingCampusId;
+      if (campus && (st.code?.toLowerCase().includes(campus.code.toLowerCase()) || st.name.toLowerCase().includes(campus.name.toLowerCase()))) {
+        return true;
       }
       return true;
     });
-  }, [stops, onboardingCampus]);
+  }, [stops, onboardingCampusId, campuses]);
 
   // Compute nearest stops based on text filter or GPS
   const filteredNearestStops = React.useMemo(() => {
@@ -258,10 +268,12 @@ export default function UnifiedLoginPage() {
 
     try {
       const chosenStop = stops.find(s => s.id === selectedStopId) || stops[0];
+      const chosenCampus = campuses.find(c => c.id === onboardingCampusId) || store.getPrimaryCampus();
       const updatedUser = {
         ...(pendingAuthUser || store.getCurrentUser()),
         fullName: onboardingName.trim(),
-        campus: onboardingCampus,
+        campusId: onboardingCampusId,
+        campus: chosenCampus?.name || "",
         primaryStopId: selectedStopId,
         primaryStopName: chosenStop?.name,
       };
@@ -275,7 +287,8 @@ export default function UnifiedLoginPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fullName: updatedUser.fullName,
-            campus: onboardingCampus,
+            campusId: onboardingCampusId,
+            campus: chosenCampus?.name || "",
             primaryStopId: selectedStopId,
           }),
           credentials: "include",
@@ -513,13 +526,15 @@ export default function UnifiedLoginPage() {
                 <div className="relative mt-1">
                   <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <select
-                    value={onboardingCampus}
-                    onChange={e => setOnboardingCampus(e.target.value)}
+                    value={onboardingCampusId}
+                    onChange={e => setOnboardingCampusId(e.target.value)}
                     className="w-full text-xs pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none font-bold cursor-pointer"
                   >
-                    <option value="GEHU Bhimtal">Graphic Era Hill University, Bhimtal Campus</option>
-                    <option value="GEHU Haldwani">Graphic Era Hill University, Haldwani Campus</option>
-                    <option value="GEHU Dehradun">Graphic Era Dehradun Main Campus (Clement Town)</option>
+                    {campuses.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.isPrimary ? "• (Main Hub)" : ""}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

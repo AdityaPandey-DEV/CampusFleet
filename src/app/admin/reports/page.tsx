@@ -63,7 +63,8 @@ export default async function ReportsAndExportsPage() {
     zoneCode: s.zone_code || "ZONE_B",
     primaryStopId: s.primary_stop_id || s.stop_id || "",
     primaryRouteId: s.primary_route_id || s.route_id || "",
-    campus: s.campus || "GEHU Bhimtal",
+    campusId: s.campus_id || s.campus || "",
+    campus: s.campus || "",
     emergencyContact: {
       name: s.emergency_contact_name || "Parent/Guardian",
       relationship: "Parent",

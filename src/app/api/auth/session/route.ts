@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
       email: session.email,
       fullName: session.fullName,
       role: session.role,
+      campusId: (session as any).campusId || session.campus || "",
       campus: session.campus,
       avatarUrl: session.avatarUrl,
       studentId: session.role === "student" ? session.userId : undefined,

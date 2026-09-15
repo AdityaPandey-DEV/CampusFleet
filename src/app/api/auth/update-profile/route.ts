@@ -13,10 +13,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { fullName, campus, primaryStopId } = await req.json();
+    const { fullName, campusId, campus, primaryStopId } = await req.json();
 
     const updates: Record<string, any> = {};
     if (fullName) updates.full_name = fullName;
+    if (campusId) updates.campus_id = campusId;
     if (campus) updates.campus = campus;
 
     if (Object.keys(updates).length > 0) {
@@ -24,6 +25,16 @@ export async function POST(req: NextRequest) {
         .from("users")
         .update(updates)
         .eq("id", session.userId);
+
+      // Also sync to students table
+      const studentUpdates: Record<string, any> = {};
+      if (fullName) studentUpdates.full_name = fullName;
+      if (campusId) studentUpdates.campus_id = campusId;
+      if (campus) studentUpdates.campus = campus;
+      if (primaryStopId) studentUpdates.primary_stop_id = primaryStopId;
+      if (Object.keys(studentUpdates).length > 0) {
+        await supabaseAdmin.from("students").update(studentUpdates).eq("user_id", session.userId);
+      }
     }
 
     return NextResponse.json({ success: true });

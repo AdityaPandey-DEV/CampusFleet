@@ -384,7 +384,7 @@ export default function AdminDashboardView({
                     ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-xs font-black"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
-                title="Vehicles parked at GEHU Bhimtal Campus Depot bays following trip completion"
+                title="Vehicles parked at University Campus Transit Depot bays following trip completion"
               >
                 <Building2 className="w-3.5 h-3.5 shrink-0" />
                 <span>✓ Depot Parked</span>

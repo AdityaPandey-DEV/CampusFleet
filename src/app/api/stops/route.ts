@@ -19,7 +19,8 @@ export async function GET() {
       longitude: s.longitude,
       landmark: s.landmark,
       geofenceRadiusMeters: s.geofence_radius || 80,
-      campus: s.campus,
+      campusId: s.campus_id || s.campus || "",
+      campus: s.campus || "",
       isBusMergeStop: Boolean(s.is_bus_merge_stop),
       createdAt: s.created_at,
     }));
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
       longitude,
       landmark,
       geofenceRadiusMeters,
+      campusId,
       campus,
       isBusMergeStop = false,
     } = body;
@@ -69,7 +71,8 @@ export async function POST(req: NextRequest) {
         longitude: Number(longitude),
         landmark: landmark ? landmark.trim() : null,
         geofence_radius: geofenceRadiusMeters ? Number(geofenceRadiusMeters) : 80,
-        campus: campus || "Main Campus",
+        campus_id: campusId || null,
+        campus: campus || null,
         is_bus_merge_stop: Boolean(isBusMergeStop),
       })
       .select()

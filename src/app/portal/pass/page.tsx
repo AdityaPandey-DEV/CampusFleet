@@ -49,7 +49,8 @@ export default async function DigitalPassPage() {
     zoneCode: s.zone_code || "ZONE_B",
     primaryStopId: s.primary_stop_id || s.stop_id || "",
     primaryRouteId: s.primary_route_id || s.route_id || "",
-    campus: s.campus || "GEHU Bhimtal",
+    campusId: s.campus_id || s.campus || "",
+    campus: s.campus || "",
     emergencyContact: {
       name: s.emergency_contact_name || "Parent/Guardian",
       relationship: "Parent",
@@ -114,7 +115,8 @@ export default async function DigitalPassPage() {
     longitude: s.longitude,
     landmark: s.landmark,
     geofenceRadiusMeters: s.geofence_radius || 80,
-    campus: s.campus || "GEHU Bhimtal",
+    campusId: s.campus_id || s.campus || "",
+    campus: s.campus || "",
     isBusMergeStop: Boolean(s.is_bus_merge_stop),
     zoneCode: s.zone_code || "ZONE_B",
   }));

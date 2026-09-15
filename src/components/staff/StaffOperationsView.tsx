@@ -142,14 +142,17 @@ export default function StaffOperationsView({
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED">("ALL");
 
   // QR Config State
-  const [qrConfig, setQrConfig] = useState({
-    upi_id: "gehubhimtal.transit@upi",
-    merchant_name: "GEHU Bhimtal Transport Department",
-    qr_image_url: "",
-    instructions: "Scan via Google Pay, PhonePe, Paytm, or BHIM UPI. Ensure the 12-digit UTR is visible on the receipt.",
-    account_number: "50200012345678",
-    ifsc_code: "HDFC0001234",
-    bank_name: "HDFC Bank, Haldwani Branch",
+  const [qrConfig, setQrConfig] = useState(() => {
+    const primary = store.getPrimaryCampus();
+    return {
+      upi_id: "transit.fees@upi",
+      merchant_name: primary ? `${primary.name} Transport Department` : "University Transport Department",
+      qr_image_url: "",
+      instructions: "Scan via Google Pay, PhonePe, Paytm, or BHIM UPI. Ensure the 12-digit UTR is visible on the receipt.",
+      account_number: "50200012345678",
+      ifsc_code: "HDFC0001234",
+      bank_name: "HDFC Bank, Main Branch",
+    };
   });
   const [isSavingQr, setIsSavingQr] = useState(false);
   const [isUploadingQrImage, setIsUploadingQrImage] = useState(false);
@@ -1378,7 +1381,7 @@ export default function StaffOperationsView({
                       type="text"
                       value={qrConfig.merchant_name}
                       onChange={(e) => setQrConfig({ ...qrConfig, merchant_name: e.target.value })}
-                      placeholder="e.g. GEHU Bhimtal Transport"
+                      placeholder="e.g. University Transport"
                       className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
                     />
                   </div>

@@ -28,11 +28,11 @@ export default async function UserAndRBACManagementPage() {
   const [{ data: dbUsers }, { data: dbStudents }] = await Promise.all([
     supabaseAdmin
       .from("users")
-      .select("id, full_name, email, role, phone, campus, provider, created_at")
+      .select("id, full_name, email, role, phone, campus, campus_id, provider, created_at")
       .order("created_at", { ascending: false }),
     supabaseAdmin
       .from("students")
-      .select("id, user_id, full_name, email, phone, campus, created_at")
+      .select("id, user_id, full_name, email, phone, campus, campus_id, created_at")
       .order("created_at", { ascending: false }),
   ]);
 
@@ -42,6 +42,7 @@ export default async function UserAndRBACManagementPage() {
     email: u.email || "",
     role: (u.role || "student") as any,
     phone: u.phone || undefined,
+    campusId: u.campus_id || u.campus || undefined,
     campus: u.campus || undefined,
     provider: u.provider || "Institutional SSO",
     createdAt: u.created_at || new Date().toISOString(),
@@ -62,7 +63,8 @@ export default async function UserAndRBACManagementPage() {
         email: s.email || "",
         role: "student",
         phone: s.phone || undefined,
-        campus: s.campus || "GEHU Bhimtal",
+        campusId: s.campus_id || s.campus || "",
+        campus: s.campus || "",
         provider: "Institutional SSO",
         createdAt: s.created_at || new Date().toISOString(),
       };
@@ -76,7 +78,8 @@ export default async function UserAndRBACManagementPage() {
         email: s.email || "",
         full_name: s.full_name || "Student",
         phone: s.phone || null,
-        campus: s.campus || "GEHU Bhimtal",
+        campus_id: s.campus_id || null,
+        campus: s.campus || "",
         role: "student",
         provider: "Institutional SSO",
       }, { onConflict: "id" }).then(() => {});

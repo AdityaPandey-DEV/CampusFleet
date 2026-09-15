@@ -765,7 +765,9 @@ export default function AdminTripsView({
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
                               Drop
                             </span>
-                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">GEHU Bhimtal Campus</span>
+                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">
+                              {store.getCampuses().find(c => c.id === route?.destinationCampusId || c.id === route?.campusId)?.name || store.getPrimaryCampus()?.name || "Campus Terminal"}
+                            </span>
                           </div>
                         </>
                       ) : dir === "CAMPUS_TO_HOME" ? (
@@ -774,7 +776,9 @@ export default function AdminTripsView({
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
                               Pickup
                             </span>
-                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">GEHU Bhimtal Campus</span>
+                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">
+                              {store.getCampuses().find(c => c.id === route?.originCampusId || c.id === route?.campusId)?.name || store.getPrimaryCampus()?.name || "Campus Terminal"}
+                            </span>
                           </div>
                           <ArrowRight className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">

@@ -142,7 +142,7 @@ export default function PortalPaymentsView({
   // Fetch staff-configured official payment QR and UPI VPA from database
   const [staffQrConfig, setStaffQrConfig] = useState<any>({
     upi_id: "gehubhimtal.transit@upi",
-    merchant_name: "GEHU Bhimtal Transport Department",
+    merchant_name: `${store.getPrimaryCampus()?.name || "Campus"} Transport Department`,
     qr_image_url: "",
     instructions: "Scan via Google Pay, PhonePe, Paytm, or BHIM.",
   });
@@ -164,7 +164,7 @@ export default function PortalPaymentsView({
     const enrollment = activeStudent?.enrollmentNo && activeStudent?.enrollmentNo !== "PENDING"
       ? activeStudent.enrollmentNo
       : "STUDENT";
-    return `upi://pay?pa=${upiId}&pn=${encodeURIComponent(staffQrConfig.merchant_name || "GEHU Bhimtal Transport")}&am=${amountToPay}&cu=INR&tn=CampusFleet%20Pass%20${enrollment}%20Zone%20${selectedZoneCode}`;
+    return `upi://pay?pa=${upiId}&pn=${encodeURIComponent(staffQrConfig.merchant_name || `${store.getPrimaryCampus()?.name || "Campus"} Transport`)}&am=${amountToPay}&cu=INR&tn=CampusFleet%20Pass%20${enrollment}%20Zone%20${selectedZoneCode}`;
   }, [amountToPay, selectedZoneCode, activeStudent, upiId, staffQrConfig.merchant_name]);
 
   // Handle Receipt File Selection & Trigger OCR

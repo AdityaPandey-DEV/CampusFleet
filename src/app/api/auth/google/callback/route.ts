@@ -72,6 +72,7 @@ export async function GET(req: NextRequest) {
       email: user.email,
       fullName: user.full_name || fullName,
       role: user.role,
+      campusId: user.campus_id || undefined,
       campus: user.campus || undefined,
       avatarUrl: user.avatar_url || avatarUrl,
     });

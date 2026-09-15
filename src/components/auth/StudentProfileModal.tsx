@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
-import { Student, TransitZone, TRANSIT_ZONES } from "@/lib/types";
+import { Student, TransitZone, TRANSIT_ZONES, Campus } from "@/lib/types";
 import {
   GraduationCap,
   Building2,
@@ -20,6 +20,7 @@ import {
 export function StudentProfileModal() {
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [students, setStudents] = useState(store.getStudents());
+  const [campuses, setCampuses] = useState<Campus[]>(() => store.getCampuses());
   const [stops, setStops] = useState(store.getStops());
   const [transitZones, setTransitZones] = useState<TransitZone[]>(store.getTransitZones());
   const [isOpen, setIsOpen] = useState(false);
@@ -28,7 +29,8 @@ export function StudentProfileModal() {
 
   // Form State
   const [fullName, setFullName] = useState("");
-  const [campus, setCampus] = useState("Graphic Era Hill University (GEHU), Bhimtal Campus");
+  const [campusId, setCampusId] = useState(() => store.getPrimaryCampus()?.id || "");
+  const [campus, setCampus] = useState(() => store.getPrimaryCampus()?.name || "Main Campus");
   const [enrollmentNo, setEnrollmentNo] = useState("");
   const [department, setDepartment] = useState("B.Tech Computer Science & Engineering");
   const [semester, setSemester] = useState("5th Semester");
@@ -45,6 +47,7 @@ export function StudentProfileModal() {
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
       setStudents(store.getStudents());
+      setCampuses(store.getCampuses());
       setStops(store.getStops());
       setTransitZones(store.getTransitZones());
     });
@@ -82,7 +85,8 @@ export function StudentProfileModal() {
       setFullName(activeStudent?.fullName || currentUser.fullName || "");
       setEnrollmentNo(activeStudent?.enrollmentNo && activeStudent?.enrollmentNo !== "PENDING" ? activeStudent.enrollmentNo : "");
       setPhone(activeStudent?.phone !== "+91 0000000000" ? (activeStudent?.phone || "") : "");
-      setCampus(activeStudent?.campus || "Graphic Era Hill University (GEHU), Bhimtal Campus");
+      setCampusId(activeStudent?.campusId || store.getPrimaryCampus()?.id || "");
+      setCampus(activeStudent?.campus || store.getPrimaryCampus()?.name || "Main Campus");
       setDepartment(activeStudent?.department || "B.Tech Computer Science & Engineering");
       setSemester(activeStudent?.semester || "5th Semester");
       setSelectedClassId(activeStudent?.classId || "");
@@ -104,11 +108,13 @@ export function StudentProfileModal() {
     setIsSubmitting(true);
     const targetStudentId = activeStudent?.id || `stud-${currentUser?.id || Date.now()}`;
     const chosenClass = classesList.find(c => c.id === selectedClassId);
+    const chosenCampus = campuses.find(c => c.id === campusId);
 
     const res = await store.updateStudentProfile(targetStudentId, {
       fullName: fullName.trim() || currentUser?.fullName || "Student",
       enrollmentNo: enrollmentNo.trim() ? enrollmentNo.trim().toUpperCase() : "NOT_SPECIFIED",
-      campus,
+      campusId,
+      campus: chosenCampus?.name || campus,
       department,
       semester,
       classId: chosenClass?.id,
@@ -205,22 +211,19 @@ export function StudentProfileModal() {
                 University Campus
               </label>
               <select
-                value={campus}
-                onChange={e => setCampus(e.target.value)}
+                value={campusId}
+                onChange={e => {
+                  setCampusId(e.target.value);
+                  const c = campuses.find(camp => camp.id === e.target.value);
+                  if (c) setCampus(c.name);
+                }}
                 className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
               >
-                <option value="Graphic Era Hill University (GEHU), Bhimtal Campus">
-                  GEHU Bhimtal Campus
-                </option>
-                <option value="Graphic Era Hill University (GEHU), Dehradun Campus">
-                  GEHU Dehradun Campus
-                </option>
-                <option value="Graphic Era Hill University (GEHU), Haldwani Campus">
-                  GEHU Haldwani Campus
-                </option>
-                <option value="Graphic Era Deemed to be University (GEU), Dehradun">
-                  GEU Dehradun Campus
-                </option>
+                {campuses.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} {c.isPrimary ? "(Primary)" : ""}
+                  </option>
+                ))}
               </select>
             </div>
 

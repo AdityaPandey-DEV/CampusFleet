@@ -9,7 +9,7 @@ export async function PATCH(
   try {
     const stopId = params.id;
     const body = await req.json();
-    const { name, code, latitude, longitude, landmark, geofenceRadiusMeters, campus, isBusMergeStop } = body;
+    const { name, code, latitude, longitude, landmark, geofenceRadiusMeters, campusId, campus, isBusMergeStop } = body;
 
     const updates: Record<string, any> = {};
     if (name !== undefined) updates.name = name.trim();
@@ -18,6 +18,7 @@ export async function PATCH(
     if (longitude !== undefined) updates.longitude = Number(longitude);
     if (landmark !== undefined) updates.landmark = landmark ? landmark.trim() : null;
     if (geofenceRadiusMeters !== undefined) updates.geofence_radius = Number(geofenceRadiusMeters);
+    if (campusId !== undefined) updates.campus_id = campusId;
     if (campus !== undefined) updates.campus = campus;
     if (isBusMergeStop !== undefined) updates.is_bus_merge_stop = Boolean(isBusMergeStop);
 

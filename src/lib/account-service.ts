@@ -12,6 +12,7 @@ export interface AuthUserResult {
   email: string;
   full_name: string;
   role: string;
+  campus_id?: string | null;
   campus?: string | null;
   avatar_url?: string | null;
   provider?: string;
@@ -79,6 +80,7 @@ export async function findOrCreateUser({
         email: existingUser.email,
         full_name: existingUser.full_name,
         role: existingUser.role || "student",
+        campus_id: existingUser.campus_id || null,
         campus: existingUser.campus,
         avatar_url: existingUser.avatar_url || avatarUrl,
         provider: existingUser.provider || provider,
