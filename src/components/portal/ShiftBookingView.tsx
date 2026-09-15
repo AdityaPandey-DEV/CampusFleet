@@ -585,34 +585,6 @@ export default function ShiftBookingView({
         }}
       />
 
-      {/* Running Late Recovery Dedicated Link */}
-      {activeStudent && (
-        <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-amber-500/10 border border-purple-200 dark:border-purple-900/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-sm shrink-0">
-              ⚡
-            </div>
-            <div>
-              <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <span>Running late or missed your regular shift?</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold">
-                  Dedicated Recovery
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-500">
-                Catch live approaching shuttles with open seats or get an auto-assigned standing pass till the merge hub.
-              </div>
-            </div>
-          </div>
-          <Link
-            href="/portal/running-late"
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md transition-transform active:scale-95 shrink-0 flex items-center gap-1.5"
-          >
-            <span>Open Late Radar →</span>
-          </Link>
-        </div>
-      )}
-
       {/* STEP 2: ROUTE PROGRESSION & DIJKSTRA MAP VIEW */}
       {activeStep === "BOARDING" && (
         <div className="space-y-6 animate-in fade-in">

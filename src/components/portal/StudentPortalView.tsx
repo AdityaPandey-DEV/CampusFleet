@@ -5,25 +5,18 @@ import Link from "next/link";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
 import { useCampusTime } from "@/components/common/CampusTimeProvider";
-import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { BoardingPassCard } from "@/components/ticket/BoardingPassCard";
 import {
   BusFront,
   Clock,
   MapPin,
-  QrCode,
   CalendarCheck,
   CreditCard,
   User,
   ShieldCheck,
-  ChevronRight,
-  Sparkles,
   AlertCircle,
   CheckCircle2,
   X,
-  Navigation,
-  Layers,
-  RotateCcw,
 } from "lucide-react";
 import type { Student, Bus, Route, Stop, Shift, Trip, Booking, Staff } from "@/lib/types";
 
@@ -476,16 +469,6 @@ export default function StudentPortalView({
             <CreditCard className="w-4 h-4" />
             <span>Pass & Billing</span>
           </Link>
-
-          {activeBooking && (
-            <button
-              onClick={() => setIsQRModalOpen(true)}
-              className="px-4 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-teal-500/20 flex items-center gap-2 transition-transform active:scale-95 cursor-pointer"
-            >
-              <QrCode className="w-4 h-4" />
-              <span>Full Pass QR</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -515,55 +498,6 @@ export default function StudentPortalView({
         </div>
       )}
 
-      {/* Active Booking Summary Strip (If Student Already Has A Confirmed Booking) */}
-      {activeBooking && (
-        <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
-              <BusFront className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <span>Active Seat Reserved:</span>
-                <span className="text-blue-600 dark:text-blue-400 font-extrabold">
-                  Seat {activeBooking.seatNumber || "1A"}
-                </span>
-                <span>•</span>
-                <span>{planningBus.busNumber}</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold">
-                  {activeBooking.status}
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">
-                Pickup: <strong>{selectedStop.name}</strong> • Valid for today's active schedule.
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setIsQRModalOpen(true)}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
-            >
-              <QrCode className="w-3.5 h-3.5" />
-              <span>Show QR</span>
-            </button>
-            <Link
-              href="/portal/tracker"
-              className="px-3.5 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
-            >
-              <Navigation className="w-3.5 h-3.5 text-blue-500" />
-              <span>Live Radar</span>
-            </Link>
-            <button
-              onClick={() => handleCancelBooking(activeBooking.id)}
-              className="px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-xs font-bold text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* 2. RESERVE YOUR DAILY CAMPUS SHIFT */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
         {/* Header Title */}
@@ -573,7 +507,7 @@ export default function StudentPortalView({
             <span>Reserve Your Daily Campus Shift</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Select your timing, boarding station, and reserved seat on the interactive bus chassis.
+            Select your timing and boarding station for your daily scheduled campus corridor.
           </p>
         </div>
 
@@ -660,90 +594,69 @@ export default function StudentPortalView({
           </div>
         </div>
 
-        {/* 3. Interactive Seat Chassis & Trip Summary */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-4">
-          {/* Left: Interactive Bus Chassis */}
-          <div className="lg:col-span-5 bg-slate-50 dark:bg-slate-800/40 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+        {/* 3. Trip Summary & Instant Reservation Action */}
+        <div className="pt-2">
+          <div className="bg-slate-50 dark:bg-slate-800/40 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 space-y-5">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
               <div>
-                <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                  Pick Seat on Bus Chassis
-                </h3>
-                <div className="text-[11px] text-slate-400">
-                  Window, Aisle, or Reserved
+                <div className="text-lg font-black text-slate-900 dark:text-white">
+                  Trip Summary
+                </div>
+                <div className="text-xs text-slate-500 font-mono mt-0.5">
+                  Shift: {visibleShifts.find(s => s.id === selectedShiftId)?.name || "Evening Return Daily Corridor"}
                 </div>
               </div>
-              <span className="text-xs font-mono font-black text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900">
-                {freeSeatsCount} Free
+              <div className="text-right">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Transit Fee</span>
+                <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                  Covered by Pass (₹0.00)
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3.5 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Assigned Shuttle</div>
+                <div className="text-xs sm:text-sm font-black text-blue-600 dark:text-blue-400 mt-0.5 truncate">
+                  {planningBus.busNumber}
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Pickup Stop</div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5" title={selectedStop.name}>
+                  {selectedStop.name}
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Open Seats</div>
+                <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                  {freeSeatsCount} Free
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Status</div>
+                <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  {isFull ? "Waitlist Available" : "Instant Confirmation"}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-blue-50/70 dark:bg-blue-950/40 rounded-2xl border border-blue-200/80 dark:border-blue-900 text-xs text-blue-950 dark:text-blue-200 leading-relaxed">
+              💡 <strong>Dynamic Boarding Pass:</strong> Once confirmed, your live cryptographic QR pass and real-time GPS radar will activate immediately. You can show the QR code directly to the bus conductor from this screen.
+            </div>
+
+            <button
+              onClick={handleBook}
+              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-extrabold text-sm shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer"
+            >
+              <CalendarCheck className="w-5 h-5" />
+              <span>
+                {isFull ? "Join Shuttle Waitlist →" : "Confirm Seat & Issue Live QR Pass →"}
               </span>
-            </div>
-
-            <InteractiveBusSeatGrid
-              bus={planningBus}
-              activeBookings={planningTripBookings}
-              selectedSeat={selectedSeatNumber}
-              onSelectSeat={seat => setSelectedSeatNumber(seat)}
-              disabled={isFull}
-            />
-          </div>
-
-          {/* Right: Trip Summary & Action */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="bg-slate-50 dark:bg-slate-800/40 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
-                <div>
-                  <div className="text-base font-black text-slate-900 dark:text-white">
-                    Trip Summary
-                  </div>
-                  <div className="text-xs text-slate-500 font-mono mt-0.5">
-                    Shift: {visibleShifts.find(s => s.id === selectedShiftId)?.name || "Evening Return Daily Corridor"}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Transit Fee</span>
-                  <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                    Covered by Pass (₹0.00)
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="p-3 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Selected Seat</div>
-                  <div className="text-base font-black text-blue-600 dark:text-blue-400 mt-0.5">
-                    {selectedSeatNumber || "1A"}
-                  </div>
-                </div>
-
-                <div className="p-3 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Pickup Stop</div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5" title={selectedStop.name}>
-                    {selectedStop.name}
-                  </div>
-                </div>
-
-                <div className="p-3 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700 col-span-2 sm:col-span-1">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Status</div>
-                  <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                    {isFull ? "Waitlist Available" : "Instant Confirmation"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-blue-50/70 dark:bg-blue-950/40 rounded-2xl border border-blue-200/80 dark:border-blue-900 text-xs text-blue-950 dark:text-blue-200 leading-relaxed">
-                💡 <strong>Dynamic Boarding Pass:</strong> Once confirmed, your live cryptographic QR pass and real-time GPS radar will activate immediately. You can show the QR code directly to the bus conductor from this screen.
-              </div>
-
-              <button
-                onClick={handleBook}
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-extrabold text-sm shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer"
-              >
-                <CalendarCheck className="w-5 h-5" />
-                <span>
-                  {isFull ? "Join Shuttle Waitlist →" : "Confirm Seat & Issue Live QR Pass →"}
-                </span>
-              </button>
-            </div>
+            </button>
           </div>
         </div>
       </div>
