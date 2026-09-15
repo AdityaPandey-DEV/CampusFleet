@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
 import { UserAccount, UserRole, Campus } from "@/lib/types";
 import {
@@ -32,12 +33,14 @@ export default function AdminStaffView({
   initialUsers = [],
   initialUser,
 }: AdminStaffProps = {}) {
+  const router = useRouter();
   const [users, setUsers] = useState<UserAccount[]>(initialUsers || []);
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [campuses, setCampuses] = useState<Campus[]>(() => store.getCampuses());
 
   const [newUser, setNewUser] = useState({
@@ -68,7 +71,8 @@ export default function AdminStaffView({
 
   const adminCount = users.filter(u => u.role === "admin" || u.role === "transport_manager").length;
   const teacherCount = users.filter(u => u.role === "teacher").length;
-  const staffCount = users.filter(u => u.role === "staff" || u.role === "conductor" || u.role === "supervisor").length;
+  const staffCount = users.filter(u => u.role === "staff" || u.role === "supervisor").length;
+  const conductorCount = users.filter(u => u.role === "conductor").length;
   const driverCount = users.filter(u => u.role === "driver").length;
   const studentCount = users.filter(u => u.role === "student").length;
 
@@ -77,24 +81,45 @@ export default function AdminStaffView({
       u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (u.phone && u.phone.includes(searchQuery));
-    const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
+    const matchesRole =
+      roleFilter === "ALL" ||
+      u.role === roleFilter ||
+      (roleFilter === "admin" && u.role === "transport_manager") ||
+      (roleFilter === "staff" && u.role === "supervisor");
     return matchesSearch && matchesRole;
   });
 
   const handleRoleChange = async (userId: string, newRole: UserRole, userName: string) => {
+    setUpdatingUserId(userId);
+    const previousUsers = [...users];
+
+    // Optimistic UI update
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-    await store.updateUserRole(userId, newRole);
+
     try {
-      await fetch("/api/admin/update-role", {
+      const res = await fetch("/api/admin/update-role", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, role: newRole }),
       });
-    } catch (e) {
-      console.warn("Failed to update role via API:", e);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update role in database");
+      }
+
+      await store.updateUserRole(userId, newRole);
+      setToastMessage(`Updated access level for ${userName} to ${newRole.toUpperCase()}`);
+      setTimeout(() => setToastMessage(null), 3500);
+
+      // Invalidate Next.js Server Component data
+      router.refresh();
+    } catch (e: any) {
+      console.error("Failed to update role via API:", e);
+      setUsers(previousUsers);
+      alert(`Could not update access level: ${e.message || "Network error"}`);
+    } finally {
+      setUpdatingUserId(null);
     }
-    setToastMessage(`Updated access level for ${userName} to ${newRole.toUpperCase()}`);
-    setTimeout(() => setToastMessage(null), 3500);
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -204,8 +229,8 @@ export default function AdminStaffView({
         </div>
       )}
 
-      {/* Top 5 Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* Top 6 Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Administrator */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
           <div className="text-3xl font-black text-rose-600 dark:text-rose-400">
@@ -230,6 +255,14 @@ export default function AdminStaffView({
           <div className="text-xs font-bold text-slate-500">Transport Staff</div>
         </div>
 
+        {/* Conductor */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
+          <div className="text-3xl font-black text-purple-600 dark:text-purple-400">
+            {conductorCount}
+          </div>
+          <div className="text-xs font-bold text-slate-500">Conductor</div>
+        </div>
+
         {/* Fleet Driver */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
           <div className="text-3xl font-black text-blue-600 dark:text-blue-400">
@@ -238,8 +271,8 @@ export default function AdminStaffView({
           <div className="text-xs font-bold text-slate-500">Fleet Driver</div>
         </div>
 
-        {/* Student Commuters */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1 col-span-2 sm:col-span-1">
+        {/* Student Commuter */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
           <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
             {studentCount}
           </div>
@@ -270,6 +303,7 @@ export default function AdminStaffView({
             <option value="admin">Administrator ({adminCount})</option>
             <option value="teacher">Teacher / Faculty ({teacherCount})</option>
             <option value="staff">Transport Staff ({staffCount})</option>
+            <option value="conductor">Conductor ({conductorCount})</option>
             <option value="driver">Fleet Driver ({driverCount})</option>
             <option value="student">Student Commuter ({studentCount})</option>
           </select>
@@ -363,17 +397,18 @@ export default function AdminStaffView({
                       {/* MODIFY ACCESS DROPDOWN */}
                       <td className="py-4 px-6 text-right">
                         <select
-                          value={user.role}
+                          disabled={updatingUserId === user.id}
+                          value={user.role === "transport_manager" ? "admin" : user.role === "supervisor" ? "staff" : user.role}
                           onChange={e =>
                             handleRoleChange(user.id, e.target.value as UserRole, user.fullName)
                           }
-                          className="px-3 py-1.5 text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 outline-none cursor-pointer hover:border-blue-500 transition-colors"
+                          className="px-3 py-1.5 text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 outline-none cursor-pointer hover:border-blue-500 transition-colors disabled:opacity-50"
                         >
-                          <option value="student">Student</option>
+                          <option value="student">Student Commuter</option>
                           <option value="teacher">Teacher / Faculty</option>
                           <option value="staff">Transport Staff</option>
-                          <option value="driver">Fleet Driver</option>
                           <option value="conductor">Conductor</option>
+                          <option value="driver">Fleet Driver</option>
                           <option value="admin">Administrator</option>
                         </select>
                       </td>
@@ -437,18 +472,18 @@ export default function AdminStaffView({
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     Role
                   </label>
-                  <select
-                    value={newUser.role}
-                    onChange={e => setNewUser({ ...newUser, role: e.target.value as UserRole })}
-                    className="w-full text-xs p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none mt-1 cursor-pointer"
-                  >
-                    <option value="student">Student</option>
-                    <option value="teacher">Teacher / Faculty</option>
-                    <option value="staff">Transport Staff</option>
-                    <option value="driver">Fleet Driver</option>
-                    <option value="conductor">Conductor</option>
-                    <option value="admin">Administrator</option>
-                  </select>
+                    <select
+                      value={newUser.role}
+                      onChange={e => setNewUser({ ...newUser, role: e.target.value as UserRole })}
+                      className="w-full text-xs p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none mt-1 cursor-pointer"
+                    >
+                      <option value="student">Student Commuter</option>
+                      <option value="teacher">Teacher / Faculty</option>
+                      <option value="staff">Transport Staff</option>
+                      <option value="conductor">Conductor</option>
+                      <option value="driver">Fleet Driver</option>
+                      <option value="admin">Administrator</option>
+                    </select>
                 </div>
 
                 <div>
