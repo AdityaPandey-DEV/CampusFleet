@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getTodayIST } from "@/lib/time-manager";
 
 // GET /api/shuttles/incoming-claim?stopId=...
 // Retrieve incoming buses approaching the specified stop with free seats and merge stop info
@@ -30,24 +31,67 @@ export async function GET(req: NextRequest) {
       .eq("stop_id", stopId);
 
     const routeIds = Array.from(new Set((routeStops || []).map((rs) => rs.route_id)));
+    const today = getTodayIST();
 
-    // 3. Fetch active trips on these routes (or all active trips if no specific route link)
+    // 3. Fetch active trips on these routes for TODAY with status IN_PROGRESS or SCHEDULED
+    // (Never return past dates or COMPLETED trips)
     let tripsQuery = supabaseAdmin
       .from("trips")
-      .select("*, buses(*), routes(*)")
+      .select("*, buses(*), routes(*), shifts(*)")
+      .eq("trip_date", today)
+      .in("status", ["IN_PROGRESS", "SCHEDULED"])
       .not("buses.status", "in", '("MAINTENANCE","OUT_OF_SERVICE","INACTIVE")')
-      .order("created_at", { ascending: false });
+      .order("status", { ascending: false }); // IN_PROGRESS before SCHEDULED
 
     if (routeIds.length > 0) {
       tripsQuery = tripsQuery.in("route_id", routeIds);
     }
 
-    const { data: trips, error: tripsErr } = await tripsQuery;
+    const { data: rawTrips, error: tripsErr } = await tripsQuery;
     if (tripsErr) throw tripsErr;
 
-    // 4. For each trip, calculate occupied seats and find nearest merge stop
+    let trips = rawTrips || [];
+
+    // Fallback: If no trips scheduled for today on these routes, look for upcoming active/scheduled trips
+    if (trips.length === 0) {
+      let fallbackQuery = supabaseAdmin
+        .from("trips")
+        .select("*, buses(*), routes(*), shifts(*)")
+        .in("status", ["IN_PROGRESS", "SCHEDULED"])
+        .not("buses.status", "in", '("MAINTENANCE","OUT_OF_SERVICE","INACTIVE")')
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (routeIds.length > 0) {
+        fallbackQuery = fallbackQuery.in("route_id", routeIds);
+      }
+      const { data: fallbackTrips } = await fallbackQuery;
+      if (fallbackTrips && fallbackTrips.length > 0) {
+        trips = fallbackTrips;
+      }
+    }
+
+    // 4. Deduplicate by physical bus (1 entry per physical bus)
+    // Always prioritize IN_PROGRESS over SCHEDULED
+    const uniqueTripsByBus = new Map<string, any>();
+    for (const t of trips) {
+      if (!t.buses) continue;
+      const busKey = t.bus_id || t.buses.id;
+      if (!uniqueTripsByBus.has(busKey)) {
+        uniqueTripsByBus.set(busKey, t);
+      } else {
+        const existing = uniqueTripsByBus.get(busKey);
+        if (existing.status !== "IN_PROGRESS" && t.status === "IN_PROGRESS") {
+          uniqueTripsByBus.set(busKey, t);
+        }
+      }
+    }
+
+    const distinctTrips = Array.from(uniqueTripsByBus.values());
+
+    // 5. For each trip, calculate occupied seats and find nearest merge stop
     const incomingShuttles = await Promise.all(
-      (trips || []).map(async (t) => {
+      distinctTrips.map(async (t) => {
         const bus = t.buses;
         if (!bus) return null;
 
@@ -88,19 +132,33 @@ export async function GET(req: NextRequest) {
           }
         }
 
+        const departureTime =
+          t.departure_time ||
+          (t.shifts?.start_time ? t.shifts.start_time.substring(0, 5) : "07:30");
+        const arrivalTime =
+          t.arrival_time ||
+          (t.shifts?.end_time ? t.shifts.end_time.substring(0, 5) : "08:45");
+        const shiftName =
+          t.shifts?.name ||
+          (t.direction === "CAMPUS_TO_HOME" ? "Evening Shift" : "Morning Shift");
+
         return {
           tripId: t.id,
           tripCode: t.trip_code,
           routeId: t.route_id,
           routeName: t.routes?.name || "Campus Corridor",
-          direction: t.routes?.direction || "HOME_TO_CAMPUS",
+          direction: t.direction || t.routes?.direction || "HOME_TO_CAMPUS",
           busId: bus.id,
           busNumber: bus.bus_number || bus.plate_number || bus.name,
-          plateNumber: bus.plate_number,
+          plateNumber: bus.plate_number || bus.registration_no,
           capacity,
           currentOccupancy: occupied,
           availableSeats,
           hasFreeSeats: availableSeats > 0,
+          status: t.status, // "IN_PROGRESS" | "SCHEDULED"
+          departureTime,
+          arrivalTime,
+          shiftName,
           nearestMergeStop: {
             id: mergeStopId,
             name: mergeStopName,

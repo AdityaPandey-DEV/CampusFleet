@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Bus, MapPin, Sparkles, RefreshCw, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
+import { Bus, MapPin, Sparkles, RefreshCw, AlertCircle, CheckCircle2, ArrowRight, Clock } from "lucide-react";
 import { Stop } from "@/lib/types";
 
 interface IncomingShuttle {
@@ -17,6 +17,10 @@ interface IncomingShuttle {
   currentOccupancy: number;
   availableSeats: number;
   hasFreeSeats: boolean;
+  status?: "IN_PROGRESS" | "SCHEDULED" | string;
+  departureTime?: string;
+  arrivalTime?: string;
+  shiftName?: string;
   nearestMergeStop: {
     id: string;
     name: string;
@@ -59,7 +63,16 @@ export function IncomingShuttleRadar({
       const res = await fetch(`/api/shuttles/incoming-claim?stopId=${encodeURIComponent(stopId)}`);
       const data = await res.json();
       if (data.success) {
-        setShuttles(data.shuttles || []);
+        const raw = data.shuttles || [];
+        // Deduplicate shuttles by busId so no duplicate physical buses render
+        const seen = new Set<string>();
+        const unique = raw.filter((s: IncomingShuttle) => {
+          const key = s.busId || s.tripId;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setShuttles(unique);
       } else {
         setMessage({ type: "error", text: data.message || "Could not retrieve incoming shuttles." });
       }
@@ -233,9 +246,20 @@ export function IncomingShuttleRadar({
                           <span className="text-[10px] font-normal px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">
                             {shuttle.direction === "CAMPUS_TO_HOME" ? "Campus → Home" : "Home → Campus"}
                           </span>
+                          {shuttle.status === "IN_PROGRESS" ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              En Route
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-mono">
+                              <Clock className="w-3 h-3 text-slate-400" />
+                              {shuttle.departureTime || "07:30"}
+                            </span>
+                          )}
                         </div>
-                        <div className="text-xs text-slate-500 font-medium">
-                          {shuttle.routeName}
+                        <div className="text-xs text-slate-500 font-medium mt-0.5">
+                          {shuttle.routeName} {shuttle.shiftName ? `• ${shuttle.shiftName}` : ""}
                         </div>
                       </div>
                     </div>

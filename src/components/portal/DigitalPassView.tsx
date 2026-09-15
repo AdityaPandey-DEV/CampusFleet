@@ -408,24 +408,14 @@ export default function DigitalPassView({
 
           {/* Missed Bus Recovery & Approaching Shuttle Radar */}
           {activeStudent && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                  Live Stop Radar • Catch Approaching Shuttle
-                </h3>
-                <span className="text-[11px] text-teal-600 dark:text-teal-400 font-bold">
-                  ⚡ Auto-Assign Open Seat or Standing Pass
-                </span>
-              </div>
-              <IncomingShuttleRadar
-                studentId={activeStudent.id}
-                currentStopId={activeStudent.primaryStopId || stops[0]?.id}
-                stops={stops}
-                onClaimSuccess={() => {
-                  store.reloadFromDatabase();
-                }}
-              />
-            </div>
+            <IncomingShuttleRadar
+              studentId={activeStudent.id}
+              currentStopId={activeStudent.primaryStopId || stops[0]?.id}
+              stops={stops}
+              onClaimSuccess={() => {
+                store.reloadFromDatabase();
+              }}
+            />
           )}
         </div>
       )}
