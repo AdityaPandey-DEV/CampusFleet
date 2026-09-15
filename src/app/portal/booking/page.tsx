@@ -30,7 +30,7 @@ export default async function ShiftBookingPage() {
     supabaseAdmin.from("shifts").select("*"),
     supabaseAdmin.from("stops").select("*"),
     supabaseAdmin.from("buses").select("*"),
-    supabaseAdmin.from("trips").select("*").order("trip_code"),
+    supabaseAdmin.from("trips").select("*").order("trip_date", { ascending: false }).order("trip_code"),
     supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
     supabaseAdmin.from("students").select("*"),
   ]);

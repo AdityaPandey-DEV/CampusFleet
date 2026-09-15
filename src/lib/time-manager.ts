@@ -267,17 +267,27 @@ export function isTripCutoffPassed(
   shift?: Shift,
   currentMinutes?: number
 ): boolean {
-  if (trip.manifestLocked) return true;
+  const isLocked = trip.manifestLocked || Boolean((trip as any).manifest_locked);
+  if (isLocked) return true;
+
   if (trip.status === "IN_PROGRESS" || trip.status === "COMPLETED" || trip.status === "CANCELLED") {
     return true;
   }
 
-  const depTime = trip.departureTime || shift?.startTime;
+  const depTime =
+    trip.departureTime ||
+    (trip as any).departure_time ||
+    shift?.startTime ||
+    (shift as any)?.start_time;
+
   if (!depTime) return false;
 
   const nowMins = currentMinutes ?? getCurrentMinutesIST();
-  const depMins = timeStringToMinutes(depTime);
-  const cutoffDuration = shift?.bookingCutoffMins || 45;
+  const depMins = timeStringToMinutes(String(depTime).substring(0, 5));
+  const cutoffDuration =
+    shift?.bookingCutoffMins ||
+    (shift as any)?.booking_cutoff_minutes ||
+    45;
   const cutoffThreshold = depMins - cutoffDuration;
 
   return nowMins >= cutoffThreshold;

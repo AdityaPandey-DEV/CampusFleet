@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
-import { isTripCutoffPassed } from "@/lib/time-manager";
+import { isTripCutoffPassed, getTodayIST } from "@/lib/time-manager";
 import { generateSeatLayout } from "@/lib/utils";
 
 // GET /api/bookings?tripId=...&shiftId=...&studentId=...&date=...
@@ -123,14 +123,33 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Fetch Trip, Shift, and Bus details
-    const { data: trip, error: tripErr } = await supabaseAdmin
+    const { data: rawTrip, error: tripErr } = await supabaseAdmin
       .from("trips")
       .select("*, shifts(*), buses(*)")
       .eq("id", tripId)
       .single();
 
-    if (tripErr || !trip) {
+    if (tripErr || !rawTrip) {
       return NextResponse.json({ success: false, error: "Trip not found." }, { status: 404 });
+    }
+
+    const todayIST = getTodayIST();
+    let trip = rawTrip;
+
+    // If client provided a historical trip from a past day, auto-resolve to today's scheduled trip for this bus & shift
+    if (trip.trip_date && trip.trip_date < todayIST) {
+      const { data: todayTrip } = await supabaseAdmin
+        .from("trips")
+        .select("*, shifts(*), buses(*)")
+        .eq("bus_id", trip.bus_id)
+        .eq("shift_id", trip.shift_id)
+        .eq("trip_date", todayIST)
+        .eq("status", "SCHEDULED")
+        .limit(1);
+
+      if (todayTrip && todayTrip.length > 0) {
+        trip = todayTrip[0];
+      }
     }
 
     const bus = trip.buses;
@@ -148,10 +167,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isCutoff = isTripCutoffPassed(trip, {
-      id: shift?.id || trip.shift_id,
-      bookingCutoffMins: shift?.booking_cutoff_minutes || 30,
-    } as any);
+    const isCutoff = isTripCutoffPassed(
+      {
+        ...trip,
+        manifestLocked: Boolean(trip.manifest_locked),
+        departureTime: trip.departure_time || shift?.start_time?.substring(0, 5) || "16:30",
+        arrivalTime: trip.arrival_time || shift?.end_time?.substring(0, 5) || "17:45",
+      } as any,
+      {
+        id: shift?.id || trip.shift_id,
+        name: shift?.name || "Shift",
+        shiftType: shift?.type || "EVENING",
+        startTime: (shift?.start_time || "16:30:00").substring(0, 5),
+        endTime: (shift?.end_time || "17:45:00").substring(0, 5),
+        bookingCutoffMins: shift?.booking_cutoff_minutes || 45,
+      } as any
+    );
 
     if (isCutoff) {
       return NextResponse.json(

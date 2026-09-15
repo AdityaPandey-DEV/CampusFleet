@@ -32,7 +32,7 @@ export default async function StudentPortalPage() {
     { data: dbStaff },
     { data: dbRouteStops },
   ] = await Promise.all([
-    supabaseAdmin.from("trips").select("*").order("trip_code"),
+    supabaseAdmin.from("trips").select("*").order("trip_date", { ascending: false }).order("trip_code"),
     supabaseAdmin.from("buses").select("*"),
     supabaseAdmin.from("routes").select("*"),
     supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
