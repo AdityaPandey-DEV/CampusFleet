@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   BookOpen,
   Plus,
@@ -22,15 +22,26 @@ import {
   RefreshCw,
   X,
   UserPlus,
+  Tag,
+  Building2,
+  Filter,
+  Award,
 } from "lucide-react";
 import SearchableDropdown, { DropdownOption } from "@/components/ui/SearchableDropdown";
 
-interface ClassItem {
+export interface ClassItem {
   id: string;
   name: string;
   course: string;
+  department?: string;
+  degreeLevel?: string;
   year: string;
+  yearNum?: number;
+  semester: string;
+  semesterNum?: number;
   section: string;
+  sectionCode?: string;
+  specialization?: string;
   isActive: boolean;
   studentCount: number;
   assignedTeachers: {
@@ -74,6 +85,8 @@ export default function AdminClassesView({
   const [teachersList, setTeachersList] = useState<any[]>(initialTeachers);
   const [isLoading, setIsLoading] = useState(initialClasses.length === 0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [programFilter, setProgramFilter] = useState<string>("ALL");
+  const [semesterFilter, setSemesterFilter] = useState<string>("ALL");
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(initialClasses[0] || null);
   const [activeTab, setActiveTab] = useState<"overview" | "timetable" | "students">("overview");
 
@@ -92,19 +105,23 @@ export default function AdminClassesView({
   const [isAddSlotModalOpen, setIsAddSlotModalOpen] = useState(false);
   const [isAllocateTeacherModalOpen, setIsAllocateTeacherModalOpen] = useState(false);
 
-  // Form states
+  // Form states with normalized structure
   const [formData, setFormData] = useState({
     course: "B.Tech CSE",
-    year: "3rd Year",
+    semester: "3rd Sem",
+    year: "2nd Year",
     section: "A",
+    specialization: "Core",
     assignedTeacherId: "",
   });
 
   const [editFormData, setEditFormData] = useState({
     id: "",
     course: "B.Tech CSE",
-    year: "3rd Year",
+    semester: "3rd Sem",
+    year: "2nd Year",
     section: "A",
+    specialization: "Core",
   });
 
   const [slotFormData, setSlotFormData] = useState({
@@ -219,8 +236,10 @@ export default function AdminClassesView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           course: formData.course,
+          semester: formData.semester,
           year: formData.year,
           section: formData.section,
+          specialization: formData.specialization,
           assignedTeacherId: formData.assignedTeacherId || undefined,
         }),
       });
@@ -235,8 +254,10 @@ export default function AdminClassesView({
       setIsCreateModalOpen(false);
       setFormData({
         course: "B.Tech CSE",
-        year: "3rd Year",
+        semester: "3rd Sem",
+        year: "2nd Year",
         section: "A",
+        specialization: "Core",
         assignedTeacherId: "",
       });
       await fetchClasses();
@@ -253,8 +274,10 @@ export default function AdminClassesView({
     setEditFormData({
       id: classItem.id,
       course: classItem.course,
+      semester: classItem.semester || "3rd Sem",
       year: classItem.year,
       section: classItem.section,
+      specialization: classItem.specialization || "Core",
     });
     setActionError("");
     setIsEditModalOpen(true);
@@ -273,8 +296,10 @@ export default function AdminClassesView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           course: editFormData.course,
+          semester: editFormData.semester,
           year: editFormData.year,
           section: editFormData.section,
+          specialization: editFormData.specialization,
         }),
       });
       const data = await res.json();
@@ -459,37 +484,74 @@ export default function AdminClassesView({
     sublabel: `${t.role ? `[${t.role.toUpperCase()}] ` : ""}${t.email || ""}`,
   }));
 
-  const filteredClasses = classes.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.course.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.section.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filtering classes
+  const filteredClasses = useMemo(() => {
+    return classes.filter((c) => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        !q ||
+        c.name.toLowerCase().includes(q) ||
+        c.course.toLowerCase().includes(q) ||
+        c.section.toLowerCase().includes(q) ||
+        (c.specialization && c.specialization.toLowerCase().includes(q)) ||
+        (c.semester && c.semester.toLowerCase().includes(q));
+
+      const matchesProgram =
+        programFilter === "ALL" ||
+        (programFilter === "B.Tech CSE" && c.course === "B.Tech CSE") ||
+        (programFilter === "Diploma" && c.course.includes("Diploma")) ||
+        (programFilter === "M.Tech" && c.course.includes("M.Tech")) ||
+        (programFilter === "OTHER" && !c.course.includes("B.Tech CSE") && !c.course.includes("Diploma") && !c.course.includes("M.Tech"));
+
+      const matchesSemester =
+        semesterFilter === "ALL" ||
+        (semesterFilter === "SEM_3_4" && (c.semester?.includes("3") || c.semester?.includes("4"))) ||
+        (semesterFilter === "SEM_5_6" && (c.semester?.includes("5") || c.semester?.includes("6"))) ||
+        (semesterFilter === "SEM_7_8" && (c.semester?.includes("7") || c.semester?.includes("8"))) ||
+        (semesterFilter === "SEM_1_2" && (c.semester?.includes("1") || c.semester?.includes("2")));
+
+      return matchesSearch && matchesProgram && matchesSemester;
+    });
+  }, [classes, searchQuery, programFilter, semesterFilter]);
 
   const daySlots = timetableSlots.filter((s) => s.dayOfWeek.toLowerCase() === selectedDay.toLowerCase());
+
+  // Helper for specialization badge color
+  const getSpecializationBadge = (spec?: string) => {
+    switch (spec) {
+      case "AIML":
+        return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20";
+      case "CS":
+        return "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20";
+      case "Cloud Computing":
+        return "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20";
+      default:
+        return "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20";
+    }
+  };
 
   return (
     <div className="space-y-6">
       {/* Notifications */}
       {actionSuccess && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-between animate-in fade-in">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
             <span>{actionSuccess}</span>
           </div>
-          <button onClick={() => setActionSuccess("")} className="text-emerald-500 hover:text-emerald-700">
+          <button onClick={() => setActionSuccess("")} className="text-emerald-500 hover:text-emerald-700 cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {actionError && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center justify-between animate-in fade-in">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{actionError}</span>
           </div>
-          <button onClick={() => setActionError("")} className="text-rose-500 hover:text-rose-700">
+          <button onClick={() => setActionError("")} className="text-rose-500 hover:text-rose-700 cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -506,7 +568,7 @@ export default function AdminClassesView({
             Class & Timetable Management
           </h1>
           <p className="text-sm text-slate-300 mt-1 max-w-xl">
-            Configure courses, sections, and assigned faculty advisors. The bus-entry validation engine actively cross-references these schedules to deny boarding during student lecture hours.
+            Normalized university course structure with active timetable synchronization. The transit engine cross-references these lecture periods to validate real-time bus boarding eligibility.
           </p>
         </div>
 
@@ -522,15 +584,15 @@ export default function AdminClassesView({
         </button>
       </div>
 
-      {/* Main Grid: Left Class List, Right Class Details & Timetable */}
+      {/* Main Grid: Left Class List (5 cols), Right Class Details & Timetable (7 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Classes Roster (5 cols) */}
+        {/* Left Column: Normalized Classes Roster (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
           <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-md space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-black text-sm uppercase tracking-wider text-slate-400 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-blue-500" />
-                <span>Active Classes ({classes.length})</span>
+                <span>Active Classes ({filteredClasses.length} of {classes.length})</span>
               </h2>
               <button
                 onClick={fetchClasses}
@@ -548,16 +610,39 @@ export default function AdminClassesView({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search course, year, section..."
+                placeholder="Search course, semester, section, specialization..."
                 className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            {/* Program Filter Chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold">
+              {[
+                { id: "ALL", label: "All" },
+                { id: "B.Tech CSE", label: "B.Tech CSE" },
+                { id: "Diploma", label: "Diploma" },
+                { id: "M.Tech", label: "M.Tech" },
+                { id: "OTHER", label: "BCA/MCA/ECE" },
+              ].map((chip) => (
+                <button
+                  key={chip.id}
+                  onClick={() => setProgramFilter(chip.id)}
+                  className={`px-2.5 py-1 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
+                    programFilter === chip.id
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
             </div>
 
             {/* Class Cards List */}
             <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
               {filteredClasses.length === 0 ? (
                 <div className="text-center py-10 text-slate-400 text-xs">
-                  {isLoading ? "Loading classes from database..." : "No classes found matching search."}
+                  {isLoading ? "Loading classes from database..." : "No classes found matching criteria."}
                 </div>
               ) : (
                 filteredClasses.map((item) => {
@@ -566,7 +651,7 @@ export default function AdminClassesView({
                     <div
                       key={item.id}
                       onClick={() => setSelectedClass(item)}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer text-left group ${
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer text-left group ${
                         isSelected
                           ? "bg-blue-50/80 dark:bg-blue-950/50 border-blue-300 dark:border-blue-700/80 shadow-md ring-1 ring-blue-400/30"
                           : "bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
@@ -586,8 +671,23 @@ export default function AdminClassesView({
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            {item.course} • {item.year}
+
+                          {/* Normalized Badges Row */}
+                          <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                            <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-[10px]">
+                              {item.semester || item.year}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
+                              Sec {item.section}
+                            </span>
+                            {item.specialization && item.specialization !== "Core" && (
+                              <span className={`px-2 py-0.5 rounded-md border font-black text-[10px] ${getSpecializationBadge(item.specialization)}`}>
+                                {item.specialization}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-slate-400">
+                              • {item.course}
+                            </span>
                           </div>
                         </div>
 
@@ -639,30 +739,58 @@ export default function AdminClassesView({
           </div>
         </div>
 
-        {/* Right Column: Selected Class Operations, Timetable & Roster (7 cols) */}
+        {/* Right Column: Selected Class Operations, Normalized Details & Timetable (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
           {selectedClass ? (
             <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md space-y-6">
               {/* Header Info & Actions */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-blue-500">
-                    Selected Class Details
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-blue-500 flex items-center gap-1.5">
+                    <Award className="w-3.5 h-3.5" />
+                    <span>Academic Entity Structure</span>
                   </div>
                   <h2 className="text-xl font-black text-slate-900 dark:text-white">
                     {selectedClass.name}
                   </h2>
-                  <div className="text-xs text-slate-500 flex items-center gap-3 mt-1">
-                    <span>Course: <strong>{selectedClass.course}</strong></span>
-                    <span>•</span>
-                    <span>Year: <strong>{selectedClass.year}</strong></span>
-                    <span>•</span>
-                    <span>Section: <strong>{selectedClass.section}</strong></span>
+
+                  {/* STRUCTURED NORMALIZED PILLS */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80">
+                      <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                      <span>{selectedClass.course}</span>
+                    </span>
+
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80">
+                      <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>{selectedClass.semester || "Semester"}</span>
+                      <span className="text-indigo-400 font-normal">({selectedClass.year})</span>
+                    </span>
+
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80">
+                      <Tag className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Section {selectedClass.section}</span>
+                    </span>
+
+                    {selectedClass.specialization && selectedClass.specialization !== "Core" ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80">
+                        <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                        <span>{selectedClass.specialization} Track</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        Core Branch
+                      </span>
+                    )}
+
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                      {selectedClass.degreeLevel || "Undergraduate"}
+                    </span>
                   </div>
                 </div>
 
                 {/* Class Actions: Edit, Status, Delete */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
                   <button
                     onClick={() => handleOpenEditModal(selectedClass)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
@@ -696,7 +824,7 @@ export default function AdminClassesView({
               {/* Navigation Tabs */}
               <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2">
                 {[
-                  { id: "overview", label: "Overview & Teachers", icon: Layers },
+                  { id: "overview", label: "Overview & Faculty", icon: Layers },
                   { id: "timetable", label: "Class Timetable", icon: Clock },
                   { id: "students", label: `Enrolled Students (${selectedClass.studentCount})`, icon: GraduationCap },
                 ].map((tab) => {
@@ -719,9 +847,10 @@ export default function AdminClassesView({
                 })}
               </div>
 
-              {/* TAB 1: OVERVIEW & TEACHER CRUD */}
+              {/* TAB 1: OVERVIEW & NORMALIZED DETAILS */}
               {activeTab === "overview" && (
                 <div className="space-y-5">
+                  {/* Stats Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
                       <div className="text-[10px] font-bold text-slate-400 uppercase">Enrolled Students</div>
@@ -739,12 +868,12 @@ export default function AdminClassesView({
                         {selectedClass.assignedTeachers?.length || 0}
                       </div>
                       <div className="text-[11px] text-teal-500 mt-1 font-semibold">
-                        Class Advisors & Faculty
+                        Faculty & Class Advisors
                       </div>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase">Status</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase">Gate Status</div>
                       <div className="text-2xl font-black text-slate-900 dark:text-white mt-1 flex items-center gap-1.5">
                         {selectedClass.isActive ? (
                           <>
@@ -759,7 +888,41 @@ export default function AdminClassesView({
                         )}
                       </div>
                       <div className="text-[11px] text-slate-400 mt-1">
-                        Bus check validation active
+                        Lecture-gate scan protection
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Academic Blueprint Details */}
+                  <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <div className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Curricular Normalization Profile</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Department</span>
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                          {selectedClass.department || "Computer Science"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Degree Level</span>
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                          {selectedClass.degreeLevel || "Undergraduate"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Academic Standing</span>
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                          {selectedClass.year} • {selectedClass.semester}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Section & Track</span>
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                          Sec {selectedClass.section} ({selectedClass.specialization || "Core"})
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -770,10 +933,10 @@ export default function AdminClassesView({
                       <div>
                         <div className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
                           <UserCheck className="w-4 h-4 text-teal-500" />
-                          <span>Allocated Faculty Advisors</span>
+                          <span>Allocated Faculty Advisors ({selectedClass.assignedTeachers?.length || 0})</span>
                         </div>
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          Teachers assigned to manage or advise this class section.
+                          Teachers and faculty assigned to advise or lecture for this specific section.
                         </p>
                       </div>
 
@@ -963,7 +1126,7 @@ export default function AdminClassesView({
             </div>
           ) : (
             <div className="h-full min-h-[300px] flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-8 text-center text-slate-400 text-xs">
-              Select a class from the list to manage its timetable and faculty advisors.
+              Select a class from the list to view its normalized academic profile and faculty advisors.
             </div>
           )}
         </div>
@@ -972,11 +1135,11 @@ export default function AdminClassesView({
       {/* MODAL 1: CREATE CLASS */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-blue-500" />
-                <h3 className="font-black text-base text-slate-900 dark:text-white">Create New University Class</h3>
+                <h3 className="font-black text-base text-slate-900 dark:text-white">Create University Class</h3>
               </div>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
@@ -996,45 +1159,91 @@ export default function AdminClassesView({
             <form onSubmit={handleCreateClass} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                  Course
+                  Academic Course / Program
                 </label>
-                <input
-                  type="text"
-                  required
+                <select
                   value={formData.course}
                   onChange={(e) => setFormData({ ...formData, course: e.target.value })}
-                  placeholder="e.g. B.Tech CSE, BBA, MBA"
                   className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                >
+                  <option value="B.Tech CSE">B.Tech Computer Science & Engineering (B.Tech CSE)</option>
+                  <option value="Diploma CSE">Diploma in Computer Science & Engineering (Diploma CSE)</option>
+                  <option value="M.Tech CSE">M.Tech Computer Science & Engineering (M.Tech CSE)</option>
+                  <option value="B.Tech ECE">B.Tech Electronics & Communication (B.Tech ECE)</option>
+                  <option value="BCA">Bachelor of Computer Applications (BCA)</option>
+                  <option value="MCA">Master of Computer Applications (MCA)</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                    Year / Semester
+                    Semester
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.year}
-                    onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                    placeholder="e.g. 3rd Year"
+                  <select
+                    value={formData.semester}
+                    onChange={(e) => {
+                      const sem = e.target.value;
+                      const semNum = parseInt(sem) || 1;
+                      const yrNum = Math.ceil(semNum / 2);
+                      const yrSuffix = yrNum === 1 ? '1st' : yrNum === 2 ? '2nd' : yrNum === 3 ? '3rd' : '4th';
+                      setFormData({ ...formData, semester: sem, year: `${yrSuffix} Year` });
+                    }}
                     className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  >
+                    <option value="1st Sem">1st Sem (Year 1)</option>
+                    <option value="2nd Sem">2nd Sem (Year 1)</option>
+                    <option value="3rd Sem">3rd Sem (Year 2)</option>
+                    <option value="4th Sem">4th Sem (Year 2)</option>
+                    <option value="5th Sem">5th Sem (Year 3)</option>
+                    <option value="6th Sem">6th Sem (Year 3)</option>
+                    <option value="7th Sem">7th Sem (Year 4)</option>
+                    <option value="8th Sem">8th Sem (Year 4)</option>
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                    Section
+                    Academic Year
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={formData.year}
+                    className="w-full px-3.5 py-2 text-xs bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Section Code
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.section}
-                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                    placeholder="e.g. A, B, C"
+                    onChange={(e) => setFormData({ ...formData, section: e.target.value.toUpperCase() })}
+                    placeholder="e.g. A, B, C, CC"
                     className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Specialization / Track
+                  </label>
+                  <select
+                    value={formData.specialization}
+                    onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Core">Core (Standard)</option>
+                    <option value="AIML">AI & Machine Learning (AIML)</option>
+                    <option value="CS">Computer Science (CS)</option>
+                    <option value="Cloud Computing">Cloud Computing (CC)</option>
+                  </select>
                 </div>
               </div>
 
@@ -1055,7 +1264,7 @@ export default function AdminClassesView({
               </div>
 
               <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-[11px] text-blue-700 dark:text-blue-300">
-                Generated Identity: <strong>{formData.course} - {formData.year} (Sec {formData.section.toUpperCase()})</strong>
+                Generated Normalized Identity: <strong>{formData.course} - {formData.semester} (Section {formData.section}{formData.specialization !== "Core" ? ` (${formData.specialization})` : ""})</strong>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -1082,11 +1291,11 @@ export default function AdminClassesView({
       {/* MODAL 2: EDIT CLASS */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-blue-500" />
-                <h3 className="font-black text-base text-slate-900 dark:text-white">Edit Class Details</h3>
+                <h3 className="font-black text-base text-slate-900 dark:text-white">Edit Academic Class</h3>
               </div>
               <button
                 onClick={() => setIsEditModalOpen(false)}
@@ -1121,35 +1330,60 @@ export default function AdminClassesView({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                    Year / Semester
+                    Semester
                   </label>
                   <input
                     type="text"
                     required
-                    value={editFormData.year}
-                    onChange={(e) => setEditFormData({ ...editFormData, year: e.target.value })}
-                    placeholder="e.g. 3rd Year"
+                    value={editFormData.semester}
+                    onChange={(e) => setEditFormData({ ...editFormData, semester: e.target.value })}
+                    placeholder="e.g. 3rd Sem"
                     className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                    Section
+                    Academic Year
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.year}
+                    onChange={(e) => setEditFormData({ ...editFormData, year: e.target.value })}
+                    placeholder="e.g. 2nd Year"
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Section Code
                   </label>
                   <input
                     type="text"
                     required
                     value={editFormData.section}
-                    onChange={(e) => setEditFormData({ ...editFormData, section: e.target.value })}
+                    onChange={(e) => setEditFormData({ ...editFormData, section: e.target.value.toUpperCase() })}
                     placeholder="e.g. A, B, C"
                     className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
                   />
                 </div>
-              </div>
 
-              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-[11px] text-blue-700 dark:text-blue-300">
-                New Name: <strong>{editFormData.course} - {editFormData.year} (Sec {editFormData.section.toUpperCase()})</strong>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Specialization
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.specialization}
+                    onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })}
+                    placeholder="e.g. Core, AIML, CS"
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
