@@ -482,7 +482,7 @@ export default function StaffOperationsView({
         map.set(s.id, {
           id: s.id,
           name: s.fullName,
-          phone: s.phone,
+          phone: s.phone || "—",
           license: s.licenseNo || "HMV-COMMERCIAL",
           role: "driver",
           employeeCode: s.employeeCode,
@@ -521,7 +521,7 @@ export default function StaffOperationsView({
         map.set(s.id, {
           id: s.id,
           name: s.fullName,
-          phone: s.phone,
+          phone: s.phone || "—",
           role: "conductor",
           isActingDriver: false,
           employeeCode: s.employeeCode,
@@ -548,7 +548,7 @@ export default function StaffOperationsView({
           map.set(s.id, {
             id: s.id,
             name: s.fullName,
-            phone: s.phone,
+            phone: s.phone || "—",
             role: "driver",
             isActingDriver: true,
             employeeCode: s.employeeCode,

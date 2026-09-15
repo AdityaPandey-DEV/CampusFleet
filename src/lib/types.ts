@@ -16,7 +16,7 @@ export interface Profile {
   id: string;
   email: string;
   fullName: string;
-  phone: string;
+  phone: string | null;
   role: UserRole;
   avatarUrl?: string;
   createdAt: string;
@@ -28,7 +28,7 @@ export interface UserAccount {
   fullName: string;
   role: UserRole;
   provider: string;
-  phone?: string;
+  phone?: string | null;
   campusId?: string;
   /** @deprecated Use campusId instead */
   campus?: string;
@@ -172,16 +172,16 @@ export interface Student {
   enrollmentNo: string;
   fullName: string;
   email: string;
-  phone: string;
+  phone: string | null;
   department: string;
   semester: string;
   primaryStopId: string;
   primaryRouteId: string;
   emergencyContact: {
-    name: string;
-    relationship: string;
-    phone: string;
-  };
+    name: string | null;
+    relationship: string | null;
+    phone: string | null;
+  } | null;
   campusId?: string;
   /** @deprecated Use campusId instead */
   campus?: string;
@@ -204,7 +204,7 @@ export interface Guardian {
   userId: string;
   fullName: string;
   email: string;
-  phone: string;
+  phone: string | null;
   relationship: "FATHER" | "MOTHER" | "GUARDIAN";
   linkedStudentIds: string[];
 }
@@ -215,7 +215,7 @@ export interface Staff {
   employeeCode: string;
   fullName: string;
   email: string;
-  phone: string;
+  phone: string | null;
   category: "TRANSPORT_OPS" | "DRIVERS" | "CONDUCTORS" | "SUPERVISORS";
   rank: "SENIOR" | "REGULAR" | "PROBATIONARY";
   role: UserRole;
