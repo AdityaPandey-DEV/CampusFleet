@@ -15,6 +15,10 @@ import {
   User,
   HeartHandshake,
   Compass,
+  Camera,
+  Upload,
+  Lock,
+  ShieldAlert,
 } from "lucide-react";
 
 export function StudentProfileModal() {
@@ -26,6 +30,10 @@ export function StudentProfileModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  const activeStudent: Student | undefined = students.find(
+    s => s.email?.toLowerCase() === currentUser?.email?.toLowerCase() || s.userId === currentUser?.id
+  );
 
   // Form State
   const [fullName, setFullName] = useState("");
@@ -42,6 +50,27 @@ export function StudentProfileModal() {
   const [emergencyName, setEmergencyName] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
   const [emergencyRel, setEmergencyRel] = useState("Parent / Guardian");
+  const [photoUrl, setPhotoUrl] = useState("");
+
+  const isPhotoLocked = Boolean(activeStudent?.photoUrl || activeStudent?.photoLocked);
+
+  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isPhotoLocked) {
+      alert("Official photo is locked. Only Campus Staff/Admin can update your photo.");
+      return;
+    }
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Photo file size must be under 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPhotoUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -66,10 +95,6 @@ export function StudentProfileModal() {
       })
       .catch(console.error);
   }, []);
-
-  const activeStudent: Student | undefined = students.find(
-    s => s.email?.toLowerCase() === currentUser?.email?.toLowerCase() || s.userId === currentUser?.id
-  );
 
   // Check if profile is incomplete
   useEffect(() => {
@@ -97,6 +122,7 @@ export function StudentProfileModal() {
       setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
       setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
       setEmergencyPhone(activeStudent?.emergencyContact?.phone !== "+91 0000000000" ? (activeStudent?.emergencyContact?.phone || "") : "");
+      setPhotoUrl(activeStudent?.photoUrl || "");
     }
   }, [currentUser, activeStudent, stops]);
 
@@ -126,6 +152,7 @@ export function StudentProfileModal() {
       zoneCode: selectedZoneCode,
       phone: phone.trim(),
       primaryStopId: primaryStopId || stops[0]?.id || "",
+      photoUrl: photoUrl.trim() || undefined,
       emergencyContact: {
         name: emergencyName.trim() || "Parent / Guardian",
         relationship: emergencyRel,
@@ -193,6 +220,87 @@ export function StudentProfileModal() {
           <p className="text-xs text-slate-500">
             Welcome, <strong>{currentUser?.fullName || currentUser?.email}</strong>! Please link your university enrollment and campus transit stop to enable automated pass generation and bus tracking.
           </p>
+
+          {/* Official Passport Photo Verification Upload */}
+          <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <span className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
+                  Official Passport-Size Photo
+                </span>
+              </div>
+              {isPhotoLocked ? (
+                <span className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-800">
+                  <Lock className="w-3 h-3" /> Photo Locked
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-800">
+                  Required for Boarding ID
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* Photo Preview Thumbnail */}
+              <div className="relative flex-shrink-0">
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt="Passport Photo Preview"
+                    className="w-20 h-24 sm:w-22 sm:h-28 object-cover rounded-xl border-2 border-teal-500 shadow-md bg-white dark:bg-slate-900"
+                  />
+                ) : (
+                  <div className="w-20 h-24 sm:w-22 sm:h-28 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                    <User className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1" />
+                    <span className="text-[9px] font-bold leading-tight">No Photo</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Upload Controls or Locked Notice */}
+              <div className="flex-1 space-y-2">
+                {isPhotoLocked ? (
+                  <div className="p-3 rounded-xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 text-[11px] text-teal-900 dark:text-teal-200">
+                    <div className="font-bold flex items-center gap-1.5 mb-1">
+                      <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                      Verified Institutional Identity
+                    </div>
+                    <p className="text-[10px] opacity-80">
+                      Your official photo is locked to prevent pass impersonation. Only campus transport staff can update or verify this photo.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                      Upload your official passport photo. The conductor will visually confirm this against your face during QR boarding check-in.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <label className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                      {photoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setPhotoUrl("")}
+                          className="text-[11px] text-rose-500 hover:text-rose-600 font-semibold underline px-1"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {/* Full Name */}

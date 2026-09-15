@@ -11,7 +11,7 @@ import { getDayOfWeekIST, getCurrentTimeIST } from "@/lib/time-manager";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { rawCode, qrData, tripId, busId, conductorName = "Conductor Command Terminal" } = body;
+    const { rawCode, qrData, tripId, busId, conductorName = "Conductor Command Terminal", action = "CONFIRM_BOARDING" } = body;
     const scanPayload = rawCode || qrData;
 
     if (!scanPayload) {
@@ -72,10 +72,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Retrieve Student and Class Details from Database
+    // 4. Retrieve Student and Class Details from Database (including official passport photo)
     const { data: student, error: studentErr } = await supabaseAdmin
       .from("students")
-      .select("id, full_name, enrollment_no, email, phone, class_id, class_name, transport_access_suspended")
+      .select("id, full_name, enrollment_no, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status")
       .or(`id.eq.${resolvedStudentId},user_id.eq.${resolvedStudentId}`)
       .single();
 
@@ -212,8 +212,37 @@ export async function POST(req: NextRequest) {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 7. BOARDING APPROVED: Update Database State Atomically
+    // 7. PREVIEW VERIFY vs CONFIRM BOARDING
     // ─────────────────────────────────────────────────────────────
+    if (action === "PREVIEW_VERIFY") {
+      return NextResponse.json({
+        success: true,
+        status: "READY_FOR_CONFIRMATION",
+        message: `Pass verified for ${student?.full_name || "Student"}. Confirm identity against official passport photo.`,
+        student: {
+          id: student?.id || resolvedStudentId,
+          fullName: student?.full_name || "University Student",
+          enrollmentNo: student?.enrollment_no || "VERIFIED",
+          photoUrl: student?.photo_url || null,
+          department: student?.department || "Academic Department",
+          semester: student?.semester || "Enrolled Semester",
+          className: student?.class_name || "Academic Class",
+          paymentStatus: student?.payment_status || "APPROVED",
+        },
+        booking: {
+          id: targetBooking.id,
+          seatNumber: targetBooking.seat_number,
+          bookingCode: targetBooking.booking_code,
+          passengerType: targetBooking.passenger_type || "SEATED",
+        },
+        bus: {
+          busNumber: bus?.bus_number || "Campus Shuttle",
+          capacity: bus?.capacity || 32,
+          currentOccupancy: currentBoardedCount || 0,
+        },
+      });
+    }
+
     const timestamp = new Date().toISOString();
 
     // 7a. Mark booking as BOARDED
@@ -286,6 +315,7 @@ export async function POST(req: NextRequest) {
         id: student?.id || resolvedStudentId,
         fullName: student?.full_name || "University Student",
         enrollmentNo: student?.enrollment_no || "VERIFIED",
+        photoUrl: student?.photo_url || null,
         className: student?.class_name || "Enrolled Class",
       },
       booking: {

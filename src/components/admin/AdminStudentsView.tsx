@@ -15,6 +15,9 @@ import {
   Edit2,
   X,
   AlertCircle,
+  Camera,
+  Upload,
+  Lock,
 } from "lucide-react";
 import type { Stop, Route, Guardian } from "@/lib/types";
 
@@ -46,6 +49,12 @@ export default function AdminStudentsView({
   const [selectedNewClassId, setSelectedNewClassId] = useState("");
   const [isUpdatingClass, setIsUpdatingClass] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Staff passport photo update modal
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [selectedStudentForPhoto, setSelectedStudentForPhoto] = useState<Student | null>(null);
+  const [newStaffPhotoUrl, setNewStaffPhotoUrl] = useState("");
+  const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -118,6 +127,56 @@ export default function AdminStudentsView({
     }
   };
 
+  const handleOpenPhotoModal = (student: Student) => {
+    setSelectedStudentForPhoto(student);
+    setNewStaffPhotoUrl(student.photoUrl || "");
+    setPhotoModalOpen(true);
+  };
+
+  const handleStaffPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Photo file size must be under 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setNewStaffPhotoUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveStaffPhoto = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudentForPhoto || !newStaffPhotoUrl) {
+      alert("Please upload or provide a photo URL.");
+      return;
+    }
+
+    try {
+      setIsUpdatingPhoto(true);
+      const res = await store.updateStudentProfile(selectedStudentForPhoto.id, {
+        photoUrl: newStaffPhotoUrl,
+        performedByStaff: true,
+      });
+
+      if (res.success) {
+        selectedStudentForPhoto.photoUrl = newStaffPhotoUrl;
+        selectedStudentForPhoto.photoLocked = true;
+        setToastMessage(`✓ Official identity photo for ${selectedStudentForPhoto.fullName} updated and locked by staff.`);
+        setPhotoModalOpen(false);
+        setTimeout(() => setToastMessage(null), 3500);
+      } else {
+        alert(res.message || "Failed to update official photo.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Network error.");
+    } finally {
+      setIsUpdatingPhoto(false);
+    }
+  };
+
   const filteredStudents = students.filter(
     (s) =>
       s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -167,12 +226,13 @@ export default function AdminStudentsView({
             <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="p-3.5">Roll / ID</th>
+                <th className="p-3.5">Photo</th>
                 <th className="p-3.5">Student Commuter</th>
                 <th className="p-3.5">Assigned University Class</th>
                 <th className="p-3.5">Primary Pickup Stop</th>
                 <th className="p-3.5">Emergency Contact</th>
                 <th className="p-3.5">Transit Status</th>
-                <th className="p-3.5 text-right">Access Privileges</th>
+                <th className="p-3.5 text-right">Access & Photo</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -184,6 +244,24 @@ export default function AdminStudentsView({
                   <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                     <td className="p-3.5 font-mono font-bold text-blue-600 dark:text-blue-400">
                       {s.enrollmentNo || "PENDING"}
+                    </td>
+                    <td className="p-3.5">
+                      <div className="relative w-9 h-11 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                        {s.photoUrl ? (
+                          <img
+                            src={s.photoUrl}
+                            alt={s.fullName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-4 h-4 text-slate-400" />
+                        )}
+                        {s.photoUrl && (
+                          <div className="absolute bottom-0 right-0 bg-emerald-500 text-white p-0.5 rounded-tl">
+                            <Lock className="w-2 h-2" />
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3.5">
                       <div className="font-bold text-slate-900 dark:text-white">{s.fullName}</div>
@@ -229,16 +307,26 @@ export default function AdminStudentsView({
                       </span>
                     </td>
                     <td className="p-3.5 text-right">
-                      <button
-                        onClick={() => handleToggleSuspension(s)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                          isSuspended
-                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
-                            : "bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900"
-                        }`}
-                      >
-                        {isSuspended ? "Restore Access" : "Suspend Access"}
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleOpenPhotoModal(s)}
+                          className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center gap-1 transition-colors"
+                          title="Staff Photo Update (Anti-Fraud Override)"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-teal-500" />
+                          <span>Photo</span>
+                        </button>
+                        <button
+                          onClick={() => handleToggleSuspension(s)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                            isSuspended
+                              ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
+                              : "bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900"
+                          }`}
+                        >
+                          {isSuspended ? "Restore" : "Suspend"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -314,6 +402,89 @@ export default function AdminStudentsView({
                   className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
                 >
                   {isUpdatingClass ? "Updating Database..." : "Save Assignment"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Identity Photo Update Modal */}
+      {photoModalOpen && selectedStudentForPhoto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="w-5 h-5 text-teal-500" />
+                <h3 className="font-black text-base text-slate-900 dark:text-white">
+                  Staff Photo Override & Verification
+                </h3>
+              </div>
+              <button
+                onClick={() => setPhotoModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs">
+              <div className="font-bold text-slate-900 dark:text-white">
+                {selectedStudentForPhoto.fullName}
+              </div>
+              <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                Roll: {selectedStudentForPhoto.enrollmentNo} • {selectedStudentForPhoto.email}
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveStaffPhoto} className="space-y-4">
+              <div className="flex flex-col items-center justify-center gap-3 p-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-800/40">
+                {newStaffPhotoUrl ? (
+                  <img
+                    src={newStaffPhotoUrl}
+                    alt="New Photo Preview"
+                    className="w-24 h-32 object-cover rounded-xl border-2 border-teal-500 shadow-md bg-white dark:bg-slate-900"
+                  />
+                ) : (
+                  <div className="w-24 h-32 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                    <User className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1" />
+                    <span className="text-[10px] font-bold">No Photo Selected</span>
+                  </div>
+                )}
+
+                <label className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Choose Photo File</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleStaffPhotoUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 text-[11px] text-teal-800 dark:text-teal-300 flex items-start gap-2">
+                <Lock className="w-4 h-4 flex-shrink-0 text-teal-500 mt-0.5" />
+                <span>
+                  <strong>Anti-Fraud Security Policy:</strong> This official passport photo is locked to prevent students from sharing tickets or swapping ID cards. Only authorized transport desk staff can edit this image.
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPhotoModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingPhoto || !newStaffPhotoUrl}
+                  className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md disabled:opacity-50 cursor-pointer"
+                >
+                  {isUpdatingPhoto ? "Saving..." : "Lock & Save Official Photo"}
                 </button>
               </div>
             </form>

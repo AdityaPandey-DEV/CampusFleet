@@ -14,9 +14,13 @@ import {
   Volume2,
   VolumeX,
   UserCheck,
+  UserX,
   Keyboard,
   XCircle,
   RefreshCw,
+  User,
+  ShieldAlert,
+  BadgeCheck,
 } from "lucide-react";
 import jsQR from "jsqr";
 
@@ -100,6 +104,15 @@ export function QRPassScanner({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const [pendingVerification, setPendingVerification] = useState<{
+    student: any;
+    booking: any;
+    rawCode: string;
+    method: string;
+  } | null>(null);
+  const [quickConfirmMode, setQuickConfirmMode] = useState(false);
+  const [quickConfirmCountdown, setQuickConfirmCountdown] = useState<number | null>(null);
+
   const [lastResult, setLastResult] = useState<{
     status: "APPROVED" | "DUPLICATE" | "REJECTED" | "WRONG_BUS";
     studentName?: string;
@@ -131,12 +144,13 @@ export function QRPassScanner({
 
       setIsProcessing(true);
 
-      // Call authoritative backend API to validate against Postgres database, timetable, maintenance & capacity
+      // Call authoritative backend API with PREVIEW_VERIFY action first
       try {
         const res = await fetch("/api/boarding/scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            action: "PREVIEW_VERIFY",
             qrData: rawCode,
             tripId: trip.id,
             busId: trip.busId,
@@ -162,7 +176,7 @@ export function QRPassScanner({
             triggerHaptic("warning");
             setLastResult({
               status: "DUPLICATE",
-              message: `DUPLICATE REPLAY: Pass was already checked in earlier.`,
+              message: `DUPLICATE REPLAY: Pass was already checked in earlier today. Each student can board strictly once per shift.`,
               timestamp: new Date().toLocaleTimeString(),
             });
           } else {
@@ -176,36 +190,17 @@ export function QRPassScanner({
           return;
         }
 
-        // Backend verified and recorded in PostgreSQL
+        // Server responded READY_FOR_CONFIRMATION with verified student and photo details
         const studentInfo = data.student || { fullName: "Student", enrollmentNo: "" };
         const bookingInfo = data.booking || {};
-        const isStandingPassenger = bookingInfo.passengerType === "STANDING_TILL_MERGE" || bookingInfo.passenger_type === "STANDING_TILL_MERGE";
 
-        store.recordAttendance(
-          studentInfo.id || "unknown",
-          trip.id,
-          "QR_SCAN",
-          "BOARDED",
-          `Verified via Conductor ${method}`
-        );
-
-        if (soundEnabled) playChime("success");
-        triggerHaptic("success");
-        setLastResult({
-          status: "APPROVED",
-          studentName: studentInfo.fullName,
-          enrollmentNo: studentInfo.enrollmentNo,
-          seatNumber: isStandingPassenger ? "STAND" : (bookingInfo.seatNumber || bookingInfo.seat_number || "Seat Assigned"),
+        setPendingVerification({
+          student: studentInfo,
+          booking: bookingInfo,
+          rawCode,
           method,
-          message: data.message || (isStandingPassenger
-            ? `⚡ Standing Passenger Authorized Till ${bookingInfo.mergeStopName || "Bus Merge Stop"}!`
-            : `Boarding Verified! Allocated Seat: ${bookingInfo.seatNumber || bookingInfo.seat_number || "Seat Assigned"}`),
-          timestamp: new Date().toLocaleTimeString(),
         });
-
-        onAttendanceSuccess(studentInfo.fullName, method);
         setIsProcessing(false);
-        setManualInput("");
         return;
       } catch (err: any) {
         console.warn("Backend scan call failed, falling back to local verification", err);
@@ -281,6 +276,7 @@ export function QRPassScanner({
           id: targetBooking.studentId,
           fullName: parsedPayload?.studentName || "University Student",
           enrollmentNo: "VERIFIED",
+          photoUrl: "",
         };
 
       if (targetBooking.status === "BOARDED") {
@@ -291,7 +287,7 @@ export function QRPassScanner({
           studentName: student.fullName,
           enrollmentNo: student.enrollmentNo,
           seatNumber: targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`,
-          message: `DUPLICATE REPLAY: ${student.fullName} was checked in at ${new Date(targetBooking.boardedAt || "").toLocaleTimeString() || "earlier today"}.`,
+          message: `DUPLICATE REPLAY: ${student.fullName} was checked in at ${new Date(targetBooking.boardedAt || "").toLocaleTimeString() || "earlier today"}. Duplicate scan blocked.`,
           timestamp: new Date().toLocaleTimeString(),
         });
         setIsProcessing(false);
@@ -313,32 +309,114 @@ export function QRPassScanner({
         return;
       }
 
-      store.recordAttendance(
-        student.id || targetBooking.studentId,
-        trip.id,
-        "QR_SCAN",
-        "BOARDED",
-        `Verified via Conductor ${method}`
-      );
-
-      if (soundEnabled) playChime("success");
-      triggerHaptic("success");
-      setLastResult({
-        status: "APPROVED",
-        studentName: student.fullName,
-        enrollmentNo: student.enrollmentNo,
-        seatNumber: targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`,
+      setPendingVerification({
+        student: {
+          ...student,
+          photoUrl: student.photoUrl || "",
+        },
+        booking: targetBooking,
+        rawCode,
         method,
-        message: `Boarding Verified! Allocated Seat: ${targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`}`,
-        timestamp: new Date().toLocaleTimeString(),
       });
-
-      onAttendanceSuccess(student.fullName, method);
       setIsProcessing(false);
-      setManualInput("");
     },
-    [tripBookings, students, bookings, trip.id, trip.busId, soundEnabled, isProcessing, onAttendanceSuccess]
+    [tripBookings, students, bookings, trip.id, trip.busId, soundEnabled, isProcessing]
   );
+
+  // Conductor marks attendance after confirming identity against passport photo
+  const handleConfirmBoarding = useCallback(async () => {
+    if (!pendingVerification) return;
+    const { student, booking, rawCode, method } = pendingVerification;
+    setIsProcessing(true);
+
+    try {
+      const res = await fetch("/api/boarding/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CONFIRM_BOARDING",
+          qrData: rawCode,
+          tripId: trip.id,
+          busId: trip.busId,
+          conductorName: "Conductor Terminal",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        if (data.code === "ALREADY_BOARDED") {
+          if (soundEnabled) playChime("duplicate");
+          triggerHaptic("warning");
+          setLastResult({
+            status: "DUPLICATE",
+            message: "DUPLICATE REPLAY: Pass was already checked in earlier today.",
+            timestamp: new Date().toLocaleTimeString(),
+          });
+        } else {
+          if (soundEnabled) playChime("error");
+          setLastResult({
+            status: "REJECTED",
+            message: data.message || "Failed to finalize attendance on server.",
+            timestamp: new Date().toLocaleTimeString(),
+          });
+        }
+        setIsProcessing(false);
+        setPendingVerification(null);
+        return;
+      }
+    } catch (e) {
+      console.warn("Backend confirm scan failed, recording locally", e);
+    }
+
+    const isStanding = booking.passengerType === "STANDING_TILL_MERGE" || booking.passenger_type === "STANDING_TILL_MERGE";
+
+    store.recordAttendance(
+      student.id || booking.studentId || "unknown",
+      trip.id,
+      "QR_SCAN",
+      "BOARDED",
+      `Verified via Conductor ${method} (Photo ID Match Confirmed)`
+    );
+
+    if (soundEnabled) playChime("success");
+    triggerHaptic("success");
+
+    setLastResult({
+      status: "APPROVED",
+      studentName: student.fullName,
+      enrollmentNo: student.enrollmentNo,
+      seatNumber: isStanding ? "STAND" : (booking.seatNumber || booking.seat_number || "Seat Assigned"),
+      method,
+      message: isStanding
+        ? `⚡ Attendance Marked! Standing Passenger Authorized Till ${booking.mergeStopName || "Merge Stop"}.`
+        : `Attendance Marked & Verified! Allocated Seat: ${booking.seatNumber || booking.seat_number || "Seat Assigned"}`,
+      timestamp: new Date().toLocaleTimeString(),
+    });
+
+    onAttendanceSuccess(student.fullName, method);
+    setIsProcessing(false);
+    setPendingVerification(null);
+    setManualInput("");
+  }, [pendingVerification, trip.id, trip.busId, soundEnabled, onAttendanceSuccess]);
+
+  const handleRejectMismatch = useCallback(() => {
+    if (!pendingVerification) return;
+    const { student } = pendingVerification;
+
+    if (soundEnabled) playChime("error");
+    triggerHaptic("error");
+
+    setLastResult({
+      status: "REJECTED",
+      studentName: student.fullName,
+      enrollmentNo: student.enrollmentNo,
+      message: `❌ BOARDING DENIED: Identity verification failed. Commuter face does not match official passport photo for ${student.fullName}.`,
+      timestamp: new Date().toLocaleTimeString(),
+    });
+
+    setPendingVerification(null);
+    setIsProcessing(false);
+    setManualInput("");
+  }, [pendingVerification, soundEnabled]);
 
   const scanVideoFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !isCameraActive) return;
@@ -640,6 +718,109 @@ export function QRPassScanner({
             </div>
           </div>
         </form>
+      )}
+
+      {/* Conductor Visual Identity Confirmation Card */}
+      {pendingVerification && (
+        <div className="p-5 rounded-3xl bg-slate-900 border-2 border-teal-500/80 shadow-2xl space-y-4 animate-in zoom-in-95 text-white">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-ping" />
+              <span className="text-xs font-black uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                <BadgeCheck className="w-4 h-4 text-teal-400" />
+                Step 2: Visual Identity Verification
+              </span>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-800">
+              Anti-Impersonation Guard
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            {/* Passport Photo Frame */}
+            <div className="relative flex-shrink-0">
+              {pendingVerification.student.photoUrl ? (
+                <div className="relative group">
+                  <img
+                    src={pendingVerification.student.photoUrl}
+                    alt={pendingVerification.student.fullName}
+                    className="w-28 h-36 sm:w-32 sm:h-40 object-cover rounded-2xl border-2 border-teal-400/80 shadow-lg bg-slate-950"
+                  />
+                  <div className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full bg-teal-600 text-[9px] font-black text-white uppercase tracking-wider shadow">
+                    Official Photo
+                  </div>
+                </div>
+              ) : (
+                <div className="w-28 h-36 sm:w-32 sm:h-40 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950 flex flex-col items-center justify-center text-slate-500 p-2 text-center">
+                  <User className="w-10 h-10 mb-1 text-slate-600" />
+                  <span className="text-[10px] font-bold">No Photo Uploaded</span>
+                  <span className="text-[8px] text-slate-600">Pending Student Submission</span>
+                </div>
+              )}
+            </div>
+
+            {/* Student Details */}
+            <div className="flex-1 space-y-2 text-center sm:text-left w-full">
+              <div>
+                <div className="text-base sm:text-lg font-black text-white">
+                  {pendingVerification.student.fullName}
+                </div>
+                <div className="text-xs font-mono text-teal-300 flex items-center justify-center sm:justify-start gap-2">
+                  <span>ID: {pendingVerification.student.enrollmentNo || "VERIFIED"}</span>
+                  {pendingVerification.student.semester && (
+                    <span className="opacity-70">• {pendingVerification.student.semester}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Allocated Seat</div>
+                  <div className="font-mono font-black text-white text-sm">
+                    {pendingVerification.booking.passengerType === "STANDING_TILL_MERGE"
+                      ? "STAND (Merge)"
+                      : (pendingVerification.booking.seatNumber || pendingVerification.booking.seat_number || "Seat Confirmed")}
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Department</div>
+                  <div className="font-semibold text-white truncate text-[11px]">
+                    {pendingVerification.student.department || "Academic Department"}
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-amber-300/90 font-medium flex items-center justify-center sm:justify-start gap-1.5 pt-1">
+                <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
+                <span>Confirm commuter face matches the official registered passport photo before boarding.</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons: Confirm vs Reject */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={handleConfirmBoarding}
+              disabled={isProcessing}
+              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{isProcessing ? "Recording Attendance..." : "Confirm Photo & Mark Boarded"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRejectMismatch}
+              disabled={isProcessing}
+              className="w-full py-3.5 px-4 rounded-2xl bg-rose-950/80 hover:bg-rose-900 border border-rose-700/80 text-rose-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+            >
+              <UserX className="w-4 h-4" />
+              <span>Reject (Identity Mismatch)</span>
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Live Verification Alert Box */}

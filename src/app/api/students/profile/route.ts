@@ -35,25 +35,32 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = (session.email || "").toLowerCase().trim();
     const userId = session.userId;
+    const isStaffOrAdmin = session.role === "admin" || session.role === "staff" || Boolean(body.performedByStaff);
 
-    // 1. Check if student already exists by user_id or email
+    // 1. Check if student already exists by user_id or email and inspect photo lock status
     let existingStudentId: string | null = null;
-    const { data: existingByUserId } = await supabaseAdmin
+    let existingPhotoUrl: string | null = null;
+    const { data: existingStudent } = await supabaseAdmin
       .from("students")
-      .select("id")
-      .eq("user_id", userId)
+      .select("id, photo_url, photo_locked")
+      .or(`user_id.eq.${userId},email.ilike.${cleanEmail}`)
       .maybeSingle();
 
-    if (existingByUserId?.id) {
-      existingStudentId = existingByUserId.id;
-    } else if (cleanEmail) {
-      const { data: existingByEmail } = await supabaseAdmin
-        .from("students")
-        .select("id")
-        .ilike("email", cleanEmail)
-        .maybeSingle();
-      if (existingByEmail?.id) {
-        existingStudentId = existingByEmail.id;
+    if (existingStudent?.id) {
+      existingStudentId = existingStudent.id;
+      existingPhotoUrl = existingStudent.photo_url;
+    }
+
+    // Anti-fraud guardrail: Students cannot modify an existing photo once uploaded!
+    if (body.photoUrl && existingPhotoUrl && existingPhotoUrl !== body.photoUrl) {
+      if (!isStaffOrAdmin) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Official identity photo is locked. Only campus transport staff can update your verification photo.",
+          },
+          { status: 403 }
+        );
       }
     }
 
@@ -81,6 +88,11 @@ export async function POST(req: NextRequest) {
       primary_stop_id: primaryStopId || null,
       emergency_contact: emergencyContact || null,
     };
+
+    if (body.photoUrl) {
+      studentData.photo_url = body.photoUrl;
+      studentData.photo_locked = true;
+    }
 
     if (validClassId) {
       studentData.class_id = validClassId;

@@ -117,15 +117,33 @@ export function BoardingPassCard({
       <div className="p-6 space-y-5">
         {/* Passenger & Seat info */}
         <div className="grid grid-cols-3 gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="col-span-2">
-            <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
-              Passenger Name
-            </span>
-            <div className="text-base font-bold text-slate-900 dark:text-white truncate">
-              {student?.fullName || "Student Passenger"}
-            </div>
-            <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
-              ID: {student?.enrollmentNo || "GEHU-STUDENT"}
+          <div className="col-span-2 flex items-center gap-3">
+            {student?.photoUrl ? (
+              <img
+                src={student.photoUrl}
+                alt={student.fullName}
+                className="w-12 h-14 object-cover rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex-shrink-0 bg-slate-100 dark:bg-slate-800"
+              />
+            ) : (
+              <div className="w-12 h-14 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 text-slate-400">
+                <User className="w-6 h-6" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1">
+                Passenger Name
+                {student?.photoUrl && (
+                  <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/80 px-1.5 py-0.5 rounded">
+                    Photo ID
+                  </span>
+                )}
+              </span>
+              <div className="text-base font-bold text-slate-900 dark:text-white truncate">
+                {student?.fullName || "Student Passenger"}
+              </div>
+              <div className="text-xs font-mono text-slate-500 dark:text-slate-400 truncate">
+                ID: {student?.enrollmentNo || "GEHU-STUDENT"}
+              </div>
             </div>
           </div>
 

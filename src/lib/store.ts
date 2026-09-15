@@ -108,6 +108,8 @@ class CampusFleetStore {
     studentId?: string;
     campusId?: string;
     campus?: string;
+    avatarUrl?: string;
+    photoUrl?: string;
   } | null = null;
 
   private isInitialized: boolean = false;
@@ -408,6 +410,8 @@ class CampusFleetStore {
           paymentStatus: s.payment_status || (s.has_active_subscription ? "APPROVED" : "UNPAID"),
           totalFeeDue: s.total_fee_due || (s.zone_semester_fee ? Number(s.zone_semester_fee) : 12000),
           totalFeePaid: s.total_fee_paid || 0,
+          photoUrl: s.photo_url || s.avatar_url || "",
+          photoLocked: Boolean(s.photo_url || s.photo_locked),
         }));
       }
 
@@ -437,6 +441,8 @@ class CampusFleetStore {
             paymentStatus: "UNPAID",
             totalFeeDue: 12000,
             totalFeePaid: 0,
+            photoUrl: (u as any).avatarUrl || "",
+            photoLocked: false,
           };
           mappedStudents.push(newStudent);
           supabase.from("students").upsert({
@@ -1045,6 +1051,8 @@ class CampusFleetStore {
       phone?: string;
       primaryStopId?: string;
       emergencyContact?: { name: string; relationship: string; phone: string };
+      photoUrl?: string;
+      performedByStaff?: boolean;
     }
   ) {
     let student = this.students.find(s => s.id === studentId || s.userId === studentId || s.email?.toLowerCase() === this.currentUser?.email?.toLowerCase());
@@ -1076,8 +1084,24 @@ class CampusFleetStore {
         paymentStatus: "UNPAID",
         totalFeeDue: 0,
         totalFeePaid: 0,
+        photoUrl: profileData.photoUrl || (u as any)?.avatarUrl || "",
+        photoLocked: Boolean(profileData.photoUrl),
       };
       this.students.push(student);
+    }
+
+    // Anti-fraud guardrail: if photo is already locked and caller is not staff, deny photo overwrite
+    let targetPhotoUrl = student.photoUrl;
+    let targetPhotoLocked = student.photoLocked;
+    if (profileData.photoUrl && profileData.photoUrl !== student.photoUrl) {
+      if (student.photoLocked && !profileData.performedByStaff) {
+        return {
+          success: false,
+          message: "Official identity photo is locked. Only campus transport staff can update your verification photo.",
+        };
+      }
+      targetPhotoUrl = profileData.photoUrl;
+      targetPhotoLocked = true;
     }
 
     const updatedStudent: Student = {
@@ -1094,6 +1118,8 @@ class CampusFleetStore {
       phone: profileData.phone || student.phone,
       primaryStopId: profileData.primaryStopId || student.primaryStopId,
       emergencyContact: profileData.emergencyContact || student.emergencyContact,
+      photoUrl: targetPhotoUrl,
+      photoLocked: targetPhotoLocked,
     };
 
     this.students = this.students.map(s => s.id === student.id ? updatedStudent : s);
@@ -1105,6 +1131,7 @@ class CampusFleetStore {
       phone: updatedStudent.phone,
       campusId: updatedStudent.campusId,
       campus: updatedStudent.campus,
+      avatarUrl: updatedStudent.photoUrl || (u as any).avatarUrl,
     } : u);
 
     if (this.currentUser && (this.currentUser.id === student.userId || this.currentUser.email?.toLowerCase() === student.email?.toLowerCase())) {
@@ -1114,6 +1141,7 @@ class CampusFleetStore {
         studentId: updatedStudent.id,
         campusId: updatedStudent.campusId,
         campus: updatedStudent.campus,
+        avatarUrl: updatedStudent.photoUrl || (this.currentUser as any).avatarUrl,
       };
     }
 
@@ -1140,6 +1168,8 @@ class CampusFleetStore {
             phone: updatedStudent.phone,
             primaryStopId: updatedStudent.primaryStopId,
             emergencyContact: updatedStudent.emergencyContact,
+            photoUrl: updatedStudent.photoUrl,
+            performedByStaff: profileData.performedByStaff || false,
           }),
         });
       }
@@ -1167,6 +1197,8 @@ class CampusFleetStore {
         primary_route_id: updatedStudent.primaryRouteId || null,
         emergency_contact: updatedStudent.emergencyContact,
         has_active_subscription: updatedStudent.hasActiveSubscription,
+        photo_url: updatedStudent.photoUrl || null,
+        photo_locked: updatedStudent.photoLocked || false,
       });
 
       if (updatedStudent.userId) {
@@ -1175,6 +1207,7 @@ class CampusFleetStore {
           phone: updatedStudent.phone,
           campus_id: updatedStudent.campusId || null,
           campus: updatedStudent.campus,
+          avatar_url: updatedStudent.photoUrl || null,
         }).eq("id", updatedStudent.userId);
       }
     } catch (e) {
@@ -1989,7 +2022,7 @@ class CampusFleetStore {
 
     this.saveToLocalStorage();
     this.notify();
-    return { success: true, message: `Passenger attendance marked as ${status}` };
+    return { success: true, message: `Passenger attendance marked as ${status}`, record: newRecord };
   }
 
   public async assignWaitlistSeat(bookingId: string, seatCode: string) {

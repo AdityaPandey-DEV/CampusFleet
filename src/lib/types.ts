@@ -181,6 +181,8 @@ export interface Student {
   paymentStatus?: "UNPAID" | "PENDING_APPROVAL" | "PARTIALLY_PAID" | "APPROVED" | "REJECTED";
   totalFeeDue?: number;
   totalFeePaid?: number;
+  photoUrl?: string;
+  photoLocked?: boolean;
 }
 
 export interface Guardian {
