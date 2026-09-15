@@ -43,12 +43,14 @@ export async function POST(req: NextRequest) {
     let existingCampusId: string | null = null;
     let existingCampus: string | null = null;
 
-    const { data: existingStudent } = await supabaseAdmin
+    const { data: existingStudents } = await supabaseAdmin
       .from("students")
       .select("id, photo_url, photo_locked, campus_id, campus")
       .or(`user_id.eq.${userId},email.ilike.${cleanEmail}`)
-      .maybeSingle();
+      .order("created_at", { ascending: false })
+      .limit(1);
 
+    const existingStudent = existingStudents?.[0];
     if (existingStudent?.id) {
       existingStudentId = existingStudent.id;
       existingPhotoUrl = existingStudent.photo_url;

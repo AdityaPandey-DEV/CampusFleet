@@ -60,11 +60,13 @@ export async function POST(req: NextRequest) {
     const resolvedStudentId = targetBooking.student_id;
 
     // 3. Retrieve Student and Class Details from Database (including official passport photo)
-    const { data: student, error: studentErr } = await supabaseAdmin
+    const { data: studentsFound, error: studentErr } = await supabaseAdmin
       .from("students")
       .select("id, full_name, enrollment_no, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status")
       .or(`id.eq.${resolvedStudentId},user_id.eq.${resolvedStudentId}`)
-      .single();
+      .limit(1);
+
+    const student = studentsFound?.[0];
 
     // 4. Prevent duplicate check-in (Single-Use Attendance Per Shift)
     if (targetBooking.status === "BOARDED") {

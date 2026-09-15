@@ -43,12 +43,14 @@ export async function GET(req: NextRequest) {
     }
 
     if (currentRole === "student") {
-      const { data: st } = await supabaseAdmin
+      const { data: studentsList } = await supabaseAdmin
         .from("students")
         .select("id, campus_id, campus, full_name, primary_stop_id")
         .or(`user_id.eq.${session.userId},email.ilike.${session.email || ""}`)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
 
+      const st = studentsList?.[0];
       if (st) {
         if (st.campus_id) dbCampusId = st.campus_id;
         if (st.campus) dbCampus = st.campus;

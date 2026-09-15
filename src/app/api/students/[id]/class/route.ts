@@ -30,11 +30,13 @@ export async function PATCH(
     }
 
     // 2. Fetch current student
-    const { data: student, error: stuErr } = await supabaseAdmin
+    const { data: studentsFound, error: stuErr } = await supabaseAdmin
       .from("students")
       .select("id, full_name, class_id, class_name")
       .or(`id.eq.${studentId},user_id.eq.${studentId}`)
-      .single();
+      .limit(1);
+
+    const student = studentsFound?.[0];
 
     if (stuErr || !student) {
       return NextResponse.json({ success: false, message: "Student record not found." }, { status: 404 });

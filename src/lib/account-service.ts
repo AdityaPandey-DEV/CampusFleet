@@ -57,11 +57,14 @@ export async function findOrCreateUser({
 
     // Ensure student record exists if role is student (for legacy accounts)
     if (existingUser.role === "student") {
-      const { data: existingStudent } = await supabaseAdmin
+      const { data: existingStudents } = await supabaseAdmin
         .from("students")
-        .select("id")
-        .or(`user_id.eq.${existingUser.id},email.eq.${cleanEmail}`)
-        .maybeSingle();
+        .select("id, user_id")
+        .or(`user_id.eq.${existingUser.id},email.ilike.${cleanEmail}`)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const existingStudent = existingStudents?.[0];
 
       if (!existingStudent) {
         const newStudentId = crypto.randomUUID();
@@ -75,6 +78,12 @@ export async function findOrCreateUser({
         if (studErr2) {
           console.warn("Auto-create student for existing user failed:", studErr2.message);
         }
+      } else if (!existingStudent.user_id || existingStudent.user_id !== existingUser.id) {
+        // Link existing student row with this user's primary key
+        await supabaseAdmin
+          .from("students")
+          .update({ user_id: existingUser.id })
+          .eq("id", existingStudent.id);
       }
     }
 

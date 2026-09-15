@@ -89,11 +89,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Fetch Student from Database
-    const { data: student, error: studErr } = await supabaseAdmin
+    const { data: studentsList, error: studErr } = await supabaseAdmin
       .from("students")
       .select("*")
       .or(`id.eq.${studentId},user_id.eq.${studentId}`)
-      .single();
+      .limit(1);
+
+    const student = studentsList?.[0];
 
     if (studErr || !student) {
       return NextResponse.json(
