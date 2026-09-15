@@ -937,11 +937,22 @@ class CampusFleetStore {
     if (!includeInactive) {
       zones = zones.filter(z => z.isActive !== false);
     }
-    if (campusId) {
-      const matching = zones.filter(z => z.campusId === campusId);
+    const targetCampusId = campusId || this.currentUser?.campusId || this.getPrimaryCampus()?.id;
+    if (targetCampusId) {
+      const matching = zones.filter(z => z.campusId === targetCampusId);
       if (matching.length > 0) return matching;
     }
-    if (zones.length > 0) return zones;
+    if (zones.length > 0) {
+      const seen = new Set<string>();
+      const deduped: TransitZone[] = [];
+      for (const z of zones) {
+        if (!seen.has(z.code)) {
+          seen.add(z.code);
+          deduped.push(z);
+        }
+      }
+      return deduped;
+    }
     return TRANSIT_ZONES;
   }
   public getPayments() { return this.payments; }

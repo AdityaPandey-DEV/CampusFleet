@@ -76,8 +76,17 @@ export default function PortalPaymentsView({
   const initialZone = activeStudent?.zoneCode || "ZONE_B";
   const [selectedZoneCode, setSelectedZoneCode] = useState<string>(initialZone);
   const currentZone = useMemo(() => {
-    return transitZones.find((z) => z.code === selectedZoneCode) || transitZones[0] || TRANSIT_ZONES[1];
-  }, [selectedZoneCode, transitZones]);
+    const studentZoneCode = activeStudent?.zoneCode || selectedZoneCode || "ZONE_B";
+    if (studentCampusId) {
+      const matchCampus = transitZones.find(
+        (z) => z.code === studentZoneCode && z.campusId === studentCampusId
+      );
+      if (matchCampus) return matchCampus;
+    }
+    const matchCode = transitZones.find((z) => z.code === studentZoneCode);
+    if (matchCode) return matchCode;
+    return transitZones[0] || TRANSIT_ZONES[1];
+  }, [selectedZoneCode, transitZones, activeStudent?.zoneCode, studentCampusId]);
 
   useEffect(() => {
     setTransitZones(store.getTransitZones(studentCampusId));
@@ -262,7 +271,7 @@ export default function PortalPaymentsView({
           studentId: activeStudent?.id || `stud-${currentUser.id}`,
           studentName: activeStudent?.fullName || currentUser.fullName,
           enrollmentNo: activeStudent?.enrollmentNo || "PENDING",
-          zoneCode: selectedZoneCode,
+          zoneCode: currentZone.code || selectedZoneCode,
           amount: amountToPay,
           installmentNo: 1,
           totalInstallments: 1,
@@ -280,7 +289,7 @@ export default function PortalPaymentsView({
       // 3. Update local student state
       if (activeStudent) {
         activeStudent.paymentStatus = "PENDING_APPROVAL";
-        activeStudent.zoneCode = selectedZoneCode;
+        activeStudent.zoneCode = currentZone.code || selectedZoneCode;
       }
 
       setSubmitSuccess("Payment receipt uploaded successfully! Transport staff has been notified for verification.");
@@ -590,84 +599,59 @@ export default function PortalPaymentsView({
                   Subscription Cycle Concluded • Pass Renewal Required
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Your previous transit pass expired on <strong>{formatDate(activeStudent?.subscriptionExpiryDate || "2026-12-31")}</strong>. Operational commute features (Seat Booking, QR Pass, Radar) have been locked. Please select your zone and submit fee payment below to reactivate your pass for the upcoming semester cycle.
+                  Your previous transit pass expired on <strong>{formatDate(activeStudent?.subscriptionExpiryDate || "2026-12-31")}</strong>. Operational commute features (Seat Booking, QR Pass, Radar) have been locked. Please submit fee payment below to reactivate your pass for the upcoming semester cycle.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Step 1: Zone Selection */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center font-black text-sm">
-                1
+          {/* Registered Transit Corridor Overview (Configured in Student Profile) */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div className="flex items-start sm:items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 border border-blue-100 dark:border-blue-900/50 shadow-sm">
+                <Compass className="w-6 h-6" />
               </div>
-              <div>
-                <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                  Select Residential Transit Zone
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Pick your route corridor to view your semester transit fee.
+              <div className="space-y-1">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="text-xs font-black uppercase px-2.5 py-0.5 rounded-full bg-blue-600 text-white tracking-wide">
+                    {currentZone.code}
+                  </span>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                    {currentZone.name.split(":")[1]?.trim() || currentZone.name}
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Registered Route Corridor: </span>
+                  {currentZone.corridorDescription}
                 </p>
               </div>
             </div>
 
-            {/* Zone Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {transitZones.map((zone) => {
-                const isSelected = selectedZoneCode === zone.code;
-                return (
-                  <button
-                    type="button"
-                    key={zone.code}
-                    onClick={() => {
-                      setSelectedZoneCode(zone.code);
-                      setPaymentAmountInput("");
-                      if (activeStudent) {
-                        store.updateStudentProfile(activeStudent.id, { zoneCode: zone.code });
-                      }
-                    }}
-                    className={`text-left p-4 rounded-2xl border-2 transition-all flex flex-col justify-between space-y-3 cursor-pointer ${
-                      isSelected
-                        ? "border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 shadow-md ring-2 ring-blue-500/20"
-                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                          {zone.code}
-                        </span>
-                        {isSelected && <Check className="w-4 h-4 text-blue-600 font-bold" />}
-                      </div>
-                      <div className="font-bold text-sm text-slate-900 dark:text-white mt-2">
-                        {zone.name.split(":")[1] || zone.name}
-                      </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                        {zone.corridorDescription}
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-baseline justify-between">
-                      <span className="text-xs text-slate-400">Semester Fee</span>
-                      <span className="text-base font-black text-slate-900 dark:text-white">
-                        {formatCurrency(zone.semesterFee)}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="flex items-center gap-4 flex-shrink-0 self-start md:self-center pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800 w-full md:w-auto justify-between md:justify-end">
+              <div className="text-left md:text-right">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Semester Fee</div>
+                <div className="text-2xl font-black text-slate-900 dark:text-white">
+                  {formatCurrency(currentZone.semesterFee)}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent("open-student-profile"))}
+                className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-blue-600 transition-colors shadow-sm"
+              >
+                Change in Profile
+              </button>
             </div>
           </div>
 
-          {/* Step 2: UPI QR Code & Vercel Blob Receipt Upload */}
+          {/* Step 1: UPI QR Code & Vercel Blob Receipt Upload */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left Col: UPI QR Code */}
             <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-600 flex items-center justify-center font-black text-sm">
-                    2
+                    1
                   </div>
                   <div>
                     <h2 className="text-lg font-black text-slate-900 dark:text-white">
@@ -747,7 +731,7 @@ export default function PortalPaymentsView({
             <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center font-black text-sm">
-                  3
+                  2
                 </div>
                 <div>
                   <h2 className="text-lg font-black text-slate-900 dark:text-white">

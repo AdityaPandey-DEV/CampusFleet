@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { store } from "@/lib/store";
 import { Student, TransitZone, TRANSIT_ZONES, Campus } from "@/lib/types";
 import {
@@ -30,6 +30,8 @@ export function StudentProfileModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // Guard: don't evaluate completeness until students list has actually loaded from DB
+  const [studentsLoaded, setStudentsLoaded] = useState(() => store.getStudents().length > 0);
 
   const activeStudent: Student | undefined = students.find(
     s => s.email?.toLowerCase() === currentUser?.email?.toLowerCase() || s.userId === currentUser?.id
@@ -43,9 +45,36 @@ export function StudentProfileModal() {
   const [department, setDepartment] = useState("");
   const [semester, setSemester] = useState("");
   const [classesList, setClassesList] = useState<any[]>([]);
-  const [departmentsList, setDepartmentsList] = useState<{ id: string; code: string; name: string }[]>([]);
-  const [semestersList, setSemestersList] = useState<{ id: string; code: string; name: string }[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState(""); // cascaded step 1
+  const [selectedYear, setSelectedYear] = useState("");   // cascaded step 2
+  const [selectedSection, setSelectedSection] = useState(""); // cascaded step 3
   const [selectedClassId, setSelectedClassId] = useState("");
+
+  // Cascaded lists derived dynamically from classesList (PostgreSQL)
+  const coursesList = useMemo(() => {
+    const list = Array.from(new Set(classesList.map(c => c.course).filter(Boolean))) as string[];
+    if (department && !list.includes(department)) list.push(department);
+    return list;
+  }, [classesList, department]);
+
+  const yearsList = useMemo(() => {
+    const filtered = (selectedCourse || department)
+      ? classesList.filter(c => c.course === (selectedCourse || department))
+      : classesList;
+    const list = Array.from(new Set(filtered.map(c => c.year).filter(Boolean))) as string[];
+    if (semester && !list.includes(semester)) list.push(semester);
+    return list;
+  }, [classesList, selectedCourse, department, semester]);
+
+  const sectionsList = useMemo(() => {
+    return classesList.filter(c => {
+      const crs = selectedCourse || department;
+      const yr = selectedYear || semester;
+      if (crs && c.course !== crs) return false;
+      if (yr && c.year !== yr) return false;
+      return true;
+    });
+  }, [classesList, selectedCourse, department, selectedYear, semester]);
   const [selectedZoneCode, setSelectedZoneCode] = useState("ZONE_B");
   const [phone, setPhone] = useState("");
   const [primaryStopId, setPrimaryStopId] = useState("");
@@ -77,7 +106,9 @@ export function StudentProfileModal() {
   useEffect(() => {
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
-      setStudents(store.getStudents());
+      const s = store.getStudents();
+      setStudents(s);
+      if (s.length > 0) setStudentsLoaded(true);
       setCampuses(store.getCampuses());
       setStops(store.getStops());
       setTransitZones(store.getTransitZones(campusId));
@@ -90,16 +121,6 @@ export function StudentProfileModal() {
   }, [campusId]);
 
   useEffect(() => {
-    fetch("/api/academic/programs")
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          if (data.departments) setDepartmentsList(data.departments);
-          if (data.semesters) setSemestersList(data.semesters);
-        }
-      })
-      .catch(console.error);
-
     fetch("/api/classes")
       .then(res => res.json())
       .then(data => {
@@ -120,6 +141,10 @@ export function StudentProfileModal() {
         setDepartment(activeStudent?.department || "");
         setSemester(activeStudent?.semester || "");
         setSelectedClassId(activeStudent?.classId || "");
+        // Resolve cascaded fields from existing classId
+        const ec = classesList.find(c => c.id === activeStudent?.classId);
+        if (ec) { setSelectedCourse(ec.course || ""); setSelectedYear(ec.year || ""); setSelectedSection(ec.section || ""); }
+        setSelectedZoneCode(activeStudent?.zoneCode || "ZONE_B");
         setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
         setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
         setEmergencyPhone(activeStudent?.emergencyContact?.phone !== "+91 0000000000" ? (activeStudent?.emergencyContact?.phone || "") : "");
@@ -134,16 +159,19 @@ export function StudentProfileModal() {
 
   // Check if profile is incomplete on initial load
   useEffect(() => {
+    // Don't evaluate until students have loaded from DB — prevents flash-open on first render
+    if (!studentsLoaded) return;
+
     if (!currentUser || currentUser.role !== "student") {
       setIsOpen(false);
       return;
     }
 
+    // Profile is complete when: student record exists AND has a real phone number
     const isIncomplete =
       !activeStudent ||
       !activeStudent.phone ||
-      activeStudent.phone === "+91 0000000000" ||
-      !activeStudent.campus;
+      activeStudent.phone === "+91 0000000000";
 
     if (isIncomplete) {
       setIsOpen(true);
@@ -155,12 +183,18 @@ export function StudentProfileModal() {
       setDepartment(activeStudent?.department || "");
       setSemester(activeStudent?.semester || "");
       setSelectedClassId(activeStudent?.classId || "");
+      const ec2 = classesList.find(c => c.id === activeStudent?.classId);
+      if (ec2) { setSelectedCourse(ec2.course || ""); setSelectedYear(ec2.year || ""); setSelectedSection(ec2.section || ""); }
+      setSelectedZoneCode(activeStudent?.zoneCode || "ZONE_B");
       setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
       setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
       setEmergencyPhone(activeStudent?.emergencyContact?.phone !== "+91 0000000000" ? (activeStudent?.emergencyContact?.phone || "") : "");
       setPhotoUrl(activeStudent?.photoUrl || "");
+    } else {
+      // Profile is complete — ensure modal is closed (handles the store re-load case)
+      setIsOpen(false);
     }
-  }, [currentUser, activeStudent, stops]);
+  }, [currentUser, activeStudent, stops, studentsLoaded]);
 
   if (!isOpen) return null;
 
@@ -405,11 +439,68 @@ export function StudentProfileModal() {
               />
             </div>
 
-            {/* University Class (Created by Admin) */}
+            {/* ── CASCADED ACADEMIC PICKER: Course/Dept → Year/Sem → Section ── */}
+
+            {/* Step 1: Department / Program */}
             <div className="space-y-1">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>Assigned University Class *</span>
-                <span className="text-blue-500 font-normal lowercase">(admin authorized)</span>
+                <span>1. Department / Course *</span>
+                <span className="text-[10px] text-blue-500 lowercase">(from database)</span>
+              </label>
+              <select
+                required
+                value={selectedCourse || department}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSelectedCourse(val);
+                  setDepartment(val);
+                  setSelectedYear("");
+                  setSelectedSection("");
+                  setSelectedClassId("");
+                }}
+                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-medium"
+              >
+                <option value="">-- Select Course / Dept --</option>
+                {coursesList.map(crs => (
+                  <option key={crs} value={crs}>
+                    {crs}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Step 2: Academic Year / Semester */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>2. Year / Semester *</span>
+                <span className="text-[10px] text-blue-500 lowercase">(from database)</span>
+              </label>
+              <select
+                required
+                value={selectedYear || semester}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSelectedYear(val);
+                  setSemester(val);
+                  setSelectedSection("");
+                  setSelectedClassId("");
+                }}
+                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-medium"
+              >
+                <option value="">-- Select Year / Sem --</option>
+                {yearsList.map(yr => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Step 3: Section / Official Class */}
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>3. Assigned Section / Class *</span>
+                <span className="text-teal-600 dark:text-teal-400 font-bold lowercase text-[10px]">(official class)</span>
               </label>
               <select
                 required
@@ -419,64 +510,23 @@ export function StudentProfileModal() {
                   setSelectedClassId(classId);
                   const chosen = classesList.find(c => c.id === classId);
                   if (chosen) {
-                    if (chosen.course) setDepartment(chosen.course);
-                    if (chosen.year) setSemester(chosen.year);
+                    if (chosen.section) setSelectedSection(chosen.section);
+                    if (chosen.course) {
+                      setSelectedCourse(chosen.course);
+                      setDepartment(chosen.course);
+                    }
+                    if (chosen.year) {
+                      setSelectedYear(chosen.year);
+                      setSemester(chosen.year);
+                    }
                   }
                 }}
                 className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-bold"
               >
-                <option value="">-- Select Your Class & Section (Database) --</option>
-                {classesList.map(c => (
+                <option value="">-- Select Section --</option>
+                {sectionsList.map(c => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.course} • {c.year} • Sec {c.section})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Department (From Database) */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>Department / Program *</span>
-                <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold lowercase">(from database)</span>
-              </label>
-              <select
-                required
-                value={department}
-                onChange={e => setDepartment(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
-              >
-                <option value="">-- Select Department / Program --</option>
-                {department && !departmentsList.some(d => d.name === department) && (
-                  <option value={department}>{department}</option>
-                )}
-                {departmentsList.map(dept => (
-                  <option key={dept.id || dept.code} value={dept.name}>
-                    {dept.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Semester (From Database) */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>Academic Semester *</span>
-                <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold lowercase">(from database)</span>
-              </label>
-              <select
-                required
-                value={semester}
-                onChange={e => setSemester(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
-              >
-                <option value="">-- Select Academic Semester --</option>
-                {semester && !semestersList.some(s => s.name === semester) && (
-                  <option value={semester}>{semester}</option>
-                )}
-                {semestersList.map(sem => (
-                  <option key={sem.id || sem.code} value={sem.name}>
-                    {sem.name}
+                    {c.name} {c.section ? `(Section ${c.section})` : ""}
                   </option>
                 ))}
               </select>
@@ -508,7 +558,7 @@ export function StudentProfileModal() {
               className="w-full text-xs p-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-slate-900 dark:text-white outline-none focus:border-teal-500 font-bold"
             >
               {transitZones.map(z => (
-                <option key={z.code} value={z.code}>
+                <option key={z.id || `${z.campusId || ""}-${z.code}`} value={z.code}>
                   {z.name} — ₹{z.semesterFee.toLocaleString()} / Semester
                 </option>
               ))}
