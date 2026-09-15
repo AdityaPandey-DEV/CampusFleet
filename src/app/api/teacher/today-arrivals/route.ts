@@ -1,41 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getSession } from "@/lib/jwt";
+
+export const dynamic = "force-dynamic";
 
 // GET /api/teacher/today-arrivals?teacherId=...&classId=...&date=YYYY-MM-DD
 export async function GET(req: NextRequest) {
   try {
+    const session = await getSession();
     const { searchParams } = new URL(req.url);
-    const teacherId = searchParams.get("teacherId");
+    const teacherId = searchParams.get("teacherId") || session?.id;
     const classIdParam = searchParams.get("classId");
-    const dateParam = searchParams.get("date"); // YYYY-MM-DD
+    const isElevated = session?.role === "admin" || session?.role === "transport_manager";
 
     // 1. Determine authorized class IDs
     let authorizedClassIds: string[] = [];
 
     if (classIdParam && classIdParam !== "ALL") {
       authorizedClassIds = [classIdParam];
-    } else if (teacherId) {
-      const { data: assignments } = await supabaseAdmin
+    } else if (teacherId && !isElevated) {
+      // Find classes allocated to this teacher
+      const { data: allocations } = await supabaseAdmin
         .from("class_teachers")
-        .select("class_id")
+        .select("class_id, is_primary")
         .eq("teacher_id", teacherId);
-      authorizedClassIds = (assignments || []).map((a) => a.class_id);
+
+      authorizedClassIds = (allocations || []).map((a) => a.class_id);
+
+      if (authorizedClassIds.length === 0) {
+        return NextResponse.json({
+          success: true,
+          arrivals: [],
+          stats: { totalBoarded: 0, totalEnrolled: 0, pending: 0 },
+          message: "No classes currently allocated to this teacher.",
+        });
+      }
     }
 
-    // If teacher has assigned classes, but none found
-    if (teacherId && !classIdParam && authorizedClassIds.length === 0) {
-      return NextResponse.json({
-        success: true,
-        arrivals: [],
-        stats: { totalBoarded: 0, totalEnrolled: 0, pending: 0 },
-        message: "No classes currently assigned to this teacher.",
-      });
-    }
-
-    // 2. Fetch enrolled students for these classes (or all students if no restriction)
+    // 2. Fetch all enrolled students for the target class(es), ordered ascending by name
     let studentQuery = supabaseAdmin
       .from("students")
-      .select("id, full_name, enrollment_no, class_id, class_name, email, phone");
+      .select("id, full_name, enrollment_no, class_id, class_name, email, phone")
+      .order("full_name", { ascending: true });
 
     if (authorizedClassIds.length > 0) {
       studentQuery = studentQuery.in("class_id", authorizedClassIds);
@@ -44,10 +50,7 @@ export async function GET(req: NextRequest) {
     const { data: enrolledStudents, error: stuErr } = await studentQuery;
     if (stuErr) throw stuErr;
 
-    const studentMap = new Map<string, any>();
-    (enrolledStudents || []).forEach((s) => studentMap.set(s.id, s));
-
-    if (studentMap.size === 0) {
+    if (!enrolledStudents || enrolledStudents.length === 0) {
       return NextResponse.json({
         success: true,
         arrivals: [],
@@ -55,14 +58,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 3. Determine target date range
-    const targetDate = dateParam ? new Date(dateParam) : new Date();
-    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0)).toISOString();
-    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999)).toISOString();
+    // 3. Determine target date range (IST timezone aware)
+    const today = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const startOfDay = `${today}T00:00:00.000Z`;
+    const endOfDay = `${today}T23:59:59.999Z`;
 
-    const studentIds = Array.from(studentMap.keys());
+    const studentIds = enrolledStudents.map((s) => s.id);
 
-    // 4. Query attendance_records for these students today
+    // 4. Query today's attendance_records for all enrolled students
     const { data: attendances, error: attErr } = await supabaseAdmin
       .from("attendance_records")
       .select("id, student_id, trip_id, bus_id, status, timestamp, verified_by, notes")
@@ -85,67 +88,86 @@ export async function GET(req: NextRequest) {
       ? await supabaseAdmin.from("trips").select("id, bus_id, route_id").in("id", tripIds)
       : { data: [] };
 
-    const busMap = new Map<string, any>();
-    (buses || []).forEach((b) => busMap.set(b.id, b));
+    const busMap = new Map<string, any>((buses || []).map((b) => [b.id, b]));
+    const tripMap = new Map<string, any>((trips || []).map((t) => [t.id, t]));
 
-    const tripMap = new Map<string, any>();
-    (trips || []).forEach((t) => tripMap.set(t.id, t));
-
-    // 6. Format arrivals list (deduplicating per student if multiple scans exist)
-    const seenStudents = new Set<string>();
-    const arrivals = [];
-
+    // Map the latest attendance record per student
+    const attendanceByStudent = new Map<string, any>();
     for (const record of attendances || []) {
-      if (seenStudents.has(record.student_id)) continue;
-      seenStudents.add(record.student_id);
+      if (!attendanceByStudent.has(record.student_id)) {
+        attendanceByStudent.set(record.student_id, record);
+      }
+    }
 
-      const student = studentMap.get(record.student_id);
-      if (!student) continue;
+    // 6. Build manifest for ALL enrolled students, ordered ascending by full_name
+    let presentCount = 0;
+    const arrivals = enrolledStudents.map((student, index) => {
+      const record = attendanceByStudent.get(student.id);
 
-      // Resolve bus label
-      let busLabel = "Bus";
-      if (record.bus_id && busMap.has(record.bus_id)) {
-        const b = busMap.get(record.bus_id);
-        busLabel = b.bus_number || b.plate_number || b.name || `Bus ${b.id}`;
-      } else if (record.trip_id && tripMap.has(record.trip_id)) {
-        const trip = tripMap.get(record.trip_id);
-        if (trip?.bus_id && busMap.has(trip.bus_id)) {
-          const b = busMap.get(trip.bus_id);
-          busLabel = b.bus_number || b.plate_number || b.name;
-        } else {
-          busLabel = `Trip ${record.trip_id.slice(-6)}`;
+      if (record) {
+        presentCount++;
+        let busLabel = "Bus";
+        if (record.bus_id && busMap.has(record.bus_id)) {
+          const b = busMap.get(record.bus_id);
+          busLabel = b.bus_number ? `Bus ${b.bus_number}` : b.plate_number || b.name;
+        } else if (record.trip_id && tripMap.has(record.trip_id)) {
+          const trip = tripMap.get(record.trip_id);
+          if (trip?.bus_id && busMap.has(trip.bus_id)) {
+            const b = busMap.get(trip.bus_id);
+            busLabel = b.bus_number ? `Bus ${b.bus_number}` : b.plate_number || b.name;
+          } else {
+            busLabel = `Trip ${record.trip_id.slice(-6)}`;
+          }
+        } else if (record.notes) {
+          const match = record.notes.match(/Bus\s+([A-Za-z0-9-]+)/i);
+          if (match) busLabel = match[1];
         }
-      } else if (record.notes) {
-        const match = record.notes.match(/Bus\s+([A-Za-z0-9-]+)/i);
-        if (match) busLabel = match[1];
+
+        const boardingTimeFormatted = new Date(record.timestamp).toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+          timeZone: "Asia/Kolkata",
+        });
+
+        return {
+          id: record.id,
+          sno: index + 1,
+          studentId: student.id,
+          studentName: student.full_name,
+          enrollmentNo: student.enrollment_no,
+          classId: student.class_id,
+          className: student.class_name || "Assigned Section",
+          busId: record.bus_id,
+          busName: busLabel,
+          boardingTime: boardingTimeFormatted,
+          timestamp: record.timestamp,
+          status: "Present",
+          verifiedBy: record.verified_by,
+        };
       }
 
-      const boardDate = new Date(record.timestamp);
-      const boardingTimeFormatted = boardDate.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-
-      arrivals.push({
-        id: record.id,
+      // Student is enrolled in this class but has NOT scanned onto a bus today -> Absent
+      return {
+        id: `absent-${student.id}`,
+        sno: index + 1,
         studentId: student.id,
         studentName: student.full_name,
         enrollmentNo: student.enrollment_no,
         classId: student.class_id,
-        className: student.class_name || "Unassigned",
-        busId: record.bus_id,
-        busName: busLabel,
-        boardingTime: boardingTimeFormatted,
-        timestamp: record.timestamp,
-        status: "Present",
-        verifiedBy: record.verified_by,
-      });
-    }
+        className: student.class_name || "Assigned Section",
+        busId: undefined,
+        busName: "—",
+        boardingTime: "—",
+        timestamp: "",
+        status: "Absent",
+        verifiedBy: undefined,
+      };
+    });
 
-    const totalEnrolled = studentMap.size;
-    const totalBoarded = arrivals.length;
-    const pending = Math.max(0, totalEnrolled - totalBoarded);
+    const totalEnrolled = enrolledStudents.length;
+    const totalBoarded = presentCount;
+    const pending = totalEnrolled - totalBoarded;
 
     return NextResponse.json({
       success: true,
@@ -157,6 +179,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.error("GET /api/teacher/today-arrivals error:", error);
     return NextResponse.json(
       { success: false, message: error.message || "Failed to load today's bus arrivals." },
       { status: 500 }
