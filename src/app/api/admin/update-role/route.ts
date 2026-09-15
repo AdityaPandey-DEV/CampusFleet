@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing userId or role" }, { status: 400 });
     }
 
-    const validRoles = ["admin", "student", "parent", "driver", "conductor", "transport_manager", "supervisor", "teacher", "staff"];
+    const validRoles = ["admin", "student", "driver", "conductor", "transport_manager", "supervisor", "teacher", "staff"];
     if (!validRoles.includes(role)) {
       return NextResponse.json({ error: "Invalid role specified" }, { status: 400 });
     }

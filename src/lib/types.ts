@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "student" | "parent" | "driver" | "conductor" | "transport_manager" | "supervisor" | "teacher" | "staff";
+export type UserRole = "admin" | "student" | "driver" | "conductor" | "transport_manager" | "supervisor" | "teacher" | "staff";
 
 export type BookingStatus = "CONFIRMED" | "WAITLISTED" | "CANCELLED" | "BOARDED" | "ABSENT" | "NO_SHOW";
 

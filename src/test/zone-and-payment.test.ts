@@ -181,6 +181,6 @@ describe("Mandatory Payment Access Gate", () => {
 
   it("should exempt admin, driver, conductor, and teacher roles from student payment lock", () => {
     expect(canAccessPortalPage("/portal", "admin", "UNPAID").allowed).toBe(true);
-    expect(canAccessPortalPage("/portal/booking", "parent", "UNPAID").allowed).toBe(true);
+    expect(canAccessPortalPage("/portal/booking", "teacher", "UNPAID").allowed).toBe(true);
   });
 });

@@ -71,7 +71,6 @@ export default function AdminStaffView({
   const staffCount = users.filter(u => u.role === "staff" || u.role === "conductor" || u.role === "supervisor").length;
   const driverCount = users.filter(u => u.role === "driver").length;
   const studentCount = users.filter(u => u.role === "student").length;
-  const parentCount = users.filter(u => u.role === "parent").length;
 
   const filteredUsers = users.filter(u => {
     const matchesSearch =
@@ -174,13 +173,6 @@ export default function AdminStaffView({
             Conductor
           </span>
         );
-      case "parent":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
-            <UserCheck className="w-3.5 h-3.5" />
-            Guardian / Parent
-          </span>
-        );
       default:
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
@@ -197,7 +189,6 @@ export default function AdminStaffView({
     if (role === "staff") return "bg-cyan-600 text-white";
     if (role === "driver") return "bg-blue-600 text-white";
     if (role === "conductor") return "bg-purple-600 text-white";
-    if (role === "parent") return "bg-amber-600 text-white";
     const colors = ["bg-emerald-500", "bg-teal-500", "bg-indigo-500", "bg-sky-500"];
     const charCode = name.charCodeAt(0) || 0;
     return `${colors[charCode % colors.length]} text-white`;
@@ -281,7 +272,6 @@ export default function AdminStaffView({
             <option value="staff">Transport Staff ({staffCount})</option>
             <option value="driver">Fleet Driver ({driverCount})</option>
             <option value="student">Student Commuter ({studentCount})</option>
-            <option value="parent">Guardian / Parent ({parentCount})</option>
           </select>
 
           <button
@@ -384,7 +374,6 @@ export default function AdminStaffView({
                           <option value="staff">Transport Staff</option>
                           <option value="driver">Fleet Driver</option>
                           <option value="conductor">Conductor</option>
-                          <option value="parent">Guardian / Parent</option>
                           <option value="admin">Administrator</option>
                         </select>
                       </td>
@@ -458,7 +447,6 @@ export default function AdminStaffView({
                     <option value="staff">Transport Staff</option>
                     <option value="driver">Fleet Driver</option>
                     <option value="conductor">Conductor</option>
-                    <option value="parent">Parent</option>
                     <option value="admin">Administrator</option>
                   </select>
                 </div>

@@ -44,11 +44,11 @@ export default function StudentPortalLayout({
     return unsub;
   }, []);
 
-  // Strict Access Guard: Student portal can only be seen by enrolled students (or parents)
-  const isAuthorizedStudent = !currentUser || currentUser.role === "student" || currentUser.role === "parent";
+  // Strict Access Guard: Student portal can only be seen by enrolled students
+  const isAuthorizedStudent = !currentUser || currentUser.role === "student";
 
   useEffect(() => {
-    if (currentUser && currentUser.role && currentUser.role !== "student" && currentUser.role !== "parent") {
+    if (currentUser && currentUser.role && currentUser.role !== "student") {
       const destination = authService.getTargetRouteForRole(currentUser.role);
       router.replace(destination);
     }
