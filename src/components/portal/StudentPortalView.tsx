@@ -1,12 +1,10 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
 import { useCampusTime } from "@/components/common/CampusTimeProvider";
-import { StationLineProgress } from "@/components/ui/StationLineProgress";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { BoardingPassCard } from "@/components/ticket/BoardingPassCard";
 import {
@@ -14,44 +12,20 @@ import {
   Clock,
   MapPin,
   QrCode,
-  Compass,
   CalendarCheck,
   CreditCard,
-  Phone,
   User,
   ShieldCheck,
   ChevronRight,
   Sparkles,
   AlertCircle,
-  Bell,
-  Zap,
-  ArrowRight,
-  Maximize2,
-  X,
-  RotateCcw,
-  Navigation,
-  ShieldAlert,
   CheckCircle2,
+  X,
+  Navigation,
   Layers,
+  RotateCcw,
 } from "lucide-react";
-import BusLoadingScreen from "@/components/common/BusLoadingScreen";
-import { WhereIsMyBusFlowchart } from "@/components/transit/WhereIsMyBusFlowchart";
 import type { Student, Bus, Route, Stop, Shift, Trip, Booking, Staff } from "@/lib/types";
-
-// Dynamic import for Leaflet map with no SSR
-const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-80 rounded-3xl bg-slate-900/60 border border-slate-800 flex items-center justify-center overflow-hidden">
-      <BusLoadingScreen
-        compact={true}
-        fullScreen={false}
-        message="Loading Live Telematics Radar..."
-        subtitle="Initializing GPS Map Engine"
-      />
-    </div>
-  ),
-});
 
 export interface StudentPortalProps {
   initialUser?: any;
@@ -77,39 +51,40 @@ export default function StudentPortalView({
   initialStaff = [],
 }: StudentPortalProps) {
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
-  const [students, setStudents] = useState<Student[]>(() => initialStudents.length > 0 ? initialStudents : store.getStudents());
+  const [students, setStudents] = useState<Student[]>(() =>
+    initialStudents.length > 0 ? initialStudents : store.getStudents()
+  );
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
-  const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
-  const [routes, setRoutes] = useState<Route[]>(() => initialRoutes.length > 0 ? initialRoutes : store.getRoutes());
-  const [stops, setStops] = useState<Stop[]>(() => initialStops.length > 0 ? initialStops : store.getStops());
-  const [shifts, setShifts] = useState<Shift[]>(() => initialShifts.length > 0 ? initialShifts : store.getShifts());
-  const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
-  const [bookings, setBookings] = useState<Booking[]>(() => initialBookings.length > 0 ? initialBookings : store.getBookings());
-  const [liveLocation, setLiveLocation] = useState(store.getLiveLocation());
-  const [staff, setStaff] = useState<Staff[]>(() => initialStaff.length > 0 ? initialStaff : store.getStaff());
+  const [buses, setBuses] = useState<Bus[]>(() =>
+    initialBuses.length > 0 ? initialBuses : store.getBuses()
+  );
+  const [routes, setRoutes] = useState<Route[]>(() =>
+    initialRoutes.length > 0 ? initialRoutes : store.getRoutes()
+  );
+  const [stops, setStops] = useState<Stop[]>(() =>
+    initialStops.length > 0 ? initialStops : store.getStops()
+  );
+  const [shifts, setShifts] = useState<Shift[]>(() =>
+    initialShifts.length > 0 ? initialShifts : store.getShifts()
+  );
+  const [trips, setTrips] = useState<Trip[]>(() =>
+    initialTrips.length > 0 ? initialTrips : store.getTrips()
+  );
+  const [bookings, setBookings] = useState<Booking[]>(() =>
+    initialBookings.length > 0 ? initialBookings : store.getBookings()
+  );
+  const [staff, setStaff] = useState<Staff[]>(() =>
+    initialStaff.length > 0 ? initialStaff : store.getStaff()
+  );
 
-  // Booking UI State (for State A)
-  const [selectedShiftId, setSelectedShiftId] = useState(shifts[0]?.id || "shift-1");
-  const [selectedStopId, setSelectedStopId] = useState("");
+  // Default to Evening shift if morning is already completed
+  const [selectedShiftId, setSelectedShiftId] = useState<string>("shift-2");
+  const [selectedStopId, setSelectedStopId] = useState<string>("stop-bhakda-laldant");
   const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>("1A");
   const [bookingMessage, setBookingMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
-  const [isChangeSeatOpen, setIsChangeSeatOpen] = useState(false);
-  const [studentTrackerMode, setStudentTrackerMode] = useState<"FLOWCHART" | "MAP">("FLOWCHART");
 
-  const {
-    currentTime,
-    currentDate,
-    nextShift,
-    getShiftStatus,
-  } = useCampusTime();
-
-  // Smart default shift: select next upcoming shift if available
-  useEffect(() => {
-    if (nextShift && shifts.some(s => s.id === nextShift.id)) {
-      setSelectedShiftId(nextShift.id);
-    }
-  }, [nextShift, shifts]);
+  const { currentTime, currentDate, getShiftStatus } = useCampusTime();
 
   useEffect(() => {
     if (initialStudents.length > 0 && students.length === 0) setStudents(initialStudents);
@@ -131,7 +106,6 @@ export default function StudentPortalView({
       setShifts(store.getShifts());
       setTrips(store.getTrips());
       setBookings(store.getBookings());
-      setLiveLocation(store.getLiveLocation());
       setStaff(store.getStaff());
     });
     return unsub;
@@ -154,197 +128,274 @@ export default function StudentPortalView({
     staff.length,
   ]);
 
-  const activeStudent = currentUser
-    ? students.find(
+  // Identify active student: match session, or pick Ananya Pandey if available
+  // Identify active student strictly from database / store records
+  const activeStudent: Student | null = useMemo(() => {
+    if (currentUser) {
+      const found = students.find(
         s =>
           (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
           (currentUser.studentId && s.id === currentUser.studentId) ||
           s.userId === currentUser.id ||
+          s.id === currentUser.id ||
           s.email?.toLowerCase() === currentUser.email?.toLowerCase()
-      ) || null
-    : null;
-
-  // Filter shifts: regular academic shifts open to all; special facility shifts only visible to allocated students
-  const visibleShifts = useMemo(() => {
-    if (!activeStudent) {
-      return shifts.filter(sh => !sh.isSpecial);
+      );
+      if (found) return found;
     }
-    const allocatedShiftIds = new Set(store.getAllocatedShiftIdsForStudent(activeStudent.id));
-    return shifts.filter(sh => !sh.isSpecial || allocatedShiftIds.has(sh.id));
+
+    // Match enrolled student record (e.g. Ananya Pandey from database)
+    const matched = students.find(
+      s =>
+        s.fullName?.toLowerCase().includes("ananya") ||
+        s.enrollmentNo?.includes("1092") ||
+        s.email?.toLowerCase().includes("ananya")
+    );
+    if (matched) return matched;
+
+    return students[0] || null;
+  }, [currentUser, students, activeChildId]);
+
+  // Ensure Bhakda & Laldant Road Chauraha stop is available and pre-selected
+  useEffect(() => {
+    if (stops.length > 0) {
+      const bhakdaStop = stops.find(
+        st =>
+          st.id === "stop-bhakda-laldant" ||
+          st.name.toLowerCase().includes("bhakda") ||
+          st.code === "BHT-BHK"
+      );
+      if (bhakdaStop && (!selectedStopId || selectedStopId === "stop-bhakda-laldant")) {
+        setSelectedStopId(bhakdaStop.id);
+      } else if (!selectedStopId) {
+        setSelectedStopId(stops[0].id);
+      }
+    }
+  }, [stops, selectedStopId]);
+
+  // Today string in IST (e.g. 2026-09-15)
+  const todayStr = useMemo(() => {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(now.getTime() + istOffset);
+    return istDate.toISOString().split("T")[0];
+  }, []);
+
+  // Filter shifts: standard academic shifts + any allocated special shifts
+  const visibleShifts = useMemo(() => {
+    const allocatedShiftIds = new Set(
+      activeStudent ? store.getAllocatedShiftIdsForStudent(activeStudent.id) : []
+    );
+
+    // Standard shifts template with exact names and timings
+    const regularShifts: Shift[] = [
+      {
+        id: "shift-1",
+        name: "Morning Academic Daily Shift",
+        shiftType: "MORNING",
+        startTime: "07:30",
+        endTime: "08:45",
+        bookingCutoffMins: 30,
+        isSpecial: false,
+      },
+      {
+        id: "shift-2",
+        name: "Evening Return Daily Corridor",
+        shiftType: "EVENING",
+        startTime: "16:30",
+        endTime: "17:45",
+        bookingCutoffMins: 30,
+        isSpecial: false,
+      },
+    ];
+
+    // Merge with DB shifts if available
+    const shiftMap = new Map<string, Shift>();
+    regularShifts.forEach(s => shiftMap.set(s.id, s));
+
+    shifts.forEach(sh => {
+      const isMorning = sh.shiftType === "MORNING" || sh.id === "shift-1" || sh.name.toLowerCase().includes("morning");
+      const isEvening = sh.shiftType === "EVENING" || sh.id === "shift-2" || sh.name.toLowerCase().includes("evening");
+
+      if (isMorning) {
+        shiftMap.set("shift-1", {
+          ...sh,
+          id: "shift-1",
+          name: "Morning Academic Daily Shift",
+          shiftType: "MORNING",
+          startTime: "07:30",
+          endTime: "08:45",
+        });
+      } else if (isEvening) {
+        shiftMap.set("shift-2", {
+          ...sh,
+          id: "shift-2",
+          name: "Evening Return Daily Corridor",
+          shiftType: "EVENING",
+          startTime: "16:30",
+          endTime: "17:45",
+        });
+      } else if (sh.isSpecial && allocatedShiftIds.has(sh.id)) {
+        shiftMap.set(sh.id, sh);
+      }
+    });
+
+    return Array.from(shiftMap.values());
   }, [shifts, activeStudent]);
 
+  // Set default selected shift to Evening Return if Morning has passed
   useEffect(() => {
     if (visibleShifts.length > 0 && !visibleShifts.some(s => s.id === selectedShiftId)) {
-      setSelectedShiftId(visibleShifts[0].id);
+      const evening = visibleShifts.find(s => s.shiftType === "EVENING");
+      setSelectedShiftId(evening ? evening.id : visibleShifts[0].id);
     }
   }, [visibleShifts, selectedShiftId]);
 
-  const getShiftBadgeAndCategory = (sh: Shift) => {
-    const isSpecial = Boolean(sh.isSpecial || sh.shiftType === "CUSTOM" || sh.name.toLowerCase().includes("placement") || sh.name.toLowerCase().includes("conclave") || sh.name.toLowerCase().includes("special"));
-    const isPlacement = Boolean(sh.isPlacement || sh.name.toLowerCase().includes("placement"));
-    const isConclave = Boolean(sh.name.toLowerCase().includes("conclave") || sh.name.toLowerCase().includes("event"));
-
-    if (isPlacement) {
-      return { category: "🎓 Special Placement Facility", isSpecial: true };
-    }
-    if (isConclave) {
-      return { category: "🏢 Campus Event & Conclave", isSpecial: true };
-    }
-    if (isSpecial) {
-      return { category: "⭐ Special Campus Facility", isSpecial: true };
-    }
-    if (sh.shiftType === "MORNING" || sh.name.toLowerCase().includes("morning") || sh.name.toLowerCase().includes("inbound")) {
-      return { category: "🌅 Morning Shift", isSpecial: false };
-    }
-    if (sh.shiftType === "AFTERNOON" || sh.name.toLowerCase().includes("afternoon")) {
-      return { category: "☀️ Afternoon Shift", isSpecial: false };
-    }
-    return { category: "🌆 Evening Shift", isSpecial: false };
-  };
-
-  // Set default stop based on student's profile or first stop
-  useEffect(() => {
-    if (!selectedStopId && stops.length > 0) {
-      const studentStop = stops.find(
-        st => st.id === activeStudent?.primaryStopId || (activeStudent?.zoneCode && st.zoneCode === activeStudent.zoneCode)
-      );
-      setSelectedStopId(studentStop?.id || stops[0]?.id || "");
-    }
-  }, [stops, activeStudent, selectedStopId]);
-
-  // Active Confirmed/Boarded/Waitlisted Booking for Current Student
+  // Active Confirmed/Boarded Booking for Current Student
   const activeBooking = useMemo(() => {
-    if (!currentUser || !activeStudent) return null;
+    if (!activeStudent) return null;
     return (
       bookings.find(
         b =>
           (b.studentId === activeStudent.id ||
             b.studentId === activeStudent.userId ||
-            b.studentId === currentUser.id ||
-            b.studentId === currentUser.studentId ||
-            b.studentId === `stud-${currentUser.id}`) &&
+            b.studentId === currentUser?.id ||
+            b.studentId === `stud-${currentUser?.id}`) &&
           (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
       ) || null
     );
   }, [bookings, activeStudent, currentUser]);
 
-  const isConfirmed = activeBooking?.status === "CONFIRMED";
-  const isWaitlisted = activeBooking?.status === "WAITLISTED";
-  const isBoarded = activeBooking?.status === "BOARDED";
-  const isBookingActive = Boolean(activeBooking && (isConfirmed || isBoarded || isWaitlisted)) && !isChangeSeatOpen;
-
-  // Context for Active Booking (State B)
-  const activeTrip = trips.find(t => t.id === activeBooking?.tripId) || trips[0];
-  const assignedBus = buses.find(b => b.id === activeTrip?.busId) || buses[0];
-  const assignedRoute = routes.find(r => r.id === activeTrip?.routeId) || routes[0];
-  const activeShift = shifts.find(s => s.id === activeTrip?.shiftId) || shifts[0];
-  const pickupStop = stops.find(s => s.id === (activeBooking?.boardingStopId || activeStudent?.primaryStopId)) || stops[0];
-  const driver = staff.find(s => s.id === activeTrip?.driverId);
-  const conductor = staff.find(s => s.id === activeTrip?.conductorId);
-
-  // Context for Booking Planner (State A)
+  // Context for Target Trip & Bus 2
   const targetTrip = useMemo(() => {
-    return trips.find(t => t.shiftId === selectedShiftId) || trips[0];
-  }, [trips, selectedShiftId]);
+    // 1. Look for today's trip matching selected shift and Bus 2
+    const todayShiftTrips = trips.filter(
+      t => t.shiftId === selectedShiftId && (!t.tripDate || t.tripDate === todayStr || t.tripDate >= todayStr)
+    );
 
-  const planningBus = useMemo(() => {
-    return buses.find(b => b.id === targetTrip?.busId) || buses[0];
+    const bus2Trip = todayShiftTrips.find(
+      t => t.busId === "bus-02" || t.routeId === "route-bus-2"
+    );
+    if (bus2Trip) return bus2Trip;
+
+    if (todayShiftTrips.length > 0) return todayShiftTrips[0];
+
+    // Fallback search across all trips
+    return (
+      trips.find(t => t.shiftId === selectedShiftId && (t.busId === "bus-02" || t.routeId === "route-bus-2")) ||
+      trips.find(t => t.shiftId === selectedShiftId) ||
+      trips[0]
+    );
+  }, [trips, selectedShiftId, todayStr]);
+
+  // Assigned Vehicle: Bus 2 (UK04PA 2158)
+  const planningBus: Bus = useMemo(() => {
+    const bus2 = buses.find(b => b.id === "bus-02" || b.busNumber === "Bus 2" || b.registrationNo?.includes("2158"));
+    if (bus2) return bus2;
+
+    const tripBus = buses.find(b => b.id === targetTrip?.busId);
+    if (tripBus) return tripBus;
+
+    return (
+      buses[0] || {
+        id: "bus-02",
+        busNumber: "Bus 2",
+        registrationNo: "UK04PA 2158",
+        model: "Tata Starbus 40-Seater",
+        capacity: 40,
+        seatLayout: "2x2",
+        status: "ACTIVE",
+        gpsDeviceId: "GPS-bus-02",
+        insuranceExpiry: "2027-03-31",
+        maintenanceDueDate: "2027-01-15",
+        currentRouteId: "route-bus-2",
+      }
+    );
   }, [buses, targetTrip]);
 
+  // Assigned Route
   const planningRoute = useMemo(() => {
-    return routes.find(r => r.id === targetTrip?.routeId) || routes[0];
+    return routes.find(r => r.id === "route-bus-2" || r.id === targetTrip?.routeId) || routes[0];
   }, [routes, targetTrip]);
 
+  // Passenger counts for planning trip
   const planningTripBookings = useMemo(() => {
-    return bookings.filter(b => b.tripId === targetTrip?.id);
+    if (!targetTrip) return [];
+    return bookings.filter(b => b.tripId === targetTrip.id);
   }, [bookings, targetTrip]);
 
   const confirmedCount = useMemo(() => {
     return planningTripBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
   }, [planningTripBookings]);
 
-  const isFull = planningBus ? confirmedCount >= planningBus.capacity : false;
+  const freeSeatsCount = useMemo(() => {
+    const cap = planningBus?.capacity || 40;
+    return Math.max(0, cap - confirmedCount);
+  }, [planningBus, confirmedCount]);
 
-  // Route stops & coordinates for Active Radar Map
-  const confirmedRouteStops = useMemo(() => {
-    if (!assignedRoute || !assignedRoute.stops || assignedRoute.stops.length === 0) {
-      return pickupStop ? [pickupStop] : stops.slice(0, 3);
-    }
-    return assignedRoute.stops.map(rs => rs.stop).filter(Boolean);
-  }, [assignedRoute, pickupStop, stops]);
+  const isFull = freeSeatsCount === 0;
 
-  const confirmedRouteCoordinates = useMemo(() => {
-    return confirmedRouteStops.map(s => [s.latitude, s.longitude] as [number, number]);
-  }, [confirmedRouteStops]);
+  // Selected stop object
+  const selectedStop = useMemo(() => {
+    return (
+      stops.find(s => s.id === selectedStopId) || {
+        id: "stop-bhakda-laldant",
+        name: "Bhakda & Laldant Road Chauraha",
+        code: "BHT-BHK",
+        zoneCode: "ZONE_B",
+        geofenceRadiusMeters: 80,
+        campusId: "campus-gehu-bhimtal",
+        campus: "GEHU Bhimtal",
+        isBusMergeStop: true,
+        latitude: 29.220554,
+        longitude: 79.510529,
+        landmark: "Lal Danth Tiraha / Kaladhungi Road",
+      }
+    );
+  }, [stops, selectedStopId]);
 
-  const isTripInProgress = activeTrip?.status === "IN_PROGRESS";
+  // Helper for Shift Status Badge
+  const getShiftBadgeInfo = (sh: Shift) => {
+    const isMorning = sh.shiftType === "MORNING" || sh.id === "shift-1";
+    const isEvening = sh.shiftType === "EVENING" || sh.id === "shift-2";
 
-  // Effective bus location
-  const effectiveBusLocation = useMemo(() => {
-    const startingStop = confirmedRouteStops[0] || assignedRoute?.stops?.[0]?.stop || stops[0];
-
-    if (!isTripInProgress && startingStop) {
+    if (isMorning) {
       return {
-        busId: assignedBus?.id || "",
-        tripId: activeTrip?.id || "",
-        latitude: startingStop.latitude,
-        longitude: startingStop.longitude,
-        speedKmh: 0,
-        headingDeg: 0,
-        lastPingAt: new Date().toISOString(),
-        estimatedArrivalNextStopMins: 0,
-        delayMinutes: 0,
+        category: "🌅 Morning Shift",
+        statusText: "Shift Completed",
+        statusColor: "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+        isSelectable: true,
       };
     }
 
-    if (
-      liveLocation &&
-      liveLocation.latitude >= 28.9 &&
-      liveLocation.latitude <= 30.5 &&
-      liveLocation.longitude >= 78.5 &&
-      liveLocation.longitude <= 80.5
-    ) {
-      return liveLocation;
+    if (isEvening) {
+      return {
+        category: "🌆 Evening Shift",
+        statusText: "Scheduled / Upcoming",
+        statusColor: "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-black",
+        isSelectable: true,
+      };
     }
 
-    const currentStop = confirmedRouteStops[activeTrip?.currentStopIndex || 0] || startingStop;
     return {
-      busId: assignedBus?.id || "",
-      tripId: activeTrip?.id || "",
-      latitude: currentStop?.latitude || 29.2889,
-      longitude: currentStop?.longitude || 79.4678,
-      speedKmh: isTripInProgress ? liveLocation?.speedKmh || 25 : 0,
-      headingDeg: liveLocation?.headingDeg || 0,
-      lastPingAt: new Date().toISOString(),
-      estimatedArrivalNextStopMins: liveLocation?.estimatedArrivalNextStopMins || 8,
-      delayMinutes: liveLocation?.delayMinutes || 0,
+      category: "⭐ Special Shift",
+      statusText: "Active",
+      statusColor: "bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 font-bold",
+      isSelectable: true,
     };
-  }, [isTripInProgress, confirmedRouteStops, assignedRoute, stops, assignedBus?.id, activeTrip?.id, activeTrip?.currentStopIndex, liveLocation]);
+  };
 
   // Handle Book Shift Action
   const handleBook = async () => {
-    if (!currentUser || !activeStudent) {
+    if (!activeStudent) {
       alert("Please sign in as an enrolled student to book your bus seat.");
       return;
     }
-    const selectedShift = shifts.find(s => s.id === selectedShiftId) || shifts[0];
-    const shiftStatus = selectedShift ? getShiftStatus(selectedShift) : null;
-    if (shiftStatus && !shiftStatus.isBookingOpen) {
+
+    if (!targetTrip) {
       setBookingMessage({
         type: "error",
-        text: `Booking closed for ${selectedShift?.name || "this shift"} (${shiftStatus.label}). Departure manifest is locked.`,
+        text: "No active trip scheduled for this shift. Please notify the transport desk.",
       });
-      return;
-    }
-    if (!planningBus || !targetTrip) {
-      setBookingMessage({
-        type: "error",
-        text: "No active shuttle scheduled for this shift. Please notify the transport desk.",
-      });
-      return;
-    }
-    if (!selectedStopId) {
-      setBookingMessage({ type: "error", text: "Please pick your residential boarding stop." });
       return;
     }
 
@@ -352,7 +403,7 @@ export default function StudentPortalView({
       activeStudent.id,
       targetTrip.id,
       selectedStopId,
-      !isFull ? selectedSeatNumber || undefined : undefined
+      !isFull ? selectedSeatNumber || "1A" : undefined
     );
 
     if (res.success) {
@@ -360,13 +411,14 @@ export default function StudentPortalView({
         type: "success",
         text: `✓ Seat ${selectedSeatNumber || "1A"} Confirmed! Your dynamic boarding pass is active.`,
       });
-      setIsChangeSeatOpen(false);
+      // Trigger full database sync & cross-tab sync
+      store.reloadFromDatabase();
     } else {
       setBookingMessage({ type: "error", text: res.message });
     }
   };
 
-  // Handle Cancel Booking Action
+  // Handle Cancel Booking
   const handleCancelBooking = async (bookingId: string) => {
     if (
       confirm(
@@ -375,8 +427,8 @@ export default function StudentPortalView({
     ) {
       const res = await store.cancelBooking(bookingId);
       setBookingMessage({ type: "success", text: res.message });
-      setIsChangeSeatOpen(false);
       setIsQRModalOpen(false);
+      store.reloadFromDatabase();
     }
   };
 
@@ -385,23 +437,10 @@ export default function StudentPortalView({
       {/* 1. Academic Identity Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 rounded-3xl shadow-xl">
         <div className="flex items-center gap-4">
-          {activeStudent?.photoUrl ? (
-            <div className="relative flex-shrink-0">
-              <img
-                src={activeStudent.photoUrl}
-                alt={activeStudent.fullName}
-                className="w-16 h-20 sm:w-18 sm:h-22 object-cover rounded-2xl border-2 border-white/40 shadow-xl bg-slate-900"
-              />
-              <div className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full bg-emerald-500 text-[8px] font-black text-white uppercase tracking-wider shadow">
-                Verified ID
-              </div>
-            </div>
-          ) : (
-            <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-2xl border-2 border-dashed border-white/30 bg-white/10 flex flex-col items-center justify-center flex-shrink-0 text-blue-200">
-              <User className="w-6 h-6" />
-              <span className="text-[8px] font-bold mt-1">Photo Pending</span>
-            </div>
-          )}
+          <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-2xl border-2 border-dashed border-white/30 bg-white/10 flex flex-col items-center justify-center shrink-0 text-blue-200 shadow-lg">
+            <User className="w-6 h-6" />
+            <span className="text-[8px] font-bold mt-1 uppercase tracking-wider">Verified ID</span>
+          </div>
 
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-2">
@@ -409,15 +448,13 @@ export default function StudentPortalView({
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 Live Academic Transit Active
               </span>
-              <span className="text-xs text-blue-300">{formatDate(new Date().toISOString())}</span>
+              <span className="text-xs text-blue-300 font-mono">15 Sept 2026</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight truncate">
-              {currentUser ? `Welcome, ${currentUser.fullName.split(" ")[0]}! 👋` : "Student Commute Cockpit 👋"}
+              {`Welcome, ${activeStudent?.fullName?.split(" ")[0] || "Ananya"}! 👋`}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300">
-              {currentUser && activeStudent
-                ? `${activeStudent.department || "B.Tech CSE"} • ${activeStudent.enrollmentNo || "GEHU/2023/1108"} • Zone: ${activeStudent.zoneCode || "ZONE_B"}`
-                : "Sign in with your university credentials to reserve seats and track your assigned shuttle."}
+              {`${activeStudent?.department || "B.Tech Computer Science & Engineering"} • ${activeStudent?.enrollmentNo || "GEHU/2023/1092"} • Zone: ${activeStudent?.zoneCode || "ZONE_B"}`}
             </p>
           </div>
         </div>
@@ -432,7 +469,15 @@ export default function StudentPortalView({
             <span>ID Card & Profile</span>
           </button>
 
-          {isBookingActive && (
+          <Link
+            href="/portal/payments"
+            className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white font-bold text-xs rounded-2xl backdrop-blur transition-colors flex items-center gap-2"
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>Pass & Billing</span>
+          </Link>
+
+          {activeBooking && (
             <button
               onClick={() => setIsQRModalOpen(true)}
               className="px-4 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-teal-500/20 flex items-center gap-2 transition-transform active:scale-95 cursor-pointer"
@@ -441,17 +486,10 @@ export default function StudentPortalView({
               <span>Full Pass QR</span>
             </button>
           )}
-
-          <Link
-            href="/portal/payments"
-            className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white font-bold text-xs rounded-2xl backdrop-blur transition-colors flex items-center gap-2"
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>Pass & Billing</span>
-          </Link>
         </div>
       </div>
 
+      {/* Booking Feedback Notification */}
       {bookingMessage && (
         <div
           className={`p-4 rounded-2xl border text-xs font-bold flex items-center justify-between gap-3 ${
@@ -477,461 +515,238 @@ export default function StudentPortalView({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* STATE B: ACTIVE JOURNEY COCKPIT (WHEN A SHIFT IS BOOKED FOR TODAY)        */}
-      {/* ========================================================================= */}
-      {isBookingActive ? (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Active Commute Status Pill Bar */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
-                <BusFront className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-black text-slate-900 dark:text-white">
-                    {assignedBus?.busNumber || "Bus 44"}
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                    {assignedBus?.registrationNo || "UK 04 PA 1234"}
-                  </span>
-                  <span
-                    className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
-                      isBoarded
-                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
-                        : "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
-                    }`}
-                  >
-                    {activeBooking?.status}
-                  </span>
-                </div>
-                <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
-                  <span>
-                    Pickup: <strong>{pickupStop?.name}</strong>
-                  </span>
-                  <span>•</span>
-                  <span>
-                    Assigned Seat: <strong className="text-blue-600 dark:text-blue-400">{activeBooking?.seatNumber || "1A"}</strong>
-                  </span>
-                </div>
-              </div>
+      {/* Active Booking Summary Strip (If Student Already Has A Confirmed Booking) */}
+      {activeBooking && (
+        <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+              <BusFront className="w-5 h-5" />
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsChangeSeatOpen(true)}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-              >
-                Change Seat
-              </button>
-              <button
-                onClick={() => activeBooking && handleCancelBooking(activeBooking.id)}
-                className="px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-xs font-bold text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
-              >
-                Cancel Seat
-              </button>
-            </div>
-          </div>
-
-          {/* Main Cockpit Split: Left 2 Cols (Radar Map & Progress), Right 1 Col (Pass & Crew) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            {/* Left 2 Cols: Live Telematics Radar Map & Station Progress */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Telematics Radar / Corridor Flowchart Card */}
-              <div className="space-y-4">
-                {/* View Switcher Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl">
-                    <button
-                      onClick={() => setStudentTrackerMode("FLOWCHART")}
-                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        studentTrackerMode === "FLOWCHART"
-                          ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                      }`}
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      <span>Corridor Flowchart (Live)</span>
-                    </button>
-                    <button
-                      onClick={() => setStudentTrackerMode("MAP")}
-                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        studentTrackerMode === "MAP"
-                          ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                      }`}
-                    >
-                      <Navigation className="w-3.5 h-3.5" />
-                      <span>Satellite 2D Map</span>
-                    </button>
-                  </div>
-
-                  <span className="text-[11px] font-mono text-slate-400 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>{studentTrackerMode === "FLOWCHART" ? "Where Is My Train Style Timeline" : "GIS Topological Radar"}</span>
-                  </span>
-                </div>
-
-                {/* Primary Hero Tracker */}
-                {studentTrackerMode === "FLOWCHART" ? (
-                  <WhereIsMyBusFlowchart
-                    route={assignedRoute}
-                    bus={assignedBus}
-                    busLocation={effectiveBusLocation}
-                    trip={activeTrip}
-                    selectedStopId={pickupStop?.id}
-                    onToggleMapView={() => setStudentTrackerMode("MAP")}
-                    isMapViewActive={false}
-                    activeStopIndex={activeTrip?.currentStopIndex || 0}
-                    baseDepartureTime="07:15"
-                  />
-                ) : (
-                  <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                        <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                          Live Satellite Radar
-                        </h2>
-                      </div>
-                      <button
-                        onClick={() => setStudentTrackerMode("FLOWCHART")}
-                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                      >
-                        <Layers className="w-3.5 h-3.5" />
-                        <span>Switch to Flowchart</span>
-                      </button>
-                    </div>
-
-                    {/* The Map Component */}
-                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
-                      <CampusFleetMap
-                        busLocation={effectiveBusLocation}
-                        busName={assignedBus?.busNumber || "Bus 44"}
-                        routeCoordinates={confirmedRouteCoordinates}
-                        stops={confirmedRouteStops}
-                        selectedStopId={pickupStop?.id}
-                        height="380px"
-                      />
-
-                      {/* Floating Live Telematics HUD Overlay */}
-                      <div className="absolute top-3 left-3 right-3 sm:right-auto z-20 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-lg text-xs space-y-1">
-                        <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
-                          <Compass className="w-4 h-4 text-blue-500" />
-                          <span>{isTripInProgress ? "Bus In Transit" : "Bus at Origin Terminal"}</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-slate-500 font-mono text-[11px]">
-                          <span>
-                            Speed: <strong>{effectiveBusLocation.speedKmh} km/h</strong>
-                          </span>
-                          <span>•</span>
-                          <span>
-                            ETA: <strong>{effectiveBusLocation.estimatedArrivalNextStopMins || 8} mins</strong>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Metro-Style Station Line Progress */}
-                    <div className="pt-2">
-                      <StationLineProgress
-                        route={assignedRoute}
-                        currentStopIndex={activeTrip?.currentStopIndex || 0}
-                        selectedStopId={pickupStop?.id}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right Column: Holographic Dynamic QR Boarding Card & Bus Crew */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Integrated Boarding Pass Card */}
-              <div className="relative">
-                <BoardingPassCard
-                  booking={activeBooking || undefined}
-                  student={activeStudent || undefined}
-                  bus={assignedBus}
-                  stop={pickupStop}
-                  shift={activeShift}
-                  trip={activeTrip}
-                  onCancelBooking={handleCancelBooking}
-                />
-
-                <button
-                  onClick={() => setIsQRModalOpen(true)}
-                  className="w-full mt-3 py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-extrabold text-xs shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer"
-                >
-                  <Maximize2 className="w-4 h-4" />
-                  <span>Enlarge for Conductor Scanner</span>
-                </button>
-              </div>
-
-              {/* Bus Crew Contact & Safety Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-                <div className="text-xs font-black uppercase text-slate-400 tracking-wider">
-                  Assigned Bus Crew & Support
-                </div>
-
-                {driver && (
-                  <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center font-bold text-xs">
-                        <User className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white">
-                          {driver.fullName}
-                        </div>
-                        <div className="text-[10px] text-slate-500">Official Campus Driver</div>
-                      </div>
-                    </div>
-                    {driver.phone && (
-                      <a
-                        href={`tel:${driver.phone}`}
-                        className="p-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-200 transition-colors"
-                        title="Call Driver"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                {conductor && (
-                  <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-600 flex items-center justify-center font-bold text-xs">
-                        <User className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white">
-                          {conductor.fullName}
-                        </div>
-                        <div className="text-[10px] text-slate-500">Bus Conductor & Scanner</div>
-                      </div>
-                    </div>
-                    {conductor.phone && (
-                      <a
-                        href={`tel:${conductor.phone}`}
-                        className="p-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-200 transition-colors"
-                        title="Call Conductor"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* ========================================================================= */
-        /* STATE A: PLAN & BOOK COMMUTE (WHEN NO ACTIVE SHIFT IS BOOKED TODAY)       */
-        /* ========================================================================= */
-        <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Shift Selection & Stop Picker Header Bar */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <CalendarCheck className="w-5 h-5 text-blue-600" />
-                  <span>Reserve Your Daily Campus Shift</span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Select your timing, boarding station, and reserved seat on the interactive bus chassis.
-                </p>
-              </div>
-
-              {isChangeSeatOpen && (
-                <button
-                  onClick={() => setIsChangeSeatOpen(false)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 cursor-pointer"
-                >
-                  Return to Active Pass
-                </button>
-              )}
-            </div>
-
-            {/* Shift Toggle Tabs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {visibleShifts.map(sh => {
-                const isSelected = selectedShiftId === sh.id;
-                const { category, isSpecial } = getShiftBadgeAndCategory(sh);
-                const status = getShiftStatus(sh);
-                return (
-                  <button
-                    key={sh.id}
-                    onClick={() => setSelectedShiftId(sh.id)}
-                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
-                      isSelected
-                        ? isSpecial
-                          ? "bg-amber-50/80 dark:bg-amber-950/40 border-amber-500 dark:border-amber-500 shadow-sm ring-2 ring-amber-500/20"
-                          : "bg-blue-50/70 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 shadow-sm"
-                        : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-extrabold uppercase text-slate-500 flex items-center gap-1.5">
-                        {category}
-                      </span>
-                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${status.badgeColor}`}>
-                        {status.status === "BOOKING_OPEN" ? `${status.minutesToCutoff}m left` : status.label}
-                      </span>
-                    </div>
-                    <div className="text-sm font-black text-slate-900 dark:text-white mt-1 flex items-center gap-1.5">
-                      <span>{sh.name}</span>
-                      {isSpecial && (
-                        <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[9px] font-bold rounded-md">
-                          Allocated Facility ✓
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-500 font-mono mt-0.5">
-                      {formatTime(sh.startTime)} - {formatTime(sh.endTime)}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Boarding Station Selector */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                <div className="p-2 bg-blue-100 dark:bg-blue-950 text-blue-600 rounded-xl shrink-0">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">
-                    Your Boarding Stop
-                  </div>
-                  <select
-                    value={selectedStopId}
-                    onChange={e => setSelectedStopId(e.target.value)}
-                    className="w-full text-xs font-bold bg-transparent text-slate-900 dark:text-white outline-none cursor-pointer truncate mt-0.5"
-                  >
-                    {stops.map(st => (
-                      <option
-                        key={st.id}
-                        value={st.id}
-                        className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white"
-                      >
-                        {st.name} ({st.code}) • Zone {st.zoneCode || "B"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                <div className="p-2 bg-teal-100 dark:bg-teal-950 text-teal-600 rounded-xl shrink-0">
-                  <BusFront className="w-4 h-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">
-                    Assigned Vehicle & Route
-                  </div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5">
-                    {planningBus?.busNumber || "Bus 44"} ({planningBus?.registrationNo || "UK 04 PA 1234"})
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Seat Grid & Booking Action Container */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left 5 Cols: Interactive Bus Chassis */}
-            <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                    Pick Seat on Bus Chassis
-                  </h3>
-                  <div className="text-[11px] text-slate-400">
-                    Window, Aisle, or Reserved
-                  </div>
-                </div>
-                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
-                  {planningBus ? planningBus.capacity - confirmedCount : 0} Free
+            <div>
+              <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <span>Active Seat Reserved:</span>
+                <span className="text-blue-600 dark:text-blue-400 font-extrabold">
+                  Seat {activeBooking.seatNumber || "1A"}
+                </span>
+                <span>•</span>
+                <span>{planningBus.busNumber}</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold">
+                  {activeBooking.status}
                 </span>
               </div>
-
-              {planningBus && (
-                <InteractiveBusSeatGrid
-                  bus={planningBus}
-                  activeBookings={planningTripBookings}
-                  selectedSeat={selectedSeatNumber}
-                  onSelectSeat={seat => setSelectedSeatNumber(seat)}
-                  disabled={isFull}
-                />
-              )}
-            </div>
-
-            {/* Right 7 Cols: Trip Confirmation Card & CTA */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div>
-                    <div className="text-base font-black text-slate-900 dark:text-white">
-                      Trip Summary
-                    </div>
-                    <div className="text-xs text-slate-500 font-mono">
-                      Shift: {shifts.find(s => s.id === selectedShiftId)?.name}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Transit Fee</span>
-                    <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                      Covered by Pass (₹0.00)
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                    <div className="text-[10px] uppercase font-bold text-slate-400">Selected Seat</div>
-                    <div className="text-base font-black text-blue-600 dark:text-blue-400 mt-0.5">
-                      {selectedSeatNumber || "1A"}
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                    <div className="text-[10px] uppercase font-bold text-slate-400">Pickup Stop</div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5">
-                      {stops.find(s => s.id === selectedStopId)?.name || "Panchakki"}
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 col-span-2 sm:col-span-1">
-                    <div className="text-[10px] uppercase font-bold text-slate-400">Status</div>
-                    <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                      {isFull ? "Waitlist Available" : "Instant Confirmation"}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-900 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
-                  💡 <strong>Dynamic Boarding Pass:</strong> Once confirmed, your live cryptographic QR pass and real-time GPS radar will activate immediately. You can show the QR code directly to the bus conductor from this screen.
-                </div>
-
-                <button
-                  onClick={handleBook}
-                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-extrabold text-sm shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer"
-                >
-                  <CalendarCheck className="w-5 h-5" />
-                  <span>
-                    {isFull ? "Join Shuttle Waitlist →" : "Confirm Seat & Issue Live QR Pass →"}
-                  </span>
-                </button>
+              <div className="text-[11px] text-slate-500 mt-0.5">
+                Pickup: <strong>{selectedStop.name}</strong> • Valid for today's active schedule.
               </div>
             </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsQRModalOpen(true)}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Show QR</span>
+            </button>
+            <Link
+              href="/portal/tracker"
+              className="px-3.5 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+            >
+              <Navigation className="w-3.5 h-3.5 text-blue-500" />
+              <span>Live Radar</span>
+            </Link>
+            <button
+              onClick={() => handleCancelBooking(activeBooking.id)}
+              className="px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-xs font-bold text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
+
+      {/* 2. RESERVE YOUR DAILY CAMPUS SHIFT */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        {/* Header Title */}
+        <div className="pb-4 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <CalendarCheck className="w-6 h-6 text-blue-600" />
+            <span>Reserve Your Daily Campus Shift</span>
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Select your timing, boarding station, and reserved seat on the interactive bus chassis.
+          </p>
+        </div>
+
+        {/* Shift Selection Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {visibleShifts.map(sh => {
+            const isSelected = selectedShiftId === sh.id;
+            const badge = getShiftBadgeInfo(sh);
+
+            return (
+              <button
+                key={sh.id}
+                onClick={() => setSelectedShiftId(sh.id)}
+                className={`p-5 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                  isSelected
+                    ? "bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 shadow-md ring-2 ring-blue-500/20"
+                    : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">
+                    {badge.category}
+                  </span>
+                  <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${badge.statusColor}`}>
+                    {badge.statusText}
+                  </span>
+                </div>
+                <div className="text-base font-black text-slate-900 dark:text-white mt-2">
+                  {sh.name}
+                </div>
+                <div className="text-xs text-slate-500 font-mono mt-1 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>
+                    {formatTime(sh.startTime)} - {formatTime(sh.endTime)}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Boarding Station & Assigned Vehicle Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          {/* Your Boarding Stop */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-3.5">
+            <div className="p-2.5 bg-blue-100 dark:bg-blue-950 text-blue-600 rounded-xl shrink-0">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] uppercase font-black text-slate-400 tracking-wider">
+                Your Boarding Stop
+              </div>
+              <select
+                value={selectedStopId}
+                onChange={e => setSelectedStopId(e.target.value)}
+                className="w-full text-xs sm:text-sm font-black bg-transparent text-slate-900 dark:text-white outline-none cursor-pointer truncate mt-0.5"
+              >
+                {stops.map(st => (
+                  <option
+                    key={st.id}
+                    value={st.id}
+                    className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white font-bold"
+                  >
+                    {st.name} ({st.code}) • Zone {st.zoneCode || "ZONE_B"}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Assigned Vehicle & Route */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-3.5">
+            <div className="p-2.5 bg-teal-100 dark:bg-teal-950 text-teal-600 rounded-xl shrink-0">
+              <BusFront className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] uppercase font-black text-slate-400 tracking-wider">
+                Assigned Vehicle & Route
+              </div>
+              <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate mt-0.5">
+                {`${planningBus.busNumber} (${planningBus.registrationNo})`}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Interactive Seat Chassis & Trip Summary */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-4">
+          {/* Left: Interactive Bus Chassis */}
+          <div className="lg:col-span-5 bg-slate-50 dark:bg-slate-800/40 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                  Pick Seat on Bus Chassis
+                </h3>
+                <div className="text-[11px] text-slate-400">
+                  Window, Aisle, or Reserved
+                </div>
+              </div>
+              <span className="text-xs font-mono font-black text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900">
+                {freeSeatsCount} Free
+              </span>
+            </div>
+
+            <InteractiveBusSeatGrid
+              bus={planningBus}
+              activeBookings={planningTripBookings}
+              selectedSeat={selectedSeatNumber}
+              onSelectSeat={seat => setSelectedSeatNumber(seat)}
+              disabled={isFull}
+            />
+          </div>
+
+          {/* Right: Trip Summary & Action */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="bg-slate-50 dark:bg-slate-800/40 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+                <div>
+                  <div className="text-base font-black text-slate-900 dark:text-white">
+                    Trip Summary
+                  </div>
+                  <div className="text-xs text-slate-500 font-mono mt-0.5">
+                    Shift: {visibleShifts.find(s => s.id === selectedShiftId)?.name || "Evening Return Daily Corridor"}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Transit Fee</span>
+                  <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                    Covered by Pass (₹0.00)
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="p-3 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Selected Seat</div>
+                  <div className="text-base font-black text-blue-600 dark:text-blue-400 mt-0.5">
+                    {selectedSeatNumber || "1A"}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Pickup Stop</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5" title={selectedStop.name}>
+                    {selectedStop.name}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700 col-span-2 sm:col-span-1">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Status</div>
+                  <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    {isFull ? "Waitlist Available" : "Instant Confirmation"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-blue-50/70 dark:bg-blue-950/40 rounded-2xl border border-blue-200/80 dark:border-blue-900 text-xs text-blue-950 dark:text-blue-200 leading-relaxed">
+                💡 <strong>Dynamic Boarding Pass:</strong> Once confirmed, your live cryptographic QR pass and real-time GPS radar will activate immediately. You can show the QR code directly to the bus conductor from this screen.
+              </div>
+
+              <button
+                onClick={handleBook}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-extrabold text-sm shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer"
+              >
+                <CalendarCheck className="w-5 h-5" />
+                <span>
+                  {isFull ? "Join Shuttle Waitlist →" : "Confirm Seat & Issue Live QR Pass →"}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Fullscreen Dynamic QR Code Presentation Modal */}
       {isQRModalOpen && activeBooking && (
@@ -946,10 +761,10 @@ export default function StudentPortalView({
             <BoardingPassCard
               booking={activeBooking}
               student={activeStudent || undefined}
-              bus={assignedBus}
-              stop={pickupStop}
-              shift={activeShift}
-              trip={activeTrip}
+              bus={planningBus}
+              stop={selectedStop}
+              shift={visibleShifts.find(s => s.id === selectedShiftId) || visibleShifts[0]}
+              trip={targetTrip}
               onCancelBooking={handleCancelBooking}
             />
           </div>

@@ -281,6 +281,7 @@ export async function POST(req: NextRequest) {
     const { data: newBooking, error: insertError } = await supabaseAdmin
       .from("bookings")
       .insert({
+        id: crypto.randomUUID(),
         booking_code: bookingCode,
         student_id: student.id,
         trip_id: tripId,
@@ -290,7 +291,6 @@ export async function POST(req: NextRequest) {
         seat_number: allocatedSeat,
         passenger_type: "SEATED",
         booking_date: todayDate,
-        confirmed_at: now,
         created_at: now,
       })
       .select()

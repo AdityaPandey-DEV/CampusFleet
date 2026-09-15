@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
             status: "CONFIRMED",
             seat_number: booking.seat_number,
             waitlist_position: null,
-            confirmed_at: now,
           })
           .eq("id", topStandby.id);
 

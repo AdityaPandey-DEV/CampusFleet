@@ -2,6 +2,7 @@ import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import StudentPortalView from "@/components/portal/StudentPortalView";
+import { getTodayIST } from "@/lib/time-manager";
 import type { Student, Bus, Route, Stop, Shift, Trip, Booking, Staff } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -20,9 +21,11 @@ export default async function StudentPortalPage() {
     redirect("/login?redirect=/portal");
   }
 
+  const todayIST = getTodayIST();
+
   // 2. Direct Server-Side Database Queries
   const [
-    { data: dbTrips },
+    { data: rawDbTrips },
     { data: dbBuses },
     { data: dbRoutes },
     { data: dbBookings },
@@ -32,7 +35,12 @@ export default async function StudentPortalPage() {
     { data: dbStaff },
     { data: dbRouteStops },
   ] = await Promise.all([
-    supabaseAdmin.from("trips").select("*").order("trip_date", { ascending: false }).order("trip_code"),
+    supabaseAdmin
+      .from("trips")
+      .select("*")
+      .gte("trip_date", todayIST)
+      .order("trip_date", { ascending: true })
+      .order("trip_code"),
     supabaseAdmin.from("buses").select("*"),
     supabaseAdmin.from("routes").select("*"),
     supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
@@ -42,6 +50,16 @@ export default async function StudentPortalPage() {
     supabaseAdmin.from("staff").select("*"),
     supabaseAdmin.from("route_stops").select("*").order("stop_sequence", { ascending: true }),
   ]);
+
+  let dbTrips = rawDbTrips;
+  if (!dbTrips || dbTrips.length === 0) {
+    const { data: allTrips } = await supabaseAdmin
+      .from("trips")
+      .select("*")
+      .order("trip_date", { ascending: false })
+      .limit(50);
+    dbTrips = allTrips;
+  }
 
   // 3. Map DB records to typed domain models
   const stops: Stop[] = (dbStops || []).map((s: any) => ({

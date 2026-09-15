@@ -117,6 +117,8 @@ class CampusFleetStore {
   private isInitialized: boolean = false;
   private activeChildId: string = "";
   private listeners: Set<() => void> = new Set();
+  private syncChannel: BroadcastChannel | null = null;
+  private isSyncingFromRemote: boolean = false;
 
   constructor() {
     if (typeof window !== "undefined") {
@@ -124,6 +126,77 @@ class CampusFleetStore {
       this.syncFromSupabase();
       this.initAuthSync();
       this.initTelematicsSync();
+      this.initCrossTabSync();
+      this.initSupabaseRealtime();
+    }
+  }
+
+  /** Real-time cross-tab synchronization via BroadcastChannel & Storage Event */
+  private initCrossTabSync() {
+    if (typeof window === "undefined") return;
+
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        this.syncChannel = new BroadcastChannel("campusfleet_cross_sync");
+        this.syncChannel.onmessage = async (event) => {
+          if (event.data?.type === "DATA_CHANGED") {
+            try {
+              this.isSyncingFromRemote = true;
+              await this.syncFromSupabase();
+            } finally {
+              this.isSyncingFromRemote = false;
+            }
+          }
+        };
+      } catch (err) {
+        console.warn("BroadcastChannel initialization warning:", err);
+      }
+    }
+
+    window.addEventListener("storage", async (e) => {
+      if (e.key === "campusfleet_sync_trigger") {
+        try {
+          this.isSyncingFromRemote = true;
+          await this.syncFromSupabase();
+        } finally {
+          this.isSyncingFromRemote = false;
+        }
+      }
+    });
+  }
+
+  /** Real-time Supabase postgres_changes synchronization */
+  private initSupabaseRealtime() {
+    try {
+      supabase
+        .channel("campusfleet-realtime-global-sync")
+        .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, async () => {
+          await this.syncFromSupabase();
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "trips" }, async () => {
+          await this.syncFromSupabase();
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "students" }, async () => {
+          await this.syncFromSupabase();
+        })
+        .subscribe();
+    } catch (err) {
+      console.warn("Supabase realtime sync warning:", err);
+    }
+  }
+
+  /** Broadcast local mutations across open browser tabs & windows */
+  public broadcastDataChange() {
+    if (this.isSyncingFromRemote) return;
+    if (this.syncChannel) {
+      try {
+        this.syncChannel.postMessage({ type: "DATA_CHANGED", timestamp: Date.now() });
+      } catch {}
+    }
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("campusfleet_sync_trigger", String(Date.now()));
+      } catch {}
     }
   }
 
@@ -747,6 +820,7 @@ class CampusFleetStore {
   private notify() {
     this.saveToLocalStorage();
     this.listeners.forEach(cb => cb());
+    this.broadcastDataChange();
   }
 
   // Getters

@@ -9,7 +9,6 @@ import { formatTime, formatDate } from "@/lib/utils";
 import { useCampusTime } from "@/components/common/CampusTimeProvider";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { NearestStopFinder } from "@/components/booking/NearestStopFinder";
-import { IncomingShuttleRadar } from "@/components/booking/IncomingShuttleRadar";
 import { BoardingPassCard } from "@/components/ticket/BoardingPassCard";
 import {
   CalendarCheck,
@@ -586,53 +585,31 @@ export default function ShiftBookingView({
         }}
       />
 
-      {/* Optional Missed Bus Live Shuttle Radar (Expandable) */}
+      {/* Running Late Recovery Dedicated Link */}
       {activeStudent && (
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 overflow-hidden transition-all shadow-xs">
-          <button
-            type="button"
-            onClick={() => setShowMissedBusRadar(prev => !prev)}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+        <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-amber-500/10 border border-purple-200 dark:border-purple-900/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-sm shrink-0">
+              ⚡
+            </div>
+            <div>
+              <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <span>Running late or missed your regular shift?</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold">
+                  Dedicated Recovery
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-500">
+                Catch live approaching shuttles with open seats or get an auto-assigned standing pass till the merge hub.
+              </div>
+            </div>
+          </div>
+          <Link
+            href="/portal/running-late"
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md transition-transform active:scale-95 shrink-0 flex items-center gap-1.5"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-sm shrink-0">
-                ⚡
-              </div>
-              <div>
-                <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>Running late or missed your regular shift?</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold">
-                    Instant Recovery Radar
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  Catch live approaching buses with open seats or auto-assign standing passes till the merge hub.
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-purple-600 dark:text-purple-400 shrink-0">
-              <span>{showMissedBusRadar ? "Hide Radar" : "Open Radar"}</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showMissedBusRadar ? "rotate-180" : ""}`} />
-            </div>
-          </button>
-
-          {showMissedBusRadar && (
-            <div className="p-4 pt-0 border-t border-slate-200/60 dark:border-slate-800/60">
-              <IncomingShuttleRadar
-                studentId={activeStudent.id}
-                currentStopId={selectedStopId}
-                stops={stops}
-                onClaimSuccess={(data) => {
-                  setBookingMessage({
-                    type: "success",
-                    text: data.message,
-                  });
-                  setIsQRModalOpen(true);
-                  store.reloadFromDatabase();
-                }}
-              />
-            </div>
-          )}
+            <span>Open Late Radar →</span>
+          </Link>
         </div>
       )}
 

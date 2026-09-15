@@ -13,7 +13,7 @@ WHERE status IN ('CONFIRMED', 'BOARDED');
 CREATE OR REPLACE FUNCTION public.check_single_active_booking_per_shift()
 RETURNS TRIGGER AS $$
 DECLARE
-    target_shift_id UUID;
+    target_shift_id TEXT;
     target_trip_date DATE;
     existing_count INTEGER;
     conflicting_trip_code TEXT;

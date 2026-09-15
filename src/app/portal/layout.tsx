@@ -21,6 +21,7 @@ import {
   ArrowRight,
   ShieldAlert,
   Navigation,
+  Zap,
 } from "lucide-react";
 
 export default function StudentPortalLayout({
@@ -116,6 +117,7 @@ export default function StudentPortalLayout({
         { href: "/portal/booking", label: "Seat Booking", icon: CalendarCheck, requiresPayment: false },
         { href: "/portal/pass", label: "Digital Pass", icon: QrCode, requiresPayment: false },
         { href: "/portal/tracker", label: "Live Radar", icon: Navigation, requiresPayment: false },
+        { href: "/portal/running-late", label: "Running Late", icon: Zap, requiresPayment: false },
       ]
     : [
         { href: "/portal/payments", label: "Pass Activation & Fees", icon: CreditCard, requiresPayment: false },

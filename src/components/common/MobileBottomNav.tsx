@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BusFront, Compass, QrCode, CalendarCheck, CreditCard } from "lucide-react";
+import { BusFront, Compass, QrCode, CalendarCheck, CreditCard, Zap } from "lucide-react";
 
 interface MobileBottomNavProps {
   isPaymentApproved?: boolean;
@@ -34,6 +34,11 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
           label: "Live Radar",
           icon: Compass,
         },
+        {
+          href: "/portal/running-late",
+          label: "Running Late",
+          icon: Zap,
+        },
       ]
     : [
         {
@@ -49,8 +54,8 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
       className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800/80 px-4 py-2 shadow-2xl safe-area-inset-bottom"
     >
       <div
-        className={`max-w-md mx-auto grid gap-2 ${
-          isPaymentApproved ? "grid-cols-4" : "grid-cols-1"
+        className={`max-w-md mx-auto grid gap-1.5 ${
+          isPaymentApproved ? "grid-cols-5" : "grid-cols-1"
         }`}
       >
         {navItems.map(item => {
