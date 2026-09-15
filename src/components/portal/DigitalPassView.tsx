@@ -143,14 +143,14 @@ export default function DigitalPassView({
     });
   }, [activeBooking, activeStudent, currentUser, isStandingPassenger]);
 
-  const handleCancelSeat = () => {
+  const handleCancelSeat = async () => {
     if (!activeBooking) return;
     if (
       confirm(
         "Are you sure you want to cancel your reserved seat? The seat will be immediately allocated to the next waitlisted passenger."
       )
     ) {
-      const res = store.cancelBooking(activeBooking.id);
+      const res = await store.cancelBooking(activeBooking.id);
       alert(res.message);
     }
   };

@@ -486,7 +486,7 @@ class CampusFleetStore {
 
       // 9. Fetch Bookings via normalized VIEW (bus_id derived from trips JOIN — no manual fallback)
       const { data: dbBookings } = await supabase.from("bookings_full").select("*");
-      if (dbBookings && dbBookings.length > 0) {
+      if (dbBookings) {
         this.bookings = dbBookings.map(b => ({
           id: b.id,
           bookingCode: b.booking_code,
@@ -2059,7 +2059,7 @@ class CampusFleetStore {
     return { success: true, message: `Seat ${seatCode} assigned successfully!` };
   }
 
-  public bookShift(studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string) {
+  public async bookShift(studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string) {
     const trip = this.trips.find(t => t.id === tripId);
     const bus = this.buses.find(b => b.id === trip?.busId);
     const student = this.students.find(s => s.id === studentId) || {
@@ -2083,6 +2083,50 @@ class CampusFleetStore {
       return { success: false, message: "Trip or bus allocation not found" };
     }
 
+    // 1. Authoritative Server Booking Call (Client Browser)
+    if (typeof window !== "undefined") {
+      try {
+        const response = await fetch("/api/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId,
+            tripId,
+            boardingStopId: stopId,
+            requestedSeatNumber,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          return {
+            success: false,
+            message: data.message || data.error || "Booking rejected by transit server.",
+            code: data.code,
+            existingBooking: data.existingBooking,
+          };
+        }
+
+        if (data.booking) {
+          this.bookings = [
+            ...this.bookings.filter(b => b.id !== data.booking.id),
+            data.booking,
+          ];
+          this.saveToLocalStorage();
+          this.notify();
+        }
+
+        return {
+          success: true,
+          message: data.message || `Seat ${data.booking?.seatNumber || "Confirmed"} reserved successfully!`,
+          booking: data.booking,
+        };
+      } catch (err: any) {
+        console.warn("Server booking API network failure, falling back to local engine:", err);
+      }
+    }
+
+    // 2. Local / Offline Engine Fallback with Shift-Wide Mutual Exclusion
     const tripBookings = this.bookings.filter(b => b.tripId === tripId);
     const res = createBooking(
       student,
@@ -2091,7 +2135,9 @@ class CampusFleetStore {
       stopId,
       tripBookings,
       this.currentUser?.id || "u-guest",
-      requestedSeatNumber
+      requestedSeatNumber,
+      this.bookings,
+      this.trips
     );
 
     if (res.success && res.booking) {
@@ -2139,7 +2185,27 @@ class CampusFleetStore {
     return res;
   }
 
-  public cancelBooking(bookingId: string) {
+  public async cancelBooking(bookingId: string) {
+    // 1. Authoritative Server Cancellation Call (Client Browser)
+    if (typeof window !== "undefined") {
+      try {
+        const response = await fetch("/api/bookings/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bookingId,
+            studentId: this.currentUser?.studentId || this.currentUser?.id,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          console.warn("Server cancel booking notice:", data.error);
+        }
+      } catch (err) {
+        console.warn("Server cancel booking API network notice:", err);
+      }
+    }
+
     const booking = this.bookings.find(b => b.id === bookingId);
     if (!booking) return { success: false, message: "Booking not found" };
 

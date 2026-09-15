@@ -284,7 +284,7 @@ export default function StudentPortalView({
   }, [isTripInProgress, confirmedRouteStops, assignedRoute, stops, assignedBus?.id, activeTrip?.id, activeTrip?.currentStopIndex, liveLocation]);
 
   // Handle Book Shift Action
-  const handleBook = () => {
+  const handleBook = async () => {
     if (!currentUser || !activeStudent) {
       alert("Please sign in as an enrolled student to book your bus seat.");
       return;
@@ -310,7 +310,7 @@ export default function StudentPortalView({
       return;
     }
 
-    const res = store.bookShift(
+    const res = await store.bookShift(
       activeStudent.id,
       targetTrip.id,
       selectedStopId,
@@ -329,13 +329,13 @@ export default function StudentPortalView({
   };
 
   // Handle Cancel Booking Action
-  const handleCancelBooking = (bookingId: string) => {
+  const handleCancelBooking = async (bookingId: string) => {
     if (
       confirm(
         "Are you sure you want to cancel your seat? It will be immediately allocated to the next waitlisted student."
       )
     ) {
-      const res = store.cancelBooking(bookingId);
+      const res = await store.cancelBooking(bookingId);
       setBookingMessage({ type: "success", text: res.message });
       setIsChangeSeatOpen(false);
       setIsQRModalOpen(false);

@@ -41,8 +41,8 @@ export default function AdminReservationsView({
     return unsub;
   }, []);
 
-  const handleCancelAndPromote = (bookingId: string) => {
-    const res = store.cancelBooking(bookingId);
+  const handleCancelAndPromote = async (bookingId: string) => {
+    const res = await store.cancelBooking(bookingId);
     setToastMessage(res.message);
     setTimeout(() => setToastMessage(null), 4000);
   };

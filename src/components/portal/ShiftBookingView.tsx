@@ -34,6 +34,8 @@ import {
   Mail,
   X,
   Building2,
+  RefreshCw,
+  Lock,
 } from "lucide-react";
 
 // Dynamic import for Leaflet map with no SSR
@@ -79,10 +81,12 @@ export default function ShiftBookingView({
 
   const [activeStep, setActiveStep] = useState<"SEATS" | "BOARDING" | "PASSENGER">("SEATS");
   const [selectedShiftId, setSelectedShiftId] = useState(shifts[0]?.id || "shift-1");
+  const [selectedBusId, setSelectedBusId] = useState("");
   const [selectedStopId, setSelectedStopId] = useState("");
   const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>("1A");
   const [bookingMessage, setBookingMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [isBookingLoading, setIsBookingLoading] = useState(false);
 
   const {
     currentTime,
@@ -97,6 +101,11 @@ export default function ShiftBookingView({
       setSelectedShiftId(nextShift.id);
     }
   }, [nextShift, shifts]);
+
+  // Real-time Database Sync on mount & when shift changes
+  useEffect(() => {
+    store.reloadFromDatabase();
+  }, [selectedShiftId]);
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -152,28 +161,67 @@ export default function ShiftBookingView({
   const shiftStatus = selectedShift ? getShiftStatus(selectedShift) : null;
   const isCutoffPassed = shiftStatus ? !shiftStatus.isBookingOpen : false;
 
-  const targetTrip =
-    trips.find(t => t.shiftId === selectedShiftId && t.tripDate === todayStr) ||
-    trips.find(t => t.shiftId === selectedShiftId) ||
-    trips[0];
-  const bus = buses.find(b => b.id === targetTrip?.busId) || buses[0];
+  // All trips & buses belonging to current selected shift
+  const shiftTrips = useMemo(() => {
+    return trips.filter(t => t.shiftId === selectedShiftId);
+  }, [trips, selectedShiftId]);
+
+  const shiftBuses = useMemo(() => {
+    return buses.filter(b => shiftTrips.some(t => t.busId === b.id));
+  }, [buses, shiftTrips]);
+
+  const targetTrip = useMemo(() => {
+    if (selectedBusId) {
+      const found = shiftTrips.find(t => t.busId === selectedBusId);
+      if (found) return found;
+    }
+    return (
+      shiftTrips.find(t => t.tripDate === todayStr) ||
+      shiftTrips[0] ||
+      trips[0]
+    );
+  }, [shiftTrips, selectedBusId, todayStr, trips]);
+
+  const bus = useMemo(() => {
+    return buses.find(b => b.id === targetTrip?.busId) || buses[0];
+  }, [buses, targetTrip]);
+
   const tripBookings = targetTrip ? bookings.filter(b => b.tripId === targetTrip.id) : [];
   const confirmedCount = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
   const isFull = bus ? confirmedCount >= bus.capacity : false;
 
-  const userExistingBooking = currentUser && activeStudent
-    ? bookings.find(
+  // Sibling trips belonging to this shift
+  const siblingTripIds = useMemo(() => {
+    return shiftTrips.map(t => t.id);
+  }, [shiftTrips]);
+
+  // SHIFT-LEVEL MUTUAL EXCLUSION LOCK: Check if student holds ANY active booking on this shift
+  const userExistingBooking = useMemo(() => {
+    if (!currentUser || !activeStudent) return null;
+    return (
+      bookings.find(
         b =>
           (b.studentId === activeStudent.id ||
             b.studentId === activeStudent.userId ||
             b.studentId === currentUser.id ||
             b.studentId === currentUser.studentId ||
             b.studentId === `stud-${currentUser.id}`) &&
-          targetTrip &&
-          b.tripId === targetTrip.id &&
+          siblingTripIds.includes(b.tripId) &&
           (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
-      )
-    : null;
+      ) || null
+    );
+  }, [currentUser, activeStudent, bookings, siblingTripIds]);
+
+  // The bus where student holds reservation (if on another bus)
+  const existingReservedBus = useMemo(() => {
+    if (!userExistingBooking) return null;
+    const reservedTrip = trips.find(t => t.id === userExistingBooking.tripId);
+    return buses.find(b => b.id === reservedTrip?.busId) || null;
+  }, [userExistingBooking, trips, buses]);
+
+  const isExistingOnDifferentBus = Boolean(
+    userExistingBooking && targetTrip && userExistingBooking.tripId !== targetTrip.id
+  );
 
   const selectedStop = stops.find(s => s.id === selectedStopId) || stops[0];
 
@@ -216,7 +264,7 @@ export default function ShiftBookingView({
     return store.getBusesForStop(selectedStopId);
   }, [selectedStopId]);
 
-  const handleBook = () => {
+  const handleBook = async () => {
     if (!currentUser || !activeStudent) {
       router.push("/login?redirect=/portal/booking");
       return;
@@ -240,28 +288,40 @@ export default function ShiftBookingView({
       setBookingMessage({ type: "error", text: "Please select a boarding pickup stop." });
       return;
     }
-    const res = store.bookShift(
-      activeStudent.id,
-      targetTrip.id,
-      selectedStopId,
-      !isFull ? (selectedSeatNumber || undefined) : undefined
-    );
-    if (res.success) {
-      setBookingMessage({
-        type: "success",
-        text: `✓ Seat ${selectedSeatNumber || "1A"} Confirmed! A confirmation email and pass have been dispatched to ${activeStudent?.email || currentUser.email}. Present your QR code to the bus conductor upon boarding.`,
-      });
-      setIsQRModalOpen(true);
-    } else {
-      setBookingMessage({ type: "error", text: res.message });
+
+    setIsBookingLoading(true);
+    setBookingMessage(null);
+    try {
+      const res = await store.bookShift(
+        activeStudent.id,
+        targetTrip.id,
+        selectedStopId,
+        !isFull ? (selectedSeatNumber || undefined) : undefined
+      );
+      if (res.success) {
+        setBookingMessage({
+          type: "success",
+          text: res.message || `✓ Seat ${selectedSeatNumber || "1A"} Confirmed on ${bus.busNumber}! Present your QR code to the bus conductor upon boarding.`,
+        });
+        setIsQRModalOpen(true);
+      } else {
+        setBookingMessage({ type: "error", text: res.message });
+      }
+    } finally {
+      setIsBookingLoading(false);
     }
   };
 
-  const handleCancelBooking = (bookingId: string) => {
-    if (confirm("Are you sure you want to cancel your seat? The seat will be released and reallocated to the earliest eligible commuter on standby.")) {
-      const res = store.cancelBooking(bookingId);
-      setBookingMessage({ type: "success", text: res.message });
-      setIsQRModalOpen(false);
+  const handleCancelBooking = async (bookingId: string) => {
+    if (confirm("Are you sure you want to cancel your seat? The seat will be released back to fleet inventory.")) {
+      setIsBookingLoading(true);
+      try {
+        const res = await store.cancelBooking(bookingId);
+        setBookingMessage({ type: "success", text: res.message });
+        setIsQRModalOpen(false);
+      } finally {
+        setIsBookingLoading(false);
+      }
     }
   };
 
@@ -613,16 +673,36 @@ export default function ShiftBookingView({
                 Available Buses Serving {selectedStop?.name} ({busesForStop.length} options)
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {busesForStop.map(b => (
-                  <div key={b.id} className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1">
-                    <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center justify-between">
-                      <span>{b.busNumber}</span>
-                      <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">{b.status}</span>
-                    </div>
-                    <div className="text-[10px] text-slate-500">{b.model}</div>
-                    <div className="text-[10px] font-mono text-slate-400">{b.capacity} Seats • {b.seatLayout}</div>
-                  </div>
-                ))}
+                {busesForStop.map(b => {
+                  const isSelected = bus?.id === b.id;
+                  const isBooked = existingReservedBus?.id === b.id;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setSelectedBusId(b.id)}
+                      className={`text-left p-3.5 rounded-2xl border transition-all ${
+                        isSelected
+                          ? "bg-blue-50/90 dark:bg-blue-950/40 border-blue-500 shadow-md ring-2 ring-blue-500/20"
+                          : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600"
+                      } space-y-1`}
+                    >
+                      <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          {b.busNumber}
+                          {isBooked && (
+                            <span className="px-1.5 py-0.5 bg-emerald-500 text-white text-[9px] font-bold rounded-md">
+                              Your Seat
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">{b.status}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500">{b.model}</div>
+                      <div className="text-[10px] font-mono text-slate-400">{b.capacity} Seats • {b.seatLayout}</div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -634,6 +714,37 @@ export default function ShiftBookingView({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left 5 Cols: redBus Interactive Visual Seat Selector */}
           <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center">
+            {/* Multi-Bus Quick Selector Tabs */}
+            {shiftBuses.length > 1 && (
+              <div className="w-full mb-4 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center gap-1.5 overflow-x-auto">
+                <span className="text-[10px] uppercase font-black text-slate-400 px-2 flex-shrink-0">
+                  Select Bus:
+                </span>
+                {shiftBuses.map(sb => {
+                  const isSelected = bus?.id === sb.id;
+                  const hasSeat = existingReservedBus?.id === sb.id;
+                  return (
+                    <button
+                      key={sb.id}
+                      type="button"
+                      onClick={() => setSelectedBusId(sb.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 flex-shrink-0 ${
+                        isSelected
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      <BusFront className="w-3.5 h-3.5" />
+                      <span>{sb.busNumber}</span>
+                      {hasSeat && (
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-white" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {bus ? (
               <>
                 <div className="w-full flex items-center justify-between mb-4">
@@ -764,7 +875,48 @@ export default function ShiftBookingView({
               </div>
 
               {/* Final Book Button / Active State */}
-              {userExistingBooking ? (
+              {userExistingBooking && isExistingOnDifferentBus ? (
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-300 dark:border-amber-700/60 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs font-black text-amber-900 dark:text-amber-200 uppercase tracking-wide flex items-center gap-1.5">
+                        <span>Shift Booking Locked</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200">
+                          1 Seat Per Shift Limit
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                        You already hold a confirmed reservation on <span className="font-bold text-slate-900 dark:text-white">Bus {existingReservedBus?.busNumber}</span> {userExistingBooking.seatNumber ? `(Seat ${userExistingBooking.seatNumber})` : ""} for this {selectedShift?.name || "shift"}. To book a seat on <span className="font-bold text-slate-900 dark:text-white">{bus?.busNumber}</span>, cancel your existing seat reservation first.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-200 dark:border-amber-800/60">
+                    {existingReservedBus && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBusId(existingReservedBus.id)}
+                        className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 shadow-xs transition-all"
+                      >
+                        <BusFront className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Switch View to Bus {existingReservedBus.busNumber}</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleCancelBooking(userExistingBooking.id)}
+                      disabled={isBookingLoading}
+                      className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition-transform active:scale-95 disabled:opacity-50"
+                    >
+                      {isBookingLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                      <span>Cancel Seat on {existingReservedBus?.busNumber || "Bus"} to Switch</span>
+                    </button>
+                  </div>
+                </div>
+              ) : userExistingBooking ? (
                 <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-300 dark:border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div className="space-y-0.5 text-center sm:text-left">
                     <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
@@ -795,9 +947,10 @@ export default function ShiftBookingView({
                     </Link>
                     <button
                       onClick={() => handleCancelBooking(userExistingBooking.id)}
-                      className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-300 dark:border-rose-900"
+                      disabled={isBookingLoading}
+                      className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-300 dark:border-rose-900 disabled:opacity-50"
                     >
-                      Cancel
+                      {isBookingLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Cancel"}
                     </button>
                   </div>
                 </div>
@@ -828,10 +981,20 @@ export default function ShiftBookingView({
               ) : (
                 <button
                   onClick={handleBook}
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 via-teal-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                  disabled={isBookingLoading}
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 via-teal-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Confirm Seat Reservation ({selectedSeatNumber || "1A"})</span>
+                  {isBookingLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Securing Seat Reservation...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Confirm Seat Reservation ({selectedSeatNumber || "1A"})</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>

@@ -2,6 +2,8 @@ import { Booking, BookingStatus, Bus, Trip, Student, BookingStatusHistory } from
 import { generateSeatLayout } from "./utils";
 import { isTripCutoffPassed } from "./time-manager";
 
+import { isStudentSubscriptionActive } from "./subscription-utils";
+
 export interface BookingResult {
   success: boolean;
   message: string;
@@ -52,13 +54,15 @@ export function createBooking(
   boardingStopId: string,
   existingTripBookings: Booking[],
   userId: string,
-  requestedSeatNumber?: string
+  requestedSeatNumber?: string,
+  allBookings?: Booking[],
+  allTrips?: Trip[]
 ): BookingResult {
   // 1. Subscription check
-  if (!student.hasActiveSubscription && !student.transportAccessSuspended) {
+  if (!isStudentSubscriptionActive(student)) {
     return {
       success: false,
-      message: "Cannot book: Active transportation subscription required.",
+      message: "Cannot book: Active, non-expired transportation subscription required.",
     };
   }
 
@@ -77,15 +81,36 @@ export function createBooking(
     };
   }
 
-  // 3. Duplicate active booking check
-  const duplicate = existingTripBookings.find(
-    b => b.studentId === student.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED")
-  );
-  if (duplicate) {
-    return {
-      success: false,
-      message: `Student already holds an active booking (${duplicate.status} ${duplicate.seatNumber ? `Seat ${duplicate.seatNumber}` : `WL-${duplicate.waitlistPosition}`}) for this trip.`,
-    };
+  // 3. Shift-level mutual exclusion lock (One Active Booking Per Shift Window)
+  if (allBookings && allTrips) {
+    const siblingTripIds = allTrips
+      .filter(t => t.shiftId === trip.shiftId)
+      .map(t => t.id);
+
+    const shiftConflict = allBookings.find(
+      b =>
+        b.studentId === student.id &&
+        siblingTripIds.includes(b.tripId) &&
+        (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
+    );
+
+    if (shiftConflict) {
+      return {
+        success: false,
+        message: `Shift Booking Locked: You already hold an active reservation (${shiftConflict.seatNumber ? `Seat ${shiftConflict.seatNumber}` : "Reserved"}) for this shift. Commuters are limited to 1 active reservation per shift.`,
+      };
+    }
+  } else {
+    // Fallback duplicate check within current trip
+    const duplicate = existingTripBookings.find(
+      b => b.studentId === student.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED" || b.status === "BOARDED")
+    );
+    if (duplicate) {
+      return {
+        success: false,
+        message: `Student already holds an active booking (${duplicate.status} ${duplicate.seatNumber ? `Seat ${duplicate.seatNumber}` : `WL-${duplicate.waitlistPosition}`}) for this trip.`,
+      };
+    }
   }
 
   // 4. Seat capacity computation
