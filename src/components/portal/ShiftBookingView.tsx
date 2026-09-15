@@ -135,14 +135,14 @@ export default function ShiftBookingView({
         enrollmentNo: "PENDING",
         fullName: currentUser.fullName || "Student Commuter",
         email: currentUser.email,
-        phone: "+91 0000000000",
+        phone: null,
         department: "B.Tech CSE",
         semester: "1st",
         campusId: store.getPrimaryCampus()?.id || "",
         campus: store.getPrimaryCampus()?.name || "Campus Terminal",
         primaryStopId: stops[0]?.id || "",
         primaryRouteId: "",
-        emergencyContact: { name: "Campus Desk", relationship: "Admin", phone: "+91 0000000000" },
+        emergencyContact: { name: null, relationship: null, phone: null },
         transportAccessSuspended: false,
         hasActiveSubscription: false,
         zoneCode: "ZONE_B",
@@ -898,7 +898,7 @@ export default function ShiftBookingView({
                     {activeStudent?.emergencyContact?.name || "Campus Desk"}
                   </div>
                   <div className="text-[10px] text-slate-400 font-mono truncate">
-                    {activeStudent?.emergencyContact?.phone || "+91 0000000000"}
+                    {activeStudent?.emergencyContact?.phone || "—"}
                   </div>
                 </div>
               </div>

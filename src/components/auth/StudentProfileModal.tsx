@@ -137,7 +137,7 @@ export function StudentProfileModal() {
       if (currentUser && currentUser.role === "student") {
         setFullName(activeStudent?.fullName || currentUser.fullName || "");
         setEnrollmentNo(activeStudent?.enrollmentNo && activeStudent?.enrollmentNo !== "PENDING" ? activeStudent.enrollmentNo : "");
-        setPhone(activeStudent?.phone !== "+91 0000000000" ? (activeStudent?.phone || "") : "");
+        setPhone(activeStudent?.phone || "");
         setCampusId(activeStudent?.campusId || store.getPrimaryCampus()?.id || "");
         setCampus(activeStudent?.campus || store.getPrimaryCampus()?.name || "Main Campus");
         setDepartment(activeStudent?.department || "");
@@ -148,8 +148,8 @@ export function StudentProfileModal() {
         if (ec) { setSelectedCourse(ec.course || ""); setSelectedYear(ec.semester || ""); setSelectedSection(ec.section || ""); }
         setSelectedZoneCode(activeStudent?.zoneCode || "ZONE_B");
         setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
-        setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
-        setEmergencyPhone(activeStudent?.emergencyContact?.phone !== "+91 0000000000" ? (activeStudent?.emergencyContact?.phone || "") : "");
+        setEmergencyName(activeStudent?.emergencyContact?.name || "");
+        setEmergencyPhone(activeStudent?.emergencyContact?.phone || "");
         setPhotoUrl(activeStudent?.photoUrl || "");
         setIsOpen(true);
       }
@@ -173,14 +173,13 @@ export function StudentProfileModal() {
     const isIncomplete =
       !activeStudent ||
       !activeStudent.phone ||
-      activeStudent.phone === "+91 0000000000" ||
       activeStudent.phone === null;
 
     if (isIncomplete) {
       setIsOpen(true);
       setFullName(activeStudent?.fullName || currentUser.fullName || "");
       setEnrollmentNo(activeStudent?.enrollmentNo && activeStudent?.enrollmentNo !== "PENDING" ? activeStudent.enrollmentNo : "");
-      setPhone(activeStudent?.phone !== "+91 0000000000" ? (activeStudent?.phone || "") : "");
+      setPhone(activeStudent?.phone || "");
       setCampusId(activeStudent?.campusId || store.getPrimaryCampus()?.id || "");
       setCampus(activeStudent?.campus || store.getPrimaryCampus()?.name || "Main Campus");
       setDepartment(activeStudent?.department || "");
@@ -191,7 +190,7 @@ export function StudentProfileModal() {
       setSelectedZoneCode(activeStudent?.zoneCode || "ZONE_B");
       setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
       setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
-      setEmergencyPhone(activeStudent?.emergencyContact?.phone !== "+91 0000000000" ? (activeStudent?.emergencyContact?.phone || "") : "");
+      setEmergencyPhone(activeStudent?.emergencyContact?.phone || "");
       setPhotoUrl(activeStudent?.photoUrl || "");
     } else {
       // Profile is complete — ensure modal is closed (handles the store re-load case)
