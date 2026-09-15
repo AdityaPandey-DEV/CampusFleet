@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     const finalStudentId =
       existingStudentId ||
-      (studentId && studentId.startsWith("stud-") ? studentId : `stud-${userId}`);
+      (studentId && /^[0-9a-f-]{36}$/i.test(studentId) ? studentId : crypto.randomUUID());
 
     // 2. Validate classId as UUID if provided
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

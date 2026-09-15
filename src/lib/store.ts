@@ -1250,7 +1250,7 @@ class CampusFleetStore {
 
     if (!student) {
       const u = this.currentUser;
-      const targetId = studentId && studentId.startsWith("stud-") ? studentId : `stud-${u?.id || Date.now()}`;
+      const targetId = studentId && /^[0-9a-f-]{36}$/i.test(studentId) ? studentId : crypto.randomUUID();
       student = {
         id: targetId,
         userId: u?.id || studentId,

@@ -86,6 +86,7 @@ export function StudentProfileModal() {
   const [photoUrl, setPhotoUrl] = useState("");
 
   const isPhotoLocked = Boolean(activeStudent?.photoUrl || activeStudent?.photoLocked);
+  const isZoneLocked = activeStudent?.paymentStatus === "APPROVED" || Boolean(activeStudent?.hasActiveSubscription);
 
   const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isPhotoLocked) {
@@ -150,6 +151,7 @@ export function StudentProfileModal() {
         setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
         setEmergencyName(activeStudent?.emergencyContact?.name || "");
         setEmergencyPhone(activeStudent?.emergencyContact?.phone || "");
+        setEmergencyRel(activeStudent?.emergencyContact?.relationship || "Parent / Guardian");
         setPhotoUrl(activeStudent?.photoUrl || "");
         setIsOpen(true);
       }
@@ -191,6 +193,7 @@ export function StudentProfileModal() {
       setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
       setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
       setEmergencyPhone(activeStudent?.emergencyContact?.phone || "");
+      setEmergencyRel(activeStudent?.emergencyContact?.relationship || "Parent / Guardian");
       setPhotoUrl(activeStudent?.photoUrl || "");
     } else {
       // Profile is complete — ensure modal is closed (handles the store re-load case)
@@ -543,29 +546,47 @@ export function StudentProfileModal() {
                 <Compass className="w-3.5 h-3.5 text-teal-600" />
                 Residential Transit Zone *
               </span>
-              <span className="text-teal-600 dark:text-teal-400 font-bold lowercase text-[10px]">
-                (determines semester fee & pickup corridor)
-              </span>
+              {isZoneLocked ? (
+                <span className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-800">
+                  <Lock className="w-3 h-3" /> Zone Locked
+                </span>
+              ) : (
+                <span className="text-teal-600 dark:text-teal-400 font-bold lowercase text-[10px]">
+                  (determines semester fee &amp; pickup corridor)
+                </span>
+              )}
             </label>
-            <select
-              required
-              value={selectedZoneCode}
-              onChange={e => {
-                const newZone = e.target.value;
-                setSelectedZoneCode(newZone);
-                const filteredStops = stops.filter(st => (st.zoneCode || "ZONE_B") === newZone);
-                if (filteredStops.length > 0) {
-                  setPrimaryStopId(filteredStops[0].id);
-                }
-              }}
-              className="w-full text-xs p-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-slate-900 dark:text-white outline-none focus:border-teal-500 font-bold"
-            >
-              {transitZones.map(z => (
-                <option key={z.id || `${z.campusId || ""}-${z.code}`} value={z.code}>
-                  {z.name} — ₹{z.semesterFee.toLocaleString()} / Semester
-                </option>
-              ))}
-            </select>
+            {isZoneLocked ? (
+              <div className="p-3 rounded-xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 text-[11px] text-teal-900 dark:text-teal-200">
+                <div className="font-bold flex items-center gap-1.5 mb-1">
+                  <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                  Zone {selectedZoneCode} — Locked after Fee Clearance
+                </div>
+                <p className="text-[10px] opacity-80">
+                  Transit zone is locked once semester fee is paid. Only campus transport admin can modify zone allocation after payment.
+                </p>
+              </div>
+            ) : (
+              <select
+                required
+                value={selectedZoneCode}
+                onChange={e => {
+                  const newZone = e.target.value;
+                  setSelectedZoneCode(newZone);
+                  const filteredStops = stops.filter(st => (st.zoneCode || "ZONE_B") === newZone);
+                  if (filteredStops.length > 0) {
+                    setPrimaryStopId(filteredStops[0].id);
+                  }
+                }}
+                className="w-full text-xs p-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-slate-900 dark:text-white outline-none focus:border-teal-500 font-bold"
+              >
+                {transitZones.map(z => (
+                  <option key={z.id || `${z.campusId || ""}-${z.code}`} value={z.code}>
+                    {z.name} — ₹{z.semesterFee.toLocaleString()} / Semester
+                  </option>
+                ))}
+              </select>
+            )}
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
               Covers: {transitZones.find(z => z.code === selectedZoneCode)?.corridorDescription}
             </p>

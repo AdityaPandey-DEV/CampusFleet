@@ -64,13 +64,17 @@ export async function findOrCreateUser({
         .maybeSingle();
 
       if (!existingStudent) {
-        await supabaseAdmin.from("students").insert({
-          id: `stud-${existingUser.id}`,
+        const newStudentId = crypto.randomUUID();
+        const { error: studErr2 } = await supabaseAdmin.from("students").insert({
+          id: newStudentId,
           user_id: existingUser.id,
           full_name: existingUser.full_name || cleanEmail.split("@")[0],
           email: cleanEmail,
           created_at: new Date().toISOString(),
         });
+        if (studErr2) {
+          console.warn("Auto-create student for existing user failed:", studErr2.message);
+        }
       }
     }
 
@@ -92,7 +96,7 @@ export async function findOrCreateUser({
 
   // 2. First-time sign-in: automatically create user account
   const role = adminEmail && cleanEmail === adminEmail ? "admin" : "student";
-  const userId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const userId = crypto.randomUUID();
   const realName =
     fullName?.trim() ||
     cleanEmail
@@ -120,7 +124,7 @@ export async function findOrCreateUser({
 
   // If role is student, automatically create corresponding student record with real info
   if (role === "student") {
-    const studentId = `stud-${userId}`;
+    const studentId = crypto.randomUUID();
     const { error: studErr } = await supabaseAdmin.from("students").insert({
       id: studentId,
       user_id: userId,
@@ -130,7 +134,8 @@ export async function findOrCreateUser({
     });
 
     if (studErr) {
-      console.error("Failed to auto-create student record in findOrCreateUser:", studErr);
+      // Non-fatal: student profile can be created later via profile completion modal
+      console.warn("Auto-create student record notice:", studErr.message);
     }
   }
 
