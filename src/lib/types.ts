@@ -336,11 +336,17 @@ export interface PaymentSubmission {
 }
 
 export interface TransitZone {
+  id?: string;
   code: string;
   name: string;
   corridorDescription: string;
   semesterFee: number;
   installmentsAllowed: number;
+  campusId?: string;
+  campusName?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**

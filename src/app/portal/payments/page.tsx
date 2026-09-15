@@ -59,11 +59,14 @@ export default async function SubscriptionsAndBillingPage() {
   }));
 
   const zones: TransitZone[] = (dbZones || []).map((z: any) => ({
+    id: z.id,
+    campusId: z.campus_id,
     code: z.code,
     name: z.name,
     corridorDescription: z.corridor_description || z.description || "",
     semesterFee: Number(z.semester_fee) || 14000,
     installmentsAllowed: Number(z.installments_allowed) || 3,
+    isActive: z.is_active ?? true,
   }));
 
   return (

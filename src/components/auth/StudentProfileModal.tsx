@@ -22,7 +22,7 @@ export function StudentProfileModal() {
   const [students, setStudents] = useState(store.getStudents());
   const [campuses, setCampuses] = useState<Campus[]>(() => store.getCampuses());
   const [stops, setStops] = useState(store.getStops());
-  const [transitZones, setTransitZones] = useState<TransitZone[]>(store.getTransitZones());
+  const [transitZones, setTransitZones] = useState<TransitZone[]>(() => store.getTransitZones(store.getPrimaryCampus()?.id));
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -49,10 +49,14 @@ export function StudentProfileModal() {
       setStudents(store.getStudents());
       setCampuses(store.getCampuses());
       setStops(store.getStops());
-      setTransitZones(store.getTransitZones());
+      setTransitZones(store.getTransitZones(campusId));
     });
     return unsub;
-  }, []);
+  }, [campusId]);
+
+  useEffect(() => {
+    setTransitZones(store.getTransitZones(campusId));
+  }, [campusId]);
 
   useEffect(() => {
     fetch("/api/classes")

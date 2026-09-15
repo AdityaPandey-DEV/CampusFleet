@@ -61,13 +61,18 @@ export default function PortalPaymentsView({
     );
   }, [currentUser, students, activeChildId]);
 
-  // Zone & Payment Plan State (Loaded dynamically from PostgreSQL)
-  const [transitZones, setTransitZones] = useState<TransitZone[]>(store.getTransitZones());
+  // Zone & Payment Plan State (Loaded dynamically from PostgreSQL by student's campus)
+  const studentCampusId = activeStudent?.campusId || currentUser?.campusId;
+  const [transitZones, setTransitZones] = useState<TransitZone[]>(() => store.getTransitZones(studentCampusId));
   const initialZone = activeStudent?.zoneCode || "ZONE_B";
   const [selectedZoneCode, setSelectedZoneCode] = useState<string>(initialZone);
   const currentZone = useMemo(() => {
     return transitZones.find((z) => z.code === selectedZoneCode) || transitZones[0] || TRANSIT_ZONES[1];
   }, [selectedZoneCode, transitZones]);
+
+  useEffect(() => {
+    setTransitZones(store.getTransitZones(studentCampusId));
+  }, [studentCampusId]);
 
   // Payment Amount (defaults to zone fee or remaining balance, with support for custom/partial transfers)
   const [paymentAmountInput, setPaymentAmountInput] = useState<string>("");
@@ -111,7 +116,7 @@ export default function PortalPaymentsView({
       setStudents(store.getStudents());
       setActiveChildId(store.getActiveChildId());
       setPayments(store.getPayments());
-      setTransitZones(store.getTransitZones());
+      setTransitZones(store.getTransitZones(studentCampusId));
     });
     return unsub;
   }, []);

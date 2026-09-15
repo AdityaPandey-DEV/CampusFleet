@@ -183,14 +183,19 @@ class CampusFleetStore {
   public async syncFromSupabase() {
     try {
       // 0. Fetch Transit Zones (PostgreSQL Master Data)
-      const { data: dbZones } = await supabase.from("transit_zones").select("*").eq("is_active", true);
+      const { data: dbZones } = await supabase.from("transit_zones").select("*").order("created_at", { ascending: true });
       if (dbZones && dbZones.length > 0) {
         this.transitZones = dbZones.map(z => ({
+          id: z.id || `zone-${z.code}`,
           code: z.code,
           name: z.name,
-          corridorDescription: z.corridor_description,
-          semesterFee: Number(z.semester_fee),
-          installmentsAllowed: z.installments_allowed,
+          corridorDescription: z.corridor_description || "",
+          semesterFee: Number(z.semester_fee) || 0,
+          installmentsAllowed: Number(z.installments_allowed) || 3,
+          campusId: z.campus_id || "",
+          isActive: z.is_active ?? true,
+          createdAt: z.created_at,
+          updatedAt: z.updated_at,
         }));
       }
 
@@ -743,10 +748,16 @@ class CampusFleetStore {
   public getBookings() { return this.bookings; }
   public getLiveLocation() { return this.liveLocation; }
   public getPlans() { return this.plans; }
-  public getTransitZones(): TransitZone[] {
-    if (this.transitZones && this.transitZones.length > 0) {
-      return this.transitZones;
+  public getTransitZones(campusId?: string, includeInactive = false): TransitZone[] {
+    let zones = this.transitZones;
+    if (!includeInactive) {
+      zones = zones.filter(z => z.isActive !== false);
     }
+    if (campusId) {
+      const matching = zones.filter(z => z.campusId === campusId);
+      if (matching.length > 0) return matching;
+    }
+    if (zones.length > 0) return zones;
     return TRANSIT_ZONES;
   }
   public getPayments() { return this.payments; }
@@ -1497,6 +1508,137 @@ class CampusFleetStore {
 
   public async setPrimaryCampus(id: string): Promise<boolean> {
     return !!(await this.updateCampus(id, { isPrimary: true }));
+  }
+
+  public async createTransitZone(zoneData: Omit<TransitZone, "id"> & { id?: string; campusId: string; assignedStopIds?: string[] }): Promise<TransitZone> {
+    const code = zoneData.code.trim().toUpperCase();
+    const id = zoneData.id || `zone-${zoneData.campusId.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${code.toLowerCase()}-${Date.now().toString(36)}`;
+    
+    // Auto build description if empty and stops provided
+    let corridorDescription = zoneData.corridorDescription || "";
+    if (!corridorDescription && zoneData.assignedStopIds && zoneData.assignedStopIds.length > 0) {
+      corridorDescription = this.stops
+        .filter(s => zoneData.assignedStopIds!.includes(s.id))
+        .map(s => s.name)
+        .join(", ");
+    }
+
+    const newZone: TransitZone = {
+      ...zoneData,
+      id,
+      code,
+      corridorDescription,
+      semesterFee: Number(zoneData.semesterFee) || 0,
+      installmentsAllowed: Number(zoneData.installmentsAllowed) || 3,
+      isActive: zoneData.isActive ?? true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.transitZones = [
+      ...this.transitZones.filter(z => !(z.campusId === newZone.campusId && z.code === newZone.code)),
+      newZone,
+    ];
+
+    // Assign stops in local state
+    if (zoneData.assignedStopIds && zoneData.assignedStopIds.length > 0) {
+      this.stops = this.stops.map(s =>
+        zoneData.assignedStopIds!.includes(s.id)
+          ? { ...s, zoneCode: code, campusId: zoneData.campusId }
+          : s
+      );
+    }
+
+    this.saveToLocalStorage();
+    this.notify();
+
+    try {
+      await fetch("/api/zones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...newZone,
+          assignedStopIds: zoneData.assignedStopIds,
+        }),
+      });
+    } catch (e) {
+      console.warn("DB createTransitZone:", e);
+    }
+    return newZone;
+  }
+
+  public async updateTransitZone(idOrCode: string, updates: Partial<TransitZone> & { assignedStopIds?: string[] }): Promise<TransitZone | null> {
+    const targetZone = this.transitZones.find(z => z.id === idOrCode || z.code === idOrCode);
+    const targetCode = updates.code ? updates.code.trim().toUpperCase() : (targetZone?.code || "");
+    const targetCampusId = updates.campusId || targetZone?.campusId;
+
+    this.transitZones = this.transitZones.map(z => {
+      if (z.id === idOrCode || z.code === idOrCode) {
+        return {
+          ...z,
+          ...updates,
+          code: targetCode,
+          semesterFee: updates.semesterFee !== undefined ? Number(updates.semesterFee) : z.semesterFee,
+          installmentsAllowed: updates.installmentsAllowed !== undefined ? Number(updates.installmentsAllowed) : z.installmentsAllowed,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return z;
+    });
+
+    // Update stops in memory if assignedStopIds array provided
+    if (updates.assignedStopIds !== undefined) {
+      this.stops = this.stops.map(s => {
+        if (s.campusId === targetCampusId && s.zoneCode === targetCode && !updates.assignedStopIds!.includes(s.id)) {
+          return { ...s, zoneCode: undefined };
+        }
+        if (updates.assignedStopIds!.includes(s.id)) {
+          return { ...s, zoneCode: targetCode, campusId: targetCampusId };
+        }
+        return s;
+      });
+    }
+
+    this.saveToLocalStorage();
+    this.notify();
+
+    try {
+      await fetch(`/api/zones/${targetZone?.id || idOrCode}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+    } catch (e) {
+      console.warn("DB updateTransitZone:", e);
+    }
+
+    return this.transitZones.find(z => z.id === idOrCode || z.code === idOrCode) || null;
+  }
+
+  public async deleteTransitZone(idOrCode: string): Promise<boolean> {
+    const target = this.transitZones.find(z => z.id === idOrCode || z.code === idOrCode);
+    if (!target) return false;
+
+    this.transitZones = this.transitZones.filter(z => z.id !== idOrCode && z.code !== idOrCode);
+
+    // Unassign stops from deleted zone
+    this.stops = this.stops.map(s =>
+      (s.zoneCode === target.code && (!target.campusId || s.campusId === target.campusId))
+        ? { ...s, zoneCode: undefined }
+        : s
+    );
+
+    this.saveToLocalStorage();
+    this.notify();
+
+    try {
+      await fetch(`/api/zones/${target.id || idOrCode}`, {
+        method: "DELETE",
+      });
+    } catch (e) {
+      console.warn("DB deleteTransitZone:", e);
+    }
+    return true;
   }
 
   public async createRoute(routeData: Omit<Route, "id">) {
