@@ -152,6 +152,36 @@ export function StudentProfileModal() {
         if (data.success && data.classes) setClassesList(data.classes);
       })
       .catch(console.error);
+
+    // Fetch student's own verified record on mount
+    fetch("/api/students/me")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.student) {
+          const s = data.student;
+          setFullName(s.fullName || "");
+          setEnrollmentNo(s.enrollmentNo && s.enrollmentNo !== "PENDING" ? s.enrollmentNo : "");
+          setPhone(s.phone || "");
+          setCampusId(s.campusId || "");
+          setCampus(s.campus || "");
+          setDepartment(s.department || "");
+          setSemester(s.semester || "");
+          setSelectedClassId(s.classId || "");
+          setSelectedZoneCode(s.zoneCode || "ZONE_B");
+          setPrimaryStopId(s.primaryStopId || "");
+          setPhotoUrl(s.photoUrl || "");
+          if (s.emergencyContact) {
+            setEmergencyName(s.emergencyContact.name || "");
+            setEmergencyPhone(s.emergencyContact.phone || "");
+            setEmergencyRel(s.emergencyContact.relationship || "Parent / Guardian");
+          }
+          if (s.phone && s.phone.trim() !== "") {
+            setIsOpen(false);
+          }
+          setStudentsLoaded(true);
+        }
+      })
+      .catch(console.error);
   }, []);
 
   // Allow opening profile on demand via custom event

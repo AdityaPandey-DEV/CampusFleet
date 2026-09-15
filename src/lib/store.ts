@@ -206,52 +206,59 @@ class CampusFleetStore {
         const { student } = await res.json();
         if (!student) return;
 
-        // Patch just the payment/subscription/photo fields in the existing student record
-        let changed = false;
-        this.students = this.students.map(s => {
-          if (s.email?.toLowerCase() !== user.email?.toLowerCase() && s.userId !== user.id) return s;
+        const serverStudent: Student = {
+          id: student.id,
+          userId: student.userId || user.id,
+          enrollmentNo: student.enrollmentNo || "PENDING",
+          fullName: student.fullName || user.fullName,
+          email: student.email || user.email,
+          phone: student.phone || null,
+          department: student.department || "B.Tech CSE",
+          semester: student.semester || "5th",
+          campusId: student.campusId || user.campusId || "",
+          campus: student.campus || user.campus || "",
+          primaryStopId: student.primaryStopId || "",
+          primaryRouteId: student.primaryRouteId || "",
+          emergencyContact: student.emergencyContact || { name: null, relationship: null, phone: null },
+          transportAccessSuspended: Boolean(student.transportAccessSuspended),
+          hasActiveSubscription: Boolean(student.hasActiveSubscription),
+          subscriptionExpiryDate: student.subscriptionExpiryDate,
+          classId: student.classId,
+          className: student.className,
+          zoneCode: student.zoneCode || "ZONE_B",
+          paymentStatus: student.paymentStatus || "UNPAID",
+          totalFeeDue: Number(student.totalFeeDue) || 12000,
+          totalFeePaid: Number(student.totalFeePaid) || 0,
+          photoUrl: student.photoUrl || "",
+          photoLocked: Boolean(student.photoLocked),
+        };
 
-          const needsUpdate =
-            s.paymentStatus !== student.paymentStatus ||
-            s.hasActiveSubscription !== student.hasActiveSubscription ||
-            s.totalFeePaid !== student.totalFeePaid ||
-            s.photoUrl !== student.photoUrl ||
-            s.photoLocked !== student.photoLocked ||
-            s.transportAccessSuspended !== student.transportAccessSuspended;
+        const existingIdx = this.students.findIndex(
+          s => s.id === serverStudent.id ||
+               (s.email && s.email.toLowerCase() === user.email?.toLowerCase()) ||
+               (s.userId && s.userId === user.id)
+        );
 
-          if (!needsUpdate) return s;
-
-          changed = true;
-          return {
-            ...s,
-            paymentStatus: student.paymentStatus,
-            hasActiveSubscription: student.hasActiveSubscription,
-            totalFeeDue: student.totalFeeDue,
-            totalFeePaid: student.totalFeePaid,
-            subscriptionExpiryDate: student.subscriptionExpiryDate || s.subscriptionExpiryDate,
-            photoUrl: student.photoUrl || s.photoUrl,
-            photoLocked: student.photoLocked || s.photoLocked,
-            transportAccessSuspended: student.transportAccessSuspended,
-            // Also update profile fields if they changed
-            phone: student.phone || s.phone,
-            zoneCode: student.zoneCode || s.zoneCode,
-            emergencyContact: student.emergencyContact?.name ? student.emergencyContact : s.emergencyContact,
-          };
-        });
-
-        if (changed) {
-          this.saveToLocalStorage();
-          this.notify();
+        if (existingIdx >= 0) {
+          this.students[existingIdx] = { ...this.students[existingIdx], ...serverStudent };
+        } else {
+          this.students.push(serverStudent);
         }
+
+        this.saveToLocalStorage();
+        this.notify();
       } catch {
         // Silent fail — non-critical background poll
       }
     };
 
+    // Run immediately on initialization
+    syncStudentStatus();
+
     // Poll every 30 seconds
     setInterval(syncStudentStatus, 30_000);
 
-    // Sync immediately on tab becoming visible (catches approvals made while tab was in background)
+    // Sync immediately on tab becoming visible
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
         syncStudentStatus();
