@@ -509,8 +509,8 @@ class CampusFleetStore {
           paymentStatus: s.payment_status || (s.has_active_subscription ? "APPROVED" : "UNPAID"),
           totalFeeDue: s.total_fee_due || (s.zone_semester_fee ? Number(s.zone_semester_fee) : 12000),
           totalFeePaid: s.total_fee_paid || 0,
-          photoUrl: s.photo_url || s.avatar_url || "",
-          photoLocked: Boolean(s.photo_url || s.photo_locked),
+          photoUrl: s.photo_url || "",
+          photoLocked: Boolean(s.photo_url && s.photo_url.trim() !== "") || Boolean(s.photo_locked),
         }));
       }
 
@@ -540,7 +540,7 @@ class CampusFleetStore {
             paymentStatus: "UNPAID",
             totalFeeDue: 12000,
             totalFeePaid: 0,
-            photoUrl: (u as any).avatarUrl || "",
+            photoUrl: "",
             photoLocked: false,
           };
           mappedStudents.push(newStudent);
@@ -1272,8 +1272,8 @@ class CampusFleetStore {
         paymentStatus: "UNPAID",
         totalFeeDue: 0,
         totalFeePaid: 0,
-        photoUrl: profileData.photoUrl || (u as any)?.avatarUrl || "",
-        photoLocked: Boolean(profileData.photoUrl),
+        photoUrl: profileData.photoUrl || "",
+        photoLocked: Boolean(profileData.photoUrl && profileData.photoUrl.trim() !== ""),
       };
       this.students.push(student);
     }
@@ -1329,7 +1329,7 @@ class CampusFleetStore {
         studentId: updatedStudent.id,
         campusId: updatedStudent.campusId,
         campus: updatedStudent.campus,
-        avatarUrl: updatedStudent.photoUrl || (this.currentUser as any).avatarUrl,
+        avatarUrl: (this.currentUser as any).avatarUrl,
       };
     }
 
