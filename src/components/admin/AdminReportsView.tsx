@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { store } from "@/lib/store";
 import { formatDate } from "@/lib/utils";
-import { FileBarChart, Download, FileSpreadsheet, CheckCircle2, Calendar } from "lucide-react";
+import { FileBarChart, Download, FileSpreadsheet, CheckCircle2, Calendar, User } from "lucide-react";
 
 import type { Booking, Student, Bus } from "@/lib/types";
 
@@ -38,10 +38,10 @@ export default function AdminReportsView({
       let filename = `campusfleet_${reportType.toLowerCase()}_report.csv`;
 
       if (reportType === "ATTENDANCE") {
-        csvContent = "BookingCode,StudentName,EnrollmentNo,Seat,Status,Date\n";
+        csvContent = "BookingCode,StudentName,EnrollmentNo,Department,Seat,Status,BoardedAt,CreatedAt\n";
         bookings.forEach(b => {
           const s = students.find(stud => stud.id === b.studentId);
-          csvContent += `"${b.bookingCode}","${s?.fullName || ""}","${s?.enrollmentNo || ""}","${b.seatNumber || `WL-${b.waitlistPosition}`}","${b.status}","${b.createdAt}"\n`;
+          csvContent += `"${b.bookingCode}","${s?.fullName || ""}","${s?.enrollmentNo || ""}","${s?.department || ""}","${b.seatNumber || `WL-${b.waitlistPosition}`}","${b.status}","${b.boardedAt || ""}","${b.createdAt}"\n`;
         });
       } else if (reportType === "OCCUPANCY") {
         csvContent = "BusNumber,Registration,Capacity,Status,GPS_ID\n";
@@ -136,10 +136,11 @@ export default function AdminReportsView({
               <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="p-3">Booking Code</th>
-                  <th className="p-3">Passenger</th>
+                  <th className="p-3">Commuter / Photo</th>
+                  <th className="p-3">Department</th>
                   <th className="p-3">Seat Number</th>
                   <th className="p-3">Verification Status</th>
-                  <th className="p-3">Timestamp</th>
+                  <th className="p-3">Attendance Time</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -148,14 +149,47 @@ export default function AdminReportsView({
                   return (
                     <tr key={b.id}>
                       <td className="p-3 font-mono font-bold text-blue-600">{b.bookingCode}</td>
-                      <td className="p-3 font-semibold">{s?.fullName} ({s?.enrollmentNo})</td>
-                      <td className="p-3 font-mono">{b.seatNumber || `WL-${b.waitlistPosition}`}</td>
                       <td className="p-3">
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold text-[10px]">
+                        <div className="flex items-center gap-2.5">
+                          {s?.photoUrl ? (
+                            <img
+                              src={s.photoUrl}
+                              alt={s.fullName}
+                              className="w-8 h-10 object-cover rounded-md border border-slate-300 dark:border-slate-700 shadow-2xs flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-10 rounded-md border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 text-slate-400">
+                              <User className="w-4 h-4" />
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-bold text-slate-900 dark:text-white">
+                              {s?.fullName || "Student"}
+                            </div>
+                            <div className="font-mono text-[10px] text-slate-400">
+                              {s?.enrollmentNo || "N/A"}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3 text-slate-600 dark:text-slate-300">
+                        {s?.department || "Unassigned"}
+                      </td>
+                      <td className="p-3 font-mono font-bold">{b.seatNumber || `WL-${b.waitlistPosition}`}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                          b.status === "BOARDED"
+                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300"
+                            : b.status === "CONFIRMED"
+                            ? "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                        }`}>
                           {b.status}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-500">{formatDate(b.createdAt)}</td>
+                      <td className="p-3 text-slate-500">
+                        {b.boardedAt ? new Date(b.boardedAt).toLocaleTimeString() : formatDate(b.createdAt)}
+                      </td>
                     </tr>
                   );
                 })}

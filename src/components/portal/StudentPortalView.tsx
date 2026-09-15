@@ -346,25 +346,54 @@ export default function StudentPortalView({
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* 1. Academic Identity Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 rounded-3xl shadow-xl">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-blue-500/30 border border-blue-400/30 text-blue-200 text-xs font-semibold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Live Academic Transit Active
-            </span>
-            <span className="text-xs text-blue-300">{formatDate(new Date().toISOString())}</span>
+        <div className="flex items-center gap-4">
+          {activeStudent?.photoUrl ? (
+            <div className="relative flex-shrink-0">
+              <img
+                src={activeStudent.photoUrl}
+                alt={activeStudent.fullName}
+                className="w-16 h-20 sm:w-18 sm:h-22 object-cover rounded-2xl border-2 border-white/40 shadow-xl bg-slate-900"
+              />
+              <div className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full bg-emerald-500 text-[8px] font-black text-white uppercase tracking-wider shadow">
+                Verified ID
+              </div>
+            </div>
+          ) : (
+            <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-2xl border-2 border-dashed border-white/30 bg-white/10 flex flex-col items-center justify-center flex-shrink-0 text-blue-200">
+              <User className="w-6 h-6" />
+              <span className="text-[8px] font-bold mt-1">Photo Pending</span>
+            </div>
+          )}
+
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/30 border border-blue-400/30 text-blue-200 text-xs font-semibold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Live Academic Transit Active
+              </span>
+              <span className="text-xs text-blue-300">{formatDate(new Date().toISOString())}</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight truncate">
+              {currentUser ? `Welcome, ${currentUser.fullName.split(" ")[0]}! 👋` : "Student Commute Cockpit 👋"}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300">
+              {currentUser && activeStudent
+                ? `${activeStudent.department || "B.Tech CSE"} • ${activeStudent.enrollmentNo || "GEHU/2023/1108"} • Zone: ${activeStudent.zoneCode || "ZONE_B"}`
+                : "Sign in with your university credentials to reserve seats and track your assigned shuttle."}
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-            {currentUser ? `Welcome, ${currentUser.fullName.split(" ")[0]}! 👋` : "Student Commute Cockpit 👋"}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300">
-            {currentUser && activeStudent
-              ? `${activeStudent.department || "B.Tech CSE"} • ${activeStudent.enrollmentNo || "GEHU/2023/1108"} • Zone: ${activeStudent.zoneCode || "ZONE_B"}`
-              : "Sign in with your university credentials to reserve seats and track your assigned shuttle."}
-          </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("open-student-profile"))}
+            className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white font-bold text-xs rounded-2xl backdrop-blur transition-all flex items-center gap-2 cursor-pointer active:scale-95 shadow-sm"
+            title="View Official Institutional ID & Emergency Contacts"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>ID Card & Profile</span>
+          </button>
+
           {isBookingActive && (
             <button
               onClick={() => setIsQRModalOpen(true)}

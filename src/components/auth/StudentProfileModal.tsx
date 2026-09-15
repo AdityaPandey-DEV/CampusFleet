@@ -108,7 +108,31 @@ export function StudentProfileModal() {
       .catch(console.error);
   }, []);
 
-  // Check if profile is incomplete
+  // Allow opening profile on demand via custom event
+  useEffect(() => {
+    const handleOpen = () => {
+      if (currentUser && currentUser.role === "student") {
+        setFullName(activeStudent?.fullName || currentUser.fullName || "");
+        setEnrollmentNo(activeStudent?.enrollmentNo && activeStudent?.enrollmentNo !== "PENDING" ? activeStudent.enrollmentNo : "");
+        setPhone(activeStudent?.phone !== "+91 0000000000" ? (activeStudent?.phone || "") : "");
+        setCampusId(activeStudent?.campusId || store.getPrimaryCampus()?.id || "");
+        setCampus(activeStudent?.campus || store.getPrimaryCampus()?.name || "Main Campus");
+        setDepartment(activeStudent?.department || "");
+        setSemester(activeStudent?.semester || "");
+        setSelectedClassId(activeStudent?.classId || "");
+        setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
+        setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
+        setEmergencyPhone(activeStudent?.emergencyContact?.phone !== "+91 0000000000" ? (activeStudent?.emergencyContact?.phone || "") : "");
+        setPhotoUrl(activeStudent?.photoUrl || "");
+        setIsOpen(true);
+      }
+    };
+
+    window.addEventListener("open-student-profile", handleOpen);
+    return () => window.removeEventListener("open-student-profile", handleOpen);
+  }, [currentUser, activeStudent, stops]);
+
+  // Check if profile is incomplete on initial load
   useEffect(() => {
     if (!currentUser || currentUser.role !== "student") {
       setIsOpen(false);

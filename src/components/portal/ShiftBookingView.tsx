@@ -723,14 +723,32 @@ export default function ShiftBookingView({
               </div>
 
               {/* Passenger & Emergency Contact Details */}
-              <div className="grid grid-cols-2 gap-3 text-xs pt-1">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Passenger</div>
-                  <div className="font-bold text-slate-900 dark:text-white truncate">
-                    {currentUser ? (activeStudent?.fullName || currentUser.fullName) : "Guest Commuter"}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-mono truncate">
-                    {currentUser ? (activeStudent?.enrollmentNo || currentUser.email) : "Sign in required to book"}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-center gap-3">
+                  {activeStudent?.photoUrl ? (
+                    <img
+                      src={activeStudent.photoUrl}
+                      alt={activeStudent.fullName}
+                      className="w-10 h-12 rounded-lg object-cover border border-slate-300 dark:border-slate-700 shadow-xs flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-12 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 text-slate-400">
+                      <Users className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                      <span>Passenger</span>
+                      {activeStudent?.photoUrl && (
+                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">✓ ID Verified</span>
+                      )}
+                    </div>
+                    <div className="font-bold text-slate-900 dark:text-white truncate">
+                      {currentUser ? (activeStudent?.fullName || currentUser.fullName) : "Guest Commuter"}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono truncate">
+                      {currentUser ? (activeStudent?.enrollmentNo || currentUser.email) : "Sign in required to book"}
+                    </div>
                   </div>
                 </div>
 
