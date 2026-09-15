@@ -163,18 +163,22 @@ export default function ShiftBookingView({
   const shiftStatus = selectedShift ? getShiftStatus(selectedShift) : null;
   const isCutoffPassed = shiftStatus ? !shiftStatus.isBookingOpen : false;
 
-  // All trips & buses belonging to current selected shift, prioritized for today's active schedule
+  // All trips & buses belonging to current selected shift, strictly scoped to today's schedule
   const shiftTrips = useMemo(() => {
-    return trips
-      .filter(t => t.shiftId === selectedShiftId)
-      .sort((a, b) => {
-        const aToday = a.tripDate === todayStr ? 1 : 0;
-        const bToday = b.tripDate === todayStr ? 1 : 0;
-        if (aToday !== bToday) return bToday - aToday;
-        if (a.status === "SCHEDULED" && b.status !== "SCHEDULED") return -1;
-        if (b.status === "SCHEDULED" && a.status !== "SCHEDULED") return 1;
-        return 0;
-      });
+    // 1. Strict priority: trips for current shift and today's date
+    const todayMatches = trips.filter(
+      t => t.shiftId === selectedShiftId && t.tripDate === todayStr && t.status !== "CANCELLED"
+    );
+    if (todayMatches.length > 0) return todayMatches;
+
+    // 2. Upcoming scheduled trips for this shift
+    const scheduledMatches = trips.filter(
+      t => t.shiftId === selectedShiftId && t.status === "SCHEDULED"
+    );
+    if (scheduledMatches.length > 0) return scheduledMatches;
+
+    // 3. Fallback to any trip belonging to this shift
+    return trips.filter(t => t.shiftId === selectedShiftId);
   }, [trips, selectedShiftId, todayStr]);
 
   const shiftBuses = useMemo(() => {

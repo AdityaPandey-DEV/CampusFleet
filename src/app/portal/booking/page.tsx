@@ -2,6 +2,7 @@ import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import ShiftBookingView from "@/components/portal/ShiftBookingView";
+import { getTodayIST } from "@/lib/time-manager";
 import type { Student, Shift, Stop, Bus, Trip, Booking } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -19,21 +20,38 @@ export default async function ShiftBookingPage() {
     redirect("/login?redirect=/portal/booking");
   }
 
+  const todayIST = getTodayIST();
+
   const [
     { data: dbShifts },
     { data: dbStops },
     { data: dbBuses },
-    { data: dbTrips },
+    { data: rawDbTrips },
     { data: dbBookings },
     { data: dbStudents },
   ] = await Promise.all([
     supabaseAdmin.from("shifts").select("*"),
     supabaseAdmin.from("stops").select("*"),
     supabaseAdmin.from("buses").select("*"),
-    supabaseAdmin.from("trips").select("*").order("trip_date", { ascending: false }).order("trip_code"),
+    supabaseAdmin
+      .from("trips")
+      .select("*")
+      .gte("trip_date", todayIST)
+      .order("trip_date", { ascending: true })
+      .order("trip_code"),
     supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
     supabaseAdmin.from("students").select("*"),
   ]);
+
+  let dbTrips = rawDbTrips;
+  if (!dbTrips || dbTrips.length === 0) {
+    const { data: allTrips } = await supabaseAdmin
+      .from("trips")
+      .select("*")
+      .order("trip_date", { ascending: false })
+      .limit(50);
+    dbTrips = allTrips;
+  }
 
   const stops: Stop[] = (dbStops || []).map((s: any) => ({
     id: s.id,

@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
 
     // If client provided a historical trip from a past day, auto-resolve to today's scheduled trip for this bus & shift
     if (trip.trip_date && trip.trip_date < todayIST) {
-      const { data: todayTrip } = await supabaseAdmin
+      const { data: todayTrips } = await supabaseAdmin
         .from("trips")
         .select("*, shifts(*), buses(*)")
         .eq("bus_id", trip.bus_id)
@@ -147,8 +147,16 @@ export async function POST(req: NextRequest) {
         .eq("status", "SCHEDULED")
         .limit(1);
 
-      if (todayTrip && todayTrip.length > 0) {
-        trip = todayTrip[0];
+      if (todayTrips && todayTrips.length > 0) {
+        trip = todayTrips[0];
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Booking closed. Trip schedule (${trip.trip_code}) was for a past date (${trip.trip_date}). Please select today's departure.`,
+          },
+          { status: 400 }
+        );
       }
     }
 
