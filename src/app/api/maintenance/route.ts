@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getSessionFromRequest } from "@/lib/jwt";
 
 // GET /api/maintenance - Fetch all maintenance records
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // Auth guard — only authenticated staff/admin can read logs
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: "Authentication required." },
+        { status: 401 }
+      );
+    }
+
+    const allowedRoles = ["admin", "transport_manager", "staff"];
+    if (!allowedRoles.includes(session.role)) {
+      return NextResponse.json(
+        { success: false, message: "Insufficient permissions." },
+        { status: 403 }
+      );
+    }
+
     const { data: logs, error } = await supabaseAdmin
       .from("maintenance_logs")
       .select("*")
@@ -44,6 +62,23 @@ export async function GET() {
 // POST /api/maintenance - Record a maintenance event and update vehicle availability
 export async function POST(req: NextRequest) {
   try {
+    // Auth guard
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: "Authentication required." },
+        { status: 401 }
+      );
+    }
+
+    const allowedRoles = ["admin", "transport_manager", "staff"];
+    if (!allowedRoles.includes(session.role)) {
+      return NextResponse.json(
+        { success: false, message: "Insufficient permissions." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { busId, maintenanceType, serviceDate, nextServiceDate, status, notes, cost, createdBy } = body;
 

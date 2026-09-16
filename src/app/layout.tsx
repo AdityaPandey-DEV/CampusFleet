@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/common/ThemeProvider";
 import { CampusTimeProvider } from "@/components/common/CampusTimeProvider";
+import { LanguageProvider } from "@/components/common/LanguageProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,9 +35,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider>
-          <CampusTimeProvider>
-            {children}
-          </CampusTimeProvider>
+          <LanguageProvider>
+            <CampusTimeProvider>
+              {children}
+            </CampusTimeProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

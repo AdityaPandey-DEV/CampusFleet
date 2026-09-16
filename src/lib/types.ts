@@ -548,3 +548,43 @@ export interface TodayBusArrival {
   status: "Present";
 }
 
+// ─── Maintenance Register Types ───
+
+export type MaintenanceRequestStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface MaintenanceRequest {
+  id: string;
+  serialNo: number;
+  date: string;
+  vehicleNo: string;
+  busId: string;
+  item: string;
+  quantity: number;
+  rate: number;
+  amount: number;
+  defectDescription: string;
+  defectImageUrls: string[];
+  workDoneDescription: string;
+  workDoneImageUrls: string[];
+  paymentReceiptUrl: string | null;
+  paymentTransactionId: string | null;
+  status: MaintenanceRequestStatus;
+  requestedBy: string;
+  requestedByName: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  remarks: string;
+}
+
+// ─── Language & Preferences Types ───
+
+export type SupportedLanguage = "en" | "hi" | "pa" | "bn" | "ta" | "te" | "mr" | "gu" | "kn" | "ml";
+
+export interface UserPreferences {
+  theme: "light" | "dark" | "system";
+  primaryLanguage: SupportedLanguage;
+  secondaryLanguage: SupportedLanguage | null;
+}

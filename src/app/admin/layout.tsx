@@ -93,19 +93,8 @@ export default function AdminLayout({
   const unreadNotifs = notifications.filter(n => !n.isRead).length;
 
   const navItems = [
-    { href: "/admin", label: "Overview HUD", icon: LayoutDashboard },
-    { href: "/admin/campuses", label: "Campuses & Zones", icon: Building2 },
-    { href: "/admin/classes", label: "Classes & Timetable", icon: BookOpen },
-    { href: "/admin/merges", label: "Merge & Dispatch", icon: GitMerge },
-    { href: "/admin/buses", label: "Bus Fleet", icon: BusFront },
-    { href: "/admin/routes", label: "Routes & Stops", icon: Route },
-    { href: "/admin/trips", label: "Trips & Shifts", icon: Navigation },
-    { href: "/admin/reservations", label: "Reservations & WL", icon: CalendarCheck },
-    { href: "/admin/staff", label: "Staff & RBAC", icon: Users },
-    { href: "/admin/students", label: "Students & Roster", icon: GraduationCap },
-    { href: "/admin/billing", label: "Passes & Revenue", icon: CreditCard },
     { href: "/admin/maintenance", label: "Maintenance Desk", icon: Wrench, badge: openIssues > 0 ? openIssues : undefined },
-    { href: "/admin/reports", label: "Reports & Exports", icon: FileBarChart },
+    { href: "/admin/staff", label: "Staff & RBAC", icon: Users },
   ];
 
   // Access Barrier: Only Admin (and transport_manager) can access the Admin Portal

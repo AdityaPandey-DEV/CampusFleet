@@ -25,15 +25,15 @@ import {
   Briefcase,
 } from "lucide-react";
 
-export interface AdminStaffProps {
+export interface StaffStaffProps {
   initialUsers?: UserAccount[];
   initialUser?: any;
 }
 
-export default function AdminStaffView({
+export default function StaffUsersView({
   initialUsers = [],
   initialUser,
-}: AdminStaffProps = {}) {
+}: StaffStaffProps = {}) {
   const router = useRouter();
   const [users, setUsers] = useState<UserAccount[]>(initialUsers || []);
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
@@ -500,18 +500,18 @@ export default function AdminStaffView({
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     Role
                   </label>
-                    <select
-                      value={newUser.role}
-                      onChange={e => setNewUser({ ...newUser, role: e.target.value as UserRole })}
-                      className="w-full text-xs p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none mt-1 cursor-pointer"
-                    >
-                      <option value="student">Student Commuter</option>
-                      <option value="teacher">Teacher / Faculty</option>
-                      <option value="staff">Transport Staff</option>
-                      <option value="conductor">Conductor</option>
-                      <option value="driver">Fleet Driver</option>
-                      {isAdmin && <option value="admin">Administrator</option>}
-                    </select>
+                  <select
+                    value={newUser.role}
+                    onChange={e => setNewUser({ ...newUser, role: e.target.value as UserRole })}
+                    className="w-full text-xs p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none mt-1 cursor-pointer"
+                  >
+                    <option value="student">Student Commuter</option>
+                    <option value="teacher">Teacher / Faculty</option>
+                    <option value="staff">Transport Staff</option>
+                    <option value="conductor">Conductor</option>
+                    <option value="driver">Fleet Driver</option>
+                    {isAdmin && <option value="admin">Administrator</option>}
+                  </select>
                 </div>
 
                 <div>

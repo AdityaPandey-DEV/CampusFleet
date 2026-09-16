@@ -26,8 +26,15 @@ import {
   ShieldAlert,
   AlertCircle,
   ExternalLink,
+  Settings,
+  Globe,
+  Sun,
+  Moon,
+  Laptop,
 } from "lucide-react";
-import type { Student, Bus, Route, Stop, Shift, Booking, Staff } from "@/lib/types";
+import { useTheme } from "@/components/common/ThemeProvider";
+import { useTranslation } from "@/components/common/LanguageProvider";
+import type { Student, Bus, Route, Stop, Shift, Booking, Staff, SupportedLanguage } from "@/lib/types";
 
 export interface StudentProfilePageViewProps {
   initialUser?: any;
@@ -73,6 +80,16 @@ export default function StudentProfilePageView({
   const [staff, setStaff] = useState<Staff[]>(() =>
     initialStaff.length > 0 ? initialStaff : store.getStaff()
   );
+
+  const { theme, setTheme } = useTheme();
+  const {
+    primaryLanguage,
+    secondaryLanguage,
+    setPrimaryLanguage,
+    setSecondaryLanguage,
+    t,
+    languageOptions,
+  } = useTranslation();
 
   useEffect(() => {
     if (initialStudents.length > 0 && students.length === 0) setStudents(initialStudents);
@@ -770,6 +787,148 @@ export default function StudentProfilePageView({
                 <div className="text-[10px] text-slate-400">
                   Rotating anti-replay pass
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section E: Interface Appearance & Vernacular Regional Language */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                    Interface Appearance & Regional Languages
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Switch theme styles and regional language vernacular for student passes & notifications
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                <Globe className="w-3.5 h-3.5" />
+                10 Indian Languages
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Theme Preference */}
+              <div className="space-y-3">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Visual Theme
+                </label>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setTheme("light")}
+                    className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${
+                      theme === "light"
+                        ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-black shadow-sm ring-2 ring-blue-500/20"
+                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400 font-semibold"
+                    }`}
+                  >
+                    <Sun className="w-5 h-5 text-amber-500" />
+                    <span className="text-xs">Light</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTheme("dark")}
+                    className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${
+                      theme === "dark"
+                        ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-black shadow-sm ring-2 ring-blue-500/20"
+                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400 font-semibold"
+                    }`}
+                  >
+                    <Moon className="w-5 h-5 text-indigo-400" />
+                    <span className="text-xs">Dark</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTheme("system")}
+                    className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${
+                      theme === "system"
+                        ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-black shadow-sm ring-2 ring-blue-500/20"
+                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400 font-semibold"
+                    }`}
+                  >
+                    <Laptop className="w-5 h-5 text-slate-500" />
+                    <span className="text-xs">System</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Select your preferred color scheme across all student portal dashboards.
+                </p>
+              </div>
+
+              {/* Language Preferences */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Primary Regional Language
+                  </label>
+                  <select
+                    value={primaryLanguage}
+                    onChange={(e) => setPrimaryLanguage(e.target.value as SupportedLanguage)}
+                    className="w-full px-3.5 py-2.5 text-xs font-bold rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    {languageOptions.map((opt) => (
+                      <option key={opt.code} value={opt.code}>
+                        {opt.nativeName} ({opt.name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Secondary Language (Vernacular SMS / Alerts)
+                  </label>
+                  <select
+                    value={secondaryLanguage || ""}
+                    onChange={(e) =>
+                      setSecondaryLanguage(
+                        e.target.value ? (e.target.value as SupportedLanguage) : null
+                      )
+                    }
+                    className="w-full px-3.5 py-2.5 text-xs font-bold rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="">None (Primary only)</option>
+                    {languageOptions.map((opt) => (
+                      <option key={opt.code} value={opt.code}>
+                        {opt.nativeName} ({opt.name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Translation Preview Chip Box */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 space-y-2">
+              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Live Translation Preview ({languageOptions.find((l) => l.code === primaryLanguage)?.name})</span>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium">
+                  {t("student_id")}: <strong className="font-bold text-indigo-600 dark:text-indigo-400">{activeStudent?.enrollmentNo || "STU-2026"}</strong>
+                </span>
+                <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium">
+                  {t("bus_number")}: <strong className="font-bold text-indigo-600 dark:text-indigo-400">{assignedBus?.busNumber || "Bus 1"}</strong>
+                </span>
+                <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium">
+                  {t("route")}: <strong className="font-bold text-indigo-600 dark:text-indigo-400">{assignedRoute?.name || "Corridor A"}</strong>
+                </span>
+                <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium">
+                  {t("campus")}: <strong className="font-bold text-indigo-600 dark:text-indigo-400">{activeStudent?.campus || "Main Campus"}</strong>
+                </span>
+                <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium">
+                  {t("status")}: <strong className="font-bold text-emerald-600">{t("active")}</strong>
+                </span>
               </div>
             </div>
           </div>

@@ -53,9 +53,13 @@ import {
   Navigation,
   Route as RouteIcon,
   GraduationCap,
+  Wrench,
+  Camera,
+  Loader2,
+  Receipt,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import type { Route, Bus, Stop, Student, Trip, Booking, Staff, UserAccount } from "@/lib/types";
+import type { Route, Bus, Stop, Student, Trip, Booking, Staff, UserAccount, MaintenanceRequest, MaintenanceRequestStatus } from "@/lib/types";
 
 export interface StaffOperationsProps {
   initialUser?: any;
@@ -67,6 +71,7 @@ export interface StaffOperationsProps {
   initialBookings?: Booking[];
   initialStaff?: Staff[];
   initialUsers?: UserAccount[];
+  initialTab?: "APPROVALS" | "QR_SETTINGS" | "AUDIT_EXCEL" | "DEMAND_FLEET" | "ROUTE_FLOWCHART" | "MERGE_OPTIMIZER" | "DAILY_OPERATIONS" | "CREW_ASSIGNMENT" | "MAINTENANCE";
 }
 
 export default function StaffOperationsView({
@@ -79,10 +84,11 @@ export default function StaffOperationsView({
   initialBookings = [],
   initialStaff = [],
   initialUsers = [],
+  initialTab,
 }: StaffOperationsProps = {}) {
   const [activeTab, setActiveTab] = useState<
-    "APPROVALS" | "QR_SETTINGS" | "AUDIT_EXCEL" | "DEMAND_FLEET" | "ROUTE_FLOWCHART" | "MERGE_OPTIMIZER" | "DAILY_OPERATIONS" | "CREW_ASSIGNMENT"
-  >("APPROVALS");
+    "APPROVALS" | "QR_SETTINGS" | "AUDIT_EXCEL" | "DEMAND_FLEET" | "ROUTE_FLOWCHART" | "MERGE_OPTIMIZER" | "DAILY_OPERATIONS" | "CREW_ASSIGNMENT" | "MAINTENANCE"
+  >(initialTab || "APPROVALS");
 
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [routes, setRoutes] = useState<Route[]>(() => initialRoutes.length > 0 ? initialRoutes : store.getRoutes());
@@ -93,6 +99,161 @@ export default function StaffOperationsView({
   const [bookings, setBookings] = useState<Booking[]>(() => initialBookings.length > 0 ? initialBookings : store.getBookings());
   const [staff, setStaff] = useState<Staff[]>(() => initialStaff.length > 0 ? initialStaff : store.getStaff());
   const [users, setUsers] = useState<UserAccount[]>(() => initialUsers.length > 0 ? initialUsers : store.getUsers());
+
+  // Maintenance Tab State
+  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
+  const [isMaintLoading, setIsMaintLoading] = useState(false);
+  const [maintSearchTerm, setMaintSearchTerm] = useState("");
+  const [maintStatusFilter, setMaintStatusFilter] = useState<string>("ALL");
+  const [isMaintModalOpen, setIsMaintModalOpen] = useState(false);
+  const [maintVehicleNo, setMaintVehicleNo] = useState("");
+  const [maintBusId, setMaintBusId] = useState("");
+  const [maintItem, setMaintItem] = useState("");
+  const [maintQuantity, setMaintQuantity] = useState<number>(1);
+  const [maintRate, setMaintRate] = useState<number>(0);
+  const [maintDefectDesc, setMaintDefectDesc] = useState("");
+  const [maintDefectImages, setMaintDefectImages] = useState<string[]>([]);
+  const [maintRemarks, setMaintRemarks] = useState("");
+  const [isMaintSubmitting, setIsMaintSubmitting] = useState(false);
+  const [isMaintUploading, setIsMaintUploading] = useState(false);
+  const [maintLightboxImg, setMaintLightboxImg] = useState<{ url: string; title: string } | null>(null);
+  const [maintWorkModalRequest, setMaintWorkModalRequest] = useState<MaintenanceRequest | null>(null);
+  const [maintWorkDesc, setMaintWorkDesc] = useState("");
+  const [maintWorkImages, setMaintWorkImages] = useState<string[]>([]);
+  const [isMaintWorkSubmitting, setIsMaintWorkSubmitting] = useState(false);
+
+  const fetchStaffMaintenanceRequests = async () => {
+    try {
+      setIsMaintLoading(true);
+      const res = await fetch("/api/maintenance/requests");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.requests)) {
+        setMaintenanceRequests(data.requests);
+      }
+    } catch (err) {
+      console.error("Failed to fetch maintenance requests for staff:", err);
+    } finally {
+      setIsMaintLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "MAINTENANCE") {
+      fetchStaffMaintenanceRequests();
+    }
+  }, [activeTab]);
+
+  const handleMaintFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    onSuccess: (url: string) => void
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsMaintUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const formData = new FormData();
+        formData.append("file", files[i]);
+
+        const res = await fetch("/api/maintenance/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (data.success && data.url) {
+          onSuccess(data.url);
+        } else {
+          alert(data.message || "Failed to upload image.");
+        }
+      }
+    } catch (err: any) {
+      alert("Network error uploading image: " + err.message);
+    } finally {
+      setIsMaintUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleCreateMaintEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!maintVehicleNo || !maintItem) {
+      alert("Please provide Vehicle No. and Item.");
+      return;
+    }
+
+    setIsMaintSubmitting(true);
+    try {
+      const amount = (maintQuantity || 1) * (maintRate || 0);
+      const res = await fetch("/api/maintenance/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vehicleNo: maintVehicleNo,
+          busId: maintBusId || undefined,
+          item: maintItem,
+          quantity: maintQuantity,
+          rate: maintRate,
+          amount,
+          defectDescription: maintDefectDesc,
+          defectImageUrls: maintDefectImages,
+          remarks: maintRemarks,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setIsMaintModalOpen(false);
+        setMaintVehicleNo("");
+        setMaintBusId("");
+        setMaintItem("");
+        setMaintQuantity(1);
+        setMaintRate(0);
+        setMaintDefectDesc("");
+        setMaintRemarks("");
+        setMaintDefectImages([]);
+        await fetchStaffMaintenanceRequests();
+      } else {
+        alert(data.message || "Failed to create entry.");
+      }
+    } catch (err: any) {
+      alert("Error creating entry: " + err.message);
+    } finally {
+      setIsMaintSubmitting(false);
+    }
+  };
+
+  const handleSaveMaintWorkProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!maintWorkModalRequest) return;
+
+    setIsMaintWorkSubmitting(true);
+    try {
+      const res = await fetch(`/api/maintenance/requests/${maintWorkModalRequest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workDoneDescription: maintWorkDesc,
+          workDoneImageUrls: maintWorkImages,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setMaintWorkModalRequest(null);
+        setMaintWorkDesc("");
+        setMaintWorkImages([]);
+        await fetchStaffMaintenanceRequests();
+      } else {
+        alert(data.message || "Failed to update work details.");
+      }
+    } catch (err: any) {
+      alert("Error saving work details: " + err.message);
+    } finally {
+      setIsMaintWorkSubmitting(false);
+    }
+  };
 
   // Crew Assignment State
   const [crewSearchQuery, setCrewSearchQuery] = useState("");
@@ -1176,6 +1337,18 @@ export default function StaffOperationsView({
           >
             <Users className="w-4 h-4 shrink-0" />
             <span>Crew & Bus Allocation</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("MAINTENANCE")}
+            className={`w-full sm:w-auto sm:flex-1 sm:min-w-[140px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-start sm:justify-center gap-2 transition-all ${
+              activeTab === "MAINTENANCE"
+                ? "bg-blue-600 text-white shadow-md"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <Wrench className="w-4 h-4 shrink-0" />
+            <span>Maintenance & Repairs</span>
           </button>
         </div>
 
@@ -2644,6 +2817,261 @@ export default function StaffOperationsView({
             </div>
           </div>
         )}
+
+        {/* TAB 8: Maintenance & Fleet Repairs Desk */}
+        {activeTab === "MAINTENANCE" && (
+          <div className="space-y-6 animate-in fade-in">
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden border border-slate-800">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-xs font-mono font-bold text-blue-300 mb-2">
+                    <Wrench className="w-3.5 h-3.5" />
+                    <span>Staff Maintenance Log</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black">
+                    Bus Fleet Maintenance & Defect Reports
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300 max-w-2xl mt-1">
+                    Report defective buses, request spare parts, and submit photographic evidence of completed repairs.
+                    <span className="block mt-1 text-amber-300 font-semibold">
+                      • Staff Role: Submit defect tickets & upload work completion photos. Administrative approval and financial clearance is handled by Transport Admin.
+                    </span>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsMaintModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Report Bus Defect</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Stats Counters */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-800/80">
+                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase">Total Logged</div>
+                  <div className="text-xl font-black text-white font-mono mt-0.5">
+                    {maintenanceRequests.length}
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                  <div className="text-[11px] font-bold text-amber-300 uppercase flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Open
+                  </div>
+                  <div className="text-xl font-black text-amber-400 font-mono mt-0.5">
+                    {maintenanceRequests.filter((r) => r.status === "OPEN").length}
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+                  <div className="text-[11px] font-bold text-blue-300 uppercase flex items-center gap-1">
+                    <Wrench className="w-3 h-3" /> In Workshop
+                  </div>
+                  <div className="text-xl font-black text-blue-400 font-mono mt-0.5">
+                    {maintenanceRequests.filter((r) => r.status === "IN_PROGRESS").length}
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="text-[11px] font-bold text-emerald-300 uppercase flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Completed
+                  </div>
+                  <div className="text-xl font-black text-emerald-400 font-mono mt-0.5">
+                    {maintenanceRequests.filter((r) => r.status === "COMPLETED").length}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter & Search */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search bus, part, or defect..."
+                  value={maintSearchTerm}
+                  onChange={(e) => setMaintSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 text-xs font-semibold rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                {(["ALL", "OPEN", "IN_PROGRESS", "COMPLETED"] as const).map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setMaintStatusFilter(st)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                      maintStatusFilter === st
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                    }`}
+                  >
+                    {st === "ALL" ? "All" : st.replace("_", " ")}
+                  </button>
+                ))}
+                <button
+                  onClick={fetchStaffMaintenanceRequests}
+                  disabled={isMaintLoading}
+                  className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-blue-600"
+                  title="Refresh"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isMaintLoading ? "animate-spin text-blue-600" : ""}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-black uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
+                      <th className="p-3 text-center w-12 border-r border-slate-200 dark:border-slate-700/60">S.No</th>
+                      <th className="p-3 w-24 border-r border-slate-200 dark:border-slate-700/60">Date</th>
+                      <th className="p-3 w-28 border-r border-slate-200 dark:border-slate-700/60">Vehicle</th>
+                      <th className="p-3 min-w-[180px] border-r border-slate-200 dark:border-slate-700/60">Item & Defect Details</th>
+                      <th className="p-3 text-center w-16 border-r border-slate-200 dark:border-slate-700/60">Qty</th>
+                      <th className="p-3 text-right w-24 border-r border-slate-200 dark:border-slate-700/60">Est. Amount</th>
+                      <th className="p-3 text-center w-20 border-r border-slate-200 dark:border-slate-700/60">Photos</th>
+                      <th className="p-3 text-center w-28 border-r border-slate-200 dark:border-slate-700/60">Status</th>
+                      <th className="p-3 min-w-[160px] border-r border-slate-200 dark:border-slate-700/60">Work Done & Proof</th>
+                      <th className="p-3 text-center w-28">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    {maintenanceRequests
+                      .filter((r) => {
+                        const matchesSearch =
+                          maintSearchTerm === "" ||
+                          r.vehicleNo.toLowerCase().includes(maintSearchTerm.toLowerCase()) ||
+                          r.item.toLowerCase().includes(maintSearchTerm.toLowerCase()) ||
+                          r.defectDescription.toLowerCase().includes(maintSearchTerm.toLowerCase());
+                        const matchesStatus = maintStatusFilter === "ALL" || r.status === maintStatusFilter;
+                        return matchesSearch && matchesStatus;
+                      })
+                      .map((req) => (
+                        <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="p-3 text-center font-mono font-bold text-slate-500 border-r border-slate-200 dark:border-slate-800">
+                            #{req.serialNo}
+                          </td>
+                          <td className="p-3 font-mono text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                            {req.date}
+                          </td>
+                          <td className="p-3 font-mono font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800">
+                            {req.vehicleNo}
+                          </td>
+                          <td className="p-3 border-r border-slate-200 dark:border-slate-800">
+                            <div className="font-bold text-slate-900 dark:text-white">{req.item}</div>
+                            {req.defectDescription && (
+                              <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{req.defectDescription}</p>
+                            )}
+                          </td>
+                          <td className="p-3 text-center font-mono font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">
+                            {req.quantity}
+                          </td>
+                          <td className="p-3 text-right font-mono font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800">
+                            ₹{Number(req.amount).toLocaleString("en-IN")}
+                          </td>
+                          <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800">
+                            {req.defectImageUrls && req.defectImageUrls.length > 0 ? (
+                              <div className="flex items-center justify-center gap-1">
+                                {req.defectImageUrls.map((url, i) => (
+                                  <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => setMaintLightboxImg({ url, title: `Defect Photo - ${req.vehicleNo}` })}
+                                    className="w-7 h-7 rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 hover:scale-110 transition-transform"
+                                  >
+                                    <img src={url} alt="Defect" className="w-full h-full object-cover" />
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">None</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800">
+                            {req.status === "OPEN" && (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                OPEN
+                              </span>
+                            )}
+                            {req.status === "IN_PROGRESS" && (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                IN WORKSHOP
+                              </span>
+                            )}
+                            {req.status === "COMPLETED" && (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                COMPLETED
+                              </span>
+                            )}
+                            {req.status === "CANCELLED" && (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                                REJECTED
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 border-r border-slate-200 dark:border-slate-800">
+                            {req.workDoneDescription ? (
+                              <div>
+                                <p className="text-[11px] text-slate-700 dark:text-slate-300 line-clamp-2">
+                                  {req.workDoneDescription}
+                                </p>
+                                {req.workDoneImageUrls && req.workDoneImageUrls.length > 0 && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    {req.workDoneImageUrls.map((url, i) => (
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => setMaintLightboxImg({ url, title: `Work Done - ${req.vehicleNo}` })}
+                                        className="w-6 h-6 rounded-md overflow-hidden border border-emerald-400"
+                                      >
+                                        <img src={url} alt="Proof" className="w-full h-full object-cover" />
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">No notes added</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center">
+                            {req.status !== "COMPLETED" && req.status !== "CANCELLED" ? (
+                              <button
+                                onClick={() => {
+                                  setMaintWorkModalRequest(req);
+                                  setMaintWorkDesc(req.workDoneDescription || "");
+                                  setMaintWorkImages(req.workDoneImageUrls || []);
+                                }}
+                                className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-[11px] transition-colors"
+                              >
+                                + Work Proof
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">Locked</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    {maintenanceRequests.length === 0 && (
+                      <tr>
+                        <td colSpan={10} className="p-8 text-center text-slate-400">
+                          No maintenance requests found. Click "+ Report Bus Defect" above to create one.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Lightbox Modal for Receipt Image */}
@@ -3020,6 +3448,343 @@ export default function StaffOperationsView({
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Maintenance: Create Entry Modal */}
+      {isMaintModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-md">
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    Report Bus Defect / Request Parts
+                  </h3>
+                  <p className="text-xs text-slate-500">Submit ticket for workshop review & dispatch</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsMaintModalOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateMaintEntry} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Vehicle Number <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Bus 12 or DL-1P-9921"
+                    value={maintVehicleNo}
+                    onChange={(e) => {
+                      setMaintVehicleNo(e.target.value);
+                      const match = buses.find(
+                        (b) => b.busNumber.toLowerCase() === e.target.value.toLowerCase()
+                      );
+                      if (match) setMaintBusId(match.id);
+                    }}
+                    list="staff-maint-bus-list"
+                    className="w-full px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                  />
+                  <datalist id="staff-maint-bus-list">
+                    {buses.map((b) => (
+                      <option key={b.id} value={b.busNumber}>
+                        {b.model}
+                      </option>
+                    ))}
+                  </datalist>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Item / Part Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Wiper Motor / Coolant Hose"
+                    value={maintItem}
+                    onChange={(e) => setMaintItem(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Qty
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={maintQuantity}
+                    onChange={(e) => setMaintQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full px-3 py-1.5 text-xs font-mono font-bold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Est. Rate (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={maintRate}
+                    onChange={(e) => setMaintRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full px-3 py-1.5 text-xs font-mono font-bold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Est. Total
+                  </label>
+                  <div className="px-3 py-1.5 text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    ₹{((maintQuantity || 1) * (maintRate || 0)).toLocaleString("en-IN")}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Defect Description / Condition
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Describe the issue observed during trip inspection or driver report..."
+                  value={maintDefectDesc}
+                  onChange={(e) => setMaintDefectDesc(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Defect Evidence Photos
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {maintDefectImages.map((url, i) => (
+                    <div key={i} className="relative w-14 h-14 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700">
+                      <img src={url} alt="Defect" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setMaintDefectImages(maintDefectImages.filter((_, idx) => idx !== i))}
+                        className="absolute inset-0 bg-black/60 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4 text-rose-400" />
+                      </button>
+                    </div>
+                  ))}
+
+                  <label className="w-14 h-14 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 flex flex-col items-center justify-center cursor-pointer bg-slate-50 dark:bg-slate-800/50">
+                    {isMaintUploading ? (
+                      <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4 text-slate-400" />
+                        <span className="text-[8px] font-bold text-slate-500 mt-0.5">+ Photo</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      disabled={isMaintUploading}
+                      onChange={(e) => handleMaintFileUpload(e, (url) => setMaintDefectImages((prev) => [...prev, url]))}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Remarks / Notes
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Reported by Morning Shift Conductor"
+                  value={maintRemarks}
+                  onChange={(e) => setMaintRemarks(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsMaintModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isMaintSubmitting || isMaintUploading}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isMaintSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Submit Ticket
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Maintenance: Add Work Proof Modal */}
+      {maintWorkModalRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  Add Work Notes & Proof
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Vehicle {maintWorkModalRequest.vehicleNo} • #{maintWorkModalRequest.serialNo}
+                </p>
+              </div>
+              <button
+                onClick={() => setMaintWorkModalRequest(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMaintWorkProof} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Work Carried Out / Mechanic Note <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Describe repair progress, spare parts replaced, or tests carried out..."
+                  value={maintWorkDesc}
+                  onChange={(e) => setMaintWorkDesc(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Work Evidence Photos
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {maintWorkImages.map((url, i) => (
+                    <div key={i} className="relative w-14 h-14 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700">
+                      <img src={url} alt="Work" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setMaintWorkImages(maintWorkImages.filter((_, idx) => idx !== i))}
+                        className="absolute inset-0 bg-black/60 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4 text-rose-400" />
+                      </button>
+                    </div>
+                  ))}
+
+                  <label className="w-14 h-14 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 flex flex-col items-center justify-center cursor-pointer bg-slate-50 dark:bg-slate-800/50">
+                    {isMaintUploading ? (
+                      <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4 text-slate-400" />
+                        <span className="text-[8px] font-bold text-slate-500 mt-0.5">+ Photo</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      disabled={isMaintUploading}
+                      onChange={(e) => handleMaintFileUpload(e, (url) => setMaintWorkImages((prev) => [...prev, url]))}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMaintWorkModalRequest(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isMaintWorkSubmitting || isMaintUploading}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isMaintWorkSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Save Work Proof
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Maintenance: Lightbox Modal */}
+      {maintLightboxImg && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in"
+          onClick={() => setMaintLightboxImg(null)}
+        >
+          <div
+            className="relative max-w-2xl max-h-[90vh] bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-3 bg-slate-950 flex items-center justify-between text-white border-b border-slate-800">
+              <span className="text-xs font-bold text-slate-200">{maintLightboxImg.title}</span>
+              <button
+                onClick={() => setMaintLightboxImg(null)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-2 flex items-center justify-center overflow-auto max-h-[75vh]">
+              <img
+                src={maintLightboxImg.url}
+                alt={maintLightboxImg.title}
+                className="max-h-[70vh] max-w-full object-contain rounded-xl"
+              />
             </div>
           </div>
         </div>

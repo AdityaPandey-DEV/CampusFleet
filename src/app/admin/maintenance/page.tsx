@@ -2,7 +2,7 @@ import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import AdminMaintenanceView from "@/components/admin/AdminMaintenanceView";
-import type { VehicleIssue, Bus } from "@/lib/types";
+import type { MaintenanceRequest, Bus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -24,26 +24,38 @@ export default async function MaintenanceDeskPage() {
   }
 
   const [
-    { data: dbIssues },
+    { data: dbRequests },
     { data: dbBuses },
   ] = await Promise.all([
-    supabaseAdmin.from("vehicle_issues").select("*").order("reported_at", { ascending: false }).limit(50),
+    supabaseAdmin.from("maintenance_requests").select("*").order("serial_no", { ascending: false }).limit(200),
     supabaseAdmin.from("buses").select("*"),
   ]);
 
-  const busMap = new Map((dbBuses || []).map((b: any) => [b.id, b.bus_number]));
-
-  const issues: VehicleIssue[] = (dbIssues || []).map((i: any) => ({
-    id: i.id,
-    busId: i.bus_id,
-    busNumber: i.bus_number || busMap.get(i.bus_id) || "Bus",
-    reportedBy: i.reported_by || "Driver",
-    issueType: i.issue_type || "OTHER",
-    severity: i.severity || "MEDIUM",
-    status: i.status || "OPEN",
-    description: i.description || "",
-    reportedAt: i.reported_at || new Date().toISOString(),
-    resolvedAt: i.resolved_at,
+  const requests = (dbRequests || []).map((r: any, idx: number) => ({
+    id: r.id,
+    serialNo: r.serial_no || idx + 1,
+    date: r.date || (r.created_at ? r.created_at.split("T")[0] : new Date().toISOString().split("T")[0]),
+    vehicleNo: r.vehicle_no,
+    busId: r.bus_id || "",
+    item: r.item,
+    quantity: Number(r.quantity) || 1,
+    rate: Number(r.rate) || 0,
+    amount: Number(r.amount) || 0,
+    defectDescription: r.defect_description || "",
+    defectImageUrls: r.defect_image_urls || [],
+    workDoneDescription: r.work_done_description || "",
+    workDoneImageUrls: r.work_done_image_urls || [],
+    paymentReceiptUrl: r.payment_receipt_url || null,
+    paymentTransactionId: r.payment_transaction_id || null,
+    status: r.status || "OPEN",
+    requestedBy: r.requested_by || "",
+    requestedByName: r.requested_by_name || "Staff",
+    approvedBy: r.approved_by || null,
+    approvedAt: r.approved_at || null,
+    completedAt: r.completed_at || null,
+    createdAt: r.created_at || new Date().toISOString(),
+    updatedAt: r.updated_at || new Date().toISOString(),
+    remarks: r.remarks || "",
   }));
 
   const buses: Bus[] = (dbBuses || []).map((b: any) => ({
@@ -62,9 +74,9 @@ export default async function MaintenanceDeskPage() {
 
   return (
     <AdminMaintenanceView
-      initialIssues={issues}
-      initialMaintenance={[]}
+      initialRequests={requests}
       initialBuses={buses}
     />
   );
 }
+
