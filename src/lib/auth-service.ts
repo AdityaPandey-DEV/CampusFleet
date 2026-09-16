@@ -253,6 +253,36 @@ class AuthService {
     this.clearLocalSession();
     this.notify();
   }
+
+  /**
+   * Update local user role and persist in session.
+   */
+  public updateUserRoleLocal(role: UserRole) {
+    if (!this.currentUser) return;
+    this.currentUser = { ...this.currentUser, role };
+    this.saveLocalSession();
+    this.notify();
+  }
+
+  /**
+   * Re-fetches the latest session from /api/auth/session to ensure
+   * server and client stay 100% in sync.
+   */
+  public async refreshSession() {
+    try {
+      const res = await fetch("/api/auth/session", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          this.currentUser = data.user;
+          this.saveLocalSession();
+          this.notify();
+        }
+      }
+    } catch (e) {
+      console.warn("Session refresh error:", e);
+    }
+  }
 }
 
 export const authService = new AuthService();

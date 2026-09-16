@@ -25,6 +25,18 @@ export async function GET(req: NextRequest) {
   let dbCampus = session.campus || "";
   let dbFullName = session.fullName;
 
+  // 1. Fast Redis cache check
+  try {
+    const { getCachedUserRole } = await import("@/lib/redis");
+    const cachedRole = await getCachedUserRole(session.userId);
+    if (cachedRole && cachedRole !== session.role) {
+      currentRole = cachedRole;
+      roleChanged = true;
+    }
+  } catch (e) {
+    // Non-fatal
+  }
+
   try {
     const { data: dbUser } = await supabaseAdmin
       .from("users")
@@ -38,8 +50,14 @@ export async function GET(req: NextRequest) {
         roleChanged = true;
       }
       if (dbUser.campus_id) dbCampusId = dbUser.campus_id;
-      if (dbUser.campus) dbCampus = dbUser.campus;
+      if (dbCampus !== dbUser.campus && dbUser.campus) dbCampus = dbUser.campus;
       if (dbUser.full_name) dbFullName = dbUser.full_name;
+
+      // Keep Redis cache fresh
+      try {
+        const { setCachedUserRole } = await import("@/lib/redis");
+        if (dbUser.role) await setCachedUserRole(session.userId, dbUser.role);
+      } catch {}
     }
 
     if (currentRole === "student") {

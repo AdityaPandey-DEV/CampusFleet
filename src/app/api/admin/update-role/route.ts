@@ -57,6 +57,15 @@ export async function POST(req: NextRequest) {
     }
 
     const updatedUser = updatedUsers[0];
+
+    // Sync to Redis cache if active
+    try {
+      const { setCachedUserRole } = await import("@/lib/redis");
+      await setCachedUserRole(updatedUser.id, role);
+    } catch (e) {
+      console.warn("Redis role cache update notice:", e);
+    }
+
     const response = NextResponse.json({ success: true, userId: updatedUser.id, role });
 
     // 3. If the admin is updating their own account, refresh their session JWT cookie

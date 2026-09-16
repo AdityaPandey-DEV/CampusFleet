@@ -224,8 +224,23 @@ export default function StaffOperationsView({
 
   // 1. Initial Load & Subscriptions
   useEffect(() => {
+    // If initialUser was verified server-side, synchronize it with the local store
+    if (initialUser) {
+      store.setCurrentUser({
+        id: initialUser.id || (initialUser as any).userId,
+        email: initialUser.email,
+        fullName: initialUser.fullName,
+        role: initialUser.role,
+        studentId: (initialUser as any).studentId,
+      });
+      setCurrentUser(initialUser);
+    }
+
     const unsub = store.subscribe(() => {
-      setCurrentUser(store.getCurrentUser());
+      const storeUser = store.getCurrentUser();
+      if (storeUser) {
+        setCurrentUser(storeUser);
+      }
       setRoutes(store.getRoutes());
       setBuses(store.getBuses());
       setStops(store.getStops());
@@ -906,11 +921,19 @@ export default function StaffOperationsView({
     }
   };
 
-  // Access Barrier: Only Staff and Admin can access the Staff Panel; Drivers, Conductors & Students are restricted
-  const isAuthorizedStaff = currentUser?.role === "staff" || currentUser?.role === "admin" || currentUser?.role === "transport_manager";
-  if (currentUser && !isAuthorizedStaff) {
-    const isDriver = currentUser.role === "driver";
-    const isConductor = currentUser.role === "conductor";
+  // Access Barrier: Only Staff, Transport Managers and Admins can access the Staff Panel
+  const isAuthorizedStaff =
+    currentUser?.role === "staff" ||
+    currentUser?.role === "admin" ||
+    currentUser?.role === "transport_manager" ||
+    initialUser?.role === "staff" ||
+    initialUser?.role === "admin" ||
+    initialUser?.role === "transport_manager";
+
+  if (!isAuthorizedStaff && (currentUser || initialUser)) {
+    const activeUser = currentUser || initialUser;
+    const isDriver = activeUser?.role === "driver";
+    const isConductor = activeUser?.role === "conductor";
     const targetPortal = isDriver ? "/driver" : isConductor ? "/conductor" : "/portal";
     const targetLabel = isDriver ? "Go to Driver Cockpit" : isConductor ? "Go to Conductor Console" : "Go to Student Portal";
     return (

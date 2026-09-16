@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
+import { authService } from "@/lib/auth-service";
 import { UserAccount, UserRole, Campus } from "@/lib/types";
 import {
   Users,
@@ -109,6 +110,17 @@ export default function AdminStaffView({
 
       // Update store local state only (no extra Supabase call — API already used admin client)
       store.updateUserRoleLocal(userId, newRole);
+
+      // If the admin is modifying their own role, update authService immediately
+      const currentAuthUser = authService.getCurrentUser();
+      const targetUser = users.find(u => u.id === userId);
+      if (
+        currentAuthUser &&
+        (currentAuthUser.id === userId ||
+          (targetUser?.email && currentAuthUser.email.toLowerCase() === targetUser.email.toLowerCase()))
+      ) {
+        authService.updateUserRoleLocal(newRole);
+      }
 
       setToastMessage(`✓ ${userName}'s access updated to ${newRole.toUpperCase()}`);
       setTimeout(() => setToastMessage(null), 3500);
