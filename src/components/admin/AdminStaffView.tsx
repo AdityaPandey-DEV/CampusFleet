@@ -107,12 +107,27 @@ export default function AdminStaffView({
         throw new Error(data.error || "Failed to update role in database");
       }
 
-      await store.updateUserRole(userId, newRole);
-      setToastMessage(`Updated access level for ${userName} to ${newRole.toUpperCase()}`);
+      // Update store local state only (no extra Supabase call — API already used admin client)
+      store.updateUserRoleLocal(userId, newRole);
+
+      setToastMessage(`✓ ${userName}'s access updated to ${newRole.toUpperCase()}`);
       setTimeout(() => setToastMessage(null), 3500);
 
-      // Invalidate Next.js Server Component data
+      // Re-fetch fresh user list from server to confirm DB state
       router.refresh();
+
+      // Also re-fetch via our users API to update local list immediately
+      try {
+        const usersRes = await fetch("/api/admin/users", { credentials: "include" });
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          if (usersData.users && Array.isArray(usersData.users)) {
+            setUsers(usersData.users);
+          }
+        }
+      } catch {
+        // Non-fatal — optimistic update already applied above
+      }
     } catch (e: any) {
       console.error("Failed to update role via API:", e);
       setUsers(previousUsers);

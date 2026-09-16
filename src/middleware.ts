@@ -110,27 +110,25 @@ export async function middleware(req: NextRequest) {
   // This catches stale JWT sessions after an admin role change.
   const correctPortal = getTargetRouteForRole(session.role);
 
-  // Only redirect if the user is on a portal that doesn't match their role at all
-  const portalForRole: Record<string, string> = {
-    student: "/portal",
-    admin: "/admin",
-    staff: "/staff",
-    transport_manager: "/staff",
-    supervisor: "/staff",
-    driver: "/driver",
-    conductor: "/conductor",
-    teacher: "/teacher",
+  // Portals each role is allowed to access (admin/transport_manager can view staff portal too)
+  const allowedPortalsForRole: Record<string, string[]> = {
+    student: ["/portal"],
+    admin: ["/admin", "/staff"],           // Admin can switch to Staff Ops console
+    transport_manager: ["/admin", "/staff"],
+    staff: ["/staff"],
+    supervisor: ["/staff"],
+    driver: ["/driver"],
+    conductor: ["/conductor"],
+    teacher: ["/teacher"],
   };
 
-  const myPortalPrefix = portalForRole[session.role] || "/portal";
+  const myAllowedPortals = allowedPortalsForRole[session.role] || ["/portal"];
 
-  // Check if they're on a completely different portal (not their own)
-  const otherPortals = ["/portal", "/admin", "/staff", "/driver", "/conductor", "/teacher"].filter(
-    p => p !== myPortalPrefix
-  );
-  const isOnWrongPortal = otherPortals.some(
-    p => pathname === p || pathname.startsWith(p + "/")
-  );
+  // Check if they're on a portal that is NOT in their allowed list
+  const allPortals = ["/portal", "/admin", "/staff", "/driver", "/conductor", "/teacher"];
+  const isOnWrongPortal = allPortals
+    .filter(p => !myAllowedPortals.includes(p))
+    .some(p => pathname === p || pathname.startsWith(p + "/"));
 
   if (isOnWrongPortal) {
     return NextResponse.redirect(new URL(correctPortal, req.url));

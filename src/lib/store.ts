@@ -1458,18 +1458,22 @@ class CampusFleetStore {
   }
 
   public async updateUserRole(userId: string, newRole: UserRole) {
+    this.updateUserRoleLocal(userId, newRole);
+    try {
+      await supabase.from("users").update({ role: newRole }).eq("id", userId);
+    } catch (e) {
+      console.warn("Supabase user role update error (RLS expected — API handles this):", e);
+    }
+  }
+
+  /** Local-only role update — use when the API has already persisted to DB. */
+  public updateUserRoleLocal(userId: string, newRole: UserRole) {
     this.users = this.users.map(u => (u.id === userId ? { ...u, role: newRole } : u));
     if (this.currentUser && this.currentUser.id === userId) {
       this.currentUser = { ...this.currentUser, role: newRole };
     }
     this.saveToLocalStorage();
     this.notify();
-
-    try {
-      await supabase.from("users").update({ role: newRole }).eq("id", userId);
-    } catch (e) {
-      console.warn("Supabase user role update error:", e);
-    }
   }
 
   public async updateStudentProfile(
