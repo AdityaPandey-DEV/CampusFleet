@@ -1,0 +1,88 @@
+[
+  {
+    "verdict": "confirmed",
+    "fingerprint": "campusfleet:idor:booking-creation:01",
+    "title": "Insecure Direct Object Reference in POST /api/bookings",
+    "description": "The seat reservation route permitted unauthenticated or unauthorized callers to create bookings on behalf of any arbitrary student identifier without validating token identity ownership.",
+    "root_cause": "The route extracted studentId directly from the request JSON body and issued seat reservations without verifying that the caller was authenticated or authorized to act on behalf of that student.",
+    "intended_behavior": "Enforce verified JWT session authentication and confirm that studentId matches the caller's session.userId or session.studentId unless caller possesses admin or staff privileges.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "src/app/api/bookings/route.ts",
+        "line": 80,
+        "scope": "POST /api/bookings"
+      },
+      {
+        "kind": "sink",
+        "file": "src/app/api/bookings/route.ts",
+        "line": 105,
+        "scope": "supabaseAdmin.from('bookings').insert"
+      }
+    ],
+    "remediation": "Implemented getSessionFromRequest(req) validation and explicit session ownership cross-checking in src/app/api/bookings/route.ts."
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "campusfleet:idor:booking-cancellation:02",
+    "title": "Unauthenticated Booking Cancellation via POST /api/bookings/cancel",
+    "description": "Any caller could cancel arbitrary passenger seat reservations across the entire fleet by supplying a booking ID without demonstrating booking ownership.",
+    "root_cause": "The cancellation handler updated the booking record status to CANCELLED without checking caller session credentials or ownership.",
+    "intended_behavior": "Verify that the cancellation requester is authenticated and either owns the reservation or holds transport management / staff credentials.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "src/app/api/bookings/cancel/route.ts",
+        "line": 6,
+        "scope": "POST /api/bookings/cancel"
+      },
+      {
+        "kind": "sink",
+        "file": "src/app/api/bookings/cancel/route.ts",
+        "line": 35,
+        "scope": "supabaseAdmin.from('bookings').update"
+      }
+    ],
+    "remediation": "Added session authentication and strict ownership verification matching booking.student_id against session.userId."
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "campusfleet:priv-esc:profile-staff-flag:03",
+    "title": "Privilege Escalation via Client-Supplied performedByStaff in /api/students/profile",
+    "description": "Clients could bypass administrative field editing controls by supplying performedByStaff: true in the request body.",
+    "root_cause": "The handler used Boolean(body.performedByStaff) as part of isStaffOrAdmin evaluation instead of relying strictly on verified server JWT claims.",
+    "intended_behavior": "Evaluate administrative and staff permissions exclusively through cryptographically verified session.role claims.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "src/app/api/students/profile/route.ts",
+        "line": 38,
+        "scope": "POST /api/students/profile"
+      },
+      {
+        "kind": "sink",
+        "file": "src/app/api/students/profile/route.ts",
+        "line": 70,
+        "scope": "supabaseAdmin.from('students').update"
+      }
+    ],
+    "remediation": "Removed body.performedByStaff and bound elevated access checks strictly to session.role."
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "campusfleet:headers:missing-security-headers:04",
+    "title": "Missing HTTP Security Defense Headers",
+    "description": "The Next.js configuration lacked critical baseline HTTP headers (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy), exposing the application to clickjacking and MIME confusion.",
+    "root_cause": "No custom security headers were declared in next.config.mjs.",
+    "intended_behavior": "Declare modern standard HTTP defensive headers for all route responses.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "next.config.mjs",
+        "line": 2,
+        "scope": "nextConfig"
+      }
+    ],
+    "remediation": "Configured Strict-Transport-Security, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy, and Permissions-Policy in next.config.mjs."
+  }
+]

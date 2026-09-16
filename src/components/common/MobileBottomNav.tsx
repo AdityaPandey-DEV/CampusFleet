@@ -3,7 +3,15 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BusFront, Compass, QrCode, CalendarCheck, CreditCard, Zap, User } from "lucide-react";
+import {
+  Compass,
+  QrCode,
+  CalendarCheck,
+  CreditCard,
+  Zap,
+  User,
+  LayoutDashboard,
+} from "lucide-react";
 
 interface MobileBottomNavProps {
   isPaymentApproved?: boolean;
@@ -15,29 +23,30 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
   const navItems = isPaymentApproved
     ? [
         {
-          href: "/portal/profile",
-          label: "Profile",
-          icon: User,
+          href: "/portal",
+          label: "Hub",
+          icon: LayoutDashboard,
         },
         {
           href: "/portal/booking",
-          label: "Seat Booking",
+          label: "Seats",
           icon: CalendarCheck,
         },
         {
           href: "/portal/pass",
-          label: "Digital Pass",
+          label: "Pass",
           icon: QrCode,
+          highlight: true,
         },
         {
           href: "/portal/tracker",
-          label: "Live Radar",
+          label: "Radar",
           icon: Compass,
         },
         {
-          href: "/portal/running-late",
-          label: "Running Late",
-          icon: Zap,
+          href: "/portal/profile",
+          label: "Profile",
+          icon: User,
         },
       ]
     : [
@@ -50,48 +59,74 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
 
   return (
     <nav
-      aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800/80 px-4 py-2 shadow-2xl safe-area-inset-bottom"
+      aria-label="Mobile Navigation Dock"
+      className="md:hidden fixed bottom-3 inset-x-3 z-50 pointer-events-none"
     >
-      <div
-        className={`max-w-md mx-auto grid gap-1.5 ${
-          isPaymentApproved ? "grid-cols-5" : "grid-cols-1"
-        }`}
-      >
-        {navItems.map(item => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
+      <div className="max-w-md mx-auto pointer-events-auto">
+        <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-2xl border border-white/60 dark:border-slate-800/80 rounded-3xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
+          <div
+            className={`grid gap-1 items-center ${
+              isPaymentApproved ? "grid-cols-5" : "grid-cols-1"
+            }`}
+          >
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex ${
-                isPaymentApproved ? "flex-col" : "flex-row gap-2 py-2 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25"
-              } items-center justify-center py-1.5 px-1 rounded-2xl transition-all relative ${
-                isPaymentApproved
-                  ? isActive
-                    ? "text-blue-600 dark:text-blue-400 font-extrabold"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                  : "font-black text-xs"
-              }`}
-            >
-              <div
-                className={`p-1 rounded-xl transition-all ${
-                  isPaymentApproved && isActive ? "bg-blue-100 dark:bg-blue-950/80 shadow-2xs" : ""
-                }`}
-              >
-                <Icon className={isPaymentApproved ? "w-4 h-4" : "w-5 h-5 text-white"} />
-              </div>
-              <span className={isPaymentApproved ? "text-[10px] tracking-tight mt-0.5 truncate max-w-full" : "text-xs font-bold"}>
-                {item.label}
-              </span>
-              {isPaymentApproved && isActive && (
-                <span className="w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-400 mt-0.5" />
-              )}
-            </Link>
-          );
-        })}
+              if (!isPaymentApproved) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 text-white font-black text-xs shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-transform"
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>Activate Transit Pass & Pay Fees →</span>
+                  </Link>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 group active:scale-95 ${
+                    isActive
+                      ? item.highlight
+                        ? "bg-gradient-to-b from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30 -translate-y-1"
+                        : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <div className="relative">
+                    <Icon
+                      className={`w-5 h-5 transition-transform duration-200 ${
+                        isActive
+                          ? item.highlight
+                            ? "text-white scale-110"
+                            : "scale-110"
+                          : "group-hover:scale-105"
+                      }`}
+                    />
+                    {item.highlight && !isActive && (
+                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className={`text-[10px] tracking-tight mt-1 truncate max-w-full font-medium ${
+                      isActive ? (item.highlight ? "text-white font-bold" : "font-black") : ""
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </nav>
   );

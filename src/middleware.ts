@@ -56,7 +56,28 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow API routes
+  // CSRF & Origin verification on state-changing API routes (Cloudflare Security Audit)
+  if (pathname.startsWith("/api") && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+    const origin = req.headers.get("origin");
+    const host = req.headers.get("host");
+    if (origin && host) {
+      try {
+        const originHost = new URL(origin).host;
+        // Allow same host or authorized preview domains
+        const isAllowed =
+          originHost === host ||
+          (originHost.endsWith(".vercel.app") && host.endsWith(".vercel.app")) ||
+          (originHost.includes("localhost") && host.includes("localhost"));
+        if (!isAllowed) {
+          return NextResponse.json({ error: "Cross-Origin request blocked by security policy" }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ error: "Invalid origin format" }, { status: 403 });
+      }
+    }
+  }
+
+  // Allow API routes through to their route handlers
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }

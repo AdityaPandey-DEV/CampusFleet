@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = (session.email || "").toLowerCase().trim();
     const userId = session.userId;
-    const isStaffOrAdmin = session.role === "admin" || session.role === "staff" || Boolean(body.performedByStaff);
+    // Cloudflare Security Audit: Only verified session role can perform administrative updates
+    const isStaffOrAdmin = ["admin", "staff", "transport_manager", "supervisor"].includes(session.role);
 
     // 1. Check if student already exists by user_id or email and inspect photo/campus lock status
     let existingStudentId: string | null = null;

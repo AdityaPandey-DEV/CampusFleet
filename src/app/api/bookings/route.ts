@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getSessionFromRequest } from "@/lib/jwt";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
 import { isTripCutoffPassed, getTodayIST } from "@/lib/time-manager";
 import { generateSeatLayout } from "@/lib/utils";
@@ -78,6 +79,14 @@ export async function GET(req: NextRequest) {
 // POST /api/bookings
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to reserve seat." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { studentId, tripId, boardingStopId, requestedSeatNumber } = body;
 
@@ -102,6 +111,22 @@ export async function POST(req: NextRequest) {
         { success: false, error: "Student profile not found." },
         { status: 404 }
       );
+    }
+
+    // 1b. Cloudflare Security Audit: Strict IDOR Guard
+    const isStaffOrAdmin = ["admin", "staff", "transport_manager", "supervisor"].includes(session.role);
+    if (!isStaffOrAdmin) {
+      const matchesSession =
+        student.user_id === session.userId ||
+        student.id === session.userId ||
+        (session.studentId && student.id === session.studentId) ||
+        student.email?.toLowerCase() === session.email?.toLowerCase();
+      if (!matchesSession) {
+        return NextResponse.json(
+          { success: false, error: "Unauthorized: You cannot book seats on behalf of other students (IDOR violation)." },
+          { status: 403 }
+        );
+      }
     }
 
     // 2. Subscription Verification

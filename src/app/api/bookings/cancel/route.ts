@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getSessionFromRequest } from "@/lib/jwt";
 
 // POST /api/bookings/cancel
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to cancel booking." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { bookingId, studentId, reason = "Commuter voluntary cancellation" } = body;
 
@@ -20,6 +29,30 @@ export async function POST(req: NextRequest) {
 
     if (fetchErr || !booking) {
       return NextResponse.json({ success: false, error: "Booking not found." }, { status: 404 });
+    }
+
+    // 1b. Cloudflare Security Audit: Booking Ownership Check
+    const isStaffOrAdmin = ["admin", "staff", "transport_manager", "supervisor"].includes(session.role);
+    if (!isStaffOrAdmin) {
+      const isDirectMatch =
+        booking.student_id === session.userId ||
+        booking.student_id === session.studentId ||
+        booking.student_id === `stud-${session.userId}`;
+
+      if (!isDirectMatch) {
+        const { data: studentCheck } = await supabaseAdmin
+          .from("students")
+          .select("id, user_id")
+          .eq("id", booking.student_id)
+          .maybeSingle();
+
+        if (!studentCheck || studentCheck.user_id !== session.userId) {
+          return NextResponse.json(
+            { success: false, error: "Unauthorized: You can only cancel your own bookings." },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     if (booking.status === "CANCELLED") {

@@ -25,7 +25,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const targetStudentId = studentId || session.studentId || session.id;
+    const isStaffOrAdmin = ["admin", "staff", "teacher", "transport_manager"].includes(session.role);
+    const targetStudentId = (!isStaffOrAdmin)
+      ? (session.studentId || session.userId)
+      : (studentId || session.studentId || session.userId);
 
     // Fetch student's class_id
     const { data: student } = await supabaseAdmin
