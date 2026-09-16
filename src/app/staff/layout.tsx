@@ -163,120 +163,199 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   ];
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "transport_manager";
+  const currentCategory = navFolders.find((f) => pathname.startsWith(f.basePath));
+  const currentSubItem = currentCategory?.items.find((item) => pathname === item.href);
+
+  const userInitials = currentUser?.fullName
+    ? currentUser.fullName
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "ST";
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row transition-colors">
-      {/* Mobile Top Navigation Bar */}
-      <div className="md:hidden flex items-center justify-between p-3.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 shadow-sm">
-        <Link href="/staff" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-            <BusFront className="w-4 h-4" />
-          </div>
-          <span className="font-black text-sm tracking-tight text-slate-900 dark:text-white">
-            Campus<span className="text-blue-600">Fleet</span>
-            <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
-              STAFF
-            </span>
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          <CampusTimeHUD showSimControl={false} />
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-          >
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Drawer Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden fixed top-14 inset-x-0 bottom-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl p-4 overflow-y-auto space-y-4">
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
-            <div>
-              <div className="text-xs font-black">{currentUser?.fullName || "Staff Controller"}</div>
-              <div className="text-[10px] text-slate-400">{currentUser?.email}</div>
+      {/* Mobile Top Navigation Bar (Single Sleek Sticky Header) */}
+      <div className="md:hidden sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+        <div className="flex items-center justify-between px-3.5 py-2.5">
+          <Link href="/staff" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+              <BusFront className="w-4 h-4" />
             </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-              {currentUser?.role?.toUpperCase() || "STAFF"}
-            </span>
-          </div>
-
-          {/* Quick links */}
-          <div className="flex gap-2">
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className="flex-1 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800 flex items-center justify-center gap-1.5"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span>Admin Console</span>
-              </Link>
-            )}
-            <Link
-              href="/portal"
-              className="flex-1 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1.5"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Student Portal</span>
-            </Link>
-          </div>
-
-          {/* Folder Accordions on Mobile */}
-          <div className="space-y-3 pt-2">
-            {navFolders.map((folder) => {
-              const FolderIcon = folder.icon;
-              const isFolderOpen = openFolders[folder.id];
-              return (
-                <div key={folder.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50/50 dark:bg-slate-900/50">
-                  <button
-                    onClick={() => toggleFolder(folder.id)}
-                    className="w-full px-3.5 py-3 flex items-center justify-between text-xs font-black text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80"
-                  >
-                    <div className="flex items-center gap-2">
-                      <FolderIcon className="w-4 h-4 text-blue-600" />
-                      <span>{folder.label}</span>
-                    </div>
-                    {isFolderOpen ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-                  </button>
-
-                  {isFolderOpen && (
-                    <div className="p-1.5 space-y-1 bg-white dark:bg-slate-950/60 border-t border-slate-200 dark:border-slate-800">
-                      {folder.items.map((sub) => {
-                        const SubIcon = sub.icon;
-                        const isActive = pathname === sub.href;
-                        return (
-                          <Link
-                            key={sub.href}
-                            href={sub.href}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                              isActive
-                                ? "bg-blue-600 text-white shadow-sm"
-                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                            }`}
-                          >
-                            <SubIcon className="w-3.5 h-3.5" />
-                            <span>{sub.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-xs tracking-tight text-slate-900 dark:text-white">
+                  Campus<span className="text-blue-600">Fleet</span>
+                </span>
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                  STAFF
+                </span>
+              </div>
+              {currentSubItem && (
+                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate max-w-[130px]">
+                  {currentSubItem.label}
                 </div>
+              )}
+            </div>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <CampusTimeHUD showSimControl={false} />
+            <div
+              className="w-7 h-7 rounded-xl bg-blue-600 text-white font-mono font-black text-[10px] flex items-center justify-center shadow-sm"
+              title={currentUser?.fullName || "Staff User"}
+            >
+              {userInitials}
+            </div>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle Navigation Menu"
+              className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 active:scale-95 transition-transform cursor-pointer"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Horizontal Category Sub-Nav Pills on Mobile (1-Tap Sibling Switching) */}
+        {currentCategory && currentCategory.items.length > 1 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50/80 dark:bg-slate-950/80 border-t border-slate-200/50 dark:border-slate-800/50 overflow-x-auto no-scrollbar">
+            {currentCategory.items.map((sub) => {
+              const SubIcon = sub.icon;
+              const isActive = pathname === sub.href;
+              return (
+                <Link
+                  key={sub.href}
+                  href={sub.href}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all flex-shrink-0 ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                  }`}
+                >
+                  <SubIcon className="w-3 h-3" />
+                  <span>{sub.label}</span>
+                </Link>
               );
             })}
           </div>
+        )}
+      </div>
 
-          <button
-            onClick={handleSignOut}
-            className="w-full py-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-xs font-black flex items-center justify-center gap-2 border border-rose-200 dark:border-rose-900"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
-          </button>
+      {/* Mobile Drawer Menu with Backdrop Overlay */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 top-14 z-40 flex flex-col animate-in fade-in">
+          {/* Backdrop Blur Overlay */}
+          <div
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+          />
+
+          {/* Drawer Content */}
+          <div className="relative z-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 max-h-[calc(100vh-3.5rem)] overflow-y-auto space-y-4 shadow-2xl">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <div>
+                <div className="text-xs font-black text-slate-900 dark:text-white">
+                  {currentUser?.fullName || "Staff Controller"}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">{currentUser?.email}</div>
+              </div>
+              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                {currentUser?.role?.toUpperCase() || "STAFF"}
+              </span>
+            </div>
+
+            {/* Quick links */}
+            <div className="flex gap-2">
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex-1 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800 flex items-center justify-center gap-1.5"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Admin Console</span>
+                </Link>
+              )}
+              <Link
+                href="/portal"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex-1 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Student Portal</span>
+              </Link>
+            </div>
+
+            {/* Folder Accordions on Mobile */}
+            <div className="space-y-2 pt-1">
+              {navFolders.map((folder) => {
+                const FolderIcon = folder.icon;
+                const isFolderOpen = openFolders[folder.id];
+                const isCurrentCategoryActive = pathname.startsWith(folder.basePath);
+
+                return (
+                  <div
+                    key={folder.id}
+                    className={`rounded-2xl border overflow-hidden transition-colors ${
+                      isCurrentCategoryActive
+                        ? "border-blue-300 dark:border-blue-800 bg-blue-50/20 dark:bg-blue-950/10"
+                        : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50"
+                    }`}
+                  >
+                    <button
+                      onClick={() => toggleFolder(folder.id)}
+                      className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-black text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FolderIcon className={`w-4 h-4 ${isCurrentCategoryActive ? "text-blue-600" : "text-slate-500"}`} />
+                        <span>{folder.label}</span>
+                      </div>
+                      {isFolderOpen ? (
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+
+                    {isFolderOpen && (
+                      <div className="p-1.5 space-y-1 bg-white dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-800">
+                        {folder.items.map((sub) => {
+                          const SubIcon = sub.icon;
+                          const isActive = pathname === sub.href;
+                          return (
+                            <Link
+                              key={sub.href}
+                              href={sub.href}
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                                isActive
+                                  ? "bg-blue-600 text-white shadow-sm"
+                                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              }`}
+                            >
+                              <SubIcon className="w-3.5 h-3.5" />
+                              <span>{sub.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={handleSignOut}
+              className="w-full py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-xs font-black flex items-center justify-center gap-2 border border-rose-200 dark:border-rose-900 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
       )}
 

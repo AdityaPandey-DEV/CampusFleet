@@ -1,5 +1,5 @@
 import { getStaffServerData } from "@/lib/staff-data";
-import StaffOperationsView from "@/components/staff/StaffOperationsView";
+import StaffDemandFleetView from "@/components/staff/StaffDemandFleetView";
 
 export const dynamic = "force-dynamic";
 
@@ -7,17 +7,11 @@ export default async function StaffDispatchDemandPage() {
   const data = await getStaffServerData("/staff/dispatch/demand");
 
   return (
-    <StaffOperationsView
-      initialUser={data.session}
+    <StaffDemandFleetView
       initialRoutes={data.routes}
       initialBuses={data.buses}
-      initialStops={data.stops}
       initialStudents={data.students}
       initialTrips={data.trips}
-      initialBookings={data.bookings}
-      initialStaff={data.staff}
-      initialUsers={data.users}
-      initialTab="DEMAND_FLEET"
     />
   );
 }

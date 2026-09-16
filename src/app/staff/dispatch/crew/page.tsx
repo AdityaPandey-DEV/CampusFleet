@@ -1,5 +1,5 @@
 import { getStaffServerData } from "@/lib/staff-data";
-import StaffOperationsView from "@/components/staff/StaffOperationsView";
+import StaffCrewAllocationView from "@/components/staff/StaffCrewAllocationView";
 
 export const dynamic = "force-dynamic";
 
@@ -7,17 +7,12 @@ export default async function StaffDispatchCrewPage() {
   const data = await getStaffServerData("/staff/dispatch/crew");
 
   return (
-    <StaffOperationsView
-      initialUser={data.session}
-      initialRoutes={data.routes}
-      initialBuses={data.buses}
-      initialStops={data.stops}
-      initialStudents={data.students}
+    <StaffCrewAllocationView
       initialTrips={data.trips}
-      initialBookings={data.bookings}
+      initialBuses={data.buses}
+      initialRoutes={data.routes}
       initialStaff={data.staff}
       initialUsers={data.users}
-      initialTab="CREW_ASSIGNMENT"
     />
   );
 }
