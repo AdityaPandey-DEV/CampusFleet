@@ -36,6 +36,8 @@ const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"),
 });
 
 import type { Bus, Route, Stop, Trip, Staff, Student } from "@/lib/types";
+import BusFullnessRoamingBanner from "./BusFullnessRoamingBanner";
+import BusDepartureAlertModal from "./BusDepartureAlertModal";
 
 export interface LiveTrackerProps {
   initialUser?: any;
@@ -68,6 +70,12 @@ export default function LiveTrackerView({
   const [selectedRouteId, setSelectedRouteId] = useState<string>("");
   const [inspectedStopId, setInspectedStopId] = useState<string>("");
   const [trackingMode, setTrackingMode] = useState<"FLOWCHART" | "MAP">("FLOWCHART");
+  const [roamingData, setRoamingData] = useState<{
+    fullness?: any;
+    activeAlert?: any;
+    bookingRoamingStatus?: string;
+    runningGraceUntil?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -141,6 +149,38 @@ export default function LiveTrackerView({
   }, [pickupStop, stops, studentCampus]);
 
   const isTripInProgress = activeTrip?.status === "IN_PROGRESS";
+
+  // Real-time polling for Roaming Fullness & Departure Alerts on Live Tracker
+  useEffect(() => {
+    let isMounted = true;
+    const studentIdentifier = activeStudent?.id || currentUser?.id;
+    const tripId = activeTrip?.id || "";
+
+    const fetchRoaming = async () => {
+      try {
+        const studentParam = studentIdentifier ? `studentId=${studentIdentifier}` : "";
+        const tripParam = tripId ? `tripId=${tripId}` : "";
+        const query = [studentParam, tripParam].filter(Boolean).join("&");
+        if (!query) return;
+
+        const res = await fetch(`/api/boarding/roaming?${query}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (isMounted) {
+          setRoamingData(data);
+        }
+      } catch (e) {
+        // silent
+      }
+    };
+
+    fetchRoaming();
+    const interval = setInterval(fetchRoaming, 7000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [activeStudent?.id, currentUser?.id, activeTrip?.id]);
 
   // Effective location: If trip has not started, bus MUST be stationary at the route starting point!
   const effectiveLiveLocation = useMemo(() => {
@@ -269,6 +309,30 @@ export default function LiveTrackerView({
           </div>
         </div>
       </div>
+
+      {/* Roaming Fullness Radar & Alert Notification */}
+      {roamingData?.fullness && (
+        <BusFullnessRoamingBanner
+          trip={activeTrip}
+          bus={assignedBus}
+          fullness={roamingData.fullness}
+          roamingStatus={roamingData.bookingRoamingStatus || "ROAMING"}
+        />
+      )}
+
+      <BusDepartureAlertModal
+        trip={activeTrip}
+        bus={assignedBus}
+        activeAlert={roamingData?.activeAlert}
+        onStatusChange={(newStatus) => {
+          if (roamingData) {
+            setRoamingData({
+              ...roamingData,
+              bookingRoamingStatus: newStatus,
+            });
+          }
+        }}
+      />
 
       {/* View Mode Switcher Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">

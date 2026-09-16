@@ -2,6 +2,8 @@ export type UserRole = "admin" | "student" | "driver" | "conductor" | "transport
 
 export type BookingStatus = "CONFIRMED" | "WAITLISTED" | "CANCELLED" | "BOARDED" | "ABSENT" | "NO_SHOW";
 
+export type RoamingStatus = "CONFIRMED" | "ROAMING" | "ONBOARD_CONFIRMED" | "RUNNING_TO_BUS";
+
 export type TripStatus = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "DELAYED";
 
 export type ShiftType = "MORNING" | "AFTERNOON" | "EVENING" | "CUSTOM" | string;
@@ -243,7 +245,21 @@ export interface Booking {
   confirmedAt?: string;
   cancelledAt?: string;
   boardedAt?: string;
+  roamingStatus?: RoamingStatus;
+  runningGraceUntil?: string;
   createdAt: string;
+}
+
+export interface BusDepartureAlert {
+  id: string;
+  tripId: string;
+  busId?: string;
+  alertType: "BUS_FULL" | "DEPARTURE_CUTOFF" | "MANUAL_RECALL";
+  message: string;
+  triggeredAt: string;
+  triggeredBy: string;
+  status: "ACTIVE" | "RESOLVED";
+  createdAt?: string;
 }
 
 export interface BookingStatusHistory {

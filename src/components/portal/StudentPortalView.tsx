@@ -30,6 +30,8 @@ import {
   Share2,
 } from "lucide-react";
 import type { Student, Bus, Route, Stop, Shift, Trip, Booking, Staff } from "@/lib/types";
+import BusFullnessRoamingBanner from "./BusFullnessRoamingBanner";
+import BusDepartureAlertModal from "./BusDepartureAlertModal";
 
 export interface StudentPortalProps {
   initialUser?: any;
@@ -89,6 +91,12 @@ export default function StudentPortalView({
 
   const [bookingMessage, setBookingMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [roamingData, setRoamingData] = useState<{
+    fullness?: any;
+    activeAlert?: any;
+    bookingRoamingStatus?: string;
+    runningGraceUntil?: string | null;
+  } | null>(null);
 
   const { currentTime, currentDate, nextShift, getShiftStatus } = useCampusTime();
 
@@ -178,6 +186,34 @@ export default function StudentPortalView({
     if (hour < 17) return "Good Afternoon";
     return "Good Evening";
   }, [currentTime]);
+
+  // Real-time polling for Campus Roaming Fullness & Departure Alerts
+  useEffect(() => {
+    if (!activeStudent?.id && !currentUser?.id) return;
+    let isMounted = true;
+    const studentIdentifier = activeStudent?.id || currentUser?.id;
+
+    const fetchRoamingStatus = async () => {
+      try {
+        const tripParam = bookedTrip?.id ? `&tripId=${bookedTrip.id}` : "";
+        const res = await fetch(`/api/boarding/roaming?studentId=${studentIdentifier}${tripParam}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (isMounted) {
+          setRoamingData(data);
+        }
+      } catch (e) {
+        // silent fallback
+      }
+    };
+
+    fetchRoamingStatus();
+    const interval = setInterval(fetchRoamingStatus, 7000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [activeStudent?.id, currentUser?.id, bookedTrip?.id]);
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300 pb-16 md:pb-6">
@@ -275,6 +311,48 @@ export default function StudentPortalView({
           </div>
         </div>
       </div>
+
+      {/* 1.5 Real-Time Campus Roaming & Fullness Radar (Replaces leaving bags on seats) */}
+      {(activeBooking || roamingData?.fullness) && (
+        <BusFullnessRoamingBanner
+          booking={
+            activeBooking
+              ? {
+                  ...activeBooking,
+                  roamingStatus: (roamingData?.bookingRoamingStatus as any) || activeBooking.roamingStatus || "ROAMING",
+                }
+              : null
+          }
+          trip={bookedTrip}
+          bus={bookedBus}
+          fullness={roamingData?.fullness}
+          roamingStatus={roamingData?.bookingRoamingStatus || activeBooking?.roamingStatus || "ROAMING"}
+        />
+      )}
+
+      {/* Bus Departure Ringing Alert Modal */}
+      <BusDepartureAlertModal
+        booking={
+          activeBooking
+            ? {
+                ...activeBooking,
+                roamingStatus: (roamingData?.bookingRoamingStatus as any) || activeBooking.roamingStatus || "ROAMING",
+              }
+            : null
+        }
+        trip={bookedTrip}
+        bus={bookedBus}
+        activeAlert={roamingData?.activeAlert}
+        onStatusChange={(newStatus) => {
+          if (roamingData) {
+            setRoamingData({
+              ...roamingData,
+              bookingRoamingStatus: newStatus,
+              runningGraceUntil: newStatus === "RUNNING_TO_BUS" ? new Date(Date.now() + 120000).toISOString() : null,
+            });
+          }
+        }}
+      />
 
       {/* 2. Responsive Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">

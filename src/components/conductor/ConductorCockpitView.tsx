@@ -27,6 +27,9 @@ import {
   ArrowRight,
   FileCheck2,
   Navigation,
+  Footprints,
+  Bell,
+  Volume2,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
@@ -65,8 +68,9 @@ export default function ConductorCockpitView({
   const [selectedTripId, setSelectedTripId] = useState<string>("");
   const [activeConsoleTab, setActiveConsoleTab] = useState<"SCANNER" | "MANIFEST" | "SEAT_MAP" | "AUDIT">("SCANNER");
   const [searchQuery, setSearchQuery] = useState("");
-  const [manifestFilter, setManifestFilter] = useState<"ALL" | "BOARDED" | "PENDING" | "WAITLIST">("ALL");
+  const [manifestFilter, setManifestFilter] = useState<"ALL" | "BOARDED" | "PENDING" | "WAITLIST" | "ROAMING">("ALL");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isTriggeringAlert, setIsTriggeringAlert] = useState(false);
 
   const [overrideModal, setOverrideModal] = useState<{
     isOpen: boolean;
@@ -111,6 +115,8 @@ export default function ConductorCockpitView({
   const pendingCount = tripBookings.filter(b => b.status === "CONFIRMED").length;
   const waitlistCount = tripBookings.filter(b => b.status === "WAITLISTED").length;
   const absentCount = tripBookings.filter(b => b.status === "ABSENT" || b.status === "NO_SHOW").length;
+  const roamingCount = tripBookings.filter(b => b.roamingStatus === "ROAMING" || (b as any).roaming_status === "ROAMING").length;
+  const runningCount = tripBookings.filter(b => b.roamingStatus === "RUNNING_TO_BUS" || (b as any).roaming_status === "RUNNING_TO_BUS").length;
 
   const occupancyRate = bus && bus.capacity > 0 ? Math.round((boardedCount / bus.capacity) * 100) : 0;
 
@@ -137,8 +143,65 @@ export default function ConductorCockpitView({
     if (manifestFilter === "BOARDED") return b.status === "BOARDED";
     if (manifestFilter === "PENDING") return b.status === "CONFIRMED";
     if (manifestFilter === "WAITLIST") return b.status === "WAITLISTED";
+    if (manifestFilter === "ROAMING") return b.roamingStatus === "ROAMING" || (b as any).roaming_status === "ROAMING" || b.roamingStatus === "RUNNING_TO_BUS";
     return true;
   });
+
+  const handleTriggerDepartureAlert = async () => {
+    if (!activeTrip || isTriggeringAlert) return;
+    setIsTriggeringAlert(true);
+    try {
+      const res = await fetch("/api/boarding/roaming", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "TRIGGER_DEPARTURE_ALERT",
+          tripId: activeTrip.id,
+          busId: bus?.id,
+          conductorId: currentUser?.fullName || currentUser?.id || "Conductor",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setToastMessage("📢 Bus Full Alert Broadcasted! Ringing departure alarm sounded on all roaming students' devices.");
+      } else {
+        setToastMessage("❌ Failed to broadcast alert: " + (data.error || "Server error"));
+      }
+    } catch (e) {
+      setToastMessage("❌ Network error broadcasting departure alert.");
+    } finally {
+      setIsTriggeringAlert(false);
+      setTimeout(() => setToastMessage(null), 5000);
+    }
+  };
+
+  const handleMarkRoamingHold = async (studentId: string, bookingId: string) => {
+    if (!activeTrip) return;
+    try {
+      const res = await fetch("/api/boarding/roaming", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CHECK_IN_ROAMING",
+          studentId,
+          bookingId,
+          tripId: activeTrip.id,
+          busId: bus?.id,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const student = students.find(s => s.id === studentId || s.userId === studentId);
+        setToastMessage(`🎒 Seat held for ${student?.fullName || "Student"}! Roaming Campus without bag on seat.`);
+        setBookings(prev =>
+          prev.map(b => (b.id === bookingId ? { ...b, roamingStatus: "ROAMING" } : b))
+        );
+      }
+    } catch (e) {
+      setToastMessage("Failed to mark roaming hold.");
+    }
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const handleMarkAttendance = (studentId: string, status: "BOARDED" | "ABSENT" | "NO_SHOW") => {
     if (!activeTrip) return;
@@ -477,6 +540,26 @@ export default function ConductorCockpitView({
                 <div className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Quick Operations
                 </div>
+
+                {/* 📢 Bus Full Departure Alarm Broadcast Button */}
+                <button
+                  onClick={handleTriggerDepartureAlert}
+                  disabled={isTriggeringAlert}
+                  className="w-full py-3.5 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-black text-xs rounded-2xl flex items-center justify-between px-4 shadow-lg shadow-orange-500/25 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                  title="Broadcast bus fullness and ring alarm on all roaming students' phones"
+                >
+                  <div className="flex items-center gap-2.5 text-left">
+                    <Radio className="w-4 h-4 animate-ping text-amber-200" />
+                    <div>
+                      <div>{isTriggeringAlert ? "Broadcasting..." : "📢 Sound Bus Full Alarm (Recall)"}</div>
+                      <div className="text-[10px] font-normal text-amber-100/90">Triggers audible alarm on roaming phones</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-white/20">
+                    {roamingCount} Roaming
+                  </span>
+                </button>
+
                 <button
                   onClick={() => setActiveConsoleTab("MANIFEST")}
                   className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold text-xs rounded-2xl flex items-center justify-between px-4 transition-colors"
@@ -569,6 +652,16 @@ export default function ConductorCockpitView({
               >
                 Waitlist ({waitlistCount})
               </button>
+              <button
+                onClick={() => setManifestFilter("ROAMING")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-colors ${
+                  manifestFilter === "ROAMING"
+                    ? "bg-amber-500 text-slate-950 font-black"
+                    : "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300/40 hover:bg-amber-100"
+                }`}
+              >
+                🎒 Roaming Campus ({roamingCount})
+              </button>
             </div>
 
             {/* Manifest List Table */}
@@ -613,6 +706,16 @@ export default function ConductorCockpitView({
                         <div className="min-w-0">
                           <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2 truncate">
                             <span className="truncate">{s?.fullName || "Student Passenger"}</span>
+                            {b.roamingStatus === "ROAMING" || (b as any).roaming_status === "ROAMING" ? (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 font-bold flex-shrink-0 flex items-center gap-1">
+                                <Footprints className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                Roaming Campus (Seat Held)
+                              </span>
+                            ) : b.roamingStatus === "RUNNING_TO_BUS" ? (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/80 text-orange-800 dark:text-orange-300 border border-orange-400 font-bold flex-shrink-0 animate-pulse">
+                                🏃 Sprinting to Bus (Grace Active)
+                              </span>
+                            ) : null}
                             {s?.campus && (
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-normal flex-shrink-0">
                                 {s.campus.split(",")[0]}
@@ -653,14 +756,22 @@ export default function ConductorCockpitView({
                           <>
                             <button
                               onClick={() => handleMarkAttendance(b.studentId, "BOARDED")}
-                              className="px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
+                              className="px-3.5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                               Board Present
                             </button>
                             <button
+                              onClick={() => handleMarkRoamingHold(b.studentId, b.id)}
+                              className="px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300/40 text-xs font-bold rounded-xl flex items-center gap-1 transition-colors"
+                              title="Hold seat digitally: student can roam campus without bag on seat"
+                            >
+                              <Footprints className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                              Hold (Roam)
+                            </button>
+                            <button
                               onClick={() => handleMarkAttendance(b.studentId, "ABSENT")}
-                              className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-600 dark:text-slate-400 hover:text-rose-700 dark:hover:text-rose-300 text-xs font-bold rounded-xl transition-colors"
+                              className="px-2.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-600 dark:text-slate-400 hover:text-rose-700 dark:hover:text-rose-300 text-xs font-bold rounded-xl transition-colors"
                               title="Mark as absent / no show"
                             >
                               Absent

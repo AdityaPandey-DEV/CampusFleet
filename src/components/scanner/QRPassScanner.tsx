@@ -21,6 +21,7 @@ import {
   User,
   ShieldAlert,
   BadgeCheck,
+  Footprints,
 } from "lucide-react";
 import jsQR from "jsqr";
 
@@ -416,6 +417,61 @@ export function QRPassScanner({
     setPendingVerification(null);
     setManualInput("");
   }, [pendingVerification, trip.id, trip.busId, soundEnabled, onAttendanceSuccess]);
+
+  // Conductor marks seat held for student to freely roam campus until bus fills
+  const handleConfirmRoaming = useCallback(async () => {
+    if (!pendingVerification) return;
+    const { student, booking, method } = pendingVerification;
+    setIsProcessing(true);
+
+    try {
+      const res = await fetch("/api/boarding/roaming", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CHECK_IN_ROAMING",
+          studentId: student.id || booking.studentId,
+          bookingId: booking.id,
+          tripId: trip.id,
+          busId: trip.busId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (soundEnabled) playChime("success");
+        triggerHaptic("success");
+
+        setLastResult({
+          status: "APPROVED",
+          studentName: student.fullName,
+          enrollmentNo: student.enrollmentNo,
+          seatNumber: booking.seatNumber || booking.seat_number || "Seat Held",
+          method,
+          message: `🎒 SEAT HELD & ROAMING ACTIVE: ${student.fullName} (Seat ${booking.seatNumber || booking.seat_number || "Held"}) is free to roam campus without keeping a physical bag on the seat. Audible departure alert will ring when bus fills.`,
+          timestamp: new Date().toLocaleTimeString(),
+        });
+
+        // Also record in local store for immediate UI reactivity
+        store.recordAttendance(
+          student.id || booking.studentId || "unknown",
+          trip.id,
+          "QR_SCAN",
+          "BOARDED",
+          `Seat held digitally (Roaming Campus) - verified via Conductor ${method}`
+        );
+
+        onAttendanceSuccess(student.fullName, "Seat Hold & Campus Roam");
+        setIsProcessing(false);
+        setPendingVerification(null);
+        setManualInput("");
+        return;
+      }
+    } catch (e) {
+      console.warn("Failed to check-in roaming on server, falling back to regular boarding", e);
+    }
+
+    handleConfirmBoarding();
+  }, [pendingVerification, trip.id, trip.busId, soundEnabled, onAttendanceSuccess, handleConfirmBoarding]);
 
   const handleRejectMismatch = useCallback(() => {
     if (!pendingVerification) return;
@@ -817,26 +873,37 @@ export function QRPassScanner({
             </div>
           </div>
 
-          {/* Action Buttons: Confirm vs Reject */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+          {/* Action Buttons: Confirm Boarded vs Hold Seat Roaming vs Reject */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
             <button
               type="button"
               onClick={handleConfirmBoarding}
               disabled={isProcessing}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{isProcessing ? "Recording Attendance..." : "Confirm Photo & Mark Boarded"}</span>
+              <span>{isProcessing ? "Processing..." : "Confirm & In Bus"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleConfirmRoaming}
+              disabled={isProcessing}
+              className="w-full py-3.5 px-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              title="Hold seat digitally; student can roam campus without bags on seats"
+            >
+              <Footprints className="w-4 h-4" />
+              <span>{isProcessing ? "Holding..." : "Hold Seat & Roam"}</span>
             </button>
 
             <button
               type="button"
               onClick={handleRejectMismatch}
               disabled={isProcessing}
-              className="w-full py-3.5 px-4 rounded-2xl bg-rose-950/80 hover:bg-rose-900 border border-rose-700/80 text-rose-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-3 rounded-2xl bg-rose-950/80 hover:bg-rose-900 border border-rose-700/80 text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <UserX className="w-4 h-4" />
-              <span>Reject (Identity Mismatch)</span>
+              <span>Reject Mismatch</span>
             </button>
           </div>
         </div>
