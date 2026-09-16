@@ -40,7 +40,6 @@ export async function GET(req: NextRequest) {
 
     // 2. Fetch shift details from database if shiftId is provided
     let shiftData: any = null;
-    let targetTime = currentTimeIST;
 
     if (shiftId) {
       const { data: dbShift } = await supabaseAdmin
@@ -51,90 +50,93 @@ export async function GET(req: NextRequest) {
 
       if (dbShift) {
         shiftData = dbShift;
-        if (dbShift.start_time) {
-          targetTime = dbShift.start_time.substring(0, 5);
-        }
       }
-    } else if (searchParams.get("time")) {
-      targetTime = searchParams.get("time")!;
     }
 
     if (studentError || !student) {
       return NextResponse.json({
         success: true,
-        hasClassesAfterCurrentTime: false,
-        currentTimeIST,
-        targetTime,
-        lastClassEndTime: targetTime,
-        scheduledLectures: [],
+        dayOfWeek,
+        shiftId: shiftId || null,
+        shift: shiftData,
+        studentId: null,
+        classId: null,
+        className: null,
+        isShiftEnabled: true,
+        isShiftRestricted: false,
         hasApprovedEmergencyPass: false,
         pendingRequest: null,
         canBookShift: true,
+        canBook: true,
       });
     }
 
-    // 3. Query today's timetable for student's enrolled class
-    let scheduledLectures: any[] = [];
+    // 3. Query class shift schedule for student's enrolled section
+    let isShiftRestricted = false;
+    let className = student.class_name;
+    const dayKey = dayOfWeek.toLowerCase();
+
     if (student.class_id) {
-      const { data: lectures } = await supabaseAdmin
-        .from("class_timetables")
+      const { data: classRecord } = await supabaseAdmin
+        .from("classes")
+        .select("id, name, shift_schedule")
+        .eq("id", student.class_id)
+        .maybeSingle();
+
+      if (classRecord) {
+        className = classRecord.name || className;
+        const schedule = classRecord.shift_schedule as Record<string, any> || {};
+
+        if (shiftId && schedule[shiftId]) {
+          const rule = schedule[shiftId];
+          if (rule.enabled === false) {
+            isShiftRestricted = true;
+          } else if (rule.days && rule.days[dayKey] === false) {
+            isShiftRestricted = true;
+          }
+        }
+      }
+    }
+
+    // 4. Check today's emergency departure requests for this student (if shift is disabled)
+    let approvedPass = null;
+    let pendingRequest = null;
+
+    if (isShiftRestricted) {
+      let requestQuery = supabaseAdmin
+        .from("early_departure_requests")
         .select("*")
-        .eq("class_id", student.class_id)
-        .ilike("day_of_week", dayOfWeek)
-        .order("start_time", { ascending: true });
+        .eq("student_id", student.id)
+        .eq("request_date", todayDateStr)
+        .order("created_at", { ascending: false });
 
-      scheduledLectures = lectures || [];
+      if (shiftId) {
+        requestQuery = requestQuery.eq("shift_id", shiftId);
+      }
+
+      const { data: emergencyRequests } = await requestQuery;
+      approvedPass = (emergencyRequests || []).find((r) => r.status === "APPROVED");
+      pendingRequest = (emergencyRequests || []).find((r) => r.status === "PENDING");
     }
 
-    // Check if student has lectures ending after the evaluation time (current time or shift departure)
-    const classesAfterCurrentTime = scheduledLectures.filter((l) => {
-      const endTime = (l.end_time || "").substring(0, 5);
-      return endTime > targetTime;
-    });
-
-    const hasClassesAfterCurrentTime = classesAfterCurrentTime.length > 0;
-
-    let lastClassEndTime = targetTime;
-    if (scheduledLectures.length > 0) {
-      const lastLect = scheduledLectures[scheduledLectures.length - 1];
-      lastClassEndTime = (lastLect.end_time || targetTime).substring(0, 5);
-    }
-
-    // 4. Check today's emergency departure requests for this student
-    let requestQuery = supabaseAdmin
-      .from("early_departure_requests")
-      .select("*")
-      .eq("student_id", student.id)
-      .eq("request_date", todayDateStr)
-      .order("created_at", { ascending: false });
-
-    if (shiftId) {
-      requestQuery = requestQuery.eq("shift_id", shiftId);
-    }
-
-    const { data: emergencyRequests } = await requestQuery;
-
-    const approvedPass = (emergencyRequests || []).find((r) => r.status === "APPROVED");
-    const pendingRequest = (emergencyRequests || []).find((r) => r.status === "PENDING");
+    const isAllowed = !isShiftRestricted || Boolean(approvedPass);
 
     return NextResponse.json({
       success: true,
       dayOfWeek,
-      currentTimeIST,
-      targetTime,
+      shiftId: shiftId || null,
       shift: shiftData,
       studentId: student.id,
       classId: student.class_id,
-      className: student.class_name,
-      hasClassesAfterCurrentTime,
-      classesAfterCurrentTime,
-      lastClassEndTime,
-      scheduledLectures,
+      className,
+      isShiftEnabled: !isShiftRestricted,
+      isShiftRestricted,
       hasApprovedEmergencyPass: Boolean(approvedPass),
       approvedPass: approvedPass || null,
       pendingRequest: pendingRequest || null,
-      canBookShift: !hasClassesAfterCurrentTime || Boolean(approvedPass),
-      canBookHalfDay: !hasClassesAfterCurrentTime || Boolean(approvedPass),
+      canBookShift: isAllowed,
+      canBookHalfDay: isAllowed,
+      canBook: isAllowed,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

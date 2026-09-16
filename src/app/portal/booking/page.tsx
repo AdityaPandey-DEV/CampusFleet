@@ -153,7 +153,12 @@ export default async function ShiftBookingPage() {
 
   // Identify student and check special shift allocations
   const currentStudent = students.find(
-    s => s.userId === session.id || s.id === session.id || s.email?.toLowerCase() === session.email?.toLowerCase()
+    s =>
+      s.userId === session.userId ||
+      (session as any).id === s.userId ||
+      s.id === session.userId ||
+      s.id === (session as any).id ||
+      s.email?.toLowerCase() === session.email?.toLowerCase()
   );
 
   let allocatedShiftIds = new Set<string>();
@@ -188,7 +193,8 @@ export default async function ShiftBookingPage() {
 
   return (
     <ShiftBookingView
-      initialUser={session}
+      initialUser={{ ...session, id: session.userId }}
+      initialStudent={currentStudent}
       initialStudents={students}
       initialShifts={visibleShifts}
       initialStops={stops}

@@ -1042,6 +1042,10 @@ class CampusFleetStore {
     return this.bookings.filter(b => b.bookingDate === todayStr || (b.createdAt && b.createdAt.startsWith(todayStr)));
   }
   public getStudents() { return this.students; }
+  public setStudents(students: Student[]) {
+    this.students = students;
+    this.notify();
+  }
   public getGuardians() { return this.guardians; }
   public getStaff() { return this.staff; }
   public getBookings() { return this.bookings; }

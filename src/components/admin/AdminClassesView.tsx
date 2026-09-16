@@ -28,29 +28,22 @@ import {
   Award,
 } from "lucide-react";
 import SearchableDropdown, { DropdownOption } from "@/components/ui/SearchableDropdown";
+import { store } from "@/lib/store";
 
 export interface ClassItem {
   id: string;
   name: string;
   course: string;
   department?: string;
-  degreeLevel?: string;
+  semester?: string;
   year: string;
-  yearNum?: number;
-  semester: string;
-  semesterNum?: number;
   section: string;
-  sectionCode?: string;
   specialization?: string;
   isActive: boolean;
-  studentCount: number;
-  assignedTeachers: {
-    id: string;
-    fullName: string;
-    email?: string;
-    isPrimary?: boolean;
-  }[];
-  createdAt: string;
+  createdAt?: string;
+  studentCount?: number;
+  assignedTeachers?: { id: string; fullName: string; email: string; isPrimary: boolean }[];
+  shiftSchedule?: Record<string, { enabled?: boolean; days?: Record<string, boolean> }>;
 }
 
 interface TimetableSlot {
@@ -88,12 +81,16 @@ export default function AdminClassesView({
   const [programFilter, setProgramFilter] = useState<string>("ALL");
   const [semesterFilter, setSemesterFilter] = useState<string>("ALL");
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(initialClasses[0] || null);
-  const [activeTab, setActiveTab] = useState<"overview" | "timetable" | "students">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "shifts" | "students">("overview");
+  const [fleetShifts, setFleetShifts] = useState(store.getShifts());
+  const [isSavingShiftSchedule, setIsSavingShiftSchedule] = useState(false);
 
-  // Timetable state
-  const [timetableSlots, setTimetableSlots] = useState<TimetableSlot[]>([]);
-  const [selectedDay, setSelectedDay] = useState<string>("Monday");
-  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  useEffect(() => {
+    const unsub = store.subscribe(() => {
+      setFleetShifts(store.getShifts());
+    });
+    return unsub;
+  }, []);
 
   // Student roster state
   const [classStudents, setClassStudents] = useState<StudentItem[]>([]);
@@ -102,7 +99,6 @@ export default function AdminClassesView({
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isAddSlotModalOpen, setIsAddSlotModalOpen] = useState(false);
   const [isAllocateTeacherModalOpen, setIsAllocateTeacherModalOpen] = useState(false);
 
   // Form states with normalized structure
@@ -122,15 +118,6 @@ export default function AdminClassesView({
     year: "2nd Year",
     section: "A",
     specialization: "Core",
-  });
-
-  const [slotFormData, setSlotFormData] = useState({
-    dayOfWeek: "Monday",
-    startTime: "10:00",
-    endTime: "11:00",
-    subject: "",
-    teacherId: "",
-    roomNumber: "LH-301",
   });
 
   const [selectedTeacherToAllocate, setSelectedTeacherToAllocate] = useState("");
@@ -186,25 +173,67 @@ export default function AdminClassesView({
   useEffect(() => {
     if (!selectedClass) return;
 
-    if (activeTab === "timetable") {
-      loadTimetable(selectedClass.id);
-    } else if (activeTab === "students") {
+    if (activeTab === "students") {
       loadStudents(selectedClass.id);
     }
   }, [selectedClass?.id, activeTab]);
 
-  const loadTimetable = async (classId: string) => {
+  const handleToggleShift = async (shiftId: string, dayKey?: string) => {
+    if (!selectedClass) return;
+    const currentSchedule = { ...(selectedClass.shiftSchedule || {}) };
+    const currentRule = { ...(currentSchedule[shiftId] || { enabled: true, days: {} }) };
+
+    let updatedRule: any;
+    if (dayKey) {
+      const currentDays = { ...(currentRule.days || {}) };
+      const currentDayVal = currentDays[dayKey] !== false;
+      currentDays[dayKey] = !currentDayVal;
+      updatedRule = { ...currentRule, days: currentDays };
+    } else {
+      const currentEnabled = currentRule.enabled !== false;
+      updatedRule = { ...currentRule, enabled: !currentEnabled };
+    }
+
+    const updatedSchedule = {
+      ...currentSchedule,
+      [shiftId]: updatedRule,
+    };
+
+    const updatedClass = { ...selectedClass, shiftSchedule: updatedSchedule };
+    setSelectedClass(updatedClass);
+    setClasses(prev => prev.map(c => c.id === selectedClass.id ? updatedClass : c));
+
     try {
-      setIsLoadingSlots(true);
-      const res = await fetch(`/api/classes/${classId}/timetable`);
-      const data = await res.json();
-      if (data.success) {
-        setTimetableSlots(data.timetable || []);
-      }
+      setIsSavingShiftSchedule(true);
+      await fetch(`/api/classes/${selectedClass.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shiftSchedule: updatedSchedule }),
+      });
     } catch (e) {
-      console.error(e);
+      console.error("Failed to save shift schedule:", e);
     } finally {
-      setIsLoadingSlots(false);
+      setIsSavingShiftSchedule(false);
+    }
+  };
+
+  const handleResetAllShifts = async () => {
+    if (!selectedClass) return;
+    const updatedClass = { ...selectedClass, shiftSchedule: {} };
+    setSelectedClass(updatedClass);
+    setClasses(prev => prev.map(c => c.id === selectedClass.id ? updatedClass : c));
+
+    try {
+      setIsSavingShiftSchedule(true);
+      await fetch(`/api/classes/${selectedClass.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shiftSchedule: {} }),
+      });
+    } catch (e) {
+      console.error("Failed to reset shift schedule:", e);
+    } finally {
+      setIsSavingShiftSchedule(false);
     }
   };
 
@@ -427,55 +456,6 @@ export default function AdminClassesView({
     }
   };
 
-  // 8. ADD TIMETABLE SLOT
-  const handleAddSlot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedClass) return;
-    setActionError("");
-    setIsSubmitting(true);
-
-    try {
-      const res = await fetch(`/api/classes/${selectedClass.id}/timetable`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...slotFormData,
-          dayOfWeek: selectedDay,
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setActionError(data.message || "Failed to schedule slot.");
-        return;
-      }
-
-      setIsAddSlotModalOpen(false);
-      setSlotFormData({ ...slotFormData, subject: "", teacherId: "" });
-      loadTimetable(selectedClass.id);
-    } catch (err: any) {
-      setActionError(err.message || "Network error.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // 9. DELETE TIMETABLE SLOT
-  const handleDeleteSlot = async (slotId: string) => {
-    if (!selectedClass || !confirm("Delete this timetable lecture slot?")) return;
-
-    try {
-      const res = await fetch(`/api/classes/${selectedClass.id}/timetable?slotId=${slotId}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (data.success) {
-        loadTimetable(selectedClass.id);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   // Convert teacher list to options for SearchableDropdown
   const teacherOptions: DropdownOption[] = teachersList.map((t) => ({
@@ -514,7 +494,6 @@ export default function AdminClassesView({
     });
   }, [classes, searchQuery, programFilter, semesterFilter]);
 
-  const daySlots = timetableSlots.filter((s) => s.dayOfWeek.toLowerCase() === selectedDay.toLowerCase());
 
   // Helper for specialization badge color
   const getSpecializationBadge = (spec?: string) => {
@@ -724,8 +703,8 @@ export default function AdminClassesView({
                         <div className="flex items-center gap-1.5 truncate max-w-[85%]">
                           <UserCheck className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" />
                           <span className="truncate">
-                            {item.assignedTeachers?.length > 0
-                              ? item.assignedTeachers.map((t) => t.fullName).join(", ")
+                            {(item.assignedTeachers?.length || 0) > 0
+                              ? item.assignedTeachers?.map((t) => t.fullName).join(", ")
                               : "No Faculty Assigned"}
                           </span>
                         </div>
@@ -784,7 +763,7 @@ export default function AdminClassesView({
                     )}
 
                     <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                      {selectedClass.degreeLevel || "Undergraduate"}
+                      {selectedClass.course}
                     </span>
                   </div>
                 </div>
@@ -825,7 +804,7 @@ export default function AdminClassesView({
               <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2">
                 {[
                   { id: "overview", label: "Overview & Faculty", icon: Layers },
-                  { id: "timetable", label: "Class Timetable", icon: Clock },
+                  { id: "shifts", label: "Shift Schedule", icon: Clock },
                   { id: "students", label: `Enrolled Students (${selectedClass.studentCount})`, icon: GraduationCap },
                 ].map((tab) => {
                   const Icon = tab.icon;
@@ -907,9 +886,9 @@ export default function AdminClassesView({
                         </span>
                       </div>
                       <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Degree Level</span>
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Degree Program</span>
                         <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate block mt-0.5">
-                          {selectedClass.degreeLevel || "Undergraduate"}
+                          {selectedClass.course}
                         </span>
                       </div>
                       <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -996,92 +975,145 @@ export default function AdminClassesView({
                 </div>
               )}
 
-              {/* TAB 2: TIMETABLE */}
-              {activeTab === "timetable" && (
+              {/* TAB 2: SHIFT SCHEDULE MATRIX */}
+              {activeTab === "shifts" && (
                 <div className="space-y-4">
-                  {/* Day Picker */}
-                  <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1">
-                    <div className="flex items-center gap-1.5">
-                      {daysOfWeek.map((d) => (
-                        <button
-                          key={d}
-                          onClick={() => setSelectedDay(d)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            selectedDay === d
-                              ? "bg-blue-600 text-white shadow-sm"
-                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-                          }`}
-                        >
-                          {d}
-                        </button>
-                      ))}
+                  {/* Header & Quick Action */}
+                  <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <h4 className="font-black text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                          Section Shift Eligibility Matrix
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        Shifts run on their own operating days. All shifts are <strong>ON (Allowed)</strong> by default. Toggle OFF any shift or specific day to restrict booking.
+                      </p>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        setSlotFormData({
-                          dayOfWeek: selectedDay,
-                          startTime: "10:00",
-                          endTime: "11:00",
-                          subject: "",
-                          teacherId: "",
-                          roomNumber: "LH-301",
-                        });
-                        setActionError("");
-                        setIsAddSlotModalOpen(true);
-                      }}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm transition-all flex-shrink-0 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add Lecture</span>
-                    </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {isSavingShiftSchedule && (
+                        <span className="text-[10px] text-blue-500 flex items-center gap-1 font-bold animate-pulse">
+                          <RefreshCw className="w-3 h-3 animate-spin" /> Saving...
+                        </span>
+                      )}
+                      <button
+                        onClick={handleResetAllShifts}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                      >
+                        Reset All (Default ON)
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Slots list */}
-                  {isLoadingSlots ? (
-                    <div className="text-center py-12 text-xs text-slate-400">Loading schedule...</div>
-                  ) : daySlots.length === 0 ? (
-                    <div className="text-center py-12 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-400">
-                      No lecture slots scheduled for {selectedDay}. Click "Add Lecture" to configure hours.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {daySlots.map((slot) => (
+                  {/* Shift Cards */}
+                  <div className="space-y-3">
+                    {fleetShifts.map((shift) => {
+                      const classSchedule = selectedClass.shiftSchedule || {};
+                      const shiftRule = classSchedule[shift.id] || { enabled: true, days: {} };
+                      const isMasterEnabled = shiftRule.enabled !== false;
+                      const daysRule = shiftRule.days || {};
+
+                      // Determine shift operational days (weekdays + sat for regular, or specific for custom)
+                      const shiftDays = shift.isSpecial
+                        ? ["Saturday", "Sunday"]
+                        : shift.shiftType === "EVENING"
+                        ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+                        : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+                      return (
                         <div
-                          key={slot.id}
-                          className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3"
+                          key={shift.id}
+                          className={`p-4 rounded-2xl border transition-all ${
+                            isMasterEnabled
+                              ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm"
+                              : "bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/50 opacity-80"
+                          }`}
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="px-2.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono text-xs font-bold whitespace-nowrap">
-                              {slot.startTime} - {slot.endTime}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-xs text-slate-900 dark:text-white">
+                                  {shift.name}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold ${
+                                    shift.shiftType === "MORNING"
+                                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                      : shift.shiftType === "AFTERNOON"
+                                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                      : shift.shiftType === "EVENING"
+                                      ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                                      : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                  }`}
+                                >
+                                  {shift.shiftType}
+                                </span>
+                                <span className="text-[11px] font-mono text-slate-400">
+                                  {shift.startTime} - {shift.endTime}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400">
+                                Cutoff: {shift.bookingCutoffMins}m before departure • Operating Days: {shiftDays.join(", ")}
+                              </p>
                             </div>
-                            <div className="min-w-0">
-                              <div className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                                {slot.subject}
-                              </div>
-                              <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                                <span>{slot.teacherName || "Assigned Faculty"}</span>
-                                {slot.roomNumber && (
-                                  <>
-                                    <span>•</span>
-                                    <span>Room: {slot.roomNumber}</span>
-                                  </>
-                                )}
-                              </div>
+
+                            {/* Master Toggle */}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                                {isMasterEnabled ? "Active" : "Disabled"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleShift(shift.id)}
+                                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                                  isMasterEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                                }`}
+                              >
+                                <span
+                                  className={`block w-4 h-4 rounded-full bg-white transition-transform transform shadow-sm ${
+                                    isMasterEnabled ? "translate-x-6" : "translate-x-1"
+                                  }`}
+                                />
+                              </button>
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => handleDeleteSlot(slot.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex-shrink-0 cursor-pointer"
-                            title="Delete Slot"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Operating Day Toggles */}
+                          {isMasterEnabled && (
+                            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                Shift Days for this Section (Click to Toggle):
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {shiftDays.map((d) => {
+                                  const dayKey = d.toLowerCase();
+                                  const isDayEnabled = daysRule[dayKey] !== false;
+                                  return (
+                                    <button
+                                      key={d}
+                                      type="button"
+                                      onClick={() => handleToggleShift(shift.id, dayKey)}
+                                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                        isDayEnabled
+                                          ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100"
+                                          : "bg-slate-100 dark:bg-slate-800 text-slate-400 line-through border border-transparent hover:bg-slate-200"
+                                      }`}
+                                      title={isDayEnabled ? `${d}: Enabled for Section` : `${d}: Disabled (Emergency Pass Required)`}
+                                    >
+                                      <span>{isDayEnabled ? "✓" : "✕"}</span>
+                                      <span>{d.substring(0, 3)}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -1473,126 +1505,6 @@ export default function AdminClassesView({
                   className="px-5 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-500 shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? "Allocating..." : "Allocate Teacher"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 4: ADD TIMETABLE SLOT */}
-      {isAddSlotModalOpen && selectedClass && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-blue-500" />
-                <h3 className="font-black text-base text-slate-900 dark:text-white">
-                  Add Lecture Slot: {selectedDay}
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsAddSlotModalOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {actionError && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-rose-600 text-xs font-medium flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{actionError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleAddSlot} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                  Subject / Course Module
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={slotFormData.subject}
-                  onChange={(e) => setSlotFormData({ ...slotFormData, subject: e.target.value })}
-                  placeholder="e.g. Database Management Systems (DBMS)"
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* SEARCHABLE DROPDOWN FOR ASSIGNING TEACHER TO THIS TIMETABLE SLOT */}
-              <div>
-                <SearchableDropdown
-                  label="Assign Faculty / Lecturer (Optional)"
-                  placeholder="Select lecturer for this period..."
-                  searchPlaceholder="Search teacher by name or email..."
-                  options={teacherOptions}
-                  value={slotFormData.teacherId}
-                  onChange={(val) => setSlotFormData({ ...slotFormData, teacherId: val })}
-                  clearable
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                    Start Time
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={slotFormData.startTime}
-                    onChange={(e) => setSlotFormData({ ...slotFormData, startTime: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                    End Time
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={slotFormData.endTime}
-                    onChange={(e) => setSlotFormData({ ...slotFormData, endTime: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                  Lecture Hall / Room Number
-                </label>
-                <input
-                  type="text"
-                  value={slotFormData.roomNumber}
-                  onChange={(e) => setSlotFormData({ ...slotFormData, roomNumber: e.target.value })}
-                  placeholder="e.g. Lab 4 or Room 302"
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl text-[11px] text-amber-800 dark:text-amber-300">
-                <strong>Enforced Rule:</strong> During {slotFormData.startTime} - {slotFormData.endTime} on {selectedDay}, any student of {selectedClass.name} attempting to scan into a bus will be denied entry automatically.
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddSlotModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 shadow-md cursor-pointer disabled:opacity-50"
-                >
-                  {isSubmitting ? "Adding..." : "Add to Class Schedule"}
                 </button>
               </div>
             </form>

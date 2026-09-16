@@ -152,9 +152,19 @@ export default async function DigitalPassPage() {
     isActive: st.is_active ?? true,
   }));
 
+  const currentStudent = students.find(
+    s =>
+      s.userId === session.userId ||
+      (session as any).id === s.userId ||
+      s.id === session.userId ||
+      s.id === (session as any).id ||
+      s.email?.toLowerCase() === session.email?.toLowerCase()
+  );
+
   return (
     <DigitalPassView
-      initialUser={session}
+      initialUser={{ ...session, id: session.userId }}
+      initialStudent={currentStudent}
       initialStudents={students}
       initialBuses={buses}
       initialTrips={trips}

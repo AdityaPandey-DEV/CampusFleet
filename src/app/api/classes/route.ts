@@ -50,19 +50,16 @@ export async function GET() {
       id: c.id,
       course: c.course,
       department: c.department || "Computer Science & Engineering",
-      degreeLevel: c.degree_level || "Undergraduate",
+      semester: c.semester || "4th Sem",
       year: c.year,
-      yearNum: c.year_num || 1,
-      semester: c.semester,
-      semesterNum: c.semester_num || 1,
       section: c.section,
-      sectionCode: c.section_code || c.section,
       specialization: c.specialization || "Core",
       name: c.name,
       isActive: c.is_active,
       createdAt: c.created_at,
       studentCount: countMap.get(c.id) || 0,
       assignedTeachers: teachersMap.get(c.id) || [],
+      shiftSchedule: c.shift_schedule || {},
     }));
 
     return NextResponse.json({ success: true, classes: result });

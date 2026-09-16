@@ -67,18 +67,18 @@ export async function middleware(req: NextRequest) {
 
   // Root Homepage ("/") & Login ("/login") Handling
   if (pathname === "/" || pathname === "/login") {
-    // If the user explicitly wants to view the public homepage via ?public=true or ?landing=true
-    const isExplicitPublic =
-      searchParams.get("public") === "true" || searchParams.get("landing") === "true";
-
-    // If authenticated and didn't request explicit public landing, redirect directly to assigned console
-    if (session && !isExplicitPublic) {
+    // If authenticated, redirect directly to assigned role console
+    if (session) {
       const targetRoute = getTargetRouteForRole(session.role);
       const targetUrl = new URL(targetRoute, req.url);
       return NextResponse.redirect(targetUrl);
     }
 
-    // Unauthenticated or explicit public view -> allow through
+    // If on root "/" and unauthenticated, redirect directly to /login
+    if (pathname === "/") {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+
     return NextResponse.next();
   }
 

@@ -24,6 +24,9 @@ export async function GET(req: NextRequest) {
   let dbCampusId = (session as any).campusId || "";
   let dbCampus = session.campus || "";
   let dbFullName = session.fullName;
+  let dbStudentId: string | undefined = undefined;
+  let hasActiveSubscription: boolean | undefined = undefined;
+  let paymentStatus: string | undefined = undefined;
 
   // 1. Fast Redis cache check
   try {
@@ -63,7 +66,7 @@ export async function GET(req: NextRequest) {
     if (currentRole === "student") {
       const { data: studentsList } = await supabaseAdmin
         .from("students")
-        .select("id, campus_id, campus, full_name, primary_stop_id")
+        .select("id, campus_id, campus, full_name, primary_stop_id, has_active_subscription, payment_status")
         .or(`user_id.eq.${session.userId},email.ilike.${session.email || ""}`)
         .order("created_at", { ascending: false })
         .limit(1);
@@ -73,6 +76,9 @@ export async function GET(req: NextRequest) {
         if (st.campus_id) dbCampusId = st.campus_id;
         if (st.campus) dbCampus = st.campus;
         if (st.full_name && !dbFullName) dbFullName = st.full_name;
+        dbStudentId = st.id;
+        hasActiveSubscription = Boolean(st.has_active_subscription);
+        paymentStatus = st.payment_status || "UNPAID";
       }
     }
   } catch (e) {
@@ -83,13 +89,16 @@ export async function GET(req: NextRequest) {
   const response = NextResponse.json({
     user: {
       id: session.userId,
+      userId: session.userId,
       email: session.email,
       fullName: dbFullName,
       role: currentRole,
       campusId: dbCampusId,
       campus: dbCampus,
       avatarUrl: session.avatarUrl,
-      studentId: currentRole === "student" ? session.userId : undefined,
+      studentId: dbStudentId || (currentRole === "student" ? session.userId : undefined),
+      hasActiveSubscription,
+      paymentStatus,
       token: `tok_jwt_${Date.now()}`,
       createdAt: new Date().toISOString(),
     },

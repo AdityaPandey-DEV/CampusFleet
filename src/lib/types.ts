@@ -456,13 +456,17 @@ export interface AuditLog {
 export interface ClassItem {
   id: string;
   course: string;
+  department?: string;
+  semester?: string;
   year: string;
   section: string;
+  specialization?: string;
   name: string;
   isActive: boolean;
   createdAt?: string;
   studentCount?: number;
   assignedTeachers?: { id: string; fullName: string; email: string; isPrimary: boolean }[];
+  shiftSchedule?: Record<string, { enabled?: boolean; days?: Record<string, boolean> }>;
 }
 
 export interface ClassTeacher {
@@ -473,16 +477,9 @@ export interface ClassTeacher {
   assignedAt?: string;
 }
 
-export interface ClassTimetableSlot {
-  id: string;
-  classId: string;
-  dayOfWeek: string; // 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday'
-  startTime: string; // 'HH:MM:SS' or 'HH:MM'
-  endTime: string;   // 'HH:MM:SS' or 'HH:MM'
-  subject: string;
-  teacherId?: string;
-  teacherName?: string;
-  roomNumber?: string;
+export interface ClassShiftRule {
+  enabled?: boolean;
+  days?: Record<string, boolean>;
 }
 
 export interface BusMergePoint {

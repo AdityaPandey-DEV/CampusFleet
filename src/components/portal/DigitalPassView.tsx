@@ -30,6 +30,7 @@ import type { Student, Bus, Trip, Shift, Stop, Booking, Staff } from "@/lib/type
 
 export interface DigitalPassProps {
   initialUser?: any;
+  initialStudent?: Student;
   initialStudents?: Student[];
   initialBuses?: Bus[];
   initialTrips?: Trip[];
@@ -41,6 +42,7 @@ export interface DigitalPassProps {
 
 export default function DigitalPassView({
   initialUser,
+  initialStudent,
   initialStudents = [],
   initialBuses = [],
   initialTrips = [],
@@ -50,7 +52,13 @@ export default function DigitalPassView({
   initialStaff = [],
 }: DigitalPassProps = {}) {
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
-  const [students, setStudents] = useState<Student[]>(() => initialStudents.length > 0 ? initialStudents : store.getStudents());
+  const [students, setStudents] = useState<Student[]>(() => {
+    if (initialStudent) {
+      const exists = initialStudents.some(s => s.id === initialStudent.id);
+      return exists ? initialStudents : [initialStudent, ...initialStudents];
+    }
+    return initialStudents.length > 0 ? initialStudents : store.getStudents();
+  });
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
   const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
@@ -62,6 +70,15 @@ export default function DigitalPassView({
   // Full-screen presentation mode for fast scanner reads
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [securityPing, setSecurityPing] = useState(0);
+
+  useEffect(() => {
+    if (initialStudent) {
+      const existing = store.getStudents();
+      if (!existing.some(s => s.id === initialStudent.id)) {
+        store.setStudents([initialStudent, ...existing]);
+      }
+    }
+  }, [initialStudent]);
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -92,9 +109,11 @@ export default function DigitalPassView({
           (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
           (currentUser.studentId && s.id === currentUser.studentId) ||
           s.userId === currentUser.id ||
+          s.userId === currentUser.userId ||
+          s.id === currentUser.id ||
           s.email?.toLowerCase() === currentUser.email?.toLowerCase()
-      ) || null
-    : null;
+      ) || initialStudent || null
+    : initialStudent || null;
 
   const userBookings = currentUser && activeStudent
     ? bookings.filter(

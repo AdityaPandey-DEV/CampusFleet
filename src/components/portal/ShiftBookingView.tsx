@@ -54,6 +54,7 @@ import type { Student, Shift, Stop, Bus, Trip, Booking } from "@/lib/types";
 
 export interface ShiftBookingProps {
   initialUser?: any;
+  initialStudent?: Student;
   initialStudents?: Student[];
   initialShifts?: Shift[];
   initialStops?: Stop[];
@@ -64,6 +65,7 @@ export interface ShiftBookingProps {
 
 export default function ShiftBookingView({
   initialUser,
+  initialStudent,
   initialStudents = [],
   initialShifts = [],
   initialStops = [],
@@ -73,7 +75,13 @@ export default function ShiftBookingView({
 }: ShiftBookingProps = {}) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
-  const [students, setStudents] = useState<Student[]>(() => initialStudents.length > 0 ? initialStudents : store.getStudents());
+  const [students, setStudents] = useState<Student[]>(() => {
+    if (initialStudent) {
+      const exists = initialStudents.some(s => s.id === initialStudent.id);
+      return exists ? initialStudents : [initialStudent, ...initialStudents];
+    }
+    return initialStudents.length > 0 ? initialStudents : store.getStudents();
+  });
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
   const [shifts, setShifts] = useState<Shift[]>(() => initialShifts.length > 0 ? initialShifts : store.getShifts());
   const [stops, setStops] = useState<Stop[]>(() => initialStops.length > 0 ? initialStops : store.getStops());
@@ -91,14 +99,14 @@ export default function ShiftBookingView({
   const [isBookingLoading, setIsBookingLoading] = useState(false);
   const [showMissedBusRadar, setShowMissedBusRadar] = useState(false);
 
-  // Timetable & Emergency Departure Pass state
-  const [timetableEligibility, setTimetableEligibility] = useState<{
-    hasClassesAfterCurrentTime: boolean;
-    hasClassesAfter1330: boolean;
-    lastClassEndTime: string;
+  // Class Shift Eligibility & Emergency Departure Gate-Pass state
+  const [shiftEligibility, setShiftEligibility] = useState<{
+    isShiftEnabled: boolean;
+    isShiftRestricted: boolean;
+    canBookShift: boolean;
     hasApprovedEmergencyPass: boolean;
     pendingRequest: any;
-    canBookHalfDay: boolean;
+    className?: string;
   } | null>(null);
 
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
@@ -125,6 +133,15 @@ export default function ShiftBookingView({
   }, [selectedShiftId]);
 
   useEffect(() => {
+    if (initialStudent) {
+      const existing = store.getStudents();
+      if (!existing.some(s => s.id === initialStudent.id)) {
+        store.setStudents([initialStudent, ...existing]);
+      }
+    }
+  }, [initialStudent]);
+
+  useEffect(() => {
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
       setStudents(store.getStudents());
@@ -144,10 +161,13 @@ export default function ShiftBookingView({
           (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
           (currentUser.studentId && s.id === currentUser.studentId) ||
           s.userId === currentUser.id ||
+          s.userId === currentUser.userId ||
+          s.id === currentUser.id ||
+          s.id === currentUser.studentId ||
           s.email?.toLowerCase() === currentUser.email?.toLowerCase()
-      ) || {
-        id: `stud-${currentUser.id}`,
-        userId: currentUser.id,
+      ) || initialStudent || {
+        id: `stud-${currentUser.id || currentUser.userId || "guest"}`,
+        userId: currentUser.id || currentUser.userId,
         enrollmentNo: "PENDING",
         fullName: currentUser.fullName || "Student Commuter",
         email: currentUser.email,
@@ -160,34 +180,39 @@ export default function ShiftBookingView({
         primaryRouteId: "",
         emergencyContact: { name: null, relationship: null, phone: null },
         transportAccessSuspended: false,
-        hasActiveSubscription: false,
+        hasActiveSubscription: Boolean(currentUser.hasActiveSubscription),
         zoneCode: "ZONE_B",
       } as unknown as Student
-    : null;
+    : initialStudent || null;
 
-  const fetchEligibility = async () => {
+  const fetchEligibility = async (shiftIdToQuery?: string) => {
     if (!activeStudent?.id) return;
     try {
-      const res = await fetch(`/api/students/timetable-eligibility?studentId=${encodeURIComponent(activeStudent.id)}`);
+      const sId = shiftIdToQuery || selectedShiftId || "";
+      const res = await fetch(
+        `/api/students/timetable-eligibility?studentId=${encodeURIComponent(activeStudent.id)}&shiftId=${encodeURIComponent(sId)}`
+      );
       const data = await res.json();
       if (data.success) {
-        setTimetableEligibility({
-          hasClassesAfterCurrentTime: data.hasClassesAfterCurrentTime ?? data.hasClassesAfter1330 ?? false,
-          hasClassesAfter1330: data.hasClassesAfter1330 ?? data.hasClassesAfterCurrentTime ?? false,
-          lastClassEndTime: data.lastClassEndTime,
-          hasApprovedEmergencyPass: data.hasApprovedEmergencyPass,
-          pendingRequest: data.pendingRequest,
-          canBookHalfDay: data.canBookHalfDay,
+        setShiftEligibility({
+          isShiftEnabled: data.isShiftEnabled ?? true,
+          isShiftRestricted: data.isShiftRestricted ?? false,
+          hasApprovedEmergencyPass: Boolean(data.hasApprovedEmergencyPass),
+          pendingRequest: data.pendingRequest || null,
+          className: data.className,
+          canBookShift: data.canBookShift ?? true,
         });
       }
     } catch (e) {
-      console.warn("Could not load timetable eligibility:", e);
+      console.warn("Could not load shift eligibility:", e);
     }
   };
 
   useEffect(() => {
-    fetchEligibility();
-  }, [activeStudent?.id]);
+    if (activeStudent?.id) {
+      fetchEligibility(selectedShiftId);
+    }
+  }, [activeStudent?.id, selectedShiftId]);
 
   useEffect(() => {
     if (activeStudent && !selectedStopId) {
@@ -534,8 +559,8 @@ export default function ShiftBookingView({
           </div>
         )}
 
-        {/* Dynamic Timetable & Gate-Pass Status Banner */}
-        {timetableEligibility?.hasApprovedEmergencyPass ? (
+        {/* Dynamic Shift Restriction & Gate-Pass Status Banner */}
+        {shiftEligibility?.hasApprovedEmergencyPass ? (
           <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-semibold flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -547,21 +572,21 @@ export default function ShiftBookingView({
               GATE-PASS VERIFIED
             </span>
           </div>
-        ) : timetableEligibility?.hasClassesAfterCurrentTime ? (
+        ) : shiftEligibility?.isShiftRestricted ? (
           <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start gap-2">
               <GraduationCap className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <div className="font-bold">
-                  Academic Lectures In Session (Scheduled until {timetableEligibility.lastClassEndTime})
+                  Shift Restricted by Administration {shiftEligibility.className ? `(${shiftEligibility.className})` : ""}
                 </div>
                 <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">
-                  To board a departure corridor before your academic lectures conclude, obtain early leave authorization from your Class Teacher.
+                  Admin has restricted regular booking for {selectedShift?.name || "this shift"} for your section. To board this shift, obtain early leave authorization from your Class Teacher.
                 </p>
               </div>
             </div>
 
-            {timetableEligibility.pendingRequest ? (
+            {shiftEligibility.pendingRequest ? (
               <div className="px-3 py-1.5 rounded-xl bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100 text-xs font-bold shrink-0 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 animate-spin" />
                 <span>Gate-Pass Pending Teacher Review</span>
@@ -1096,14 +1121,14 @@ export default function ShiftBookingView({
                   <AlertCircle className="w-4 h-4" />
                   <span>Bus Fully Booked — Please Select Alternate Shift</span>
                 </button>
-              ) : timetableEligibility?.hasClassesAfterCurrentTime && !timetableEligibility?.hasApprovedEmergencyPass ? (
-                timetableEligibility.pendingRequest ? (
+              ) : shiftEligibility?.isShiftRestricted && !shiftEligibility?.hasApprovedEmergencyPass ? (
+                shiftEligibility.pendingRequest ? (
                   <button
                     disabled
                     className="w-full py-4 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-extrabold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Clock className="w-4 h-4 animate-spin" />
-                    <span>Early Departure Gate-Pass Pending Teacher Approval</span>
+                    <span>Gate-Pass Pending Teacher Approval</span>
                   </button>
                 ) : (
                   <button
@@ -1112,7 +1137,7 @@ export default function ShiftBookingView({
                     className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-amber-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
                   >
                     <FileText className="w-4 h-4" />
-                    <span>Request Early Departure Gate-Pass to Book {selectedShift?.name || "Shift"}</span>
+                    <span>Request Teacher Gate-Pass to Book {selectedShift?.name || "Shift"}</span>
                   </button>
                 )
               ) : (
@@ -1130,7 +1155,7 @@ export default function ShiftBookingView({
                     <>
                       <Sparkles className="w-4 h-4" />
                       <span>
-                        Confirm Seat Reservation {timetableEligibility?.hasApprovedEmergencyPass ? "(Gate-Pass Approved • " : "("}{selectedSeatNumber || "1A"})
+                        Confirm Seat Reservation {shiftEligibility?.hasApprovedEmergencyPass ? "(Gate-Pass Approved • " : "("}{selectedSeatNumber || "1A"})
                       </span>
                     </>
                   )}
@@ -1239,9 +1264,9 @@ export default function ShiftBookingView({
                 <div className="text-slate-500 text-[11px]">
                   Scheduled Timing: {selectedShift?.startTime} – {selectedShift?.endTime}
                 </div>
-                {timetableEligibility?.lastClassEndTime && (
+                {shiftEligibility?.isShiftRestricted && (
                   <div className="text-amber-600 dark:text-amber-400 text-[11px] font-semibold">
-                    Current Lecture Schedule concludes at: {timetableEligibility.lastClassEndTime}
+                    Shift Restricted by Administration for {shiftEligibility.className || "Your Section"}
                   </div>
                 )}
               </div>
@@ -1292,7 +1317,7 @@ export default function ShiftBookingView({
                         });
                         setIsEmergencyModalOpen(false);
                         setEmergencyReason("");
-                        await fetchEligibility();
+                        await fetchEligibility(selectedShiftId);
                       } else {
                         alert(data.error || "Submission failed");
                       }

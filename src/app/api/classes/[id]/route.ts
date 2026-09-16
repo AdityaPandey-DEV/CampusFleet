@@ -37,7 +37,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     return NextResponse.json({
       success: true,
-      class: classItem,
+      class: {
+        ...classItem,
+        shiftSchedule: classItem.shift_schedule || {},
+      },
       students: students || [],
       teachers: (classTeachers || []).map(ct => ({
         id: (ct.users as any)?.id,
@@ -45,16 +48,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         email: (ct.users as any)?.email,
         phone: (ct.users as any)?.phone,
         isPrimary: ct.is_primary,
-      })),
-      timetable: (timetable || []).map(t => ({
-        id: t.id,
-        dayOfWeek: t.day_of_week,
-        startTime: t.start_time,
-        endTime: t.end_time,
-        subject: t.subject,
-        teacherId: t.teacher_id,
-        teacherName: (t.users as any)?.full_name || "Faculty",
-        roomNumber: t.room_number,
       })),
     });
   } catch (error: any) {
@@ -69,13 +62,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   try {
     const classId = params.id;
     const body = await req.json();
-    const { course, year, section, isActive } = body;
+    const { course, year, section, isActive, shiftSchedule, department, semester } = body;
 
     const updates: Record<string, any> = {};
     if (course) updates.course = course.trim();
     if (year) updates.year = year.trim();
     if (section) updates.section = section.trim().toUpperCase();
     if (isActive !== undefined) updates.is_active = isActive;
+    if (shiftSchedule !== undefined) updates.shift_schedule = shiftSchedule;
+    if (department !== undefined) updates.department = department;
+    if (semester !== undefined) updates.semester = semester;
 
     if (course || year || section) {
       const { data: current } = await supabaseAdmin.from("classes").select("*").eq("id", classId).single();
