@@ -11,6 +11,7 @@ export default async function StaffDispatchTripsPage() {
       initialTrips={data.trips}
       initialBuses={data.buses}
       initialRoutes={data.routes}
+      initialShifts={data.shifts}
       initialStaff={data.staff}
       initialBookings={data.bookings}
     />

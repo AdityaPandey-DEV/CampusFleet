@@ -143,6 +143,21 @@ export default function StaffTripsView({
     }
   }, [routes, buses, shifts, staff, newTrip.routeId]);
 
+  const todayDate = useMemo(() => getTodayIST(), []);
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const today = getTodayIST();
+    const sourceTrips = initialTrips.length > 0 ? initialTrips : store.getTrips();
+    const hasToday = sourceTrips.some((t) => t.tripDate === today);
+    if (hasToday) return today;
+    const dates = sourceTrips.map((t) => t.tripDate).filter(Boolean).sort();
+    return dates.length > 0 ? dates[dates.length - 1] : today;
+  });
+
+  const availableDates = useMemo(() => {
+    const dates = Array.from(new Set(trips.map((t) => t.tripDate).filter(Boolean))).sort().reverse();
+    return dates;
+  }, [trips]);
+
   const showToast = (msg: string) => {
     setFeedbackToast(msg);
     setTimeout(() => setFeedbackToast(null), 4000);
@@ -150,19 +165,16 @@ export default function StaffTripsView({
 
   // Helper to determine trip direction with route and shift fallback
   const getTripDirection = (trip: Trip): TripDirection => {
-    if (trip.direction) return trip.direction;
-    const r = routes.find((rt) => rt.id === trip.routeId);
+    const tripCode = (trip.tripCode || "").toUpperCase();
     const sh = shifts.find((s) => s.id === trip.shiftId);
     const shiftType = (sh?.shiftType || "").toUpperCase();
-    const tripCode = (trip.tripCode || "").toUpperCase();
 
     if (
-      r?.direction === "CAMPUS_TO_CAMPUS" ||
       tripCode.includes("C2C") ||
       tripCode.includes("BUS21") ||
-      r?.name?.toLowerCase().includes("placement") ||
-      r?.name?.toLowerCase().includes("dehradun") ||
-      r?.name?.toLowerCase().includes("inter-campus")
+      tripCode.includes("DDN") ||
+      trip.isSpecial ||
+      trip.direction === "CAMPUS_TO_CAMPUS"
     ) {
       return "CAMPUS_TO_CAMPUS";
     }
@@ -173,10 +185,11 @@ export default function StaffTripsView({
       shiftType === "EVENING" ||
       trip.shiftId === "shift-2" ||
       trip.shiftId === "shift-evening" ||
-      r?.direction === "CAMPUS_TO_HOME"
+      trip.direction === "CAMPUS_TO_HOME"
     ) {
       return "CAMPUS_TO_HOME";
     }
+    if (trip.direction) return trip.direction;
     return "HOME_TO_CAMPUS";
   };
 
@@ -224,14 +237,20 @@ export default function StaffTripsView({
     return "EVERY_DAY";
   };
 
-  // KPI Computations
+  // Trips scoped to currently selected operational date
+  const dateScopedTrips = useMemo(() => {
+    if (selectedDate === "ALL") return trips;
+    return trips.filter((t) => t.tripDate === selectedDate);
+  }, [trips, selectedDate]);
+
+  // KPI Computations for the active shift date
   const stats = useMemo(() => {
-    const total = trips.length;
-    const homeToCampus = trips.filter((t) => getTripDirection(t) === "HOME_TO_CAMPUS").length;
-    const campusToHome = trips.filter((t) => getTripDirection(t) === "CAMPUS_TO_HOME").length;
-    const campusToCampus = trips.filter((t) => getTripDirection(t) === "CAMPUS_TO_CAMPUS").length;
+    const total = dateScopedTrips.length;
+    const homeToCampus = dateScopedTrips.filter((t) => getTripDirection(t) === "HOME_TO_CAMPUS").length;
+    const campusToHome = dateScopedTrips.filter((t) => getTripDirection(t) === "CAMPUS_TO_HOME").length;
+    const campusToCampus = dateScopedTrips.filter((t) => getTripDirection(t) === "CAMPUS_TO_CAMPUS").length;
     const confirmedPassengers = bookings.filter((b) => b.status === "CONFIRMED" || b.status === "BOARDED").length;
-    const totalCapacity = trips.reduce((acc, t) => {
+    const totalCapacity = dateScopedTrips.reduce((acc, t) => {
       const b = buses.find((bus) => bus.id === t.busId);
       return acc + (b?.capacity || 40);
     }, 0);
@@ -245,11 +264,11 @@ export default function StaffTripsView({
       totalCapacity,
       utilizationRate: totalCapacity > 0 ? Math.round((confirmedPassengers / totalCapacity) * 100) : 0,
     };
-  }, [trips, bookings, buses, routes]);
+  }, [dateScopedTrips, bookings, buses, routes, shifts]);
 
-  // Filtered trips
+  // Filtered trips for active view
   const filteredTrips = useMemo(() => {
-    return trips.filter((trip) => {
+    return dateScopedTrips.filter((trip) => {
       const dir = getTripDirection(trip);
       const freq = getTripScheduleType(trip);
 
@@ -284,7 +303,7 @@ export default function StaffTripsView({
 
       return true;
     });
-  }, [trips, selectedDirection, selectedFrequency, selectedStatus, searchQuery, routes, buses, staff]);
+  }, [dateScopedTrips, selectedDirection, selectedFrequency, selectedStatus, searchQuery, routes, buses, staff, shifts]);
 
   // Handle Locking Final Manifest
   const handleLockManifest = (tripId: string) => {
@@ -520,6 +539,78 @@ export default function StaffTripsView({
 
       {/* Filter & Search Toolbar */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+        {/* Operational Shift Date Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs font-black text-slate-700 dark:text-slate-300 mr-1">
+              <CalendarDays className="w-4 h-4 text-blue-600" />
+              <span>Shift Date:</span>
+            </div>
+
+            {/* Quick Today Button */}
+            <button
+              onClick={() => setSelectedDate(todayDate)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                selectedDate === todayDate
+                  ? "bg-blue-600 text-white shadow-sm shadow-blue-500/25 ring-2 ring-blue-400/40"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Today ({todayDate})</span>
+              <span className="ml-1 px-1.5 py-0.2 rounded-md text-[10px] bg-white/20">
+                {trips.filter((t) => t.tripDate === todayDate).length}
+              </span>
+            </button>
+
+            {/* Other Recent Available Dates */}
+            {availableDates
+              .filter((d) => d !== todayDate)
+              .slice(0, 3)
+              .map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setSelectedDate(d)}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    selectedDate === d
+                      ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <span>{d}</span>
+                  <span className="ml-1 text-[10px] text-slate-400">
+                    ({trips.filter((t) => t.tripDate === d).length})
+                  </span>
+                </button>
+              ))}
+
+            {/* All Dates Toggle */}
+            <button
+              onClick={() => setSelectedDate("ALL")}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedDate === "ALL"
+                  ? "bg-amber-600 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+            >
+              <span>All Dates Archive ({trips.length})</span>
+            </button>
+          </div>
+
+          {/* Date Picker Input for any custom date */}
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+            <span>Pick Date:</span>
+            <input
+              type="date"
+              value={selectedDate === "ALL" ? "" : selectedDate}
+              onChange={(e) => {
+                if (e.target.value) setSelectedDate(e.target.value);
+              }}
+              className="px-2.5 py-1 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
         {/* Direction Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -568,7 +659,7 @@ export default function StaffTripsView({
           </div>
 
           <div className="text-xs font-bold text-slate-400">
-            Showing {filteredTrips.length} of {trips.length} schedules
+            Showing {filteredTrips.length} of {dateScopedTrips.length} schedules {selectedDate !== "ALL" && `for ${selectedDate}`}
           </div>
         </div>
 
@@ -680,12 +771,13 @@ export default function StaffTripsView({
             const dir = getTripDirection(trip);
             const freq = getTripScheduleType(trip);
             const departureTime =
-              trip.departureTime ||
-              (dir === "CAMPUS_TO_HOME"
-                ? "16:30"
-                : dir === "CAMPUS_TO_CAMPUS"
-                  ? "05:00"
-                  : shift.startTime);
+              trip.departureTime && (dir !== "CAMPUS_TO_HOME" || trip.departureTime !== "07:30")
+                ? trip.departureTime
+                : dir === "CAMPUS_TO_HOME"
+                  ? "16:30"
+                  : dir === "CAMPUS_TO_CAMPUS"
+                    ? "05:00"
+                    : shift.startTime || "07:30";
             const displayRouteName = getDirectionalRouteName(route.name, dir);
             const displayBusNumber = getDirectionalBusNumber(bus.busNumber, dir);
             const cityOrigin = getRouteCityOrigin(route.name);
@@ -720,7 +812,13 @@ export default function StaffTripsView({
                     </span>
 
                     {/* Status & Recurrence Tags */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {trip.tripDate && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                          {trip.tripDate}
+                        </span>
+                      )}
+
                       {trip.isSpecial && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60">
                           <GraduationCap className="w-3 h-3" />

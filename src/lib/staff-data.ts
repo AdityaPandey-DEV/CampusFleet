@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import type { Route, Bus, Stop, Student, Trip, Booking, Staff, UserAccount, Campus, ClassItem } from "@/lib/types";
+import type { Route, Bus, Stop, Student, Trip, Booking, Staff, UserAccount, Campus, ClassItem, Shift, TripDirection } from "@/lib/types";
 
 export async function getStaffServerData(redirectPath: string = "/staff") {
   const session = await getSession();
@@ -134,30 +134,63 @@ export async function getStaffServerData(redirectPath: string = "/staff") {
     totalFeePaid: Number(s.total_fee_paid) || 0,
   }));
 
-  const trips: Trip[] = (dbTrips || []).map((t: any) => ({
-    id: t.id,
-    tripCode: t.trip_code || `TRIP-${t.id.slice(0, 6)}`,
-    routeId: t.route_id || "",
-    busId: t.bus_id || "",
-    shiftId: t.shift_id || "shift-1",
-    driverId: t.driver_id || "",
-    conductorId: t.conductor_id || "",
-    tripDate: t.trip_date || new Date().toISOString().split("T")[0],
-    status: t.status || "SCHEDULED",
-    startedAt: t.started_at,
-    completedAt: t.completed_at,
-    delayMinutes: Number(t.delay_minutes) || 0,
-    manifestLocked: Boolean(t.manifest_locked),
-    manifestLockedAt: t.manifest_locked_at,
-    currentStopIndex: Number(t.current_stop_index) || 0,
-    direction: t.direction || "HOME_TO_CAMPUS",
-    scheduleType: t.schedule_type || "EVERY_DAY",
-    customDays: t.custom_days,
-    departureTime: t.departure_time || t.scheduled_departure || "07:30",
-    arrivalTime: t.arrival_time || t.scheduled_arrival || "08:45",
-    isSpecial: Boolean(t.is_special),
-    facilityType: t.facility_type || (Boolean(t.is_special) ? "PLACEMENT_DRIVE" : "REGULAR"),
+  const shiftMap = new Map((dbShifts || []).map((s: any) => [s.id, s]));
+
+  const shifts: Shift[] = (dbShifts || []).map((sh: any) => ({
+    id: sh.id,
+    name: sh.name,
+    shiftType: (sh.type || "MORNING") as any,
+    startTime: sh.start_time ? sh.start_time.slice(0, 5) : "07:30",
+    endTime: sh.end_time ? sh.end_time.slice(0, 5) : "08:45",
+    bookingCutoffMins: Number(sh.booking_cutoff_minutes) || 30,
+    isSpecial: Boolean(sh.is_special),
   }));
+
+  const trips: Trip[] = (dbTrips || []).map((t: any) => {
+    const shift = shiftMap.get(t.shift_id);
+    const isEvening =
+      (t.trip_code && t.trip_code.includes("-E-")) ||
+      t.shift_id === "shift-2" ||
+      t.shift_id === "shift-evening" ||
+      shift?.type === "EVENING";
+    const isC2C =
+      (t.trip_code && (t.trip_code.includes("C2C") || t.trip_code.includes("DDN"))) ||
+      Boolean(t.is_special) ||
+      Boolean(shift?.is_special);
+    const direction: TripDirection = isEvening
+      ? "CAMPUS_TO_HOME"
+      : isC2C
+        ? "CAMPUS_TO_CAMPUS"
+        : "HOME_TO_CAMPUS";
+
+    const defaultDep = isEvening ? "16:30" : isC2C ? "05:00" : "07:30";
+    const defaultArr = isEvening ? "17:45" : isC2C ? "10:30" : "08:45";
+
+    return {
+      id: t.id,
+      tripCode: t.trip_code || `TRIP-${t.id.slice(0, 6)}`,
+      routeId: t.route_id || "",
+      busId: t.bus_id || "",
+      shiftId: t.shift_id || (isEvening ? "shift-2" : "shift-1"),
+      driverId: t.driver_id || "",
+      conductorId: t.conductor_id || "",
+      tripDate: t.trip_date || new Date().toISOString().split("T")[0],
+      status: t.status || "SCHEDULED",
+      startedAt: t.started_at,
+      completedAt: t.completed_at,
+      delayMinutes: Number(t.delay_minutes) || 0,
+      manifestLocked: Boolean(t.manifest_locked),
+      manifestLockedAt: t.manifest_locked_at,
+      currentStopIndex: Number(t.current_stop_index) || 0,
+      direction,
+      scheduleType: t.schedule_type || "EVERY_DAY",
+      customDays: t.custom_days,
+      departureTime: shift?.start_time ? shift.start_time.slice(0, 5) : defaultDep,
+      arrivalTime: shift?.end_time ? shift.end_time.slice(0, 5) : defaultArr,
+      isSpecial: isC2C,
+      facilityType: t.facility_type || (isC2C ? "PLACEMENT_DRIVE" : "REGULAR"),
+    };
+  });
 
   const bookings: Booking[] = (dbBookings || []).map((b: any) => ({
     id: b.id,
@@ -244,5 +277,6 @@ export async function getStaffServerData(redirectPath: string = "/staff") {
     users,
     campuses,
     classes,
+    shifts,
   };
 }
