@@ -324,6 +324,7 @@ export default function StudentPortalView({
               : null
           }
           trip={bookedTrip}
+          shiftStartTime={bookedShift?.startTime}
           bus={bookedBus}
           fullness={roamingData?.fullness}
           roamingStatus={roamingData?.bookingRoamingStatus || activeBooking?.roamingStatus || "ROAMING"}

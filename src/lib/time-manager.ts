@@ -274,11 +274,7 @@ export function isTripCutoffPassed(
     return true;
   }
 
-  const depTime =
-    trip.departureTime ||
-    (trip as any).departure_time ||
-    shift?.startTime ||
-    (shift as any)?.start_time;
+  const depTime = shift?.startTime || (shift as any)?.start_time;
 
   if (!depTime) return false;
 
@@ -325,8 +321,8 @@ export function getTripLiveStatus(
   }
 
   const nowMins = currentMinutes ?? getCurrentMinutesIST();
-  const depTime = trip.departureTime || shift?.startTime || "07:30";
-  const arrTime = trip.arrivalTime || shift?.endTime || "08:45";
+  const depTime = shift?.startTime || "07:30";
+  const arrTime = shift?.endTime || "08:45";
 
   const depMins = timeStringToMinutes(depTime);
   const arrMins = timeStringToMinutes(arrTime);

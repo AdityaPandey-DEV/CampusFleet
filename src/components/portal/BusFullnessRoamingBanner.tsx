@@ -18,6 +18,7 @@ import type { Booking, Trip, Bus } from "@/lib/types";
 interface BusFullnessRoamingBannerProps {
   booking?: Booking | null;
   trip?: Trip | null;
+  shiftStartTime?: string;
   bus?: Bus | null;
   fullness?: {
     totalCapacity: number;
@@ -36,6 +37,7 @@ export default function BusFullnessRoamingBanner({
   booking,
   trip,
   bus,
+  shiftStartTime,
   fullness,
   roamingStatus = "ROAMING",
 }: BusFullnessRoamingBannerProps) {
@@ -75,7 +77,7 @@ export default function BusFullnessRoamingBanner({
             <div className="text-[11px] text-slate-300 font-semibold flex items-center gap-1.5 mt-0.5">
               <span>Departure:</span>
               <span className="font-bold text-amber-300">
-                {trip?.departureTime || "16:30"}
+                {shiftStartTime || "16:30"}
               </span>
               <span>• Seat:</span>
               <span className="font-mono font-black text-white px-1.5 py-0.2 rounded bg-blue-600/80">

@@ -167,6 +167,7 @@ export async function getStaffServerData(redirectPath: string = "/staff") {
     id: sh.id,
     name: sh.name,
     shiftType: (sh.type || "MORNING") as any,
+    direction: sh.direction || "HOME_TO_CAMPUS",
     startTime: sh.start_time ? sh.start_time.slice(0, 5) : "07:30",
     endTime: sh.end_time ? sh.end_time.slice(0, 5) : "08:45",
     bookingCutoffMins: Number(sh.booking_cutoff_minutes) || 30,

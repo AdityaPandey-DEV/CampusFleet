@@ -176,11 +176,9 @@ export default function StaffFlowchartView({
         conductorId: assignBusFormData.conductorId,
         tripDate: new Date().toISOString().split("T")[0],
         status: "SCHEDULED",
-        departureTime: assignBusFormData.departureTime,
         delayMinutes: 0,
         manifestLocked: false,
         currentStopIndex: 0,
-        direction: (selectedFlowchartRoute?.direction as any) || "HOME_TO_CAMPUS",
       };
 
       setTrips((prev) => [newTrip, ...prev]);

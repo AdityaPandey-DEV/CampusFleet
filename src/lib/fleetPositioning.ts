@@ -195,12 +195,11 @@ export function computeFleetBusMarkers(
     const startingStop = routeStops[0] || allStops[0] || campusStop;
     const destinationStop = routeStops[routeStops.length - 1] || campusStop;
 
-    // 6. Departure & Arrival Times
-    const tripDirection: TripDirection = (activeTrip?.direction as TripDirection) || "HOME_TO_CAMPUS";
+    const tripDirection: TripDirection = (activeTrip as any)?.direction || "HOME_TO_CAMPUS";
     const isEveningTrip = tripDirection === "CAMPUS_TO_HOME";
 
-    const departureTime = activeTrip?.departureTime || (isEveningTrip ? "16:30" : "07:30");
-    const arrivalTime = activeTrip?.arrivalTime || (isEveningTrip ? "17:45" : "08:45");
+    const departureTime = (isEveningTrip ? "16:30" : "07:30");
+    const arrivalTime = (isEveningTrip ? "17:45" : "08:45");
 
     const depMinutes = timeStringToMinutes(departureTime);
     const arrMinutes = timeStringToMinutes(arrivalTime);

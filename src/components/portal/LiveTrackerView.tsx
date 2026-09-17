@@ -129,6 +129,9 @@ export default function LiveTrackerView({
 
   const activeTrip = trips.find(t => t.routeId === assignedRoute?.id) || trips[0];
   const assignedBus = buses.find(b => b.id === (activeTrip?.busId || liveLocation?.busId)) || buses[0];
+  const assignedDriver = store.getStaff().find((s) => s.id === activeTrip?.driverId);
+  const shifts = store.getShifts();
+  const activeShift = shifts.find((s) => s.id === activeTrip?.shiftId);
   const driver = staff.find(s => s.id === activeTrip?.driverId || s.role === "driver");
 
   const currentRouteStops = useMemo(() => {
@@ -314,6 +317,7 @@ export default function LiveTrackerView({
       {roamingData?.fullness && (
         <BusFullnessRoamingBanner
           trip={activeTrip}
+          shiftStartTime={activeShift?.startTime}
           bus={assignedBus}
           fullness={roamingData.fullness}
           roamingStatus={roamingData.bookingRoamingStatus || "ROAMING"}

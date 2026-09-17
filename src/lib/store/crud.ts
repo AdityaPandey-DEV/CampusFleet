@@ -73,6 +73,7 @@ CampusFleetStore.prototype.createShift = async function (this: CampusFleetStore,
     startTime: shift.startTime,
     endTime: shift.endTime,
     bookingCutoffMins: shift.bookingCutoffMins || 30,
+    direction: shift.direction || "HOME_TO_CAMPUS",
     isSpecial: Boolean(shift.isSpecial),
   };
 
@@ -987,11 +988,6 @@ CampusFleetStore.prototype.createTrip = async function (this: CampusFleetStore, 
       status: newTrip.status,
       current_stop_index: newTrip.currentStopIndex ?? 0,
     };
-    if (newTrip.direction) payload.direction = newTrip.direction;
-    if (newTrip.scheduleType) payload.schedule_type = newTrip.scheduleType;
-    if (newTrip.customDays) payload.custom_days = newTrip.customDays;
-    if (newTrip.departureTime) payload.departure_time = newTrip.departureTime;
-    if (newTrip.arrivalTime) payload.arrival_time = newTrip.arrivalTime;
     if (newTrip.isSpecial !== undefined) payload.is_special = newTrip.isSpecial;
     if (newTrip.facilityType) payload.facility_type = newTrip.facilityType;
 

@@ -72,7 +72,7 @@ export default function StaffTripsView({
 
   // Filter States
   const [selectedDirection, setSelectedDirection] = useState<"ALL" | TripDirection>("ALL");
-  const [selectedFrequency, setSelectedFrequency] = useState<"ALL" | TripScheduleType>("ALL");
+
   const [selectedStatus, setSelectedStatus] = useState<"ALL" | string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -87,11 +87,7 @@ export default function StaffTripsView({
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
 
   const [newTrip, setNewTrip] = useState<{
-    direction: TripDirection;
-    scheduleType: TripScheduleType;
-    customDays: string[];
     tripDate: string;
-    departureTime: string;
     routeId: string;
     busId: string;
     shiftId: string;
@@ -100,11 +96,7 @@ export default function StaffTripsView({
     isSpecial: boolean;
     facilityType: "REGULAR" | "PLACEMENT_DRIVE" | "EVENT";
   }>({
-    direction: "HOME_TO_CAMPUS",
-    scheduleType: "EVERY_DAY",
-    customDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
     tripDate: getTodayIST(),
-    departureTime: "07:20",
     routeId: "",
     busId: "",
     shiftId: "",
@@ -174,7 +166,7 @@ export default function StaffTripsView({
       tripCode.includes("BUS21") ||
       tripCode.includes("DDN") ||
       trip.isSpecial ||
-      trip.direction === "CAMPUS_TO_CAMPUS"
+      sh?.direction === "CAMPUS_TO_CAMPUS"
     ) {
       return "CAMPUS_TO_CAMPUS";
     }
@@ -185,11 +177,11 @@ export default function StaffTripsView({
       shiftType === "EVENING" ||
       trip.shiftId === "shift-2" ||
       trip.shiftId === "shift-evening" ||
-      trip.direction === "CAMPUS_TO_HOME"
+      sh?.direction === "CAMPUS_TO_HOME"
     ) {
       return "CAMPUS_TO_HOME";
     }
-    if (trip.direction) return trip.direction;
+    if (sh?.direction) return sh.direction;
     return "HOME_TO_CAMPUS";
   };
 
@@ -231,11 +223,7 @@ export default function StaffTripsView({
     return "City Boarding Point";
   };
 
-  // Helper to determine trip schedule type with fallback
-  const getTripScheduleType = (trip: Trip): TripScheduleType => {
-    if (trip.scheduleType) return trip.scheduleType;
-    return "EVERY_DAY";
-  };
+
 
   // Trips scoped to currently selected operational date
   const dateScopedTrips = useMemo(() => {
@@ -270,13 +258,9 @@ export default function StaffTripsView({
   const filteredTrips = useMemo(() => {
     return dateScopedTrips.filter((trip) => {
       const dir = getTripDirection(trip);
-      const freq = getTripScheduleType(trip);
 
       // Direction Filter
       if (selectedDirection !== "ALL" && dir !== selectedDirection) return false;
-
-      // Frequency Filter
-      if (selectedFrequency !== "ALL" && freq !== selectedFrequency) return false;
 
       // Status Filter
       if (selectedStatus !== "ALL" && trip.status !== selectedStatus) return false;
@@ -303,7 +287,7 @@ export default function StaffTripsView({
 
       return true;
     });
-  }, [dateScopedTrips, selectedDirection, selectedFrequency, selectedStatus, searchQuery, routes, buses, staff, shifts]);
+  }, [dateScopedTrips, selectedDirection, selectedStatus, searchQuery, routes, buses, staff, shifts]);
 
   // Handle Locking Final Manifest
   const handleLockManifest = (tripId: string) => {
@@ -329,14 +313,6 @@ export default function StaffTripsView({
     }
   };
 
-  // Toggle Custom Day in Modal
-  const toggleDay = (day: string) => {
-    setNewTrip((prev) => {
-      const exists = prev.customDays.includes(day);
-      const nextDays = exists ? prev.customDays.filter((d) => d !== day) : [...prev.customDays, day];
-      return { ...prev, customDays: nextDays };
-    });
-  };
 
   // Create Trip Handler
   const handleCreateTrip = async (e: React.FormEvent) => {
@@ -345,39 +321,28 @@ export default function StaffTripsView({
       alert("Please select a Corridor Route and allocate an operational Bus.");
       return;
     }
-    if (newTrip.scheduleType === "CUSTOM" && newTrip.customDays.length === 0) {
-      alert("Please select at least one day for your Custom Schedule.");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const busObj = buses.find((b) => b.id === newTrip.busId);
       const routeObj = routes.find((r) => r.id === newTrip.routeId);
+      const shiftObj = shifts.find((s) => s.id === newTrip.shiftId) || shifts[0];
+      
       const busLabel = busObj ? busObj.busNumber.split(" ")[0].replace(/[^a-zA-Z0-9]/g, "") : "BUS";
-      const cleanTime = newTrip.departureTime.replace(":", "");
+      const cleanTime = (shiftObj?.startTime || "07:30").replace(":", "");
       const prefix =
-        newTrip.direction === "HOME_TO_CAMPUS"
+        shiftObj?.direction === "HOME_TO_CAMPUS"
           ? "H2C"
-          : newTrip.direction === "CAMPUS_TO_HOME"
+          : shiftObj?.direction === "CAMPUS_TO_HOME"
             ? "C2H"
             : "C2C";
 
       const tripCode = `${prefix}-${routeObj?.code || "R"}-${busLabel}-${cleanTime}-${Math.floor(100 + Math.random() * 900)}`;
 
-      // Calculate estimated arrival time
-      const [depH, depM] = newTrip.departureTime.split(":").map(Number);
-      const duration = routeObj?.estimatedDurationMins || 50;
-      const totalArrivalMin = depH * 60 + depM + duration;
-      const arrH = Math.floor(totalArrivalMin / 60) % 24;
-      const arrM = totalArrivalMin % 60;
-      const arrivalTime = `${String(arrH).padStart(2, "0")}:${String(arrM).padStart(2, "0")}`;
-
       await store.createTrip({
         tripCode,
         routeId: newTrip.routeId,
         busId: newTrip.busId,
-        shiftId: newTrip.shiftId || "shift-custom",
+        shiftId: newTrip.shiftId || shiftObj.id,
         driverId: newTrip.driverId || "",
         conductorId: newTrip.conductorId || "",
         tripDate: newTrip.tripDate,
@@ -385,18 +350,13 @@ export default function StaffTripsView({
         delayMinutes: 0,
         manifestLocked: false,
         currentStopIndex: 0,
-        direction: newTrip.direction,
-        scheduleType: newTrip.scheduleType,
-        customDays: newTrip.scheduleType === "CUSTOM" ? newTrip.customDays : undefined,
-        departureTime: newTrip.departureTime,
-        arrivalTime,
         isSpecial: newTrip.isSpecial,
         facilityType: newTrip.facilityType,
       });
 
       setTrips(store.getTrips());
       setIsAddTripOpen(false);
-      showToast(`✓ New ${newTrip.direction.replace(/_/g, " ")} departure scheduled at ${newTrip.departureTime}!`);
+      showToast(`✓ New ${shiftObj?.direction?.replace(/_/g, " ")} departure scheduled at ${shiftObj?.startTime}!`);
     } catch (err: any) {
       console.error(err);
       alert("Error scheduling trip: " + (err.message || "Unknown error"));
@@ -665,63 +625,6 @@ export default function StaffTripsView({
 
         {/* Secondary Filters: Schedule Frequency & Search */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          {/* Frequency Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Recurrence:</span>
-            </span>
-
-            <button
-              onClick={() => setSelectedFrequency("ALL")}
-              className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${selectedFrequency === "ALL"
-                  ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-            >
-              Any Frequency
-            </button>
-
-            <button
-              onClick={() => setSelectedFrequency("EVERY_DAY")}
-              className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${selectedFrequency === "EVERY_DAY"
-                  ? "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-black"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-            >
-              Every Day
-            </button>
-
-            <button
-              onClick={() => setSelectedFrequency("MON_FRI")}
-              className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${selectedFrequency === "MON_FRI"
-                  ? "bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-black"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-            >
-              Mon - Fri
-            </button>
-
-            <button
-              onClick={() => setSelectedFrequency("ONE_DAY")}
-              className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${selectedFrequency === "ONE_DAY"
-                  ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-black"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-            >
-              One Day
-            </button>
-
-            <button
-              onClick={() => setSelectedFrequency("CUSTOM")}
-              className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all ${selectedFrequency === "CUSTOM"
-                  ? "bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-black"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-            >
-              Custom Schedule
-            </button>
-          </div>
 
           {/* Search Box */}
           <div className="relative min-w-[240px]">
@@ -769,15 +672,7 @@ export default function StaffTripsView({
             const waitlistCount = tripBookings.filter((b) => b.status === "WAITLISTED").length;
 
             const dir = getTripDirection(trip);
-            const freq = getTripScheduleType(trip);
-            const departureTime =
-              trip.departureTime && (dir !== "CAMPUS_TO_HOME" || trip.departureTime !== "07:30")
-                ? trip.departureTime
-                : dir === "CAMPUS_TO_HOME"
-                  ? "16:30"
-                  : dir === "CAMPUS_TO_CAMPUS"
-                    ? "05:00"
-                    : shift.startTime || "07:30";
+            const departureTime = shift.startTime || "07:30";
             const displayRouteName = getDirectionalRouteName(route.name, dir);
             const displayBusNumber = getDirectionalBusNumber(bus.busNumber, dir);
             const cityOrigin = getRouteCityOrigin(route.name);
@@ -825,25 +720,6 @@ export default function StaffTripsView({
                           <span>{trip.facilityType === "PLACEMENT_DRIVE" ? "Placement Special" : trip.facilityType === "EVENT" ? "Campus Event" : "Special Facility"}</span>
                         </span>
                       )}
-
-                      <span
-                        className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${freq === "EVERY_DAY"
-                            ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                            : freq === "MON_FRI"
-                              ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300"
-                              : freq === "ONE_DAY"
-                                ? "bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300"
-                                : "bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300"
-                          }`}
-                      >
-                        {freq === "EVERY_DAY" && "Every Day"}
-                        {freq === "MON_FRI" && "Mon - Fri"}
-                        {freq === "ONE_DAY" && (trip.tripDate ? `One Day (${trip.tripDate})` : "One Day")}
-                        {freq === "CUSTOM" &&
-                          (trip.customDays && trip.customDays.length > 0
-                            ? trip.customDays.join(", ")
-                            : "Custom Days")}
-                      </span>
 
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${trip.status === "IN_PROGRESS"
@@ -1061,69 +937,7 @@ export default function StaffTripsView({
               </button>
             </div>
 
-            {/* STEP 1: Direction Selection Cards */}
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                1. Trip Transit Direction *
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {/* Home to Campus */}
-                <button
-                  type="button"
-                  onClick={() => setNewTrip((prev) => ({ ...prev, direction: "HOME_TO_CAMPUS", departureTime: "07:20" }))}
-                  className={`p-3 rounded-2xl border text-left transition-all ${newTrip.direction === "HOME_TO_CAMPUS"
-                      ? "border-blue-600 bg-blue-50/80 dark:bg-blue-950/60 ring-2 ring-blue-500/20"
-                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
-                    }`}
-                >
-                  <div className="w-7 h-7 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 flex items-center justify-center font-bold">
-                    <Home className="w-4 h-4" />
-                  </div>
-                  <div className="font-black text-xs text-slate-900 dark:text-white mt-2">Home → Campus</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
-                    Morning Inbound Pickup
-                  </div>
-                </button>
-
-                {/* Campus to Home */}
-                <button
-                  type="button"
-                  onClick={() => setNewTrip((prev) => ({ ...prev, direction: "CAMPUS_TO_HOME", departureTime: "16:30" }))}
-                  className={`p-3 rounded-2xl border text-left transition-all ${newTrip.direction === "CAMPUS_TO_HOME"
-                      ? "border-purple-600 bg-purple-50/80 dark:bg-purple-950/60 ring-2 ring-purple-500/20"
-                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
-                    }`}
-                >
-                  <div className="w-7 h-7 rounded-xl bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold">
-                    <Building2 className="w-4 h-4" />
-                  </div>
-                  <div className="font-black text-xs text-slate-900 dark:text-white mt-2">Campus → Home</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
-                    Evening Return Drop
-                  </div>
-                </button>
-
-                {/* Campus to Campus */}
-                <button
-                  type="button"
-                  onClick={() => setNewTrip((prev) => ({ ...prev, direction: "CAMPUS_TO_CAMPUS", departureTime: "11:30", isSpecial: true, facilityType: "PLACEMENT_DRIVE" }))}
-                  className={`p-3 rounded-2xl border text-left transition-all ${newTrip.direction === "CAMPUS_TO_CAMPUS"
-                      ? "border-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/60 ring-2 ring-emerald-500/20"
-                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
-                    }`}
-                >
-                  <div className="w-7 h-7 rounded-xl bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 flex items-center justify-center font-bold">
-                    <Shuffle className="w-4 h-4" />
-                  </div>
-                  <div className="font-black text-xs text-slate-900 dark:text-white mt-2">Campus ⇄ Campus</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
-                    Inter-Campus Shuttle (Special)
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Special Facility Classification */}
+            {/* STEP 1: Special Facility Classification */}
             <div className="p-3.5 bg-amber-50/80 dark:bg-amber-950/30 rounded-2xl border border-amber-200 dark:border-amber-800/60 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1182,120 +996,18 @@ export default function StaffTripsView({
               )}
             </div>
 
-            {/* STEP 2: Desired Departure Time & Quick Presets */}
-            <div className="space-y-2 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                  2. Desired Departure Time *
-                </label>
-                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400">
-                  Any custom time supported
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1">
-                  <Clock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="time"
-                    required
-                    value={newTrip.departureTime}
-                    onChange={(e) => setNewTrip((prev) => ({ ...prev, departureTime: e.target.value }))}
-                    className="w-full pl-9 pr-3 py-2 text-xs font-black rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* Quick Preset Buttons */}
-              <div className="space-y-1 pt-1">
-                <span className="text-[10px] font-bold text-slate-400">Quick Presets:</span>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {TIME_PRESETS[newTrip.direction].map((time) => (
-                    <button
-                      key={time}
-                      type="button"
-                      onClick={() => setNewTrip((prev) => ({ ...prev, departureTime: time }))}
-                      className={`px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg border transition-all ${newTrip.departureTime === time
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-400"
-                        }`}
-                    >
-                      {time}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* STEP 3: Recurrence Frequency */}
+            {/* STEP 2: Service Date */}
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                3. Service Recurrence / Frequency *
+                2. Specify Departure Service Date *
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { id: "EVERY_DAY", label: "Every Day", desc: "All 7 Days" },
-                  { id: "MON_FRI", label: "Mon - Fri", desc: "5-Day Weekday" },
-                  { id: "ONE_DAY", label: "One Day", desc: "Single Date" },
-                  { id: "CUSTOM", label: "Custom", desc: "Select Days" },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setNewTrip((prev) => ({ ...prev, scheduleType: item.id as TripScheduleType }))}
-                    className={`p-2.5 rounded-xl border text-center transition-all ${newTrip.scheduleType === item.id
-                        ? "border-blue-600 bg-blue-50/70 dark:bg-blue-950/60 font-black text-blue-700 dark:text-blue-300"
-                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-700 dark:text-slate-300 font-bold"
-                      }`}
-                  >
-                    <div className="text-xs">{item.label}</div>
-                    <div className="text-[10px] text-slate-400 font-normal">{item.desc}</div>
-                  </button>
-                ))}
-              </div>
-
-              {/* One Day Calendar Picker */}
-              {newTrip.scheduleType === "ONE_DAY" && (
-                <div className="pt-2">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Specify Departure Service Date:
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={newTrip.tripDate}
-                    onChange={(e) => setNewTrip((prev) => ({ ...prev, tripDate: e.target.value }))}
-                    className="w-full mt-1 p-2.5 text-xs font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:border-blue-500"
-                  />
-                </div>
-              )}
-
-              {/* Custom Day of Week Selector */}
-              {newTrip.scheduleType === "CUSTOM" && (
-                <div className="pt-2 space-y-1.5">
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Select Operating Days:
-                  </span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {ALL_WEEK_DAYS.map((day) => {
-                      const isSelected = newTrip.customDays.includes(day);
-                      return (
-                        <button
-                          key={day}
-                          type="button"
-                          onClick={() => toggleDay(day)}
-                          className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${isSelected
-                              ? "bg-blue-600 text-white shadow-xs scale-105"
-                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-                            }`}
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              <input
+                type="date"
+                required
+                value={newTrip.tripDate}
+                onChange={(e) => setNewTrip((prev) => ({ ...prev, tripDate: e.target.value }))}
+                className="w-full p-2.5 text-xs font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:border-blue-500"
+              />
             </div>
 
             {/* STEP 4: Corridor Route, Shift & Bus Allocation */}
@@ -1332,8 +1044,6 @@ export default function StaffTripsView({
                     setNewTrip((prev) => ({
                       ...prev,
                       shiftId: selectedShiftId,
-                      departureTime: sh?.startTime ? sh.startTime.substring(0, 5) : prev.departureTime,
-                      direction: sh?.shiftType === "EVENING" || selectedShiftId === "shift-halfday" ? "CAMPUS_TO_HOME" : prev.direction,
                     }));
                   }}
                   className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white outline-none font-bold text-xs"

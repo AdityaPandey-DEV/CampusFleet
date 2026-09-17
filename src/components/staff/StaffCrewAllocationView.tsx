@@ -37,6 +37,7 @@ export default function StaffCrewAllocationView({
   const [routes, setRoutes] = useState<Route[]>(() => (initialRoutes.length > 0 ? initialRoutes : store.getRoutes()));
   const [staff, setStaff] = useState<Staff[]>(() => (initialStaff.length > 0 ? initialStaff : store.getStaff()));
   const [users, setUsers] = useState<UserAccount[]>(() => (initialUsers.length > 0 ? initialUsers : store.getUsers()));
+  const [shifts, setShifts] = useState<any[]>(() => store.getShifts());
 
   const [crewSearchQuery, setCrewSearchQuery] = useState("");
   const [shiftFilter, setShiftFilter] = useState("ALL");
@@ -66,6 +67,7 @@ export default function StaffCrewAllocationView({
       setRoutes(store.getRoutes());
       setStaff(store.getStaff());
       setUsers(store.getUsers());
+      setShifts(store.getShifts());
     });
     return unsub;
   }, []);
@@ -150,8 +152,9 @@ export default function StaffCrewAllocationView({
   const filteredTrips = useMemo(() => {
     return trips.filter((t) => {
       if (crewDate && t.tripDate && t.tripDate !== crewDate) return false;
-      if (shiftFilter === "MORNING" && t.direction !== "HOME_TO_CAMPUS") return false;
-      if (shiftFilter === "EVENING" && t.direction !== "CAMPUS_TO_HOME") return false;
+      const shift = shifts.find(s => s.id === t.shiftId);
+      if (shiftFilter === "MORNING" && shift?.direction !== "HOME_TO_CAMPUS") return false;
+      if (shiftFilter === "EVENING" && shift?.direction !== "CAMPUS_TO_HOME") return false;
       if (!crewSearchQuery.trim()) return true;
       const q = crewSearchQuery.toLowerCase();
       const bus = buses.find((b) => b.id === t.busId);
@@ -361,7 +364,10 @@ export default function StaffCrewAllocationView({
                       <td className="p-3.5">
                         <div className="font-bold text-slate-800 dark:text-slate-200">{route?.name || "Route TBA"}</div>
                         <div className="text-[10px] text-slate-400 font-mono">
-                          {trip.direction === "HOME_TO_CAMPUS" ? "Morning Inbound" : "Evening Return"}
+                          {(() => {
+                            const shift = shifts.find(s => s.id === trip.shiftId);
+                            return shift?.direction === "HOME_TO_CAMPUS" ? "Morning Inbound" : "Evening Return";
+                          })()}
                         </div>
                       </td>
 

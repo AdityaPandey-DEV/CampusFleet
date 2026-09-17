@@ -113,6 +113,7 @@ export default async function StudentProfilePage() {
     id: sh.id,
     name: sh.name,
     shiftType: sh.type || "MORNING",
+    direction: sh.direction || "HOME_TO_CAMPUS",
     startTime: (sh.start_time || "07:30").substring(0, 5),
     endTime: (sh.end_time || "08:45").substring(0, 5),
     bookingCutoffMins: sh.booking_cutoff_minutes || 30,

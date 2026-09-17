@@ -124,6 +124,7 @@ export interface Shift {
   id: string;
   name: string;
   shiftType: ShiftType;
+  direction: TripDirection; // e.g. "HOME_TO_CAMPUS"
   startTime: string; // "07:30"
   endTime: string;   // "09:00"
   bookingCutoffMins: number; // Cutoff prior to departure (e.g. 45 mins)
@@ -160,11 +161,6 @@ export interface Trip {
   manifestLocked: boolean;
   manifestLockedAt?: string;
   currentStopIndex: number;
-  direction?: TripDirection;
-  scheduleType?: TripScheduleType;
-  customDays?: string[]; // e.g. ["Mon", "Wed", "Fri"]
-  departureTime?: string; // e.g. "07:20", "16:30"
-  arrivalTime?: string;   // e.g. "08:40", "17:45"
   isSpecial?: boolean;
   facilityType?: "REGULAR" | "PLACEMENT_DRIVE" | "EVENT";
 }

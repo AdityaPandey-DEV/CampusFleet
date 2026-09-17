@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
       id: s.id,
       name: s.name,
       shiftType: (s.type || "MORNING") as ShiftType,
+      direction: s.direction || "HOME_TO_CAMPUS",
       startTime: (s.start_time || "07:30").substring(0, 5),
       endTime: (s.end_time || "08:45").substring(0, 5),
       bookingCutoffMins: s.booking_cutoff_minutes || 30,
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
       startTime,
       endTime,
       bookingCutoffMins = 30,
+      direction = "HOME_TO_CAMPUS",
       isSpecial = false,
     } = body;
 
@@ -85,6 +87,7 @@ export async function POST(req: NextRequest) {
         start_time: startTime.length === 5 ? `${startTime}:00` : startTime,
         end_time: endTime.length === 5 ? `${endTime}:00` : endTime,
         booking_cutoff_minutes: Number(bookingCutoffMins),
+        direction: direction,
         is_special: Boolean(isSpecial),
         is_active: true,
       })
@@ -104,6 +107,7 @@ export async function POST(req: NextRequest) {
         startTime: (data.start_time || "").substring(0, 5),
         endTime: (data.end_time || "").substring(0, 5),
         bookingCutoffMins: data.booking_cutoff_minutes,
+        direction: data.direction,
         isSpecial: data.is_special,
       },
     });
@@ -127,7 +131,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, name, shiftType, startTime, endTime, bookingCutoffMins, isSpecial, isActive } = body;
+    const { id, name, shiftType, startTime, endTime, bookingCutoffMins, direction, isSpecial, isActive } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: "Shift ID is required." }, { status: 400 });
@@ -139,6 +143,7 @@ export async function PUT(req: NextRequest) {
     if (startTime !== undefined) updates.start_time = startTime.length === 5 ? `${startTime}:00` : startTime;
     if (endTime !== undefined) updates.end_time = endTime.length === 5 ? `${endTime}:00` : endTime;
     if (bookingCutoffMins !== undefined) updates.booking_cutoff_minutes = Number(bookingCutoffMins);
+    if (direction !== undefined) updates.direction = direction;
     if (isSpecial !== undefined) updates.is_special = Boolean(isSpecial);
     if (isActive !== undefined) updates.is_active = Boolean(isActive);
 
