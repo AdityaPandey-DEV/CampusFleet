@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { store } from "@/lib/store";
 import { authService } from "@/lib/auth-service";
-import { CampusTimeHUD } from "@/components/common/CampusTimeHUD";
+
 import {
   BusFront,
   CreditCard,
@@ -221,7 +221,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           </Link>
 
           <div className="flex items-center gap-2">
-            <CampusTimeHUD showSimControl={false} />
+
             <div
               className="w-7 h-7 rounded-xl bg-blue-600 text-white font-mono font-black text-[10px] flex items-center justify-center shadow-sm"
               title={currentUser?.fullName || "Staff User"}
@@ -380,7 +380,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
               <div className="truncate font-bold text-slate-700 dark:text-slate-300">
                 {currentUser?.fullName || "Staff Console"}
               </div>
-              <CampusTimeHUD showSimControl={false} />
+
             </div>
           )}
 

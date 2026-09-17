@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { store } from "@/lib/store";
 import { useTheme } from "@/components/common/ThemeProvider";
-import { CampusTimeHUD } from "@/components/common/CampusTimeHUD";
+
 import {
   LayoutDashboard,
   BusFront,
@@ -206,7 +206,7 @@ export default function AdminLayout({
           {/* Live Operations Clock Widget in Mobile Drawer */}
           <div className="flex items-center justify-between p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
             <span className="text-[11px] font-bold text-slate-500">Live Campus Clock</span>
-            <CampusTimeHUD showSimControl={true} />
+
           </div>
 
           {/* Primary Mobile Quick Actions inside sliding drawer */}
@@ -379,7 +379,7 @@ export default function AdminLayout({
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-mono truncate">
               CAMPUS FLEET OPS • SYSTEM v2.4
             </span>
-            <CampusTimeHUD showSimControl={true} />
+
           </div>
 
           <div className="flex items-center gap-2.5 flex-shrink-0">
