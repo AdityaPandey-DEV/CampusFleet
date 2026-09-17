@@ -30,6 +30,10 @@ export const CACHE_TTL = {
   USER_SESSION: 600, // 10 minutes
   OTP: 300, // 5 minutes
   FLEET_STATS: 60, // 1 minute
+  HOT_DATA_ROUTES: 3600, // 1 hour (rarely changes)
+  HOT_DATA_STOPS: 3600, // 1 hour
+  HOT_DATA_SHIFTS: 3600, // 1 hour
+  HOT_DATA_TRIPS: 60, // 1 minute (changes often with active trips)
 } as const;
 
 /**

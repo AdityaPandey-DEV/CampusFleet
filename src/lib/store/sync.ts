@@ -172,6 +172,22 @@ CampusFleetStore.prototype.initTelematicsSync = function (this: CampusFleetStore
 
 CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetStore) {
   try {
+    // ── CACHE FETCH (Redis Read-Through) ──
+    let cachedState: any = null;
+    if (typeof window !== "undefined") {
+      try {
+        const res = await fetch("/api/sync/state");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success) {
+            cachedState = json.data;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch cached state, falling back to direct DB queries:", e);
+      }
+    }
+
     // 0. Fetch Transit Zones (PostgreSQL Master Data)
     const { data: dbZones } = await supabase.from("transit_zones").select("*").order("created_at", { ascending: true });
     if (dbZones && dbZones.length > 0) {
@@ -217,9 +233,9 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
     }
 
     // 1. Fetch Stops
-    const { data: dbStops } = await supabase.from("stops").select("*");
+    const dbStops: any[] = cachedState?.stops || (await supabase.from("stops").select("*")).data || [];
     if (dbStops && dbStops.length > 0) {
-      this.stops = dbStops.map(s => ({
+      this.stops = dbStops.map((s: any) => ({
         id: s.id,
         name: s.name,
         code: s.code,
@@ -243,9 +259,9 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
     }
 
     // 2. Fetch Buses
-    const { data: dbBuses } = await supabase.from("buses").select("*");
+    const dbBuses: any[] = cachedState?.buses || (await supabase.from("buses").select("*")).data || [];
     if (dbBuses && dbBuses.length > 0) {
-      this.buses = dbBuses.map(b => ({
+      this.buses = dbBuses.map((b: any) => ({
         id: b.id,
         busNumber: b.bus_number,
         registrationNo: b.registration_no,
@@ -261,9 +277,9 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
     }
 
     // 3. Fetch Routes (100% database-driven from PostgreSQL stops_data)
-    const { data: dbRoutes } = await supabase.from("routes").select("*");
+    const dbRoutes: any[] = cachedState?.routes || (await supabase.from("routes").select("*")).data || [];
     if (dbRoutes && dbRoutes.length > 0) {
-      this.routes = dbRoutes.map(r => {
+      this.routes = dbRoutes.map((r: any) => {
         let stopsList = [];
         if (r.stops_data && Array.isArray(r.stops_data) && r.stops_data.length > 0) {
           stopsList = r.stops_data
@@ -312,9 +328,9 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
     }
 
     // 4. Fetch Shifts
-    const { data: dbShifts } = await supabase.from("shifts").select("*");
+    const dbShifts: any[] = cachedState?.shifts || (await supabase.from("shifts").select("*")).data || [];
     if (dbShifts && dbShifts.length > 0) {
-      this.shifts = dbShifts.map(sh => ({
+      this.shifts = dbShifts.map((sh: any) => ({
         id: sh.id,
         name: sh.name,
         shiftType: sh.type || "MORNING",
@@ -363,9 +379,9 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
     }
 
     // 6. Fetch Trips (with driver/conductor from users table)
-    const { data: dbTrips } = await supabase.from("trips").select("*");
+    const dbTrips: any[] = cachedState?.trips || (await supabase.from("trips").select("*")).data || [];
     if (dbTrips && dbTrips.length > 0) {
-      this.trips = dbTrips.map(t => ({
+      this.trips = dbTrips.map((t: any) => ({
         id: t.id,
         tripCode: t.trip_code,
         routeId: t.route_id,
@@ -537,9 +553,9 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
     }
 
     // 11. Fetch Stop-Route mappings from normalized route_stops table (canonical junction)
-    const { data: dbStopRoutes } = await supabase.from("route_stops").select("*");
+    const dbStopRoutes: any[] = cachedState?.stopRoutes || (await supabase.from("route_stops").select("*")).data || [];
     if (dbStopRoutes && dbStopRoutes.length > 0) {
-      this.stopRoutes = dbStopRoutes.map(sr => ({
+      this.stopRoutes = dbStopRoutes.map((sr: any) => ({
         stopId: sr.stop_id,
         routeId: sr.route_id,
         busId: sr.bus_id || "",
