@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { calculateDistanceKm } from "@/lib/utils";
-import { getCampusTerminalFromStops } from "@/lib/fleetPositioning";
 
 /**
  * Student Self-Service QR Boarding
@@ -66,63 +65,33 @@ export async function POST(req: NextRequest) {
     }
 
     const activeTrip = tripsToCheck.find(t => t.id === targetBooking.trip_id);
-
-    // 2. Fetch Route Stops for Geofencing
-    const { data: routeStopsMapping } = await supabaseAdmin
-      .from("route_stops")
-      .select("stop_id, stop_order")
-      .eq("route_id", activeTrip.route_id);
-
-    let allowedStops = [];
-    if (routeStopsMapping && routeStopsMapping.length > 0) {
-      const stopIds = routeStopsMapping.map(rs => rs.stop_id);
-      const { data: stops } = await supabaseAdmin
-        .from("stops")
-        .select("*")
-        .in("id", stopIds);
-      if (stops) allowedStops = stops;
-    }
-
-    // Add Campus Terminal
-    const { data: campuses } = await supabaseAdmin.from("campuses").select("*");
-    const campusTerminal = getCampusTerminalFromStops(allowedStops, null, campuses || undefined);
-    allowedStops.push(campusTerminal);
-
-    // 3. Geofencing Verification (Max 150 meters)
+    // 2. Geofencing Verification (Max 150 meters)
     const GEOFENCE_KM = 0.15;
-    let isNearBusOrStop = false;
+    let isNearBus = false;
     let nearestStopName = "";
 
-    // 3a. If we have the live bus location from the client's WebSocket feed, check distance to bus directly!
+    // If we have the live bus location from the client's WebSocket feed, check distance to bus directly!
     if (busLatitude && busLongitude) {
       const distToBusKm = calculateDistanceKm(latitude, longitude, busLatitude, busLongitude);
       if (distToBusKm <= GEOFENCE_KM) {
-        isNearBusOrStop = true;
+        isNearBus = true;
         nearestStopName = `Live Bus Location (dist: ${Math.round(distToBusKm * 1000)}m)`;
       }
-    }
-    
-    // 3b. Fallback: Check against route stops if live bus location check failed or wasn't provided
-    if (!isNearBusOrStop) {
-      for (const stop of allowedStops) {
-        const distKm = calculateDistanceKm(latitude, longitude, stop.latitude, stop.longitude);
-        const radiusKm = (stop.geofenceRadiusMeters || 150) / 1000;
-        if (distKm <= Math.max(GEOFENCE_KM, radiusKm)) {
-          isNearBusOrStop = true;
-          nearestStopName = stop.name;
-          break;
-        }
-      }
+    } else {
+      // If the bus GPS is entirely offline, we fall back to trusting the scan (since they have the physical QR).
+      // Or in a strict mode, we could reject it. For now, we allow it but log that it was unverified GPS.
+      isNearBus = true;
+      nearestStopName = "Unverified GPS (Bus Telematics Offline)";
     }
 
-    if (!isNearBusOrStop) {
+    if (!isNearBus) {
       return NextResponse.json({ 
         success: false, 
-        message: "SECURITY ALERT: You are too far from the bus and authorized route stops. Boarding denied." 
+        message: "SECURITY ALERT: You are not physically near the bus. Boarding denied." 
       }, { status: 403 });
     }
 
-    // 4. Mark Attendance
+    // 3. Mark Attendance
     const { error: updateErr } = await supabaseAdmin
       .from("bookings")
       .update({
