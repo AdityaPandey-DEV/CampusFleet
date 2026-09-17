@@ -40,7 +40,7 @@ export default async function DriverPage() {
     supabaseAdmin.from("routes").select("*"),
     supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(200),
     supabaseAdmin.from("stops").select("*"),
-    supabaseAdmin.from("route_stops").select("*").order("stop_sequence", { ascending: true }),
+    supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
   ]);
 
   // 4. Map DB records to typed domain models
@@ -61,13 +61,13 @@ export default async function DriverPage() {
   const stopMap = new Map(stops.map(s => [s.id, s]));
 
   const routes: Route[] = (dbRoutes || []).map((r: any) => {
-    const routeStops = (dbRouteStops || [])
+    let routeStops = (dbRouteStops || [])
       .filter((rs: any) => rs.route_id === r.id)
-      .sort((a: any, b: any) => a.stop_sequence - b.stop_sequence)
+      .sort((a: any, b: any) => (a.stop_order ?? a.stop_sequence ?? 0) - (b.stop_order ?? b.stop_sequence ?? 0))
       .map((rs: any) => ({
         stopId: rs.stop_id,
-        stopOrder: rs.stop_sequence || 0,
-        stopSequence: rs.stop_sequence,
+        stopOrder: rs.stop_order || rs.stop_sequence || 0,
+        stopSequence: rs.stop_order || rs.stop_sequence || 0,
         arrivalOffsetMinutes: rs.arrival_offset_minutes || 0,
         bufferTimeMinutes: rs.buffer_time_minutes || 2,
         stop: stopMap.get(rs.stop_id) || {
@@ -84,6 +84,33 @@ export default async function DriverPage() {
           zoneCode: "ZONE_B",
         },
       }));
+
+    if (routeStops.length === 0 && Array.isArray(r.stops_data) && r.stops_data.length > 0) {
+      routeStops = r.stops_data.map((rs: any, idx: number) => {
+        const stopId = rs.stopId || rs.id || rs.stop?.id || `stop-${idx}`;
+        const stopObj = stopMap.get(stopId) || rs.stop || {
+          id: stopId,
+          name: rs.name || stopId,
+          code: rs.code || `STN-${idx + 1}`,
+          latitude: 29.35,
+          longitude: 79.55,
+          landmark: "",
+          geofenceRadiusMeters: 80,
+          campusId: "",
+          campus: "",
+          isBusMergeStop: false,
+          zoneCode: "ZONE_B",
+        };
+        return {
+          stopId,
+          stopOrder: rs.stopOrder || idx + 1,
+          stopSequence: rs.stopOrder || idx + 1,
+          arrivalOffsetMinutes: rs.arrivalOffsetMinutes ?? idx * 8,
+          bufferTimeMinutes: rs.bufferTimeMinutes ?? 2,
+          stop: stopObj,
+        };
+      });
+    }
 
     return {
       id: r.id,

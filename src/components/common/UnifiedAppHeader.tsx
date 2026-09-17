@@ -7,7 +7,6 @@ import { store } from "@/lib/store";
 import { authService } from "@/lib/auth-service";
 import { UserRole } from "@/lib/types";
 import { useTheme } from "./ThemeProvider";
-import { CampusTimeHUD } from "./CampusTimeHUD";
 import {
   BusFront,
   GraduationCap,
@@ -382,8 +381,6 @@ export function UnifiedAppHeader({
 
           {/* Right Action Items & Command Pill */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-10">
-            <CampusTimeHUD showSimControl={false} className="hidden sm:inline-block" />
-
             {showInstall && onOpenInstall && (
               <button
                 onClick={onOpenInstall}
@@ -700,12 +697,6 @@ export function UnifiedAppHeader({
               </span>
             </div>
           )}
-
-          {/* Live Campus Clock in Mobile Drawer */}
-          <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
-            <span className="text-[11px] font-bold text-slate-500">Live Campus Clock</span>
-            <CampusTimeHUD showSimControl={false} />
-          </div>
 
           {/* Mobile Primary Action / Launch Portal inside sliding navbar */}
           {resolvedMobileAction && (

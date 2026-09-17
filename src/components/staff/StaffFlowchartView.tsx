@@ -37,7 +37,7 @@ export default function StaffFlowchartView({
   initialStaff = [],
   initialUsers = [],
 }: StaffFlowchartViewProps) {
-  const [routes] = useState<Route[]>(() => (initialRoutes.length > 0 ? initialRoutes : store.getRoutes()));
+  const [routes, setRoutes] = useState<Route[]>(() => (initialRoutes.length > 0 ? initialRoutes : store.getRoutes()));
   const [buses] = useState<Bus[]>(() => (initialBuses.length > 0 ? initialBuses : store.getBuses()));
   const [stops] = useState<Stop[]>(() => (initialStops.length > 0 ? initialStops : store.getStops()));
   const [students] = useState<Student[]>(() => (initialStudents.length > 0 ? initialStudents : store.getStudents()));
@@ -45,8 +45,16 @@ export default function StaffFlowchartView({
   const [staff] = useState<Staff[]>(() => (initialStaff.length > 0 ? initialStaff : store.getStaff()));
   const [users] = useState<UserAccount[]>(() => (initialUsers.length > 0 ? initialUsers : store.getUsers()));
 
-  const [flowchartRouteId, setFlowchartRouteId] = useState<string>(() => routes[0]?.id || "");
+  const [flowchartRouteId, setFlowchartRouteId] = useState<string>(() => initialRoutes[0]?.id || routes[0]?.id || "");
   const [flowchartSearchQuery, setFlowchartSearchQuery] = useState("");
+
+  // Keep state in sync with server-fetched routes
+  React.useEffect(() => {
+    if (initialRoutes.length > 0) {
+      setRoutes(initialRoutes);
+      setFlowchartRouteId((prev) => (initialRoutes.some((r) => r.id === prev) ? prev : initialRoutes[0]?.id || ""));
+    }
+  }, [initialRoutes]);
 
   const [isAssignBusModalOpen, setIsAssignBusModalOpen] = useState(false);
   const [assignTargetStop, setAssignTargetStop] = useState<{
@@ -82,19 +90,24 @@ export default function StaffFlowchartView({
     let rawStops: any[] = [];
     if (Array.isArray(selectedFlowchartRoute.stops) && selectedFlowchartRoute.stops.length > 0) {
       rawStops = selectedFlowchartRoute.stops;
+    } else if (Array.isArray((selectedFlowchartRoute as any).stops_data) && (selectedFlowchartRoute as any).stops_data.length > 0) {
+      rawStops = (selectedFlowchartRoute as any).stops_data;
     } else {
-      rawStops = stops.filter((s) => s.campusId === selectedFlowchartRoute.id || true).slice(0, 8);
+      const fallbackRoute = store.getRoutes().find((r) => r.id === selectedFlowchartRoute.id);
+      if (fallbackRoute && Array.isArray(fallbackRoute.stops) && fallbackRoute.stops.length > 0) {
+        rawStops = fallbackRoute.stops;
+      }
     }
 
     const stopList = rawStops.map((rs: any, idx: number) => {
-      const stopId = rs.stopId || rs.id || `stop-${idx}`;
+      const stopId = rs.stopId || rs.id || rs.stop?.id || `stop-${idx}`;
       const stopObj = stops.find((s) => s.id === stopId) || rs.stop || rs;
-      const stopName = stopObj.name || rs.name || `Station ${idx + 1}`;
-      const stopCode = stopObj.code || rs.code || `STN-${idx + 1}`;
+      const stopName = stopObj?.name || rs.name || rs.stop?.name || `Station ${idx + 1}`;
+      const stopCode = stopObj?.code || rs.code || rs.stop?.code || `STN-${idx + 1}`;
       const arrivalOffset = rs.arrivalOffsetMinutes ?? idx * 5;
 
       const stopStudents = students.filter(
-        (st) => st.primaryRouteId === selectedFlowchartRoute.id && (st.primaryStopId === stopId || idx === 0)
+        (st) => st.primaryRouteId === selectedFlowchartRoute.id && st.primaryStopId === stopId
       );
 
       const assignedTrips = trips.filter((t) => t.routeId === selectedFlowchartRoute.id);
@@ -104,9 +117,9 @@ export default function StaffFlowchartView({
         stopName,
         stopCode,
         arrivalOffset,
-        landmark: stopObj.landmark || "",
-        zoneCode: stopObj.zoneCode || "ZONE_B",
-        isBusMergeStop: Boolean(stopObj.isBusMergeStop),
+        landmark: stopObj?.landmark || rs.landmark || rs.stop?.landmark || "",
+        zoneCode: stopObj?.zoneCode || rs.zoneCode || rs.stop?.zoneCode || "ZONE_B",
+        isBusMergeStop: Boolean(stopObj?.isBusMergeStop || rs.isBusMergeStop || rs.stop?.isBusMergeStop),
         registeredStudents: stopStudents,
         assignedTrips,
       };
@@ -289,7 +302,7 @@ export default function StaffFlowchartView({
             {flowchartStops.map((st, idx) => {
               const isFirst = idx === 0;
               const isLast = idx === flowchartStops.length - 1;
-              const stopBusCount = st.assignedTrips.length;
+              const stopBusCount = new Set(st.assignedTrips.map((t) => t.busId)).size;
 
               const totalMins = 7 * 60 + 20 + st.arrivalOffset;
               const hrs = Math.floor(totalMins / 60) % 24;
