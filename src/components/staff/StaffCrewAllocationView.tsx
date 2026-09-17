@@ -39,6 +39,7 @@ export default function StaffCrewAllocationView({
   const [users, setUsers] = useState<UserAccount[]>(() => (initialUsers.length > 0 ? initialUsers : store.getUsers()));
 
   const [crewSearchQuery, setCrewSearchQuery] = useState("");
+  const [shiftFilter, setShiftFilter] = useState("ALL");
   const [selectedTripForCrew, setSelectedTripForCrew] = useState<any | null>(null);
   const [crewModalOpen, setCrewModalOpen] = useState(false);
   const [selectedDriverId, setSelectedDriverId] = useState("");
@@ -149,6 +150,8 @@ export default function StaffCrewAllocationView({
   const filteredTrips = useMemo(() => {
     return trips.filter((t) => {
       if (crewDate && t.tripDate && t.tripDate !== crewDate) return false;
+      if (shiftFilter === "MORNING" && t.direction !== "HOME_TO_CAMPUS") return false;
+      if (shiftFilter === "EVENING" && t.direction !== "CAMPUS_TO_HOME") return false;
       if (!crewSearchQuery.trim()) return true;
       const q = crewSearchQuery.toLowerCase();
       const bus = buses.find((b) => b.id === t.busId);
@@ -159,7 +162,7 @@ export default function StaffCrewAllocationView({
         route?.name?.toLowerCase().includes(q)
       );
     });
-  }, [trips, crewDate, crewSearchQuery, buses, routes]);
+  }, [trips, crewDate, crewSearchQuery, shiftFilter, buses, routes]);
 
   const openAssignModal = (trip: Trip) => {
     setSelectedTripForCrew(trip);
@@ -295,15 +298,26 @@ export default function StaffCrewAllocationView({
             <span>Fleet Crew Dispatch Table</span>
           </h3>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={crewSearchQuery}
-              onChange={(e) => setCrewSearchQuery(e.target.value)}
-              placeholder="Search by bus, route, or trip code..."
-              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-blue-500 font-bold"
-            />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <select
+              value={shiftFilter}
+              onChange={(e) => setShiftFilter(e.target.value)}
+              className="px-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-blue-500 font-bold cursor-pointer"
+            >
+              <option value="ALL">All Shifts</option>
+              <option value="MORNING">Morning Inbound</option>
+              <option value="EVENING">Evening Return</option>
+            </select>
+            <div className="relative flex-1 sm:w-72 sm:flex-none">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={crewSearchQuery}
+                onChange={(e) => setCrewSearchQuery(e.target.value)}
+                placeholder="Search bus or route..."
+                className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-blue-500 font-bold"
+              />
+            </div>
           </div>
         </div>
 
