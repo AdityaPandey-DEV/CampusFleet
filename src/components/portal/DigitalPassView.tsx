@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { store } from "@/lib/store";
+import { StudentSelfScanner } from "@/components/scanner/StudentSelfScanner";
 import { formatTime, formatDate } from "@/lib/utils";
 import {
   QrCode,
@@ -24,7 +25,9 @@ import {
   RotateCcw,
   CheckCircle2,
   X,
-  User,
+  RefreshCw,
+  Camera,
+  User
 } from "lucide-react";
 import type { Student, Bus, Trip, Shift, Stop, Booking, Staff } from "@/lib/types";
 
@@ -69,6 +72,7 @@ export default function DigitalPassView({
 
   // Full-screen presentation mode for fast scanner reads
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [securityPing, setSecurityPing] = useState(0);
 
   useEffect(() => {
@@ -423,6 +427,25 @@ export default function DigitalPassView({
               </Link>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Self-Boarding Scanner Toggle */}
+      {activeBooking && activeStudent && (
+        <div className="pt-2 flex flex-col items-center justify-center space-y-4">
+          <button
+            onClick={() => setIsScannerOpen(!isScannerOpen)}
+            className="w-full max-w-sm flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-2xl transition-colors"
+          >
+            <Camera className="w-4 h-4" />
+            {isScannerOpen ? "Close Scanner" : "Scan Bus QR to Board"}
+          </button>
+          
+          {isScannerOpen && (
+            <div className="max-w-sm w-full mx-auto animate-in fade-in zoom-in duration-300">
+              <StudentSelfScanner onSuccess={() => window.location.reload()} />
+            </div>
+          )}
         </div>
       )}
 

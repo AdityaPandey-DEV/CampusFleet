@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getSession } from "@/lib/jwt";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -60,7 +61,33 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const classId = params.id;
+    const isElevated = session.role === "admin" || session.role === "transport_manager" || session.role === "staff";
+    const isTeacher = session.role === "teacher" || session.role === "faculty";
+
+    if (!isElevated) {
+      if (!isTeacher) {
+        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      }
+      
+      // Verify the teacher is the primary teacher for this class
+      const { data: allocation } = await supabaseAdmin
+        .from("class_teachers")
+        .select("is_primary")
+        .eq("class_id", classId)
+        .eq("teacher_id", session.id)
+        .maybeSingle();
+
+      if (!allocation || !allocation.is_primary) {
+        return NextResponse.json({ success: false, error: "Forbidden: Only primary advisors can update class details." }, { status: 403 });
+      }
+    }
+
     const body = await req.json();
     const { course, year, section, isActive, shiftSchedule, department, semester } = body;
 

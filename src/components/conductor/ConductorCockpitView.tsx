@@ -31,6 +31,7 @@ import {
   Bell,
   Volume2,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 import BusLoadingScreen from "@/components/common/BusLoadingScreen";
@@ -66,7 +67,7 @@ export default function ConductorCockpitView({
   const [attendanceRecords, setAttendanceRecords] = useState(store.getAttendanceRecords());
 
   const [selectedTripId, setSelectedTripId] = useState<string>("");
-  const [activeConsoleTab, setActiveConsoleTab] = useState<"SCANNER" | "MANIFEST" | "SEAT_MAP" | "AUDIT">("SCANNER");
+  const [activeConsoleTab, setActiveConsoleTab] = useState<"SCANNER" | "MANIFEST" | "SEAT_MAP" | "AUDIT" | "BUS_QR">("SCANNER");
   const [searchQuery, setSearchQuery] = useState("");
   const [manifestFilter, setManifestFilter] = useState<"ALL" | "BOARDED" | "PENDING" | "WAITLIST" | "ROAMING">("ALL");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -469,6 +470,17 @@ export default function ConductorCockpitView({
           >
             <ShieldCheck className="w-4 h-4" />
             <span>Audit Records</span>
+          </button>
+          <button
+            onClick={() => setActiveConsoleTab("BUS_QR")}
+            className={`flex-1 min-w-[120px] py-2.5 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
+              activeConsoleTab === "BUS_QR"
+                ? "bg-teal-600 dark:bg-teal-500 text-white dark:text-slate-950 shadow-md"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <QrCode className="w-4 h-4" />
+            <span>Show Bus QR</span>
           </button>
         </div>
 
@@ -963,6 +975,40 @@ export default function ConductorCockpitView({
             </div>
           </div>
         )}
+
+        {/* Tab 5: Bus QR Display */}
+        {activeConsoleTab === "BUS_QR" && activeTrip && bus && (
+          <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 animate-in fade-in zoom-in duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-2xl max-w-sm w-full border border-slate-200 dark:border-slate-800 text-center">
+              <h3 className="font-black text-xl text-slate-900 dark:text-white mb-2 flex items-center justify-center gap-2">
+                <QrCode className="w-6 h-6 text-indigo-500" />
+                Bus Self-Boarding QR
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                Display this to students if the physical QR sticker on the bus door is damaged. Students can scan it to securely check-in.
+              </p>
+              
+              <div className="bg-white p-4 rounded-3xl inline-block shadow-inner border border-slate-100 mx-auto transition-transform hover:scale-105 cursor-pointer">
+                <QRCodeSVG
+                  value={JSON.stringify({ type: "BUS_QR", busId: bus.id })}
+                  size={240}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                  level="H"
+                />
+              </div>
+
+              <div className="mt-8">
+                <h4 className="font-black text-2xl text-slate-900 dark:text-white">
+                  {bus.busNumber}
+                </h4>
+                <p className="text-sm font-mono font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 rounded-lg inline-block px-3 py-1 mt-2">
+                  {bus.registrationNo}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
           </>
         )}
       </main>
@@ -1148,6 +1194,18 @@ export default function ConductorCockpitView({
         >
           <ShieldCheck className="w-5 h-5" />
           <span className="text-[10px]">Audit Log</span>
+        </button>
+
+        <button
+          onClick={() => setActiveConsoleTab("BUS_QR")}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
+            activeConsoleTab === "BUS_QR"
+              ? "text-teal-600 dark:text-teal-400 font-bold scale-105"
+              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+          }`}
+        >
+          <QrCode className="w-5 h-5" />
+          <span className="text-[10px]">Bus QR</span>
         </button>
       </div>
     </div>

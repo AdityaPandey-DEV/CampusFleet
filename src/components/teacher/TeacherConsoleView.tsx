@@ -53,11 +53,13 @@ export interface TeacherClass {
   studentCount: number;
   slotCount: number;
   isPrimary: boolean;
+  shift_schedule?: any;
 }
 
 export interface TeacherConsoleProps {
   initialClasses?: TeacherClass[];
   initialDefaultClassId?: string;
+  fleetShifts?: any[];
   initialArrivals?: TodayArrival[];
   initialStats?: {
     totalBoarded: number;
@@ -73,8 +75,10 @@ export default function TeacherConsoleView({
   initialArrivals = [],
   initialStats = { totalBoarded: 0, totalEnrolled: 0, pending: 0 },
   initialUser,
+  fleetShifts = [],
 }: TeacherConsoleProps) {
   const [classes, setClasses] = useState<TeacherClass[]>(initialClasses);
+  const [isSavingShiftSchedule, setIsSavingShiftSchedule] = useState(false);
   
   // Default to primary allocated class, or initial default, or first class
   const primaryAllocated = initialClasses.find((c) => c.isPrimary) || initialClasses[0];
@@ -89,7 +93,7 @@ export default function TeacherConsoleView({
   const [searchQuery, setSearchQuery] = useState("");
 
   // Gate-Pass Management State
-  const [activeTab, setActiveTab] = useState<"attendance" | "gate_passes">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "gate_passes" | "shifts">("attendance");
   const [gatePassRequests, setGatePassRequests] = useState<any[]>([]);
   const [isLoadingGatePasses, setIsLoadingGatePasses] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -176,6 +180,63 @@ export default function TeacherConsoleView({
       alert(e.message || "Error processing gate pass");
     } finally {
       setActionLoadingId(null);
+    }
+  };
+
+  const handleToggleShift = async (shiftId: string, dayOrMaster: string, forceValue?: boolean) => {
+    if (!selectedClassId || selectedClassId === "ALL") return;
+    setIsSavingShiftSchedule(true);
+    try {
+      const cls = classes.find(c => c.id === selectedClassId);
+      const schedule = cls?.shift_schedule ? JSON.parse(JSON.stringify(cls.shift_schedule)) : {};
+      if (!schedule[shiftId]) schedule[shiftId] = { enabled: true, days: {} };
+
+      if (dayOrMaster === "MASTER") {
+        schedule[shiftId].enabled = forceValue !== undefined ? forceValue : !schedule[shiftId].enabled;
+      } else {
+        const currentDayVal = schedule[shiftId].days[dayOrMaster] !== false;
+        schedule[shiftId].days[dayOrMaster] = forceValue !== undefined ? forceValue : !currentDayVal;
+      }
+
+      const res = await fetch(`/api/classes/${selectedClassId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shiftSchedule: schedule }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClasses(prev => prev.map(c => c.id === selectedClassId ? { ...c, shift_schedule: schedule } : c));
+      } else {
+        alert(data.message || "Failed to update shift configuration.");
+      }
+    } catch (err: any) {
+      alert("Error saving shift config.");
+    } finally {
+      setIsSavingShiftSchedule(false);
+    }
+  };
+
+  const handleResetAllShifts = async () => {
+    if (!selectedClassId || selectedClassId === "ALL") return;
+    if (!window.confirm("Reset all shifts to Default ON (Allowed)?")) return;
+    
+    setIsSavingShiftSchedule(true);
+    try {
+      const res = await fetch(`/api/classes/${selectedClassId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shiftSchedule: {} }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClasses(prev => prev.map(c => c.id === selectedClassId ? { ...c, shift_schedule: {} } : c));
+      } else {
+        alert("Failed to reset shifts.");
+      }
+    } catch (err: any) {
+      alert("Error resetting shifts.");
+    } finally {
+      setIsSavingShiftSchedule(false);
     }
   };
 
@@ -333,28 +394,67 @@ export default function TeacherConsoleView({
           </div>
         </div>
 
-        {/* Filter Bar & Class Picker — STRICTLY ALLOCATED CLASSES */}
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="text-xs font-bold text-slate-500 whitespace-nowrap">Filter Class:</div>
-            <select
-              value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
-              className="px-3.5 py-2 text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer max-w-full truncate"
-            >
-              {classes.length > 1 && (
-                <option value="ALL">All My Allocated Classes ({classes.length})</option>
-              )}
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.studentCount} Students){c.isPrimary ? " • Primary Advisor" : ""}
-                </option>
-              ))}
-              {classes.length === 0 && (
-                <option value="NONE">No Classes Allocated</option>
-              )}
-            </select>
+        {/* Class Cards Picker */}
+        <div className="space-y-3">
+          <div className="text-xs font-bold text-slate-500 flex items-center justify-between">
+            <span>Your Assigned Classes</span>
           </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 snap-x hide-scrollbar">
+            {classes.length > 1 && (
+              <button
+                onClick={() => setSelectedClassId("ALL")}
+                className={`snap-start min-w-[200px] flex-shrink-0 p-4 rounded-3xl border transition-all text-left cursor-pointer ${
+                  selectedClassId === "ALL"
+                    ? "bg-teal-50 dark:bg-teal-900/40 border-teal-500/50 shadow-md ring-2 ring-teal-500/20"
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-teal-500/30"
+                }`}
+              >
+                <div className="font-black text-sm text-slate-900 dark:text-white mb-1">
+                  All Allocated Classes
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  {classes.length} Classes Total
+                </div>
+              </button>
+            )}
+            
+            {classes.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setSelectedClassId(c.id)}
+                className={`snap-start min-w-[240px] flex-shrink-0 p-4 rounded-3xl border transition-all text-left cursor-pointer ${
+                  selectedClassId === c.id
+                    ? "bg-blue-50 dark:bg-blue-900/40 border-blue-500/50 shadow-md ring-2 ring-blue-500/20"
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-500/30"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="font-black text-sm text-slate-900 dark:text-white truncate">
+                    {c.name}
+                  </div>
+                  {c.isPrimary && (
+                    <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase flex-shrink-0">
+                      Primary
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" />
+                  <span>{c.studentCount} Enrolled Students</span>
+                </div>
+              </button>
+            ))}
+
+            {classes.length === 0 && (
+              <div className="text-sm text-slate-400 p-4">
+                No Classes Allocated.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-3 shadow-sm flex items-center">
 
           {/* Search Box */}
           <div className="relative w-full sm:w-72">
@@ -402,6 +502,20 @@ export default function TeacherConsoleView({
               </span>
             )}
           </button>
+
+          {selectedClassId !== "ALL" && classes.find(c => c.id === selectedClassId)?.isPrimary && (
+            <button
+              onClick={() => setActiveTab("shifts")}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === "shifts"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span>Shift Eligibility Matrix</span>
+            </button>
+          )}
         </div>
 
         {/* Tab Content: Emergency Gate-Passes */}
@@ -686,6 +800,152 @@ export default function TeacherConsoleView({
             </table>
           </div>
         </div>
+        )}
+
+        {/* Tab Content: Shift Eligibility Matrix */}
+        {activeTab === "shifts" && selectedClassId !== "ALL" && (
+          <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md space-y-6">
+            {/* Header & Quick Action */}
+            <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <h4 className="font-black text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                    Section Shift Eligibility Matrix
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  As the primary advisor, you can restrict specific bus shifts for this class. All shifts are <strong>ON (Allowed)</strong> by default. Toggle OFF any shift or specific day to restrict booking. Students will then require an emergency gate pass to board.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {isSavingShiftSchedule && (
+                  <span className="text-[10px] text-blue-500 flex items-center gap-1 font-bold animate-pulse">
+                    <RefreshCw className="w-3 h-3 animate-spin" /> Saving...
+                  </span>
+                )}
+                <button
+                  onClick={handleResetAllShifts}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                >
+                  Reset All (Default ON)
+                </button>
+              </div>
+            </div>
+
+            {/* Shift Cards */}
+            <div className="space-y-3">
+              {fleetShifts.map((shift) => {
+                const selectedClass = classes.find(c => c.id === selectedClassId) || {} as any;
+                const classSchedule = selectedClass.shift_schedule || {};
+                const shiftRule = classSchedule[shift.id] || { enabled: true, days: {} };
+                const isMasterEnabled = shiftRule.enabled !== false;
+                const daysRule = shiftRule.days || {};
+
+                // Determine shift operational days (weekdays + sat for regular, or specific for custom)
+                const shiftDays = shift.isSpecial
+                  ? ["Saturday", "Sunday"]
+                  : shift.shiftType === "EVENING"
+                    ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+                    : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+                return (
+                  <div
+                    key={shift.id}
+                    className={`p-4 rounded-2xl border transition-all ${isMasterEnabled
+                        ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm"
+                        : "bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/50 opacity-80"
+                      }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-xs text-slate-900 dark:text-white">
+                            {shift.name}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold ${shift.shiftType === "MORNING"
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                : shift.shiftType === "AFTERNOON"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  : shift.shiftType === "EVENING"
+                                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                    : "bg-slate-500/10 text-slate-600 dark:text-slate-400"
+                              }`}
+                          >
+                            {shift.shiftType}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 flex items-center gap-2">
+                          <span>{shift.startTime} — {shift.endTime}</span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span>Direction: {shift.direction === "HOME_TO_CAMPUS" ? "Home to Campus" : "Campus to Home"}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] font-bold text-slate-500 pl-2">
+                          Master Switch:
+                        </span>
+                        <button
+                          onClick={() => handleToggleShift(shift.id, "MASTER")}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                            isMasterEnabled ? "bg-teal-500" : "bg-slate-300 dark:bg-slate-700"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              isMasterEnabled ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Day-by-Day Toggles */}
+                    {isMasterEnabled && (
+                      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+                          Day-Specific Exceptions
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {shiftDays.map((day) => {
+                            const isDayEnabled = daysRule[day.toLowerCase()] !== false;
+                            return (
+                              <button
+                                key={day}
+                                onClick={() => handleToggleShift(shift.id, day.toLowerCase())}
+                                className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                  isDayEnabled
+                                    ? "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
+                                    : "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20"
+                                }`}
+                              >
+                                {isDayEnabled ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-rose-500" />}
+                                {day.substring(0, 3)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {fleetShifts.length === 0 && (
+                <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <div className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    No Fleet Shifts Found
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    The transport administrator has not configured any global shifts yet.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </main>
     </div>

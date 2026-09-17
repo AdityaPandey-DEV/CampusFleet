@@ -31,7 +31,8 @@ export async function GET(req: NextRequest) {
       const { data: allocations } = await supabaseAdmin
         .from("class_teachers")
         .select("class_id")
-        .eq("teacher_id", session.id);
+        .eq("teacher_id", session.id)
+        .eq("is_primary", true);
 
       teacherClassIds = (allocations || []).map((a) => a.class_id).filter(Boolean);
       if (teacherClassIds.length === 0) {

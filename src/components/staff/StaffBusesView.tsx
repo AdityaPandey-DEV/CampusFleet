@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
 import { Bus, VehicleStatus, Route, Trip } from "@/lib/types";
-import { BusFront, Plus, Edit2, Trash2, ShieldAlert, CheckCircle2, Wrench, Search, MapPin, Sparkles, RefreshCw } from "lucide-react";
+import { BusFront, Plus, Edit2, Trash2, ShieldAlert, CheckCircle2, Wrench, Search, MapPin, Sparkles, RefreshCw, QrCode, X } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 export interface StaffBusesProps {
   initialBuses?: Bus[];
@@ -23,6 +24,7 @@ export default function StaffBusesView({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingBus, setEditingBus] = useState<Bus | null>(null);
   const [allocatingBus, setAllocatingBus] = useState<Bus | null>(null);
+  const [viewingQrBus, setViewingQrBus] = useState<Bus | null>(null);
   const [selectedRouteIdToAllocate, setSelectedRouteIdToAllocate] = useState("");
 
   const [formData, setFormData] = useState<{
@@ -276,6 +278,15 @@ export default function StaffBusesView({
               {/* Action Buttons */}
               <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
+                  onClick={() => setViewingQrBus(bus)}
+                  className="flex-1 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                  title="Print Boarding QR Code"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  QR
+                </button>
+
+                <button
                   onClick={() => setAllocatingBus(bus)}
                   className="flex-1 py-2 bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-950/60 text-blue-600 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5"
                 >
@@ -489,6 +500,65 @@ export default function StaffBusesView({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* View Bus QR Modal */}
+      {viewingQrBus && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-indigo-500" />
+                Bus Boarding QR
+              </h3>
+              <button
+                onClick={() => setViewingQrBus(null)}
+                className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 text-center space-y-6">
+              <div className="bg-white p-4 rounded-3xl inline-block shadow-md border border-slate-100">
+                <QRCodeSVG
+                  value={JSON.stringify({ type: "BUS_QR", busId: viewingQrBus.id })}
+                  size={200}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                  level="H"
+                />
+              </div>
+
+              <div>
+                <h4 className="font-black text-xl text-slate-900 dark:text-white">
+                  {viewingQrBus.busNumber}
+                </h4>
+                <p className="text-sm font-mono text-slate-500 mt-1">
+                  {viewingQrBus.registrationNo}
+                </p>
+                <p className="text-xs text-slate-400 mt-4 max-w-xs mx-auto">
+                  Print this QR code and paste it on the bus door. Students will scan this with their CampusFleet app to securely mark their attendance.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setViewingQrBus(null)}
+                  className="flex-1 py-3 text-sm font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl transition-all"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="flex-1 py-3 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl transition-all shadow-md shadow-indigo-600/20"
+                >
+                  Print QR
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
