@@ -120,8 +120,8 @@ CampusFleetStore.prototype.initStudentPaymentSync = function (this: CampusFleetS
 
       const existingIdx = this.students.findIndex(
         s => s.id === serverStudent.id ||
-             (s.email && s.email.toLowerCase() === user.email?.toLowerCase()) ||
-             (s.userId && s.userId === user.id)
+          (s.email && s.email.toLowerCase() === user.email?.toLowerCase()) ||
+          (s.userId && s.userId === user.id)
       );
 
       if (existingIdx >= 0) {
@@ -487,7 +487,9 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
           primary_route_id: newStudent.primaryRouteId || null,
           has_active_subscription: false,
           payment_status: "UNPAID",
-        }, { ignoreDuplicates: true }).then(() => {}); // ignoreDuplicates: never overwrite existing student rows
+          total_fee_due: 99999999,
+          total_fee_paid: 0,
+        }, { ignoreDuplicates: true }).then(() => { }); // ignoreDuplicates: never overwrite existing student rows
       }
     }
 

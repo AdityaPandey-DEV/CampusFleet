@@ -645,7 +645,8 @@ export default function PortalPaymentsView({
           </div>
 
           {/* Step 1: UPI QR Code & Vercel Blob Receipt Upload */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {!isPendingApproval ? (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left Col: UPI QR Code */}
             <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-6">
               <div className="space-y-4">
@@ -921,6 +922,19 @@ export default function PortalPaymentsView({
               </form>
             </div>
           </div>
+          ) : (
+            <div className="bg-amber-50 dark:bg-amber-950/20 rounded-3xl p-10 border border-amber-200 dark:border-amber-800 shadow-sm flex flex-col items-center justify-center text-center space-y-4 mt-6">
+              <div className="w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2">
+                <Clock className="w-10 h-10 animate-spin" />
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+                Payment Verification in Progress
+              </h2>
+              <p className="text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
+                Your payment receipt is currently under manual review by the campus transport staff. The UPI Payment form has been hidden while we process your existing transaction. Access will be unlocked automatically once approved.
+              </p>
+            </div>
+          )}
         </>
       )}
 

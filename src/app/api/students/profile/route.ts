@@ -113,6 +113,12 @@ export async function POST(req: NextRequest) {
       studentData.class_name = className;
     }
 
+    if (!existingStudentId) {
+      studentData.total_fee_due = 12000;
+      studentData.total_fee_paid = 0;
+      studentData.payment_status = "UNPAID";
+    }
+
     const { data: savedStudent, error: studentErr } = await supabaseAdmin
       .from("students")
       .upsert(studentData)
