@@ -73,6 +73,11 @@ export async function POST(request: NextRequest) {
     else if (typeof err === "string") errorMessage = err;
     else errorMessage = JSON.stringify(err);
 
+    // Provide a clearer error if it's Razorpay's key authentication failure
+    if (errorMessage.includes("Authentication failed")) {
+      errorMessage = "Razorpay Authentication Failed: Your RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is invalid. Please check your environment variables.";
+    }
+
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
