@@ -207,10 +207,10 @@ export default function StudentPortalLayout({
               <div className="p-4 bg-yellow-50 dark:bg-yellow-950/60 rounded-2xl border border-yellow-200 dark:border-yellow-800 text-left space-y-1">
                 <div className="text-xs font-bold text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-yellow-500 animate-ping" />
-                  Receipt Uploaded — Awaiting Transport Staff Verification
+                  Payment Processing — Awaiting Confirmation
                 </div>
                 <p className="text-[11px] text-yellow-700 dark:text-yellow-400">
-                  Your payment receipt has been uploaded and is queued for verification by the university transport desk.
+                  Your payment is currently processing. If it was successful, your transit pass will automatically unlock shortly.
                 </p>
               </div>
             ) : (
@@ -219,10 +219,9 @@ export default function StudentPortalLayout({
                   How to Unlock Your Transit Pass:
                 </div>
                 <ol className="text-[11px] text-gray-500 space-y-1 list-decimal list-inside">
-                  <li>Choose your residential transit zone and installment option.</li>
-                  <li>Scan the university payment QR code and pay via UPI.</li>
-                  <li>Upload your payment screenshot — OCR will extract your transaction ID.</li>
-                  <li>Transport staff will verify and instantly unlock your full portal access.</li>
+                  <li>Click on "Pass Activation & Fees" in the sidebar.</li>
+                  <li>Click "Instant Account Activation" to securely pay via Razorpay.</li>
+                  <li>Upon successful payment, your pass will instantly unlock automatically!</li>
                 </ol>
               </div>
             )}
