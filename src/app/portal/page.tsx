@@ -23,7 +23,7 @@ export default async function StudentPortalPage() {
     { data: dbBookings },
     { data: dbStaff },
   ] = await Promise.all([
-    supabaseAdmin.from("students_full").select("*"),
+    supabaseAdmin.from("students_full").select("*").or(`user_id.eq.${session.userId},id.eq.${(session as any).studentId || 'null'}`),
     supabaseAdmin.from("buses").select("*"),
     supabaseAdmin.from("routes").select("*"),
     supabaseAdmin.from("stops").select("*"),

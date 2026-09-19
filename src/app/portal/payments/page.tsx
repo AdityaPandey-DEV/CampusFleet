@@ -24,7 +24,7 @@ export default async function SubscriptionsAndBillingPage() {
     { data: dbPayments },
     { data: dbZones },
   ] = await Promise.all([
-    supabaseAdmin.from("students_full").select("*"),
+    supabaseAdmin.from("students_full").select("*").or(`user_id.eq.${session.userId},id.eq.${(session as any).studentId || 'null'}`),
     supabaseAdmin.from("payments").select("*").order("created_at", { ascending: false }).limit(100),
     supabaseAdmin.from("transit_zones").select("*").order("code"),
   ]);
