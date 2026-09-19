@@ -672,7 +672,7 @@ export function QRPassScanner({
             <canvas ref={canvasRef} className="hidden" />
 
             {/* Glowing Laser Scan Beam */}
-            <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent shadow-[0_0_20px_#2dd4bf] animate-bounce z-20 pointer-events-none" />
+            <div className="absolute inset-x-0 h-1  from-transparent  to-transparent shadow-[0_0_20px_#2dd4bf] animate-bounce z-20 pointer-events-none" />
 
             {/* Viewfinder Overlay with Precision Reticle */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
@@ -733,7 +733,7 @@ export function QRPassScanner({
               <button
                 type="button"
                 onClick={() => startCamera(cameraFacing)}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-green-500 via-green-500 to-green-500 hover:from-green-400 hover:to-green-400 text-gray-950 font-black text-sm rounded-2xl shadow-xl shadow-green-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto px-8 py-4 bg-green-500 hover:bg-green-400  text-gray-950 font-black text-sm rounded-2xl shadow-xl shadow-green-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
               >
                 <Camera className="w-5 h-5" />
                 <span>Start Live Camera Scanner</span>
@@ -869,7 +869,7 @@ export function QRPassScanner({
               type="button"
               onClick={handleConfirmBoarding}
               disabled={isProcessing}
-              className="w-full py-3.5 px-3 rounded-2xl bg-gradient-to-r from-green-500 to-green-500 hover:from-green-400 hover:to-green-400 text-gray-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-green-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-3 rounded-2xl bg-green-500 hover:bg-green-400  text-gray-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-green-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{isProcessing ? "Processing..." : "Confirm & In Bus"}</span>
@@ -879,7 +879,7 @@ export function QRPassScanner({
               type="button"
               onClick={handleConfirmRoaming}
               disabled={isProcessing}
-              className="w-full py-3.5 px-3 rounded-2xl bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600 hover:from-yellow-400 hover:to-orange-400 text-gray-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-yellow-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-3 rounded-2xl bg-yellow-500 hover:bg-yellow-400  text-gray-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-yellow-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
               title="Hold seat digitally; student can roam campus without bags on seats"
             >
               <Footprints className="w-4 h-4" />

@@ -293,7 +293,7 @@ export default function StaffMergesView({
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-pink-900/40 via-blue-900/30 to-blue-900/20 border border-pink-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-pink-900/40 border border-pink-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-pink-400 font-bold text-xs uppercase tracking-wider">
             <GitMerge className="w-4 h-4" />
@@ -513,7 +513,7 @@ export default function StaffMergesView({
           <button
             onClick={handleDetectOpportunities}
             disabled={isDetecting}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-pink-600 to-blue-600 hover:from-pink-500 hover:to-blue-500 text-white font-bold text-xs shadow-md shadow-pink-500/20 transition-all active:scale-95 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-pink-600 hover:bg-pink-500  text-white font-bold text-xs shadow-md shadow-pink-500/20 transition-all active:scale-95 disabled:opacity-50"
           >
             <Sparkles className={`w-4 h-4 ${isDetecting ? "animate-spin" : ""}`} />
             <span>{isDetecting ? "Scanning Fleet..." : "Detect Merge Opportunities"}</span>
@@ -538,7 +538,7 @@ export default function StaffMergesView({
             pendingSuggestions.map((item) => (
               <div
                 key={item.id}
-                className="p-5 rounded-2xl bg-gradient-to-r from-gray-50 to-pink-50/30 dark:from-gray-800/40 dark:to-pink-950/20 border border-gray-200 dark:border-pink-900/40 space-y-4"
+                className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/40 dark: border border-gray-200 dark:border-pink-900/40 space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-3">

@@ -302,8 +302,8 @@ export function IncomingShuttleRadar({
                       disabled={isClaiming}
                       className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer ${
                         hasFreeSeats
-                          ? "bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-500 hover:to-green-500 text-white shadow-blue-500/20"
-                          : "bg-gradient-to-r from-pink-700 to-blue-700 hover:from-pink-600 hover:to-blue-600 text-white shadow-pink-500/20"
+                          ? "bg-blue-600 hover:bg-blue-500  text-white shadow-blue-500/20"
+                          : "bg-pink-700 hover:bg-pink-600  text-white shadow-pink-500/20"
                       }`}
                     >
                       {isClaiming ? (

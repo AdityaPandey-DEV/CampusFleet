@@ -755,7 +755,7 @@ export function StaffBillingView({
                         {/* Zone Card Header */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-600 text-white font-black text-xs tracking-wider shadow-sm">
+                            <span className="px-3 py-1 rounded-xl bg-blue-600 text-white font-black text-xs tracking-wider shadow-sm">
                               {zone.code}
                             </span>
                             <span

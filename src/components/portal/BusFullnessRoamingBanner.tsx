@@ -54,7 +54,7 @@ export default function BusFullnessRoamingBanner({
   const isRunning = roamingStatus === "RUNNING_TO_BUS";
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900 border border-blue-500/30 text-white p-4 sm:p-5 shadow-xl space-y-4">
+    <div className="relative overflow-hidden rounded-3xl bg-gray-900 border border-blue-500/30 text-white p-4 sm:p-5 shadow-xl space-y-4">
       {/* Ambient background glow */}
       <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-blue-600/20 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-green-500/15 blur-3xl pointer-events-none" />
@@ -62,7 +62,7 @@ export default function BusFullnessRoamingBanner({
       {/* Top Header: Seat Hold Status & Bus Number */}
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-blue-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
+          <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
             <BusFront className="w-5 h-5" />
           </div>
           <div>
@@ -130,10 +130,10 @@ export default function BusFullnessRoamingBanner({
           <div
             className={`h-full rounded-full transition-all duration-500 ${
               isFull
-                ? "bg-gradient-to-r from-yellow-500 via-red-500 to-red-600"
+                ? "bg-yellow-500"
                 : percentage >= 80
-                ? "bg-gradient-to-r from-green-400 via-blue-500 to-blue-600"
-                : "bg-gradient-to-r from-green-400 via-green-500 to-blue-500"
+                ? "bg-green-400"
+                : "bg-green-400"
             }`}
             style={{ width: `${Math.max(8, percentage)}%` }}
           />

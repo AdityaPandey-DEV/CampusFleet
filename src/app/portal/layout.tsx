@@ -109,7 +109,7 @@ export default function StudentPortalLayout({
           <div className="pt-2">
             <Link
               href={targetRoute}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-pink-600 to-blue-600 hover:from-pink-700 hover:to-blue-700 text-white text-xs font-black shadow-lg shadow-pink-600/30 transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-pink-600 hover:bg-pink-700  text-white text-xs font-black shadow-lg shadow-pink-600/30 transition-all active:scale-95"
             >
               <span>Switch to {roleTitle} Console ({targetRoute})</span>
               <ArrowRight className="w-4 h-4" />
@@ -215,7 +215,7 @@ export default function StudentPortalLayout({
             <div className="pt-2">
               <Link
                 href="/portal/payments"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-extrabold text-sm shadow-lg shadow-blue-500/25 transition-transform active:scale-95"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700  text-white font-extrabold text-sm shadow-lg shadow-blue-500/25 transition-transform active:scale-95"
               >
                 <CreditCard className="w-4 h-4" />
                 <span>Go to Pass & Fee Payment Gateway →</span>

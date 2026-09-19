@@ -229,12 +229,12 @@ export default function DigitalPassView({
             <div
               className={`p-5 text-white flex items-center justify-between ${
                 isBoarded
-                  ? "bg-gradient-to-r from-green-600 to-green-700"
+                  ? "bg-green-600"
                   : isStandingPassenger
-                  ? "bg-gradient-to-r from-pink-700 via-blue-700 to-yellow-700"
+                  ? "bg-pink-700"
                   : isWaitlisted
-                  ? "bg-gradient-to-r from-yellow-600 to-yellow-700"
-                  : "bg-gradient-to-r from-blue-600 via-blue-600 to-green-600"
+                  ? "bg-yellow-600"
+                  : "bg-blue-600"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -379,7 +379,7 @@ export default function DigitalPassView({
           </div>
 
           {/* Quick Bridge to Live Radar Tracker */}
-          <div className="p-4 rounded-3xl bg-gradient-to-r from-blue-900 to-blue-900 text-white shadow-lg flex items-center justify-between gap-3">
+          <div className="p-4 rounded-3xl bg-blue-900 text-white shadow-lg flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-white/10 rounded-2xl">
                 <Compass className="w-5 h-5 text-green-300" />
@@ -420,7 +420,7 @@ export default function DigitalPassView({
             <div className="pt-2 flex items-center justify-center gap-3">
               <Link
                 href="/portal"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-blue-500/20 active:scale-95 transition-transform"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700  text-white font-black text-xs rounded-2xl shadow-lg shadow-blue-500/20 active:scale-95 transition-transform"
               >
                 <CalendarCheck className="w-4 h-4" />
                 <span>Book Shift & Pick Seat →</span>

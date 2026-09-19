@@ -520,7 +520,7 @@ export function StaffCampusesView({
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white font-black text-sm flex items-center justify-center shadow-md">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-md">
                           {campus.code?.slice(0, 4) || "CAMP"}
                         </div>
                         <div>
@@ -753,7 +753,7 @@ export function StaffCampusesView({
                         {/* Zone Header */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-600 text-white font-black text-xs tracking-wider shadow-sm">
+                            <span className="px-3 py-1 rounded-xl bg-blue-600 text-white font-black text-xs tracking-wider shadow-sm">
                               {zone.code}
                             </span>
                             <span

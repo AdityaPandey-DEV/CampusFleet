@@ -946,7 +946,7 @@ export default function CampusFleetMap({
           const campusIcon = L.divIcon({
             className: "custom-campus-landmark-icon",
             html: `
-              <div class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-950 via-blue-950 to-gray-900 text-white rounded-2xl shadow-2xl border-2 border-blue-400 font-bold text-xs select-none hover:scale-105 transition-transform cursor-pointer -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ring-4 ring-blue-500/20">
+              <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-950 text-white rounded-2xl shadow-2xl border-2 border-blue-400 font-bold text-xs select-none hover:scale-105 transition-transform cursor-pointer -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ring-4 ring-blue-500/20">
                 <span class="p-1 rounded-xl bg-blue-600 text-white shadow-xs">${universitySvg}</span>
                 <div class="leading-tight text-left">
                   <div class="text-[11px] font-black text-white flex items-center gap-1">${campusTerminalStop.name}</div>
@@ -1015,7 +1015,7 @@ export default function CampusFleetMap({
               const secondaryIcon = L.divIcon({
                 className: "custom-secondary-campus-icon",
                 html: `
-                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-pink-900 via-pink-950 to-gray-900 text-white rounded-2xl shadow-xl border-2 border-pink-400 font-bold text-xs select-none hover:scale-105 transition-transform cursor-pointer -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ring-4 ring-pink-500/20">
+                  <div class="flex items-center gap-2 px-3 py-1.5 bg-pink-900 text-white rounded-2xl shadow-xl border-2 border-pink-400 font-bold text-xs select-none hover:scale-105 transition-transform cursor-pointer -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ring-4 ring-pink-500/20">
                     <span class="p-1 rounded-xl bg-pink-600 text-white shadow-xs">${universitySvg}</span>
                     <div class="leading-tight text-left">
                       <div class="text-[11px] font-black text-white">${sc.name}</div>
@@ -1190,7 +1190,7 @@ export default function CampusFleetMap({
 
       {/* Floating GPS Location Status Toast */}
       {locationNotice && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1.5 rounded-full bg-gray-900/90 text-white text-xs font-bold shadow-2xl border border-gray-700/80 backdrop-blur-md flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1.5 rounded-full bg-gray-900/90 text-white text-xs font-bold shadow-2xl border border-gray-700/80 backdrop-blur-md flex items-center gap-1.5 animate-in fade-in slide-in-bg-top-2">
           <Navigation className="w-3.5 h-3.5 text-blue-400" />
           <span>{locationNotice}</span>
         </div>
@@ -1247,7 +1247,7 @@ export default function CampusFleetMap({
       )}
 
       {isExpressDirect && (
-        <div className="absolute top-16 right-3 z-10 bg-gradient-to-r from-green-500 to-green-500 text-gray-950 font-black text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-white/40 animate-pulse pointer-events-none">
+        <div className="absolute top-16 right-3 z-10 bg-green-500 text-gray-950 font-black text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-white/40 animate-pulse pointer-events-none">
           <Zap className="w-3.5 h-3.5 fill-current shrink-0" />
           <span>Direct Non-Stop to Campus</span>
         </div>

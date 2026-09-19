@@ -331,14 +331,14 @@ export default function AdminMaintenanceView({
     <div className="space-y-6 pb-12 animate-in fade-in">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border border-gray-700 dark:border-gray-300 animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border border-gray-700 dark:border-gray-300 animate-in slide-in-bg-bottom-5">
           <Sparkles className="w-4 h-4 text-yellow-400 dark:text-yellow-600" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-gray-900 via-blue-950 to-gray-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-gray-800">
+      <div className="bg-gray-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-gray-800">
         <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
@@ -365,7 +365,7 @@ export default function AdminMaintenanceView({
             </button>
             <button
               onClick={() => setIsNewEntryOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-500 hover:to-blue-500 text-white text-xs font-black shadow-lg shadow-blue-600/30 transition-all hover:scale-102 active:scale-98"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500  text-white text-xs font-black shadow-lg shadow-blue-600/30 transition-all hover:scale-102 active:scale-98"
             >
               <Plus className="w-4 h-4" />
               + New Register Entry

@@ -196,7 +196,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       <div className="md:hidden sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/80 dark:border-gray-800/80 shadow-sm">
         <div className="flex items-center justify-between px-3.5 py-2.5">
           <Link href="/staff" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <div className="w-8 h-8 rounded-xl bg-blue-700 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
               <BusFront className="w-4 h-4" />
             </div>
             <div>
@@ -358,7 +358,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           {/* Brand Header */}
           <div className="flex items-center justify-between">
             <Link href="/staff" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 flex-shrink-0">
+              <div className="w-9 h-9 rounded-2xl bg-blue-700 flex items-center justify-center text-white shadow-md shadow-blue-500/20 flex-shrink-0">
                 <BusFront className="w-5 h-5" />
               </div>
               {isSidebarOpen && (
@@ -522,7 +522,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                       href={sub.href}
                       className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 active:scale-95 ${
                         isActive
-                          ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-md shadow-blue-600/30"
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
                           : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/60"
                       }`}
                     >

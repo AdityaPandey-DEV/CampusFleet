@@ -39,7 +39,7 @@ export default function BusLoadingScreen({
   const content = (
     <div className={`relative flex flex-col items-center justify-center select-none text-center ${compact ? "p-6" : "p-8 max-w-lg w-full"}`}>
       {/* Background Ambient Glow (Warm Golden Yellow) */}
-      <div className="absolute -top-12 -bottom-12 -left-12 -right-12 bg-gradient-to-b from-yellow-500/15 via-yellow-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-12 -bottom-12 -left-12 -right-12 bg-yellow-500/15 to-transparent rounded-full blur-3xl pointer-events-none" />
 
       {/* Animation Stage */}
       <div className="relative w-full flex flex-col items-center justify-center overflow-hidden mb-6 py-4">
@@ -49,19 +49,19 @@ export default function BusLoadingScreen({
             initial={{ x: "100%" }}
             animate={{ x: "-100%" }}
             transition={{ repeat: Infinity, duration: 1.1, ease: "linear" }}
-            className="w-24 h-0.5 bg-gradient-to-r from-transparent via-yellow-400 to-transparent rounded-full"
+            className="w-24 h-0.5  from-transparent  to-transparent rounded-full"
           />
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: "-100%" }}
             transition={{ repeat: Infinity, duration: 0.85, ease: "linear", delay: 0.25 }}
-            className="w-40 h-0.5 bg-gradient-to-r from-transparent via-yellow-400 to-transparent rounded-full"
+            className="w-40 h-0.5  from-transparent  to-transparent rounded-full"
           />
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: "-100%" }}
             transition={{ repeat: Infinity, duration: 1.3, ease: "linear", delay: 0.55 }}
-            className="w-32 h-0.5 bg-gradient-to-r from-transparent via-orange-400 to-transparent rounded-full"
+            className="w-32 h-0.5  from-transparent  to-transparent rounded-full"
           />
         </div>
 
@@ -241,7 +241,7 @@ export default function BusLoadingScreen({
       {/* Modern Golden Amber Progress Bar */}
       <div className="w-full max-w-xs h-1.5 bg-gray-200 dark:bg-gray-800/80 rounded-full overflow-hidden mb-5 border border-gray-300/40 dark:border-gray-700/50 shadow-inner">
         <motion.div
-          className="h-full bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-600 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.9)]"
+          className="h-full bg-yellow-500 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.9)]"
           animate={{
             x: ["-100%", "100%"],
           }}

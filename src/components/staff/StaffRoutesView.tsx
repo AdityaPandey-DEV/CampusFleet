@@ -781,7 +781,7 @@ export default function StaffRoutesView({
   return (
     <div className="space-y-6 animate-in fade-in pb-12">
       {/* Top Banner & Two Primary Creation Options */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-blue-900/10 via-green-900/5 to-transparent p-6 rounded-3xl border border-blue-200/60 dark:border-blue-900/40">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-blue-900/10 to-transparent p-6 rounded-3xl border border-blue-200/60 dark:border-blue-900/40">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
             <Sparkles className="w-4 h-4" />
@@ -1113,7 +1113,7 @@ export default function StaffRoutesView({
                       <div key={rs.stopId} className="relative">
                         {/* Connecting Line Between Stops */}
                         {!isLast && (
-                          <div className="absolute left-6 top-10 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-blue-500 z-0" />
+                          <div className="absolute left-6 top-10 bottom-0 w-0.5 bg-blue-500 z-0" />
                         )}
 
                         <div
@@ -1216,7 +1216,7 @@ export default function StaffRoutesView({
                 {/* Edit in Visual Builder Banner */}
                 <button
                   onClick={() => handleOpenEditRoute(activeRoute)}
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition-all hover:scale-[1.01]"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700  text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition-all hover:scale-[1.01]"
                 >
                   <GitBranch className="w-4 h-4" />
                   <span>Open Interactive Flowchart Builder</span>
@@ -1284,7 +1284,7 @@ export default function StaffRoutesView({
                   key={campus.id}
                   className={`relative p-5 rounded-3xl border shadow-sm space-y-4 flex flex-col justify-between transition-all hover:shadow-md ${
                     campus.isPrimary
-                      ? "bg-gradient-to-br from-blue-900/30 via-blue-950/20 to-gray-900 border-blue-500/40 text-white"
+                      ? "bg-blue-900/30 border-blue-500/40 text-white"
                       : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800"
                   }`}
                 >
@@ -1436,7 +1436,7 @@ export default function StaffRoutesView({
         <div className="space-y-5">
           {/* Central Campus Terminal & Fleet Depot Hero Card */}
           {currentCampusStop && (
-            <div className="p-5 rounded-3xl bg-gradient-to-r from-blue-900/40 via-blue-950/40 to-gray-900 border border-blue-500/30 shadow-lg text-white space-y-4">
+            <div className="p-5 rounded-3xl bg-blue-900/40 border border-blue-500/30 shadow-lg text-white space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/40 text-blue-400 flex items-center justify-center text-xl shadow-inner">
@@ -2259,7 +2259,7 @@ export default function StaffRoutesView({
 
                   {/* --- CONNECTOR GAP 0 with (+) BUTTON --- */}
                   <div className="relative py-1 flex items-center justify-center">
-                    <div className="absolute inset-x-12 h-0.5 bg-gradient-to-r from-green-400 via-blue-400 to-blue-400" />
+                    <div className="absolute inset-x-12 h-0.5 bg-green-400" />
                     <button
                       type="button"
                       onClick={() => setInsertingAtGapIndex(0)}
@@ -2382,7 +2382,7 @@ export default function StaffRoutesView({
 
                         {/* CONNECTOR GAP with (+) BUTTON */}
                         <div className="relative py-1 flex items-center justify-center">
-                          <div className="absolute inset-x-12 h-0.5 bg-gradient-to-r from-blue-400 via-blue-400 to-blue-400" />
+                          <div className="absolute inset-x-12 h-0.5 bg-blue-400" />
                           <button
                             type="button"
                             onClick={() => setInsertingAtGapIndex(gapIndexAfter)}

@@ -251,7 +251,7 @@ export default function AdminStaffView({
     <div className="space-y-6 animate-in fade-in">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 p-4 bg-gray-900 dark:bg-gray-800 text-white border border-gray-700 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4">
+        <div className="fixed top-5 right-5 z-50 p-4 bg-gray-900 dark:bg-gray-800 text-white border border-gray-700 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-bg-top-4">
           <CheckCircle2 className="w-5 h-5 text-green-400" />
           <span className="text-xs font-bold">{toastMessage}</span>
         </div>

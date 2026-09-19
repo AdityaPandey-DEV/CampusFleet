@@ -279,7 +279,7 @@ export function StudentParentProductDemo() {
         
         {/* TAB 1: LIVE RADAR SIMULATOR */}
         {activeTab === "radar" && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="space-y-6 animate-in fade-in slide-in-bg-bottom-2 duration-300">
             {/* Telemetry HUD Top Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-gray-900 p-3.5 sm:p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
               <div className="flex items-center gap-3">
@@ -328,7 +328,7 @@ export function StudentParentProductDemo() {
                 <div className="relative flex items-center justify-between px-6 sm:px-12">
                   {/* The Background Line (Behind the circles, perfectly centered) */}
                   <div className="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-blue-600 via-blue-600 to-blue-400 w-1/2 rounded-full transition-all duration-700" />
+                    <div className="h-full bg-blue-600 w-1/2 rounded-full transition-all duration-700" />
                   </div>
 
                   {/* 5 Distinct Station Dots */}
@@ -458,7 +458,7 @@ export function StudentParentProductDemo() {
 
         {/* TAB 2: REDBUS-STYLE SEAT SELECTOR SIMULATOR */}
         {activeTab === "seats" && (
-          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-bg-bottom-2 duration-300">
             {/* Shift & Capacity Toggle */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-gray-900 p-3.5 sm:p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
               <div className="flex flex-wrap items-center gap-2">
@@ -635,9 +635,9 @@ export function StudentParentProductDemo() {
 
         {/* TAB 3: CRYPTOGRAPHIC DIGITAL QR PASS SIMULATOR */}
         {activeTab === "qr" && (
-          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-xl mx-auto w-full">
+          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-bg-bottom-2 duration-300 max-w-xl mx-auto w-full">
             {/* Holographic Security Pass */}
-            <div className="relative rounded-3xl p-4 sm:p-6 bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900 text-white shadow-2xl border border-blue-500/30 overflow-hidden">
+            <div className="relative rounded-3xl p-4 sm:p-6 bg-gray-900 text-white shadow-2xl border border-blue-500/30 overflow-hidden">
               {/* Glowing Background Radial */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -677,7 +677,7 @@ export function StudentParentProductDemo() {
                   <div className="w-28 h-28 sm:w-32 sm:h-32 bg-gray-900 rounded-xl p-2 flex items-center justify-center relative overflow-hidden">
                     <QrCode className="w-24 h-24 sm:w-28 sm:h-28 text-white" />
                     {/* Pulsing scanning beam */}
-                    <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-pulse" />
+                    <div className="absolute inset-x-0 h-1  from-transparent  to-transparent animate-pulse" />
                   </div>
                   <div className="text-[8px] sm:text-[9px] font-mono text-gray-500 font-bold">
                     HMAC-SHA256 ROTATING
@@ -729,7 +729,7 @@ export function StudentParentProductDemo() {
 
         {/* TAB 4: ZONE PASS & UPI BILLING SIMULATOR */}
         {activeTab === "billing" && (
-          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-2xl mx-auto w-full">
+          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-bg-bottom-2 duration-300 max-w-2xl mx-auto w-full">
             <div className="text-center space-y-1">
               <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">
                 Transparent Transit Fees & Instant UPI Activation

@@ -68,13 +68,13 @@ export function BoardingPassCard({
       <div
         className={`p-4 text-white flex items-center justify-between ${
           isStandingPassenger
-            ? "bg-gradient-to-r from-pink-800 via-blue-800 to-yellow-700"
+            ? "bg-pink-800"
             : isConfirmed
-            ? "bg-gradient-to-r from-blue-700 to-blue-800"
+            ? "bg-blue-700"
             : isBoarded
-            ? "bg-gradient-to-r from-green-600 to-green-700"
+            ? "bg-green-600"
             : isWaitlisted
-            ? "bg-gradient-to-r from-yellow-600 to-yellow-700"
+            ? "bg-yellow-600"
             : "bg-gray-700"
         }`}
       >

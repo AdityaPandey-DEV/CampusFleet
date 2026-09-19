@@ -325,18 +325,14 @@ export default function LoginPage() {
       
       {/* LEFT SIDE: Brand & Imagery (PC Only) */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900 flex-col justify-between overflow-hidden">
-        {/* Dynamic Abstract Background */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-900/40 via-gray-900 to-black z-10" />
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/30 blur-[100px] rounded-full mix-blend-screen animate-pulse-subtle" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-green-600/20 blur-[100px] rounded-full mix-blend-screen animate-pulse-subtle" style={{ animationDelay: '1s' }} />
-        </div>
+        {/* Clean Flat Background */}
+        <div className="absolute inset-0 z-0 bg-blue-900" />
 
         {/* Content */}
         <div className="relative z-20 p-12 flex flex-col h-full justify-between">
           <div>
             <Link href="/" className="inline-flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-green-500 flex items-center justify-center text-white shadow-xl shadow-blue-500/20">
+              <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-xl shadow-blue-500/20">
                 <BusFront className="w-6 h-6" />
               </div>
               <span className="text-2xl font-black tracking-tight text-white">
@@ -348,7 +344,7 @@ export default function LoginPage() {
           <div className="space-y-6">
             <h1 className="text-5xl font-black text-white leading-tight tracking-tight">
               The future of <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-400">
+              <span className="text-blue-400">
                 campus mobility.
               </span>
             </h1>
@@ -371,7 +367,7 @@ export default function LoginPage() {
         {/* Mobile Header (Hidden on PC) */}
         <header className="lg:hidden absolute top-0 w-full px-6 h-20 flex items-center justify-between z-20">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-green-500 flex items-center justify-center text-white shadow-md">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md">
               <BusFront className="w-5 h-5" />
             </div>
             <span className="text-xl font-black tracking-tight text-gray-900 dark:text-white">
@@ -401,7 +397,7 @@ export default function LoginPage() {
             />
           )}
 
-          <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="w-full max-w-md animate-in fade-in slide-in-bg-bottom-8 duration-700">
             {/* Context Header */}
             <div className="mb-8 space-y-2">
               <h2 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">

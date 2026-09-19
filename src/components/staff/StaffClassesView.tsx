@@ -536,7 +536,7 @@ export default function StaffClassesView({
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-900/40 via-blue-900/30 to-pink-900/20 border border-blue-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-blue-900/40 border border-blue-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl">
         <div>
           <div className="flex items-center gap-2.5 text-blue-400 font-bold text-xs uppercase tracking-wider">
             <BookOpen className="w-4 h-4" />
@@ -555,7 +555,7 @@ export default function StaffClassesView({
             setActionError("");
             setIsCreateModalOpen(true);
           }}
-          className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-500 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all active:scale-95 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500  text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all active:scale-95 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>New Class</span>
@@ -902,7 +902,7 @@ export default function StaffClassesView({
                   </div>
 
                   {/* Teacher Allocation Section */}
-                  <div className="p-5 rounded-3xl bg-gradient-to-tr from-gray-50 to-blue-50/30 dark:from-gray-800/40 dark:to-blue-950/20 border border-gray-200 dark:border-gray-800 space-y-4">
+                  <div className="p-5 rounded-3xl bg-gray-50 dark:bg-gray-800/40 dark: border border-gray-200 dark:border-gray-800 space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-bold text-xs uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-2">

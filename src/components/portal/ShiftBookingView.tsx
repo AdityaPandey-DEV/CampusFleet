@@ -516,7 +516,7 @@ export default function ShiftBookingView({
                 className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all flex-shrink-0 cursor-pointer ${
                   isSelected
                     ? isSpecial
-                      ? "bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-md shadow-yellow-600/20"
+                      ? "bg-yellow-600 text-white shadow-md shadow-yellow-600/20"
                       : "bg-blue-600 text-white shadow-md shadow-blue-600/20"
                     : isSpecial
                     ? "bg-yellow-50 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800/60 hover:bg-yellow-100"
@@ -594,7 +594,7 @@ export default function ShiftBookingView({
               <button
                 type="button"
                 onClick={() => setIsEmergencyModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-bold text-xs shadow-md shadow-yellow-600/20 shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                className="px-3.5 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-700  text-white font-bold text-xs shadow-md shadow-yellow-600/20 shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>Request Teacher Gate-Pass</span>
@@ -700,7 +700,7 @@ export default function ShiftBookingView({
       {activeStep === "BOARDING" && (
         <div className="space-y-6 animate-in fade-in">
           {/* Dijkstra Route Summary Card */}
-          <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-pink-600 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-blue-600 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-xs font-mono bg-white/20 px-3 py-1 rounded-full w-fit">
                 <Sparkles className="w-3.5 h-3.5" /> Dijkstra Shortest Path Computed
@@ -945,7 +945,7 @@ export default function ShiftBookingView({
               )}
 
               {/* Selected Seat Callout Card */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-800/80 border border-blue-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="p-4 rounded-2xl bg-blue-50 dark:bg-gray-800 dark: border border-blue-200 dark:border-gray-700 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-2xl ${isFull ? "bg-red-500 text-white" : "bg-green-500 text-gray-950"} font-black font-mono text-base flex items-center justify-center shadow-md`}>
                     {isFull ? "FULL" : selectedSeatNumber || "1A"}
@@ -1099,7 +1099,7 @@ export default function ShiftBookingView({
               ) : !currentUser ? (
                 <Link
                   href="/login?redirect=/portal/booking"
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 via-green-600 to-blue-600 hover:from-blue-700 hover:to-blue-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700  text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Sign In to Confirm Seat Reservation ({selectedSeatNumber || "1A"}) →</span>
@@ -1133,7 +1133,7 @@ export default function ShiftBookingView({
                   <button
                     type="button"
                     onClick={() => setIsEmergencyModalOpen(true)}
-                    className="w-full py-4 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-yellow-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
+                    className="w-full py-4 bg-yellow-600 hover:bg-yellow-700  text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-yellow-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
                   >
                     <FileText className="w-4 h-4" />
                     <span>Request Teacher Gate-Pass to Book {selectedShift?.name || "Shift"}</span>
@@ -1143,7 +1143,7 @@ export default function ShiftBookingView({
                 <button
                   onClick={handleBook}
                   disabled={isBookingLoading}
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 via-green-600 to-blue-600 hover:from-blue-700 hover:to-blue-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700  text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isBookingLoading ? (
                     <>
@@ -1326,7 +1326,7 @@ export default function ShiftBookingView({
                       setIsSubmittingEmergency(false);
                     }
                   }}
-                  className="px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700  text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmittingEmergency ? "Submitting..." : "Submit to Teacher"}
                 </button>

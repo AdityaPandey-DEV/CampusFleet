@@ -71,7 +71,7 @@ export default function RunningLateRecoveryView({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* 1. Header Navigation Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-yellow-600 via-pink-700 to-blue-900 text-white p-6 rounded-3xl shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-yellow-600 text-white p-6 rounded-3xl shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center shrink-0 shadow-lg text-yellow-300">
             <Zap className="w-7 h-7 fill-yellow-300" />

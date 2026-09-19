@@ -69,7 +69,7 @@ export function InstallAppModal({
         aria-modal="true"
       >
         {/* Header with App Brand Banner */}
-        <div className="relative bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 text-white p-5 sm:p-6 overflow-hidden">
+        <div className="relative bg-blue-600 text-white p-5 sm:p-6 overflow-hidden">
           {/* Ambient blur glow */}
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -150,7 +150,7 @@ export function InstallAppModal({
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
           {/* Native 1-Tap Action Button (if supported on device) */}
           {canInstallNative && !installSuccess && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 via-blue-500/10 to-blue-500/10 border-2 border-blue-500/40 space-y-2.5">
+            <div className="p-4 rounded-2xl bg-blue-500/10 border-2 border-blue-500/40 space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-blue-700 dark:text-blue-300">
                   Instant Installation Available

@@ -539,7 +539,7 @@ export default function ConductorCockpitView({
                   </div>
                   <div className="w-full h-2.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-green-500 to-green-500 rounded-full transition-all duration-500"
+                      className="h-full bg-green-500 rounded-full transition-all duration-500"
                       style={{ width: `${totalConfirmed > 0 ? (boardedCount / totalConfirmed) * 100 : 0}%` }}
                     />
                   </div>
@@ -556,7 +556,7 @@ export default function ConductorCockpitView({
                 <button
                   onClick={handleTriggerDepartureAlert}
                   disabled={isTriggeringAlert}
-                  className="w-full py-3.5 bg-gradient-to-r from-yellow-600 via-orange-600 to-red-600 hover:from-yellow-500 hover:to-red-500 text-white font-black text-xs rounded-2xl flex items-center justify-between px-4 shadow-lg shadow-orange-500/25 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                  className="w-full py-3.5 bg-yellow-600 hover:bg-yellow-500  text-white font-black text-xs rounded-2xl flex items-center justify-between px-4 shadow-lg shadow-orange-500/25 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                   title="Broadcast bus fullness and ring alarm on all roaming students' phones"
                 >
                   <div className="flex items-center gap-2.5 text-left">
@@ -765,7 +765,7 @@ export default function ConductorCockpitView({
                           <>
                             <button
                               onClick={() => handleMarkAttendance(b.studentId, "BOARDED")}
-                              className="px-3.5 py-2 bg-gradient-to-r from-green-600 to-green-600 hover:from-green-500 hover:to-green-500 text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
+                              className="px-3.5 py-2 bg-green-600 hover:bg-green-500  text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                               Board Present
@@ -1056,7 +1056,7 @@ export default function ConductorCockpitView({
                       }
                       setSelectedSeatForModal(null);
                     }}
-                    className="w-full py-3 bg-gradient-to-r from-green-600 to-green-600 text-white font-black text-xs rounded-2xl shadow-md flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-green-600 text-white font-black text-xs rounded-2xl shadow-md flex items-center justify-center gap-2"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Confirm Boarding for Seat {selectedSeatForModal.seatCode}</span>

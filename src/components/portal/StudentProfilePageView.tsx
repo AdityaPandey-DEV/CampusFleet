@@ -233,7 +233,7 @@ export default function StudentProfilePageView({
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-300 pb-12">
       {/* 1. Academic & Identity Hero Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-gray-900 via-blue-950 to-blue-950 text-white p-6 sm:p-8 shadow-2xl border border-white/10">
+      <div className="relative overflow-hidden rounded-3xl bg-gray-900 text-white p-6 sm:p-8 shadow-2xl border border-white/10">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -306,7 +306,7 @@ export default function StudentProfilePageView({
             {activeBooking ? (
               <Link
                 href="/portal/pass"
-                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-green-500 hover:from-green-600 hover:to-green-600 text-white font-black text-xs shadow-lg shadow-green-500/25 transition-all flex items-center gap-2 active:scale-95"
+                className="px-5 py-3 rounded-2xl bg-green-500 hover:bg-green-600  text-white font-black text-xs shadow-lg shadow-green-500/25 transition-all flex items-center gap-2 active:scale-95"
               >
                 <QrCode className="w-4 h-4" />
                 <span>View Digital Pass</span>
@@ -314,7 +314,7 @@ export default function StudentProfilePageView({
             ) : (
               <Link
                 href="/portal/booking"
-                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700 text-white font-black text-xs shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2 active:scale-95"
+                className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700  text-white font-black text-xs shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2 active:scale-95"
               >
                 <CalendarCheck className="w-4 h-4" />
                 <span>Book Seat Now</span>
@@ -380,9 +380,9 @@ export default function StudentProfilePageView({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Official Digital ID Card Replica (1 Col) */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-gradient-to-b from-gray-900 via-blue-950 to-gray-900 rounded-3xl p-6 text-white border border-gray-700 shadow-xl space-y-5 relative overflow-hidden">
+          <div className="bg-gray-900 rounded-3xl p-6 text-white border border-gray-700 shadow-xl space-y-5 relative overflow-hidden">
             {/* Holographic Watermark effect */}
-            <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-blue-400/10 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute top-0 right-0 w-48 h-48 bg-blue-400/10 via-transparent to-transparent pointer-events-none" />
             
             {/* University Card Header */}
             <div className="border-b border-white/10 pb-4 text-center space-y-1">

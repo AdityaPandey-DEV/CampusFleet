@@ -224,7 +224,7 @@ export function WhereIsMyBusFlowchart({
             <React.Fragment key={rs.stopId}>
               {/* If bus is moving between previous stop and this current stop, show live bus marker */}
               {isCurrent && !isFirst && (
-                <div className="relative my-2 py-2 px-3 sm:px-4 bg-gradient-to-r from-blue-950/70 via-blue-900/40 to-gray-950 rounded-2xl border border-blue-500/40 shadow-lg flex items-center justify-between">
+                <div className="relative my-2 py-2 px-3 sm:px-4 bg-blue-950/70 rounded-2xl border border-blue-500/40 shadow-lg flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <span className="absolute -inset-1 rounded-full bg-blue-400/50 animate-ping" />
@@ -311,7 +311,7 @@ export function WhereIsMyBusFlowchart({
                           isPassed
                             ? "bg-green-500/70"
                             : isCurrent
-                            ? "bg-gradient-to-b from-green-500 to-blue-500"
+                            ? "bg-green-500"
                             : "bg-gray-700"
                         }`}
                       />

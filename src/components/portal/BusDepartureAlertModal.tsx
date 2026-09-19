@@ -144,7 +144,7 @@ export default function BusDepartureAlertModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-md bg-gray-900 border-2 border-yellow-500/80 text-white rounded-3xl p-6 sm:p-7 shadow-[0_0_60px_rgba(245,158,11,0.3)] space-y-6 overflow-hidden">
         {/* Pulsing Alert Glow Strip */}
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-yellow-500 via-red-500 to-yellow-500 animate-pulse" />
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-yellow-500 animate-pulse" />
 
         {/* Header with audio mute toggle */}
         <div className="flex items-center justify-between">
@@ -245,7 +245,7 @@ export default function BusDepartureAlertModal({
               <button
                 onClick={handleConfirmOnboard}
                 disabled={isSubmitting}
-                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-black text-sm shadow-xl shadow-green-600/30 flex items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer"
+                className="w-full py-3.5 px-4 rounded-2xl bg-green-500 hover:bg-green-600  text-white font-black text-sm shadow-xl shadow-green-600/30 flex items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer"
               >
                 <CheckCircle2 className="w-5 h-5" />
                 <span>Yes, I am already in the bus</span>

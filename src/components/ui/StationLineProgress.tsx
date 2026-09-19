@@ -77,7 +77,7 @@ export function StationLineProgress({
                     idx < currentStopIndex
                       ? "bg-green-500 dark:bg-green-600"
                       : idx === currentStopIndex
-                      ? "bg-gradient-to-b from-blue-600 to-gray-300 dark:to-gray-700"
+                      ? "bg-blue-600 dark:"
                       : "bg-gray-200 dark:bg-gray-800"
                   }`}
                 />

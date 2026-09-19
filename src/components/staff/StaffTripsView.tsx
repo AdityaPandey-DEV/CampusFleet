@@ -369,7 +369,7 @@ export default function StaffTripsView({
     <div className="space-y-6 animate-in fade-in pb-12">
       {/* Toast Notification */}
       {feedbackToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-gray-700 flex items-center gap-2.5 text-xs font-bold animate-in slide-in-from-bottom-3">
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-gray-700 flex items-center gap-2.5 text-xs font-bold animate-in slide-in-bg-bottom-3">
           <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
           <span>{feedbackToast}</span>
         </div>
@@ -398,7 +398,7 @@ export default function StaffTripsView({
 
           <button
             onClick={() => setIsAddTripOpen(true)}
-            className="px-5 py-3 bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-black text-xs rounded-2xl flex items-center gap-2 shadow-lg shadow-blue-600/20 transform active:scale-95 transition-all"
+            className="px-5 py-3 bg-blue-600 hover:bg-blue-500  text-white font-black text-xs rounded-2xl flex items-center gap-2 shadow-lg shadow-blue-600/20 transform active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>+ Schedule New Trip</span>
@@ -887,7 +887,7 @@ export default function StaffTripsView({
                     <button
                       type="button"
                       onClick={() => setAllocatingTrip(trip)}
-                      className="px-3.5 py-2.5 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all shrink-0 active:scale-95"
+                      className="px-3.5 py-2.5 bg-yellow-500 hover:bg-yellow-600  text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all shrink-0 active:scale-95"
                       title="Allocate eligible students who can view and book this special facility"
                     >
                       <GraduationCap className="w-4 h-4" />

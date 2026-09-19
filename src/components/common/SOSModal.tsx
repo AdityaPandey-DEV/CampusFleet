@@ -41,7 +41,7 @@ export function SOSModal({ isOpen, onClose, studentId }: SOSModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border-2 border-red-500 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-5 flex items-center justify-between">
+        <div className="bg-red-600 text-white p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-2xl animate-pulse">
               <AlertOctagon className="w-6 h-6 text-white" />
@@ -153,7 +153,7 @@ export function SOSModal({ isOpen, onClose, studentId }: SOSModalProps) {
               {/* Big Red Trigger Button */}
               <button
                 onClick={handleSendSOS}
-                className="w-full py-4 bg-gradient-to-r from-red-600 to-red-600 hover:from-red-700 hover:to-red-700 text-white font-extrabold text-base rounded-2xl shadow-xl shadow-red-600/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                className="w-full py-4 bg-red-600 hover:bg-red-700  text-white font-extrabold text-base rounded-2xl shadow-xl shadow-red-600/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
               >
                 <AlertOctagon className="w-5 h-5 animate-pulse" />
                 BROADCAST EMERGENCY SOS NOW

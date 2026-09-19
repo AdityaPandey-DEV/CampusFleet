@@ -310,7 +310,7 @@ export default function TeacherConsoleView({
       {/* Main Container */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
         {/* Banner */}
-        <div className="bg-gradient-to-r from-green-900/40 via-blue-900/30 to-blue-900/20 border border-green-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-green-900/40 border border-green-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-green-400 font-bold text-xs uppercase tracking-wider">
               <Sparkles className="w-4 h-4" />

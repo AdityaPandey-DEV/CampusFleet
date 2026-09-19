@@ -218,7 +218,7 @@ export default function StudentPortalView({
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300 pb-16 md:pb-6">
       {/* 1. Hero Commute Cockpit Card */}
-      <div className="relative overflow-hidden rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-br from-gray-900 via-blue-950 to-blue-950 text-white p-5 sm:p-8 md:p-10 shadow-2xl border border-white/10">
+      <div className="relative overflow-hidden rounded-3xl sm:rounded-[2.5rem] bg-gray-900 text-white p-5 sm:p-8 md:p-10 shadow-2xl border border-white/10">
         {/* Subtle Ambient Background Mesh */}
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-green-500/15 blur-3xl pointer-events-none" />
@@ -242,7 +242,7 @@ export default function StudentPortalView({
             <div>
               <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
                 {greetingTime},{" "}
-                <span className="bg-gradient-to-r from-blue-300 via-green-200 to-blue-200 bg-clip-text text-transparent">
+                <span className="bg-blue-300  ">
                   {activeStudent?.fullName?.split(" ")[0] || currentUser?.fullName?.split(" ")[0] || "Commuter"}
                 </span>
               </h1>
@@ -257,7 +257,7 @@ export default function StudentPortalView({
             {activeBooking ? (
               <button
                 onClick={() => setIsQRModalOpen(true)}
-                className="px-6 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-green-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
+                className="px-6 py-4 rounded-2xl bg-green-500 hover:bg-green-600  text-white font-black text-xs sm:text-sm shadow-xl shadow-green-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
               >
                 <QrCode className="w-5 h-5" />
                 <span>Show Active Boarding Pass ({activeBooking.seatNumber || "Standby"})</span>
@@ -265,7 +265,7 @@ export default function StudentPortalView({
             ) : (
               <Link
                 href="/portal/booking"
-                className="px-6 py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-green-500 hover:from-blue-700 hover:to-blue-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 text-center"
+                className="px-6 py-4 rounded-2xl bg-blue-600 hover:bg-blue-700  text-white font-black text-xs sm:text-sm shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 text-center"
               >
                 <CalendarCheck className="w-5 h-5" />
                 <span>Reserve Today's Shift Seat →</span>
@@ -428,7 +428,7 @@ export default function StudentPortalView({
               </div>
             </div>
           ) : (
-            <div className="bg-gradient-to-r from-blue-500/10 via-green-500/10 to-blue-500/10 rounded-3xl p-6 sm:p-8 border border-blue-200 dark:border-blue-800/60 shadow-sm space-y-4">
+            <div className="bg-blue-500/10 rounded-3xl p-6 sm:p-8 border border-blue-200 dark:border-blue-800/60 shadow-sm space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-[10px] font-black tracking-wide uppercase inline-block">
@@ -528,7 +528,7 @@ export default function StudentPortalView({
         {/* Bento Column 3: Telematics, Pass Card & Quick Links */}
         <div className="space-y-5 sm:space-y-6">
           {/* Live Radar Mini Telematics Widget */}
-          <div className="bg-gradient-to-br from-gray-900 to-blue-950 text-white rounded-3xl p-5 sm:p-6 border border-white/10 shadow-xl space-y-4">
+          <div className="bg-gray-900 text-white rounded-3xl p-5 sm:p-6 border border-white/10 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="relative flex h-3 w-3">

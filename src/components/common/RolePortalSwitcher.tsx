@@ -34,7 +34,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Student Hub",
     path: "/portal",
     icon: GraduationCap,
-    color: "from-blue-600 to-blue-600 text-blue-400",
+    color: "bg-blue-600  text-blue-400",
     description: "Seat reservations, live tracking, and digital QR boarding pass",
   },
   {
@@ -43,7 +43,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Teacher Desk",
     path: "/teacher",
     icon: BookOpen,
-    color: "from-green-600 to-blue-600 text-green-400",
+    color: "bg-green-600  text-green-400",
     description: "Assigned classes, student roster, and live today's bus arrivals",
   },
   {
@@ -52,7 +52,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Admin Ops",
     path: "/admin",
     icon: LayoutDashboard,
-    color: "from-yellow-600 to-orange-600 text-yellow-400",
+    color: "bg-yellow-600  text-yellow-400",
     description: "Fleet CRUD, live dispatch, telemetry logs, and financial reports",
   },
   {
@@ -61,7 +61,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Staff Ops",
     path: "/staff",
     icon: Building2,
-    color: "from-blue-600 to-blue-600 text-blue-400",
+    color: "bg-blue-600  text-blue-400",
     description: "Payment QR manager, fee approvals, Excel audit export, route demand & bus merge optimizer",
   },
   {
@@ -70,7 +70,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Driver HUD",
     path: "/driver",
     icon: BusFront,
-    color: "from-green-600 to-green-600 text-green-400",
+    color: "bg-green-600  text-green-400",
     description: "GPS telemetry beacon, route progression checklist, and SOS",
   },
   {
@@ -79,7 +79,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Conductor",
     path: "/conductor",
     icon: FileCheck2,
-    color: "from-pink-600 to-pink-600 text-pink-400",
+    color: "bg-pink-600  text-pink-400",
     description: "High-speed optical QR radar passenger validation & real-time manifest",
   },
 ];
@@ -167,7 +167,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
     <div className="relative inline-block" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-800/80 hover:from-gray-200 dark:hover:from-gray-700 border border-gray-300/80 dark:border-gray-700/80 text-xs font-bold text-gray-800 dark:text-gray-200 shadow-sm transition-all active:scale-95 group"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gray-100 dark:bg-gray-800 dark: hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300/80 dark:border-gray-700/80 text-xs font-bold text-gray-800 dark:text-gray-200 shadow-sm transition-all active:scale-95 group"
         title="Switch Portal & Active Role"
       >
         <div className="w-5 h-5 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
@@ -180,7 +180,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
       </button>
 
       {isOpen && (
-        <div className={`absolute ${getDropdownAlignmentClass()} mt-2 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-2.5 shadow-2xl z-50 animate-in slide-in-from-top-2 fade-in duration-200 space-y-1 text-gray-900 dark:text-white`}>
+        <div className={`absolute ${getDropdownAlignmentClass()} mt-2 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-2.5 shadow-2xl z-50 animate-in slide-in-bg-top-2 fade-in duration-200 space-y-1 text-gray-900 dark:text-white`}>
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <div>
               <div className="text-[10px] uppercase font-bold tracking-wider text-gray-400">
@@ -210,7 +210,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
                       : "hover:bg-gray-100 dark:hover:bg-gray-800/80 border border-transparent"
                   }`}
                 >
-                  <div className={`p-2 rounded-xl bg-gradient-to-tr ${opt.color} text-white flex-shrink-0 mt-0.5`}>
+                  <div className={`p-2 rounded-xl  ${opt.color} text-white flex-shrink-0 mt-0.5`}>
                     <Icon className="w-4 h-4" />
                   </div>
 

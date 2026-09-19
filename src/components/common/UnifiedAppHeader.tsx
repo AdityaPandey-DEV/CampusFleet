@@ -80,7 +80,7 @@ const ROLE_PORTALS: RolePortalOption[] = [
     path: "/portal",
     icon: GraduationCap,
     color: "text-blue-500",
-    gradient: "from-blue-600 to-blue-600",
+    gradient: "bg-blue-600 ",
     description: "Seat bookings, live bus GPS tracking & digital QR pass",
   },
   {
@@ -90,7 +90,7 @@ const ROLE_PORTALS: RolePortalOption[] = [
     path: "/teacher",
     icon: BookOpen,
     color: "text-green-500",
-    gradient: "from-green-600 to-blue-600",
+    gradient: "bg-green-600 ",
     description: "Real-time today's student arrivals and class roster verification",
   },
   {
@@ -100,7 +100,7 @@ const ROLE_PORTALS: RolePortalOption[] = [
     path: "/admin",
     icon: LayoutDashboard,
     color: "text-yellow-500",
-    gradient: "from-yellow-600 to-orange-600",
+    gradient: "bg-yellow-600 ",
     description: "Fleet command, routes, crew scheduling & finance reports",
   },
   {
@@ -110,7 +110,7 @@ const ROLE_PORTALS: RolePortalOption[] = [
     path: "/staff",
     icon: Building2,
     color: "text-blue-500",
-    gradient: "from-blue-600 to-blue-600",
+    gradient: "bg-blue-600 ",
     description: "Fee approvals, payment QR generator, audits & shuttle merges",
   },
   {
@@ -120,7 +120,7 @@ const ROLE_PORTALS: RolePortalOption[] = [
     path: "/driver",
     icon: BusFront,
     color: "text-green-500",
-    gradient: "from-green-600 to-green-600",
+    gradient: "bg-green-600 ",
     description: "Live GPS broadcast, stop progression checklist & incident alerts",
   },
   {
@@ -130,7 +130,7 @@ const ROLE_PORTALS: RolePortalOption[] = [
     path: "/conductor",
     icon: FileCheck2,
     color: "text-pink-500",
-    gradient: "from-pink-600 to-pink-600",
+    gradient: "bg-pink-600 ",
     description: "High-speed optical QR boarding scanner & passenger radar",
   },
 ];
@@ -324,7 +324,7 @@ export function UnifiedAppHeader({
               title={`${portalTitle} Home`}
             >
               <div
-                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr ${currentPortalConfig.gradient} flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform flex-shrink-0`}
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl  ${currentPortalConfig.gradient} flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform flex-shrink-0`}
               >
                 <currentPortalConfig.icon className="w-5 h-5" />
               </div>
@@ -428,7 +428,7 @@ export function UnifiedAppHeader({
           />
           
           {/* Menu Panel */}
-          <div className="relative bg-white dark:bg-gray-950 shadow-2xl overflow-y-auto animate-in slide-in-from-top-4 duration-300 max-h-[85vh] rounded-b-2xl pb-4">
+          <div className="relative bg-white dark:bg-gray-950 shadow-2xl overflow-y-auto animate-in slide-in-bg-top-4 duration-300 max-h-[85vh] rounded-b-2xl pb-4">
 
           {/* Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">

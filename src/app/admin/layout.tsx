@@ -164,7 +164,7 @@ export default function AdminLayout({
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-yellow-600 to-orange-600 flex items-center justify-center text-white font-bold shadow-xs">
+            <div className="w-8 h-8 rounded-xl bg-yellow-600 flex items-center justify-center text-white font-bold shadow-xs">
               <BusFront className="w-4 h-4" />
             </div>
             <span className="font-black text-base">Campus<span className="text-blue-600">Fleet</span> Admin</span>
@@ -190,7 +190,7 @@ export default function AdminLayout({
 
       {/* Mobile Vertical Slide-Down Navigation Sheet (Zero Overflow, Top-to-Bottom Flow) */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed top-14 inset-x-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border-b border-gray-200 dark:border-gray-800 shadow-2xl p-4 animate-in slide-in-from-top-4 duration-300 max-h-[calc(100vh-3.5rem)] overflow-y-auto space-y-4">
+        <div className="md:hidden fixed top-14 inset-x-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border-b border-gray-200 dark:border-gray-800 shadow-2xl p-4 animate-in slide-in-bg-top-4 duration-300 max-h-[calc(100vh-3.5rem)] overflow-y-auto space-y-4">
           <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div>
               <div className="text-xs font-black text-gray-900 dark:text-white">
@@ -214,7 +214,7 @@ export default function AdminLayout({
             <Link
               href="/staff"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-600 text-white flex items-center justify-between shadow-lg shadow-blue-600/25 active:scale-98 transition-all"
+              className="w-full p-3.5 rounded-2xl bg-blue-600 text-white flex items-center justify-between shadow-lg shadow-blue-600/25 active:scale-98 transition-all"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold flex-shrink-0">
@@ -302,7 +302,7 @@ export default function AdminLayout({
           {/* Logo */}
           <div className="flex items-center justify-between">
             <Link href="/admin" className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+              <div className="w-10 h-10 rounded-2xl bg-blue-700 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
                 <BusFront className="w-5 h-5" />
               </div>
               {isSidebarOpen && (
@@ -399,7 +399,7 @@ export default function AdminLayout({
                 className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-2xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all text-xs font-bold text-gray-800 dark:text-gray-200 shadow-2xs active:scale-98"
                 title="Admin Account & Settings"
               >
-                <div className="w-6 h-6 rounded-xl bg-gradient-to-tr from-yellow-600 to-orange-600 text-white flex items-center justify-center text-[10px] font-black shadow-2xs">
+                <div className="w-6 h-6 rounded-xl bg-yellow-600 text-white flex items-center justify-center text-[10px] font-black shadow-2xs">
                   {currentUser?.fullName
                     ? currentUser.fullName
                         .split(" ")
@@ -421,7 +421,7 @@ export default function AdminLayout({
 
               {/* Vertical Slide-Down Menu */}
               {isProfileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-3 shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200 space-y-3">
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-3 shadow-2xl z-50 animate-in slide-in-bg-top-2 duration-200 space-y-3">
                   <div className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700 space-y-1">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                       Super Administrator
@@ -444,7 +444,7 @@ export default function AdminLayout({
                       onClick={() => setIsProfileOpen(false)}
                       className="w-full text-left p-2 rounded-xl flex items-center gap-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold transition-colors"
                     >
-                      <div className="p-1.5 rounded-lg bg-gradient-to-tr from-blue-600 to-blue-600 text-white">
+                      <div className="p-1.5 rounded-lg bg-blue-600 text-white">
                         <Building2 className="w-3.5 h-3.5" />
                       </div>
                       <span>Staff Operations Console</span>

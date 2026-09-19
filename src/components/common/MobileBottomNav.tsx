@@ -78,7 +78,7 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-green-600 text-white font-black text-xs shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-transform"
+                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-blue-600 text-white font-black text-xs shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-transform"
                   >
                     <Icon className="w-4 h-4" />
                     <span>Activate Transit Pass & Pay Fees →</span>
@@ -93,7 +93,7 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
                   className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 group active:scale-95 ${
                     isActive
                       ? item.highlight
-                        ? "bg-gradient-to-b from-blue-600 to-blue-600 text-white shadow-md shadow-blue-600/30 -translate-y-1"
+                        ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 -translate-y-1"
                         : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold"
                       : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}

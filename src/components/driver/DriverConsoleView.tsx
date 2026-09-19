@@ -394,7 +394,7 @@ export default function DriverConsoleView({
               onClick={handleAdvanceStop}
               className={`py-4 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
                 directExpressResult.isExpressDirect
-                  ? "bg-gradient-to-r from-green-600 to-green-600 hover:from-green-500 hover:to-green-500 shadow-green-600/25"
+                  ? "bg-green-600 hover:bg-green-500  shadow-green-600/25"
                   : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/20"
               }`}
             >
