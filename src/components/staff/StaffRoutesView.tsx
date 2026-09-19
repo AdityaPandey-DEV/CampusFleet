@@ -10,7 +10,7 @@ import { WhereIsMyBusFlowchart } from "@/components/transit/WhereIsMyBusFlowchar
 const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-80 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+    <div className="w-full h-80 rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse flex items-center justify-center text-xs text-gray-400 font-bold">
       Loading Corridor GIS Map...
     </div>
   ),
@@ -781,17 +781,17 @@ export default function StaffRoutesView({
   return (
     <div className="space-y-6 animate-in fade-in pb-12">
       {/* Top Banner & Two Primary Creation Options */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-blue-900/10 via-teal-900/5 to-transparent p-6 rounded-3xl border border-blue-200/60 dark:border-blue-900/40">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-blue-900/10 via-green-900/5 to-transparent p-6 rounded-3xl border border-blue-200/60 dark:border-blue-900/40">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
             <Sparkles className="w-4 h-4" />
             University Transit Network Architect
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2.5 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2.5 mt-1">
             <RouteIcon className="w-7 h-7 text-blue-600" />
             Route Builder & Stops Management
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-2xl">
             Design multi-stop university transit corridors using the interactive flowchart builder, drop station pins directly on the map, and shift route paths with live OSRM road geometry.
           </p>
         </div>
@@ -801,9 +801,9 @@ export default function StaffRoutesView({
           <button
             id="btn-create-stop"
             onClick={handleOpenCreateStop}
-            className="px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold text-xs rounded-2xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
+            className="px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-bold text-xs rounded-2xl flex items-center gap-2 border border-gray-200 dark:border-gray-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
           >
-            <div className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center font-bold">
+            <div className="w-6 h-6 rounded-lg bg-green-100 dark:bg-green-950/60 text-green-600 flex items-center justify-center font-bold">
               <MapPin className="w-3.5 h-3.5" />
             </div>
             <span>+ Create Stop</span>
@@ -824,48 +824,48 @@ export default function StaffRoutesView({
 
       {/* Network Topology KPI Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Network Hub Station</span>
-          <div className="text-sm font-black text-slate-900 dark:text-white truncate">
+        <div className="p-4 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
+          <span className="text-[10px] uppercase font-bold text-gray-400">Network Hub Station</span>
+          <div className="text-sm font-black text-gray-900 dark:text-white truncate">
             {hubStop?.name || "Transit Terminal"}
           </div>
           <p className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">Most connected transfer node</p>
         </div>
 
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Network Diameter</span>
-          <div className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+        <div className="p-4 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
+          <span className="text-[10px] uppercase font-bold text-gray-400">Network Diameter</span>
+          <div className="text-sm font-black text-blue-600 dark:text-blue-400">
             {networkStats.networkDiameterKm} km
           </div>
-          <p className="text-[10px] text-slate-400 font-mono">Longest shortest path corridor</p>
+          <p className="text-[10px] text-gray-400 font-mono">Longest shortest path corridor</p>
         </div>
 
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Minimum Spanning Tree</span>
-          <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+        <div className="p-4 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
+          <span className="text-[10px] uppercase font-bold text-gray-400">Minimum Spanning Tree</span>
+          <div className="text-sm font-black text-green-600 dark:text-green-400">
             {networkStats.mstTotalKm} km
           </div>
-          <p className="text-[10px] text-slate-400 font-mono">Kruskal MST infrastructure span</p>
+          <p className="text-[10px] text-gray-400 font-mono">Kruskal MST infrastructure span</p>
         </div>
 
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Station Density</span>
-          <div className="text-sm font-black text-purple-600 dark:text-purple-400">
+        <div className="p-4 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
+          <span className="text-[10px] uppercase font-bold text-gray-400">Station Density</span>
+          <div className="text-sm font-black text-pink-600 dark:text-pink-400">
             {networkStats.avgConnectivity} conn / stop
           </div>
-          <p className="text-[10px] text-slate-400 font-mono">{stops.length} physical stops cataloged</p>
+          <p className="text-[10px] text-gray-400 font-mono">{stops.length} physical stops cataloged</p>
         </div>
       </div>
 
       {/* Main Tabs */}
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2">
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setActiveTab("ROUTES")}
             className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
               activeTab === "ROUTES"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
             <RouteIcon className="w-4 h-4" />
@@ -877,7 +877,7 @@ export default function StaffRoutesView({
             className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
               activeTab === "CAMPUS_LOCATIONS"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
             <Building2 className="w-4 h-4" />
@@ -889,7 +889,7 @@ export default function StaffRoutesView({
             className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
               activeTab === "STOPS"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
             <MapPin className="w-4 h-4" />
@@ -902,8 +902,8 @@ export default function StaffRoutesView({
             onClick={handleToggleEmergencyOverride}
             className={`px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all ${
               isOverrideActive
-                ? "bg-rose-600 text-white animate-pulse"
-                : "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                ? "bg-red-600 text-white animate-pulse"
+                : "bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-800"
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5" />
@@ -932,7 +932,7 @@ export default function StaffRoutesView({
                     className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all flex-shrink-0 ${
                       isSelected
                         ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                        : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50"
+                        : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50"
                     }`}
                   >
                     <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: r.color }} />
@@ -950,19 +950,19 @@ export default function StaffRoutesView({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left 7 Cols: Live Road-Snapped Map & Quick Actions */}
               <div className="lg:col-span-7 space-y-4">
-                <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full" style={{ backgroundColor: activeRoute.color }} />
-                        <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                        <h3 className="font-bold text-base text-gray-900 dark:text-white">
                           {activeRoute.name}
                         </h3>
                         <span className="font-mono text-xs text-blue-600 font-bold bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-md">
                           {activeRoute.code}
                         </span>
                       </div>
-                      <span className="text-xs font-mono text-slate-500 mt-0.5 block">
+                      <span className="text-xs font-mono text-gray-500 mt-0.5 block">
                         {activeRoute.totalDistanceKm} km • ~{activeRoute.estimatedDurationMins || Math.round(activeRoute.totalDistanceKm * 2.8)} mins • Direction: {activeRoute.direction}
                       </span>
                     </div>
@@ -979,7 +979,7 @@ export default function StaffRoutesView({
 
                       <button
                         onClick={() => setIsAllocateBusModalOpen(true)}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center gap-1.5"
+                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold rounded-xl flex items-center gap-1.5"
                       >
                         <BusFront className="w-3.5 h-3.5 text-blue-600" />
                         <span>Allocate Bus</span>
@@ -987,7 +987,7 @@ export default function StaffRoutesView({
 
                       <button
                         onClick={() => handleDeleteRoute(activeRoute.id, activeRoute.name)}
-                        className="p-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl"
+                        className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl"
                         title="Delete Route"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -996,14 +996,14 @@ export default function StaffRoutesView({
                   </div>
 
                   {/* View Mode Toggle: Flowchart Timeline vs Map */}
-                  <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl">
+                  <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl">
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setRouteViewMode("FLOWCHART")}
                         className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                           routeViewMode === "FLOWCHART"
-                            ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                            ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                            : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
                         }`}
                       >
                         <Layers className="w-3.5 h-3.5" />
@@ -1013,8 +1013,8 @@ export default function StaffRoutesView({
                         onClick={() => setRouteViewMode("MAP")}
                         className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                           routeViewMode === "MAP"
-                            ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                            ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                            : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
                         }`}
                       >
                         <Navigation className="w-3.5 h-3.5" />
@@ -1022,7 +1022,7 @@ export default function StaffRoutesView({
                       </button>
                     </div>
 
-                    <span className="text-[11px] font-mono text-slate-400 pr-2 hidden sm:inline">
+                    <span className="text-[11px] font-mono text-gray-400 pr-2 hidden sm:inline">
                       {routeViewMode === "FLOWCHART" ? "Where Is My Train Linear Sequence" : "Road Network Polylines"}
                     </span>
                   </div>
@@ -1052,10 +1052,10 @@ export default function StaffRoutesView({
                   )}
 
                   {/* Allocated Fleet Buses Strip */}
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-between">
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-wrap">
                       <BusFront className="w-4 h-4 text-blue-600" />
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
                         Allocated Fleet Buses:
                       </span>
                       {assignedBuses.length > 0 ? (
@@ -1070,7 +1070,7 @@ export default function StaffRoutesView({
                           ))}
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400 italic">None allocated yet</span>
+                        <span className="text-xs text-gray-400 italic">None allocated yet</span>
                       )}
                     </div>
 
@@ -1085,14 +1085,14 @@ export default function StaffRoutesView({
               </div>
 
               {/* Right 5 Cols: Ordered Stops Sequence with Flowchart Timeline & Shift Controls */}
-              <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="lg:col-span-5 bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
                       <GitCommit className="w-4 h-4 text-blue-600" />
                       Corridor Stops Flowchart
                     </h3>
-                    <p className="text-[11px] text-slate-400">Sequential stop schedule with live shift controls</p>
+                    <p className="text-[11px] text-gray-400">Sequential stop schedule with live shift controls</p>
                   </div>
                   <button
                     onClick={() => handleOpenEditRoute(activeRoute)}
@@ -1113,15 +1113,15 @@ export default function StaffRoutesView({
                       <div key={rs.stopId} className="relative">
                         {/* Connecting Line Between Stops */}
                         {!isLast && (
-                          <div className="absolute left-6 top-10 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-indigo-500 z-0" />
+                          <div className="absolute left-6 top-10 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-blue-500 z-0" />
                         )}
 
                         <div
                           onClick={() => setSelectedStopId(rs.stopId)}
                           className={`relative z-10 p-3 rounded-2xl border transition-all cursor-pointer ${
                             isSelected
-                              ? "bg-teal-50 dark:bg-teal-950/40 border-teal-500 ring-2 ring-teal-500/20 shadow-md"
-                              : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 hover:bg-slate-100"
+                              ? "bg-green-50 dark:bg-green-950/40 border-green-500 ring-2 ring-green-500/20 shadow-md"
+                              : "bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700/60 hover:bg-gray-100"
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -1130,10 +1130,10 @@ export default function StaffRoutesView({
                               <div
                                 className={`w-7 h-7 rounded-full text-white font-mono font-bold text-xs flex items-center justify-center shadow-sm ${
                                   isFirst
-                                    ? "bg-emerald-600 ring-2 ring-emerald-400/40"
+                                    ? "bg-green-600 ring-2 ring-green-400/40"
                                     : isLast
                                     ? "bg-blue-600 ring-2 ring-blue-400/40"
-                                    : "bg-indigo-600"
+                                    : "bg-blue-600"
                                 }`}
                               >
                                 {isFirst ? (
@@ -1147,11 +1147,11 @@ export default function StaffRoutesView({
 
                               <div>
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-xs text-slate-900 dark:text-white">
+                                  <span className="font-bold text-xs text-gray-900 dark:text-white">
                                     {rs.stop?.name || "Bus Stop"}
                                   </span>
                                   {isFirst && (
-                                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 font-bold">
+                                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-green-100 dark:bg-green-950 text-green-700 font-bold">
                                       Origin
                                     </span>
                                   )}
@@ -1161,7 +1161,7 @@ export default function StaffRoutesView({
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[10px] text-slate-400 font-mono">
+                                <div className="text-[10px] text-gray-400 font-mono">
                                   {rs.stop?.code} • {rs.stop?.landmark || "Campus Stop"}
                                 </div>
                               </div>
@@ -1182,7 +1182,7 @@ export default function StaffRoutesView({
                                     e.stopPropagation();
                                     handleShiftActiveRouteStop(idx, "UP");
                                   }}
-                                  className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-600 dark:text-slate-300"
+                                  className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-20 text-gray-600 dark:text-gray-300"
                                   title="Shift Stop Earlier"
                                 >
                                   <ArrowUp className="w-3.5 h-3.5" />
@@ -1194,7 +1194,7 @@ export default function StaffRoutesView({
                                     e.stopPropagation();
                                     handleShiftActiveRouteStop(idx, "DOWN");
                                   }}
-                                  className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-600 dark:text-slate-300"
+                                  className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-20 text-gray-600 dark:text-gray-300"
                                   title="Shift Stop Later"
                                 >
                                   <ArrowDown className="w-3.5 h-3.5" />
@@ -1203,7 +1203,7 @@ export default function StaffRoutesView({
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/40">
+                          <div className="flex items-center justify-between text-[10px] text-gray-400 mt-2 pt-1.5 border-t border-gray-200/60 dark:border-gray-700/40">
                             <span>Geofence: {rs.stop?.geofenceRadiusMeters || 80}m</span>
                             <span>Buffer Dwell: {rs.bufferTimeMinutes} mins</span>
                           </div>
@@ -1216,7 +1216,7 @@ export default function StaffRoutesView({
                 {/* Edit in Visual Builder Banner */}
                 <button
                   onClick={() => handleOpenEditRoute(activeRoute)}
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition-all hover:scale-[1.01]"
+                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition-all hover:scale-[1.01]"
                 >
                   <GitBranch className="w-4 h-4" />
                   <span>Open Interactive Flowchart Builder</span>
@@ -1224,10 +1224,10 @@ export default function StaffRoutesView({
               </div>
             </div>
           ) : (
-            <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="p-12 text-center bg-white dark:bg-gray-900 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-800 space-y-3">
               <RouteIcon className="w-10 h-10 text-blue-600 mx-auto" />
               <h3 className="font-bold text-base">No Routes Configured Yet</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
                 Create institutional bus corridors connecting residential areas and university hubs.
               </p>
               <button
@@ -1252,8 +1252,8 @@ export default function StaffRoutesView({
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-black text-slate-900 dark:text-white">Institutional Campus Locations</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Manage university campuses, fleet depots, and primary dispatch hubs</p>
+              <h3 className="text-base font-black text-gray-900 dark:text-white">Institutional Campus Locations</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Manage university campuses, fleet depots, and primary dispatch hubs</p>
             </div>
             <button
               onClick={handleOpenCreateCampusLocation}
@@ -1267,9 +1267,9 @@ export default function StaffRoutesView({
           {/* Campus Cards Grid */}
           {campuses.length === 0 ? (
             <div className="text-center py-16 space-y-3">
-              <Building2 className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" />
-              <p className="text-sm font-bold text-slate-400">No campus locations configured yet</p>
-              <p className="text-xs text-slate-400">Add your first institutional campus to anchor all transit operations.</p>
+              <Building2 className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600" />
+              <p className="text-sm font-bold text-gray-400">No campus locations configured yet</p>
+              <p className="text-xs text-gray-400">Add your first institutional campus to anchor all transit operations.</p>
               <button
                 onClick={handleOpenCreateCampusLocation}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl mx-auto"
@@ -1284,8 +1284,8 @@ export default function StaffRoutesView({
                   key={campus.id}
                   className={`relative p-5 rounded-3xl border shadow-sm space-y-4 flex flex-col justify-between transition-all hover:shadow-md ${
                     campus.isPrimary
-                      ? "bg-gradient-to-br from-blue-900/30 via-indigo-950/20 to-slate-900 border-blue-500/40 text-white"
-                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                      ? "bg-gradient-to-br from-blue-900/30 via-blue-950/20 to-gray-900 border-blue-500/40 text-white"
+                      : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800"
                   }`}
                 >
                   {/* Header */}
@@ -1294,7 +1294,7 @@ export default function StaffRoutesView({
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-inner flex-shrink-0 ${
                         campus.isPrimary
                           ? "bg-blue-600/20 border border-blue-500/40 text-blue-400"
-                          : "bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600"
+                          : "bg-green-50 dark:bg-green-950/60 border border-green-200 dark:border-green-800 text-green-600"
                       }`}>
                         🏛️
                       </div>
@@ -1307,19 +1307,19 @@ export default function StaffRoutesView({
                           )}
                           <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold ${
                             campus.isActive !== false
-                              ? "bg-emerald-500/20 text-emerald-400 dark:text-emerald-300"
-                              : "bg-rose-500/20 text-rose-400"
+                              ? "bg-green-500/20 text-green-400 dark:text-green-300"
+                              : "bg-red-500/20 text-red-400"
                           }`}>
                             {campus.isActive !== false ? "Active" : "Inactive"}
                           </span>
                         </div>
                         <h4 className={`font-black text-sm mt-0.5 truncate ${
-                          campus.isPrimary ? "text-white" : "text-slate-900 dark:text-white"
+                          campus.isPrimary ? "text-white" : "text-gray-900 dark:text-white"
                         }`}>
                           {campus.name}
                         </h4>
                         <p className={`text-[11px] truncate ${
-                          campus.isPrimary ? "text-slate-400" : "text-slate-400"
+                          campus.isPrimary ? "text-gray-400" : "text-gray-400"
                         }`}>
                           {campus.address || campus.landmark || "No address set"}
                         </p>
@@ -1332,37 +1332,37 @@ export default function StaffRoutesView({
                     campus.isPrimary ? "" : ""
                   }`}>
                     <div className={`p-2.5 rounded-xl ${
-                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                      campus.isPrimary ? "bg-gray-800/40 border border-gray-700/50" : "bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50"
                     }`}>
-                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Code</span>
+                      <span className="text-[10px] text-gray-400 block font-bold uppercase">Code</span>
                       <span className={`font-mono font-black ${
                         campus.isPrimary ? "text-blue-300" : "text-blue-600 dark:text-blue-400"
                       }`}>{campus.code}</span>
                     </div>
                     <div className={`p-2.5 rounded-xl ${
-                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                      campus.isPrimary ? "bg-gray-800/40 border border-gray-700/50" : "bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50"
                     }`}>
-                      <span className="text-[10px] text-slate-400 block font-bold uppercase">GPS</span>
+                      <span className="text-[10px] text-gray-400 block font-bold uppercase">GPS</span>
                       <span className={`font-mono font-bold text-[11px] ${
-                        campus.isPrimary ? "text-slate-200" : "text-slate-600 dark:text-slate-300"
+                        campus.isPrimary ? "text-gray-200" : "text-gray-600 dark:text-gray-300"
                       }`}>
                         {campus.latitude.toFixed(4)}°N
                       </span>
                     </div>
                     <div className={`p-2.5 rounded-xl ${
-                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                      campus.isPrimary ? "bg-gray-800/40 border border-gray-700/50" : "bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50"
                     }`}>
-                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Fleet</span>
+                      <span className="text-[10px] text-gray-400 block font-bold uppercase">Fleet</span>
                       <span className={`font-bold ${
-                        campus.isPrimary ? "text-emerald-400" : "text-emerald-600 dark:text-emerald-400"
+                        campus.isPrimary ? "text-green-400" : "text-green-600 dark:text-green-400"
                       }`}>{campus.fleetCapacity || 50} buses</span>
                     </div>
                     <div className={`p-2.5 rounded-xl ${
-                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                      campus.isPrimary ? "bg-gray-800/40 border border-gray-700/50" : "bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50"
                     }`}>
-                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Bays</span>
+                      <span className="text-[10px] text-gray-400 block font-bold uppercase">Bays</span>
                       <span className={`font-bold ${
-                        campus.isPrimary ? "text-amber-400" : "text-amber-600 dark:text-amber-400"
+                        campus.isPrimary ? "text-yellow-400" : "text-yellow-600 dark:text-yellow-400"
                       }`}>{campus.parkingBays || 20} bays</span>
                     </div>
                   </div>
@@ -1372,31 +1372,31 @@ export default function StaffRoutesView({
                     campus.isPrimary ? "" : ""
                   }`}>
                     <div className={`p-2.5 rounded-xl ${
-                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                      campus.isPrimary ? "bg-gray-800/40 border border-gray-700/50" : "bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50"
                     }`}>
-                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Geofence</span>
+                      <span className="text-[10px] text-gray-400 block font-bold uppercase">Geofence</span>
                       <span className={`font-mono font-bold ${
-                        campus.isPrimary ? "text-purple-300" : "text-purple-600 dark:text-purple-400"
+                        campus.isPrimary ? "text-pink-300" : "text-pink-600 dark:text-pink-400"
                       }`}>{campus.geofenceRadiusMeters}m radius</span>
                     </div>
                     <div className={`p-2.5 rounded-xl ${
-                      campus.isPrimary ? "bg-slate-800/40 border border-slate-700/50" : "bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50"
+                      campus.isPrimary ? "bg-gray-800/40 border border-gray-700/50" : "bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50"
                     }`}>
-                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Landmark</span>
+                      <span className="text-[10px] text-gray-400 block font-bold uppercase">Landmark</span>
                       <span className={`font-medium truncate block ${
-                        campus.isPrimary ? "text-slate-300" : "text-slate-600 dark:text-slate-300"
+                        campus.isPrimary ? "text-gray-300" : "text-gray-600 dark:text-gray-300"
                       }`}>{campus.landmark || "—"}</span>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
                   <div className={`flex items-center gap-2 pt-3 border-t ${
-                    campus.isPrimary ? "border-slate-700/50" : "border-slate-100 dark:border-slate-800"
+                    campus.isPrimary ? "border-gray-700/50" : "border-gray-100 dark:border-gray-800"
                   }`}>
                     {!campus.isPrimary && (
                       <button
                         onClick={() => handleSetPrimaryCampus(campus)}
-                        className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold border bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all flex items-center gap-1"
+                        className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold border bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 transition-all flex items-center gap-1"
                         title="Set as Primary Hub"
                       >
                         ⭐ Set Primary
@@ -1407,7 +1407,7 @@ export default function StaffRoutesView({
                       className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all ${
                         campus.isPrimary
                           ? "bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30"
-                          : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
+                          : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
                       }`}
                     >
                       Edit Campus
@@ -1415,7 +1415,7 @@ export default function StaffRoutesView({
                     {!campus.isPrimary && (
                       <button
                         onClick={() => handleDeleteCampusLocation(campus)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all"
+                        className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-all"
                         title="Delete Campus"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1436,7 +1436,7 @@ export default function StaffRoutesView({
         <div className="space-y-5">
           {/* Central Campus Terminal & Fleet Depot Hero Card */}
           {currentCampusStop && (
-            <div className="p-5 rounded-3xl bg-gradient-to-r from-blue-900/40 via-indigo-950/40 to-slate-900 border border-blue-500/30 shadow-lg text-white space-y-4">
+            <div className="p-5 rounded-3xl bg-gradient-to-r from-blue-900/40 via-blue-950/40 to-gray-900 border border-blue-500/30 shadow-lg text-white space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/40 text-blue-400 flex items-center justify-center text-xl shadow-inner">
@@ -1447,18 +1447,18 @@ export default function StaffRoutesView({
                       <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold uppercase tracking-wider border border-blue-500/30">
                         Central University Campus & Fleet Depot
                       </span>
-                      <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold">
+                      <span className="px-1.5 py-0.5 rounded-md bg-green-500/20 text-green-300 text-[10px] font-mono font-bold">
                         PostgreSQL Synced
                       </span>
                       {/* Station Selector Dropdown */}
                       <select
                         value={currentCampusStop.id}
                         onChange={e => setDesignatedCampusId(e.target.value)}
-                        className="px-2 py-0.5 rounded-lg bg-slate-800/90 border border-slate-700 text-[11px] font-bold text-blue-300 cursor-pointer hover:border-blue-400 outline-none"
+                        className="px-2 py-0.5 rounded-lg bg-gray-800/90 border border-gray-700 text-[11px] font-bold text-blue-300 cursor-pointer hover:border-blue-400 outline-none"
                         title="Designate a different stop as the Campus Terminal"
                       >
                         {stops.map(st => (
-                          <option key={st.id} value={st.id} className="bg-slate-900 text-white">
+                          <option key={st.id} value={st.id} className="bg-gray-900 text-white">
                             Switch Terminal: {st.name} ({st.code})
                           </option>
                         ))}
@@ -1467,7 +1467,7 @@ export default function StaffRoutesView({
                     <h3 className="text-base font-black text-white mt-0.5">
                       {currentCampusStop.name}
                     </h3>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-gray-400">
                       Anchor of all university transit corridors, bus parking bays, and arrival dispatching
                     </p>
                   </div>
@@ -1482,31 +1482,31 @@ export default function StaffRoutesView({
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-800/80 text-xs">
-                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                  <span className="text-[10px] text-slate-400 block font-bold uppercase">Terminal Code</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-800/80 text-xs">
+                <div className="p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/50">
+                  <span className="text-[10px] text-gray-400 block font-bold uppercase">Terminal Code</span>
                   <span className="font-mono font-black text-blue-300">{currentCampusStop.code}</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                  <span className="text-[10px] text-slate-400 block font-bold uppercase">GPS Anchor</span>
-                  <span className="font-mono font-bold text-slate-200">
+                <div className="p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/50">
+                  <span className="text-[10px] text-gray-400 block font-bold uppercase">GPS Anchor</span>
+                  <span className="font-mono font-bold text-gray-200">
                     {currentCampusStop.latitude.toFixed(4)}° N, {currentCampusStop.longitude.toFixed(4)}° E
                   </span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                  <span className="text-[10px] text-slate-400 block font-bold uppercase">Geofence Radius</span>
-                  <span className="font-mono font-bold text-emerald-400">{currentCampusStop.geofenceRadiusMeters} meters</span>
+                <div className="p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/50">
+                  <span className="text-[10px] text-gray-400 block font-bold uppercase">Geofence Radius</span>
+                  <span className="font-mono font-bold text-green-400">{currentCampusStop.geofenceRadiusMeters} meters</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                  <span className="text-[10px] text-slate-400 block font-bold uppercase">Depot Landmark</span>
-                  <span className="font-medium text-slate-300 truncate block">{currentCampusStop.landmark || "Main Terminal Area"}</span>
+                <div className="p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/50">
+                  <span className="text-[10px] text-gray-400 block font-bold uppercase">Depot Landmark</span>
+                  <span className="font-medium text-gray-300 truncate block">{currentCampusStop.landmark || "Main Terminal Area"}</span>
                 </div>
               </div>
             </div>
           )}
 
           <div className="flex items-center justify-between pt-2">
-            <span className="text-xs font-bold text-slate-500">
+            <span className="text-xs font-bold text-gray-500">
               {stops.length} physical boarding stations configured
             </span>
             <button
@@ -1522,49 +1522,49 @@ export default function StaffRoutesView({
             {stops.map(st => (
               <div
                 key={st.id}
-                className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 flex flex-col justify-between hover:border-blue-300 dark:hover:border-blue-700 transition-all"
+                className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-3 flex flex-col justify-between hover:border-blue-300 dark:hover:border-blue-700 transition-all"
               >
                 <div className="space-y-2">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600">
+                      <div className="p-2 rounded-xl bg-green-50 dark:bg-green-950/60 text-green-600">
                         <MapPin className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">{st.name}</h4>
-                        <span className="text-[10px] font-mono text-slate-400">Station Code: {st.code}</span>
+                        <h4 className="font-bold text-sm text-gray-900 dark:text-white">{st.name}</h4>
+                        <span className="text-[10px] font-mono text-gray-400">Station Code: {st.code}</span>
                       </div>
                     </div>
 
-                    <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300">
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-[10px] font-mono font-bold text-gray-600 dark:text-gray-300">
                       {st.geofenceRadiusMeters}m geofence
                     </span>
                   </div>
 
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl text-xs space-y-1">
-                    <div className="text-[11px] text-slate-500">
-                      Landmark: <strong className="text-slate-700 dark:text-slate-300">{st.landmark || "Standard Campus Station"}</strong>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-2xl text-xs space-y-1">
+                    <div className="text-[11px] text-gray-500">
+                      Landmark: <strong className="text-gray-700 dark:text-gray-300">{st.landmark || "Standard Campus Station"}</strong>
                     </div>
-                    <div className="text-[10px] font-mono text-slate-400">
+                    <div className="text-[10px] font-mono text-gray-400">
                       GPS: {st.latitude.toFixed(4)}° N, {st.longitude.toFixed(4)}° E
                     </div>
                   </div>
 
                   {st.isBusMergeStop && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 text-[11px] font-bold border border-purple-200 dark:border-purple-800">
-                      <GitMerge className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-pink-100 dark:bg-pink-950/80 text-pink-700 dark:text-pink-300 text-[11px] font-bold border border-pink-200 dark:border-pink-800">
+                      <GitMerge className="w-3.5 h-3.5 text-pink-600 dark:text-pink-400" />
                       <span>Authorized Bus Merge Stop ⚡</span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                   <button
                     onClick={() => handleToggleStopMerge(st)}
                     className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border flex items-center gap-1 ${
                       st.isBusMergeStop
-                        ? "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800"
-                        : "bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:text-purple-600"
+                        ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border-pink-300 dark:border-pink-800"
+                        : "bg-gray-50 dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 hover:text-pink-600"
                     }`}
                     title={st.isBusMergeStop ? "Deactivate Bus Merge Stop" : "Activate as Bus Merge Stop"}
                   >
@@ -1573,13 +1573,13 @@ export default function StaffRoutesView({
                   </button>
                   <button
                     onClick={() => handleOpenEditStop(st)}
-                    className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-all"
+                    className="flex-1 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-xs font-bold rounded-xl transition-all"
                   >
                     Edit Station
                   </button>
                   <button
                     onClick={() => handleDeleteStop(st.id, st.name)}
-                    className="p-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl"
+                    className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl"
                     title="Delete Stop"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -1596,17 +1596,17 @@ export default function StaffRoutesView({
       {/* ============================================================= */}
       {isAddStopModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl max-h-[95vh] overflow-y-auto">
+          <div className="w-full max-w-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl max-h-[95vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-green-100 dark:bg-green-950/60 text-green-600 flex items-center justify-center">
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="font-black text-base">
                     {editingStop ? `Edit Stop: ${editingStop.name}` : "Create Campus Bus Stop"}
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-gray-400">
                     Add coordinates via interactive map pin-dropping or direct manual input
                   </p>
                 </div>
@@ -1614,21 +1614,21 @@ export default function StaffRoutesView({
 
               <button
                 onClick={() => setIsAddStopModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg"
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Input Mode Switcher */}
-            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+            <div className="grid grid-cols-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl">
               <button
                 type="button"
                 onClick={() => setStopInputMode("MAP_PIN")}
                 className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   stopInputMode === "MAP_PIN"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
                 <MapPin className="w-3.5 h-3.5" />
@@ -1640,8 +1640,8 @@ export default function StaffRoutesView({
                 onClick={() => setStopInputMode("MANUAL")}
                 className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   stopInputMode === "MANUAL"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
                 <Sliders className="w-3.5 h-3.5" />
@@ -1654,11 +1654,11 @@ export default function StaffRoutesView({
               {stopInputMode === "MAP_PIN" && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-bold text-slate-500 flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                    <span className="font-bold text-gray-500 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                       Click on the map to place station pin
                     </span>
-                    <span className="font-mono text-slate-400 font-bold">
+                    <span className="font-mono text-gray-400 font-bold">
                       {stopFormData.latitude.toFixed(5)}, {stopFormData.longitude.toFixed(5)}
                     </span>
                   </div>
@@ -1683,26 +1683,26 @@ export default function StaffRoutesView({
               {/* Stop Name & Code */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Stop Name</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Stop Name</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Subhash Chowk Terminal"
                     value={stopFormData.name}
                     onChange={e => setStopFormData({ ...stopFormData, name: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-bold"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Station Code</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Station Code</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. ST-07"
                     value={stopFormData.code}
                     onChange={e => setStopFormData({ ...stopFormData, code: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono font-bold"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono font-bold"
                   />
                 </div>
               </div>
@@ -1710,34 +1710,34 @@ export default function StaffRoutesView({
               {/* Manual Coordinate Inputs (or editable in either mode) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Latitude (°N)</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Latitude (°N)</label>
                   <input
                     type="number"
                     step="0.000001"
                     required
                     value={stopFormData.latitude}
                     onChange={e => setStopFormData({ ...stopFormData, latitude: parseFloat(e.target.value) || 0 })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Longitude (°E)</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Longitude (°E)</label>
                   <input
                     type="number"
                     step="0.000001"
                     required
                     value={stopFormData.longitude}
                     onChange={e => setStopFormData({ ...stopFormData, longitude: parseFloat(e.target.value) || 0 })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
                   />
                 </div>
               </div>
 
               {/* Geofence Radius Slider */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1.5">
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold uppercase tracking-wider text-slate-400">
+                  <label className="font-bold uppercase tracking-wider text-gray-400">
                     Geofence Arrival Detection Radius
                   </label>
                   <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
@@ -1753,14 +1753,14 @@ export default function StaffRoutesView({
                   onChange={e => setStopFormData({ ...stopFormData, geofenceRadiusMeters: parseInt(e.target.value) || 80 })}
                   className="w-full accent-blue-600 cursor-pointer"
                 />
-                <span className="text-[10px] text-slate-400 block">
+                <span className="text-[10px] text-gray-400 block">
                   Telematics auto-detects arrival when bus enters this perimeter
                 </span>
               </div>
 
               {/* Landmark description */}
               <div>
-                <label className="font-bold uppercase tracking-wider text-slate-400">
+                <label className="font-bold uppercase tracking-wider text-gray-400">
                   Landmark & Surrounding Description
                 </label>
                 <input
@@ -1768,18 +1768,18 @@ export default function StaffRoutesView({
                   placeholder="e.g. Opposite Main Gate #2, Near Post Office"
                   value={stopFormData.landmark}
                   onChange={e => setStopFormData({ ...stopFormData, landmark: e.target.value })}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none"
                 />
               </div>
 
               {/* Bus Merge Stop Toggle Switch */}
-              <div className="p-3.5 bg-purple-50/80 dark:bg-purple-950/40 rounded-2xl border border-purple-200 dark:border-purple-800/60 flex items-center justify-between">
+              <div className="p-3.5 bg-pink-50/80 dark:bg-pink-950/40 rounded-2xl border border-pink-200 dark:border-pink-800/60 flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-xs text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
-                    <GitMerge className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <div className="font-bold text-xs text-pink-900 dark:text-pink-300 flex items-center gap-1.5">
+                    <GitMerge className="w-4 h-4 text-pink-600 dark:text-pink-400" />
                     <span>Is Bus Merge Stop (Consolidation Junction)</span>
                   </div>
-                  <p className="text-[10px] text-purple-700/80 dark:text-purple-400 mt-0.5">
+                  <p className="text-[10px] text-pink-700/80 dark:text-pink-400 mt-0.5">
                     Turn ON to authorize bus consolidation, transfers, and standing passenger seat transitions at this junction.
                   </p>
                 </div>
@@ -1790,15 +1790,15 @@ export default function StaffRoutesView({
                     onChange={e => setStopFormData({ ...stopFormData, isBusMergeStop: e.target.checked })}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
                 </label>
               </div>
 
-              <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
                 <button
                   type="button"
                   onClick={() => setIsAddStopModalOpen(false)}
-                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-xl"
+                  className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
                 >
                   Cancel
                 </button>
@@ -1819,7 +1819,7 @@ export default function StaffRoutesView({
       {/* ============================================================= */}
       {isEditCampusModalOpen && campusFormData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl max-h-[95vh] overflow-y-auto">
+          <div className="w-full max-w-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl max-h-[95vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
@@ -1829,7 +1829,7 @@ export default function StaffRoutesView({
                   <h3 className="font-black text-base">
                     Edit University Campus Terminal & Depot
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-gray-400">
                     Sourced dynamically from PostgreSQL database. Zero hardcoded constants.
                   </p>
                 </div>
@@ -1837,21 +1837,21 @@ export default function StaffRoutesView({
 
               <button
                 onClick={() => setIsEditCampusModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg"
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Input Mode Switcher */}
-            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+            <div className="grid grid-cols-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl">
               <button
                 type="button"
                 onClick={() => setCampusInputMode("MAP_PIN")}
                 className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   campusInputMode === "MAP_PIN"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
                 <MapPin className="w-3.5 h-3.5" />
@@ -1863,8 +1863,8 @@ export default function StaffRoutesView({
                 onClick={() => setCampusInputMode("MANUAL")}
                 className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   campusInputMode === "MANUAL"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
                 <Sliders className="w-3.5 h-3.5" />
@@ -1877,11 +1877,11 @@ export default function StaffRoutesView({
               {campusInputMode === "MAP_PIN" && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-bold text-slate-500 flex items-center gap-1">
+                    <span className="font-bold text-gray-500 flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                       Click on the map to anchor campus terminal pin
                     </span>
-                    <span className="font-mono text-slate-400 font-bold">
+                    <span className="font-mono text-gray-400 font-bold">
                       {campusFormData.latitude.toFixed(5)}, {campusFormData.longitude.toFixed(5)}
                     </span>
                   </div>
@@ -1900,7 +1900,7 @@ export default function StaffRoutesView({
                       }) : null);
                     }}
                   />
-                  <p className="text-[10px] text-slate-400 italic">
+                  <p className="text-[10px] text-gray-400 italic">
                     💡 Click anywhere on the map to drop the anchor coordinates for the campus terminal and depot slots.
                   </p>
                 </div>
@@ -1908,7 +1908,7 @@ export default function StaffRoutesView({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
                     Campus Terminal Name *
                   </label>
                   <input
@@ -1917,12 +1917,12 @@ export default function StaffRoutesView({
                     value={campusFormData.name}
                     onChange={e => setCampusFormData({ ...campusFormData, name: e.target.value })}
                     placeholder="e.g. University Main Campus Terminal"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
                     Terminal Station Code *
                   </label>
                   <input
@@ -1931,12 +1931,12 @@ export default function StaffRoutesView({
                     value={campusFormData.code}
                     onChange={e => setCampusFormData({ ...campusFormData, code: e.target.value.toUpperCase() })}
                     placeholder="e.g. CAMPUS-01"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono uppercase focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-mono uppercase focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
                     Geofence Radius (Meters)
                   </label>
                   <input
@@ -1951,12 +1951,12 @@ export default function StaffRoutesView({
                         geofenceRadiusMeters: parseInt(e.target.value) || 80,
                       })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
                     Latitude Coordinates *
                   </label>
                   <input
@@ -1970,12 +1970,12 @@ export default function StaffRoutesView({
                         latitude: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
                     Longitude Coordinates *
                   </label>
                   <input
@@ -1989,12 +1989,12 @@ export default function StaffRoutesView({
                         longitude: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
                     Campus Landmark / Gate Info
                   </label>
                   <input
@@ -2002,12 +2002,12 @@ export default function StaffRoutesView({
                     value={campusFormData.landmark || ""}
                     onChange={e => setCampusFormData({ ...campusFormData, landmark: e.target.value })}
                     placeholder="e.g. University Main Gate 1 & Fleet Depot"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
                     Campus Affiliation
                   </label>
                   <input
@@ -2015,17 +2015,17 @@ export default function StaffRoutesView({
                     value={campusFormData.campus || ""}
                     onChange={e => setCampusFormData({ ...campusFormData, campus: e.target.value })}
                     placeholder="e.g. Main Campus"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
                 <button
                   type="button"
                   onClick={() => setIsEditCampusModalOpen(false)}
                   disabled={isSavingCampus}
-                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-xl"
+                  className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
                 >
                   Cancel
                 </button>
@@ -2051,18 +2051,18 @@ export default function StaffRoutesView({
       {/* ============================================================= */}
       {isRouteBuilderOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in">
-          <div className="w-full max-w-6xl h-[92vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 flex flex-col justify-between text-slate-900 dark:text-white shadow-2xl overflow-hidden">
+          <div className="w-full max-w-6xl h-[92vh] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-5 sm:p-6 flex flex-col justify-between text-gray-900 dark:text-white shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md">
                   <GitBranch className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-lg text-slate-900 dark:text-white">
+                  <h3 className="font-black text-lg text-gray-900 dark:text-white">
                     {editingRouteId ? `Edit Corridor: ${routeBuilderData.name}` : "Interactive Route Flowchart Builder"}
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-gray-400">
                     Connect origin and destination anchors, insert intermediate stops via flowchart nodes, and verify road geometry
                   </p>
                 </div>
@@ -2072,7 +2072,7 @@ export default function StaffRoutesView({
                 <button
                   type="button"
                   onClick={handleReverseRoute}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-xs font-bold rounded-xl flex items-center gap-1.5"
                   title="Invert origin and destination"
                 >
                   <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
@@ -2081,7 +2081,7 @@ export default function StaffRoutesView({
 
                 <button
                   onClick={() => setIsRouteBuilderOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl"
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-xl"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -2093,33 +2093,33 @@ export default function StaffRoutesView({
               {/* Left 6 Cols: Flowchart Pipeline */}
               <div className="lg:col-span-6 flex flex-col h-full overflow-hidden space-y-4 min-h-0">
                 {/* Route Basic Info Strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/60 text-xs flex-shrink-0">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/60 text-xs flex-shrink-0">
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Route Name</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-400">Route Name</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. Express Inbound"
                       value={routeBuilderData.name}
                       onChange={e => setRouteBuilderData({ ...routeBuilderData, name: e.target.value })}
-                      className="w-full p-1.5 mt-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold outline-none"
+                      className="w-full p-1.5 mt-0.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-bold outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Code</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-400">Code</label>
                     <input
                       type="text"
                       required
                       placeholder="RT-105"
                       value={routeBuilderData.code}
                       onChange={e => setRouteBuilderData({ ...routeBuilderData, code: e.target.value })}
-                      className="w-full p-1.5 mt-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold outline-none"
+                      className="w-full p-1.5 mt-0.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-mono font-bold outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Direction</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-400">Direction</label>
                     <select
                       value={routeBuilderData.direction}
                       onChange={e => {
@@ -2168,7 +2168,7 @@ export default function StaffRoutesView({
                           };
                         });
                       }}
-                      className="w-full p-1.5 mt-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold outline-none text-xs"
+                      className="w-full p-1.5 mt-0.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-bold outline-none text-xs"
                     >
                       <option value="HOME_TO_CAMPUS">HOME_TO_CAMPUS (Inbound)</option>
                       <option value="CAMPUS_TO_HOME">CAMPUS_TO_HOME (Outbound)</option>
@@ -2190,23 +2190,23 @@ export default function StaffRoutesView({
                       : originStopObj?.name || "Select Starting Point";
 
                     return (
-                      <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-500/50 shadow-sm space-y-2">
+                      <div className="p-3.5 rounded-2xl bg-green-50 dark:bg-green-950/30 border-2 border-green-500/50 shadow-sm space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
+                            <span className="w-6 h-6 rounded-full bg-green-600 text-white font-bold text-xs flex items-center justify-center">
                               {isOriginCampus ? <Building2 className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
                             </span>
                             <div>
-                              <span className="text-[10px] font-black tracking-wider uppercase text-emerald-700 dark:text-emerald-400 block">
+                              <span className="text-[10px] font-black tracking-wider uppercase text-green-700 dark:text-green-400 block">
                                 {isOriginCampus ? "Origin Campus Terminal (Departure)" : "Start Stop (Origin Passenger Pickup)"}
                               </span>
-                              <span className="text-xs font-bold text-slate-900 dark:text-white">
+                              <span className="text-xs font-bold text-gray-900 dark:text-white">
                                 {displayName}
                               </span>
                             </div>
                           </div>
 
-                          <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-md">
+                          <span className="text-[11px] font-mono font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-950 px-2 py-0.5 rounded-md">
                             0.0 km • 0 min
                           </span>
                         </div>
@@ -2223,7 +2223,7 @@ export default function StaffRoutesView({
                                 originCampusId: cid,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
+                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
                           >
                             <option value="">-- Choose Origin Campus Terminal --</option>
                             {campuses.map(c => (
@@ -2243,7 +2243,7 @@ export default function StaffRoutesView({
                                 originCampusId: undefined,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
+                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
                           >
                             <option value="">-- Choose Origin Passenger Station --</option>
                             {stops.map(st => (
@@ -2259,7 +2259,7 @@ export default function StaffRoutesView({
 
                   {/* --- CONNECTOR GAP 0 with (+) BUTTON --- */}
                   <div className="relative py-1 flex items-center justify-center">
-                    <div className="absolute inset-x-12 h-0.5 bg-gradient-to-r from-emerald-400 via-blue-400 to-indigo-400" />
+                    <div className="absolute inset-x-12 h-0.5 bg-gradient-to-r from-green-400 via-blue-400 to-blue-400" />
                     <button
                       type="button"
                       onClick={() => setInsertingAtGapIndex(0)}
@@ -2273,22 +2273,22 @@ export default function StaffRoutesView({
 
                   {/* Popover to insert stop at Gap 0 */}
                   {insertingAtGapIndex === 0 && (
-                    <div className="p-3 bg-white dark:bg-slate-800 border-2 border-blue-500 rounded-2xl shadow-xl space-y-2 animate-in fade-in">
+                    <div className="p-3 bg-white dark:bg-gray-800 border-2 border-blue-500 rounded-2xl shadow-xl space-y-2 animate-in fade-in">
                       <div className="flex items-center justify-between text-xs font-bold">
                         <span className="text-blue-600 dark:text-blue-400">Select Stop to Insert Between Origin & Next Stop:</span>
-                        <button onClick={() => setInsertingAtGapIndex(null)} className="text-slate-400 hover:text-slate-600">
+                        <button onClick={() => setInsertingAtGapIndex(null)} className="text-gray-400 hover:text-gray-600">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
 
                       <div className="relative">
-                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
                         <input
                           type="text"
                           placeholder="Search available stops..."
                           value={stopPickerSearch}
                           onChange={e => setStopPickerSearch(e.target.value)}
-                          className="w-full pl-8 p-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
+                          className="w-full pl-8 p-1.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
                           autoFocus
                         />
                       </div>
@@ -2302,12 +2302,12 @@ export default function StaffRoutesView({
                               onClick={() => handleInsertIntermediateStop(st.id)}
                               className="w-full text-left p-2 hover:bg-blue-50 dark:hover:bg-blue-950/60 rounded-xl text-xs font-bold flex items-center justify-between transition-colors"
                             >
-                              <span>{st.name} <span className="font-mono text-slate-400 font-normal">({st.code})</span></span>
+                              <span>{st.name} <span className="font-mono text-gray-400 font-normal">({st.code})</span></span>
                               <span className="text-[10px] text-blue-600">+ Insert</span>
                             </button>
                           ))
                         ) : (
-                          <div className="p-3 text-center text-xs text-slate-400">
+                          <div className="p-3 text-center text-xs text-gray-400">
                             No matching or unselected stops available.
                           </div>
                         )}
@@ -2325,25 +2325,25 @@ export default function StaffRoutesView({
                     return (
                       <React.Fragment key={stopId}>
                         {/* Intermediate Node Card */}
-                        <div className="p-3 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 shadow-sm space-y-2">
+                        <div className="p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 shadow-sm space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                              <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                              <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
                                 {stopIndexInRoute + 1}
                               </span>
                               <div>
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                  <span className="text-xs font-bold text-gray-900 dark:text-white">
                                     {stopObj?.name || "Intermediate Station"}
                                   </span>
-                                  <span className="text-[10px] font-mono text-slate-400">({stopObj?.code})</span>
+                                  <span className="text-[10px] font-mono text-gray-400">({stopObj?.code})</span>
                                 </div>
-                                <span className="text-[10px] text-slate-400">{stopObj?.landmark || "Transit Point"}</span>
+                                <span className="text-[10px] text-gray-400">{stopObj?.landmark || "Transit Point"}</span>
                               </div>
                             </div>
 
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                              <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
                                 +{offset}m
                               </span>
 
@@ -2353,7 +2353,7 @@ export default function StaffRoutesView({
                                   type="button"
                                   disabled={iIdx === 0}
                                   onClick={() => handleShiftIntermediateUp(iIdx)}
-                                  className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-600 dark:text-slate-300"
+                                  className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-20 text-gray-600 dark:text-gray-300"
                                   title="Shift earlier in corridor"
                                 >
                                   <ArrowUp className="w-3.5 h-3.5" />
@@ -2362,7 +2362,7 @@ export default function StaffRoutesView({
                                   type="button"
                                   disabled={iIdx === routeBuilderData.intermediateStopIds.length - 1}
                                   onClick={() => handleShiftIntermediateDown(iIdx)}
-                                  className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-600 dark:text-slate-300"
+                                  className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-20 text-gray-600 dark:text-gray-300"
                                   title="Shift later in corridor"
                                 >
                                   <ArrowDown className="w-3.5 h-3.5" />
@@ -2370,7 +2370,7 @@ export default function StaffRoutesView({
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveIntermediate(iIdx)}
-                                  className="p-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600"
+                                  className="p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-950 text-red-600"
                                   title="Remove from this route"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -2382,7 +2382,7 @@ export default function StaffRoutesView({
 
                         {/* CONNECTOR GAP with (+) BUTTON */}
                         <div className="relative py-1 flex items-center justify-center">
-                          <div className="absolute inset-x-12 h-0.5 bg-gradient-to-r from-indigo-400 via-blue-400 to-indigo-400" />
+                          <div className="absolute inset-x-12 h-0.5 bg-gradient-to-r from-blue-400 via-blue-400 to-blue-400" />
                           <button
                             type="button"
                             onClick={() => setInsertingAtGapIndex(gapIndexAfter)}
@@ -2396,22 +2396,22 @@ export default function StaffRoutesView({
 
                         {/* Popover to insert stop at this gap */}
                         {insertingAtGapIndex === gapIndexAfter && (
-                          <div className="p-3 bg-white dark:bg-slate-800 border-2 border-blue-500 rounded-2xl shadow-xl space-y-2 animate-in fade-in">
+                          <div className="p-3 bg-white dark:bg-gray-800 border-2 border-blue-500 rounded-2xl shadow-xl space-y-2 animate-in fade-in">
                             <div className="flex items-center justify-between text-xs font-bold">
                               <span className="text-blue-600 dark:text-blue-400">Select Stop to Insert:</span>
-                              <button onClick={() => setInsertingAtGapIndex(null)} className="text-slate-400 hover:text-slate-600">
+                              <button onClick={() => setInsertingAtGapIndex(null)} className="text-gray-400 hover:text-gray-600">
                                 <X className="w-4 h-4" />
                               </button>
                             </div>
 
                             <div className="relative">
-                              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
                               <input
                                 type="text"
                                 placeholder="Search available stops..."
                                 value={stopPickerSearch}
                                 onChange={e => setStopPickerSearch(e.target.value)}
-                                className="w-full pl-8 p-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
+                                className="w-full pl-8 p-1.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
                                 autoFocus
                               />
                             </div>
@@ -2425,12 +2425,12 @@ export default function StaffRoutesView({
                                     onClick={() => handleInsertIntermediateStop(st.id)}
                                     className="w-full text-left p-2 hover:bg-blue-50 dark:hover:bg-blue-950/60 rounded-xl text-xs font-bold flex items-center justify-between transition-colors"
                                   >
-                                    <span>{st.name} <span className="font-mono text-slate-400 font-normal">({st.code})</span></span>
+                                    <span>{st.name} <span className="font-mono text-gray-400 font-normal">({st.code})</span></span>
                                     <span className="text-[10px] text-blue-600">+ Insert</span>
                                   </button>
                                 ))
                               ) : (
-                                <div className="p-3 text-center text-xs text-slate-400">
+                                <div className="p-3 text-center text-xs text-gray-400">
                                   No matching unselected stops available.
                                 </div>
                               )}
@@ -2461,7 +2461,7 @@ export default function StaffRoutesView({
                               <span className="text-[10px] font-black tracking-wider uppercase text-blue-700 dark:text-blue-400 block">
                                 {isDestCampus ? "Destination Campus Terminal (Arrival)" : "Final Drop-off Stop (Terminal Station)"}
                               </span>
-                              <span className="text-xs font-bold text-slate-900 dark:text-white">
+                              <span className="text-xs font-bold text-gray-900 dark:text-white">
                                 {displayName}
                               </span>
                             </div>
@@ -2484,7 +2484,7 @@ export default function StaffRoutesView({
                                 destinationCampusId: cid,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
+                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
                           >
                             <option value="">-- Choose Destination Campus Terminal --</option>
                             {campuses.map(c => (
@@ -2504,7 +2504,7 @@ export default function StaffRoutesView({
                                 destinationCampusId: undefined,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none"
+                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
                           >
                             <option value="">-- Choose Final Drop-off Station --</option>
                             {stops.map(st => (
@@ -2522,17 +2522,17 @@ export default function StaffRoutesView({
 
               {/* Right 6 Cols: Synchronized Live Road-Snapped Corridor Map Preview */}
               <div className="lg:col-span-6 flex flex-col h-full space-y-3 min-h-0">
-                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 rounded-2xl text-xs flex-shrink-0">
+                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 px-4 py-2.5 rounded-2xl text-xs flex-shrink-0">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-blue-600" />
-                    <span className="font-bold text-slate-700 dark:text-slate-300">Live Road Geometry & Stop Numbers</span>
+                    <span className="font-bold text-gray-700 dark:text-gray-300">Live Road Geometry & Stop Numbers</span>
                   </div>
                   <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">
                     {builderStops.length} stops linked
                   </span>
                 </div>
 
-                <div className="flex-1 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 min-h-[360px] h-full relative flex flex-col">
+                <div className="flex-1 rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 min-h-[360px] h-full relative flex flex-col">
                   <CampusFleetMap
                     stops={builderStops}
                     campuses={campuses}
@@ -2541,22 +2541,22 @@ export default function StaffRoutesView({
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center text-xs p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 flex-shrink-0">
+                <div className="grid grid-cols-3 gap-2 text-center text-xs p-3 bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-gray-200 dark:border-gray-800 flex-shrink-0">
                   <div>
-                    <span className="text-[10px] uppercase text-slate-400 font-bold block">Total Distance</span>
-                    <span className="font-black text-sm text-slate-900 dark:text-white font-mono">
+                    <span className="text-[10px] uppercase text-gray-400 font-bold block">Total Distance</span>
+                    <span className="font-black text-sm text-gray-900 dark:text-white font-mono">
                       {builderMetrics.totalDistanceKm} km
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase text-slate-400 font-bold block">Est. Trip Duration</span>
+                    <span className="text-[10px] uppercase text-gray-400 font-bold block">Est. Trip Duration</span>
                     <span className="font-black text-sm text-blue-600 dark:text-blue-400 font-mono">
                       ~{builderMetrics.estimatedDurationMins} mins
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase text-slate-400 font-bold block">Intermediate Stops</span>
-                    <span className="font-black text-sm text-indigo-600 dark:text-indigo-400 font-mono">
+                    <span className="text-[10px] uppercase text-gray-400 font-bold block">Intermediate Stops</span>
+                    <span className="font-black text-sm text-blue-600 dark:text-blue-400 font-mono">
                       {routeBuilderData.intermediateStopIds.length}
                     </span>
                   </div>
@@ -2565,9 +2565,9 @@ export default function StaffRoutesView({
             </div>
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
+            <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+                <span className="text-xs text-gray-400 font-medium hidden sm:inline">
                   Corridor color badge:
                 </span>
                 <div className="flex items-center gap-1.5">
@@ -2589,7 +2589,7 @@ export default function StaffRoutesView({
                 <button
                   type="button"
                   onClick={() => setIsRouteBuilderOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl"
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-xs font-bold rounded-xl"
                 >
                   Cancel
                 </button>
@@ -2616,7 +2616,7 @@ export default function StaffRoutesView({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <form
             onSubmit={handleAllocateBus}
-            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl"
+            className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
@@ -2624,17 +2624,17 @@ export default function StaffRoutesView({
               </div>
               <div>
                 <h3 className="font-black text-base">Allocate Vehicle to {activeRoute.name}</h3>
-                <p className="text-xs text-slate-400">Assign a physical fleet bus to service this transit corridor</p>
+                <p className="text-xs text-gray-400">Assign a physical fleet bus to service this transit corridor</p>
               </div>
             </div>
 
             <div className="space-y-2 text-xs">
-              <label className="font-bold uppercase tracking-wider text-slate-400">Choose Fleet Bus</label>
+              <label className="font-bold uppercase tracking-wider text-gray-400">Choose Fleet Bus</label>
               <select
                 required
                 value={selectedBusToAllocate}
                 onChange={e => setSelectedBusToAllocate(e.target.value)}
-                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-bold"
+                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
               >
                 <option value="">-- Select Available Vehicle --</option>
                 {buses.map(b => (
@@ -2649,7 +2649,7 @@ export default function StaffRoutesView({
               <button
                 type="button"
                 onClick={() => setIsAllocateBusModalOpen(false)}
-                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-xl"
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
               >
                 Cancel
               </button>
@@ -2669,7 +2669,7 @@ export default function StaffRoutesView({
       {/* ============================================================= */}
       {isCampusModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl max-h-[95vh] overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl max-h-[95vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
@@ -2679,28 +2679,28 @@ export default function StaffRoutesView({
                   <h3 className="font-black text-base">
                     {editingCampus ? `Edit: ${editingCampus.name}` : "Create New Campus Location"}
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-gray-400">
                     {editingCampus ? "Update campus coordinates, details & fleet configuration" : "Add a new institutional campus location for fleet operations"}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsCampusModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg"
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Input Mode Switcher */}
-            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+            <div className="grid grid-cols-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl">
               <button
                 type="button"
                 onClick={() => setCampusLocationInputMode("MAP_PIN")}
                 className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   campusLocationInputMode === "MAP_PIN"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
                 <MapPin className="w-3.5 h-3.5" />
@@ -2711,8 +2711,8 @@ export default function StaffRoutesView({
                 onClick={() => setCampusLocationInputMode("MANUAL")}
                 className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   campusLocationInputMode === "MANUAL"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
                 <Sliders className="w-3.5 h-3.5" />
@@ -2725,11 +2725,11 @@ export default function StaffRoutesView({
               {campusLocationInputMode === "MAP_PIN" && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-bold text-slate-500 flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                    <span className="font-bold text-gray-500 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                       Click on the map to place campus pin
                     </span>
-                    <span className="font-mono text-slate-400 font-bold">
+                    <span className="font-mono text-gray-400 font-bold">
                       {campusLocationFormData.latitude.toFixed(5)}, {campusLocationFormData.longitude.toFixed(5)}
                     </span>
                   </div>
@@ -2749,25 +2749,25 @@ export default function StaffRoutesView({
               {/* Name & Code */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Campus Name</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Campus Name</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Graphic Era Hill University - Bhimtal Campus"
                     value={campusLocationFormData.name}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, name: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-bold"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
                   />
                 </div>
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Campus Code</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Campus Code</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. GEHU-BHT"
                     value={campusLocationFormData.code}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, code: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono font-bold"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono font-bold"
                   />
                 </div>
               </div>
@@ -2775,23 +2775,23 @@ export default function StaffRoutesView({
               {/* Address & Landmark */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Address</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Address</label>
                   <input
                     type="text"
                     placeholder="e.g. Sattal Road, Bhimtal, Nainital"
                     value={campusLocationFormData.address}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, address: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Landmark</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Landmark</label>
                   <input
                     type="text"
                     placeholder="e.g. GEHU Main Gate & Fleet Parking Depot"
                     value={campusLocationFormData.landmark}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, landmark: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none"
                   />
                 </div>
               </div>
@@ -2799,25 +2799,25 @@ export default function StaffRoutesView({
               {/* Coordinates */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Latitude (°N)</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Latitude (°N)</label>
                   <input
                     type="number"
                     step="0.000001"
                     required
                     value={campusLocationFormData.latitude}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, latitude: parseFloat(e.target.value) || 0 })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
                   />
                 </div>
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Longitude (°E)</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Longitude (°E)</label>
                   <input
                     type="number"
                     step="0.000001"
                     required
                     value={campusLocationFormData.longitude}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, longitude: parseFloat(e.target.value) || 0 })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
                   />
                 </div>
               </div>
@@ -2825,34 +2825,34 @@ export default function StaffRoutesView({
               {/* Geofence, Fleet Capacity, Parking Bays */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Geofence Radius (m)</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Geofence Radius (m)</label>
                   <input
                     type="number"
                     min="10"
                     max="500"
                     value={campusLocationFormData.geofenceRadiusMeters}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, geofenceRadiusMeters: parseInt(e.target.value) || 100 })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
                   />
                 </div>
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Fleet Capacity</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Fleet Capacity</label>
                   <input
                     type="number"
                     min="1"
                     value={campusLocationFormData.fleetCapacity}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, fleetCapacity: parseInt(e.target.value) || 50 })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
                   />
                 </div>
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Parking Bays</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Parking Bays</label>
                   <input
                     type="number"
                     min="1"
                     value={campusLocationFormData.parkingBays}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, parkingBays: parseInt(e.target.value) || 20 })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
                   />
                 </div>
               </div>
@@ -2860,23 +2860,23 @@ export default function StaffRoutesView({
               {/* Contact Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Contact Phone</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Contact Phone</label>
                   <input
                     type="tel"
                     placeholder="e.g. +91 8057999901"
                     value={campusLocationFormData.contactPhone}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, contactPhone: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Contact Email</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Contact Email</label>
                   <input
                     type="email"
                     placeholder="e.g. transport@gehu.ac.in"
                     value={campusLocationFormData.contactEmail}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, contactEmail: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none"
                   />
                 </div>
               </div>
@@ -2890,16 +2890,16 @@ export default function StaffRoutesView({
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, isPrimary: e.target.checked })}
                     className="w-4 h-4 rounded accent-blue-600"
                   />
-                  <span className="font-bold text-slate-600 dark:text-slate-300">⭐ Set as Primary Operational Hub</span>
+                  <span className="font-bold text-gray-600 dark:text-gray-300">⭐ Set as Primary Operational Hub</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={campusLocationFormData.isActive}
                     onChange={e => setCampusLocationFormData({ ...campusLocationFormData, isActive: e.target.checked })}
-                    className="w-4 h-4 rounded accent-emerald-600"
+                    className="w-4 h-4 rounded accent-green-600"
                   />
-                  <span className="font-bold text-slate-600 dark:text-slate-300">Active</span>
+                  <span className="font-bold text-gray-600 dark:text-gray-300">Active</span>
                 </label>
               </div>
 
@@ -2908,7 +2908,7 @@ export default function StaffRoutesView({
                 <button
                   type="button"
                   onClick={() => setIsCampusModalOpen(false)}
-                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-xl"
+                  className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
                 >
                   Cancel
                 </button>

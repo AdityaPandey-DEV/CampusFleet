@@ -44,7 +44,7 @@ import {
 const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-80 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+    <div className="w-full h-80 rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse flex items-center justify-center text-xs text-gray-400 font-bold">
       Loading Dynamic Campus GIS Map...
     </div>
   ),
@@ -436,22 +436,22 @@ export default function ShiftBookingView({
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in">
       <Link
         href="/portal"
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100"
       >
         ← Back to My Commute Cockpit
       </Link>
 
       {/* Top redBus-inspired Search / Corridor Filter Bar */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-lg space-y-4">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-lg space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
           {/* From Station */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60 flex items-center gap-3">
+          <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/60 flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-950 text-blue-600 rounded-xl">
               <MapPin className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Boarding From</div>
+                <div className="text-[10px] uppercase font-bold text-gray-400">Boarding From</div>
                 <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
                   {activeStudent?.zoneCode || "ZONE_B"}
                 </span>
@@ -459,12 +459,12 @@ export default function ShiftBookingView({
               <select
                 value={selectedStopId}
                 onChange={e => setSelectedStopId(e.target.value)}
-                className="w-full text-xs font-bold bg-transparent text-slate-900 dark:text-white outline-none cursor-pointer truncate"
+                className="w-full text-xs font-bold bg-transparent text-gray-900 dark:text-white outline-none cursor-pointer truncate"
               >
                 {stops
                   .filter(st => (st.zoneCode || "ZONE_B") === (activeStudent?.zoneCode || "ZONE_B"))
                   .map(st => (
-                    <option key={st.id} value={st.id} className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white">
+                    <option key={st.id} value={st.id} className="text-gray-900 bg-white dark:bg-gray-900 dark:text-white">
                       {st.name} ({st.code})
                     </option>
                   ))}
@@ -473,27 +473,27 @@ export default function ShiftBookingView({
           </div>
 
           {/* To Station */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60 flex items-center gap-3">
-            <div className="p-2 bg-teal-100 dark:bg-teal-950 text-teal-600 rounded-xl">
+          <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/60 flex items-center gap-3">
+            <div className="p-2 bg-green-100 dark:bg-green-950 text-green-600 rounded-xl">
               <BusFront className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Destination Campus</div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+              <div className="text-[10px] uppercase font-bold text-gray-400">Destination Campus</div>
+              <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
                 {studentCampusName}
               </div>
             </div>
           </div>
 
           {/* Date & Shift */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60 flex items-center justify-between">
+          <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/60 flex items-center justify-between">
             <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400">Date of Travel</div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">
+              <div className="text-[10px] uppercase font-bold text-gray-400">Date of Travel</div>
+              <div className="text-xs font-bold text-gray-900 dark:text-white">
                 Today, {formatDate(new Date().toISOString())}
               </div>
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold">
+            <span className="px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 text-[10px] font-bold">
               Active Booking Open
             </span>
           </div>
@@ -516,18 +516,18 @@ export default function ShiftBookingView({
                 className={`px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all flex-shrink-0 cursor-pointer ${
                   isSelected
                     ? isSpecial
-                      ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-600/20"
+                      ? "bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-md shadow-yellow-600/20"
                       : "bg-blue-600 text-white shadow-md shadow-blue-600/20"
                     : isSpecial
-                    ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    ? "bg-yellow-50 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800/60 hover:bg-yellow-100"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
                 <span>{sh.name}</span>
                 <span className="font-mono opacity-80 font-normal">({formatTime(sh.startTime)})</span>
                 {isSpecial && (
-                  <span className="text-[9px] uppercase px-1.5 py-0.5 rounded-md font-extrabold bg-amber-500/20 text-amber-900 dark:text-amber-200">
+                  <span className="text-[9px] uppercase px-1.5 py-0.5 rounded-md font-extrabold bg-yellow-500/20 text-yellow-900 dark:text-yellow-200">
                     Special Facility
                   </span>
                 )}
@@ -543,11 +543,11 @@ export default function ShiftBookingView({
         {shiftStatus && (
           <div className={`p-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
             shiftStatus.isBookingOpen
-              ? "bg-teal-50/80 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800 text-teal-950 dark:text-teal-200"
-              : "bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200"
+              ? "bg-green-50/80 dark:bg-green-950/40 border-green-200 dark:border-green-800 text-green-950 dark:text-green-200"
+              : "bg-yellow-50/80 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800 text-yellow-950 dark:text-yellow-200"
           }`}>
             <div className="flex items-center gap-2">
-              <Clock className={`w-4 h-4 shrink-0 ${shiftStatus.isBookingOpen ? "text-teal-600 dark:text-teal-400" : "text-amber-600 dark:text-amber-400"}`} />
+              <Clock className={`w-4 h-4 shrink-0 ${shiftStatus.isBookingOpen ? "text-green-600 dark:text-green-400" : "text-yellow-600 dark:text-yellow-400"}`} />
               <span>
                 <strong>{selectedShift?.name}:</strong> {shiftStatus.isBookingOpen ? `Reservation Open • Closes in ${shiftStatus.minutesToCutoff} mins (${selectedShift?.bookingCutoffMins}m cutoff window prior to departure)` : `Booking Closed (${shiftStatus.label}). Manifest finalized for dispatch.`}
               </span>
@@ -560,33 +560,33 @@ export default function ShiftBookingView({
 
         {/* Dynamic Shift Restriction & Gate-Pass Status Banner */}
         {shiftEligibility?.hasApprovedEmergencyPass ? (
-          <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-semibold flex items-center justify-between gap-3">
+          <div className="p-3.5 rounded-2xl bg-green-50 dark:bg-green-950/40 border border-green-300 dark:border-green-800 text-green-900 dark:text-green-200 text-xs font-semibold flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
               <div>
                 <strong>Emergency Early Departure Gate-Pass Authorized:</strong> Approved by your class teacher. Gate departure card is unlocked for {selectedShift?.name || "this shift"}.
               </div>
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-200/60 dark:bg-emerald-800/60 text-emerald-900 dark:text-emerald-100 text-[10px] font-mono font-bold shrink-0">
+            <span className="px-2.5 py-1 rounded-full bg-green-200/60 dark:bg-green-800/60 text-green-900 dark:text-green-100 text-[10px] font-mono font-bold shrink-0">
               GATE-PASS VERIFIED
             </span>
           </div>
         ) : shiftEligibility?.isShiftRestricted ? (
-          <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-3.5 rounded-2xl bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-300 dark:border-yellow-800 text-yellow-900 dark:text-yellow-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start gap-2">
-              <GraduationCap className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <GraduationCap className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" />
               <div>
                 <div className="font-bold">
                   Shift Restricted by Administration {shiftEligibility.className ? `(${shiftEligibility.className})` : ""}
                 </div>
-                <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">
+                <p className="text-[11px] text-yellow-800 dark:text-yellow-300 mt-0.5">
                   Admin has restricted regular booking for {selectedShift?.name || "this shift"} for your section. To board this shift, obtain early leave authorization from your Class Teacher.
                 </p>
               </div>
             </div>
 
             {shiftEligibility.pendingRequest ? (
-              <div className="px-3 py-1.5 rounded-xl bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100 text-xs font-bold shrink-0 flex items-center gap-1.5">
+              <div className="px-3 py-1.5 rounded-xl bg-yellow-200/80 dark:bg-yellow-900/60 text-yellow-900 dark:text-yellow-100 text-xs font-bold shrink-0 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 animate-spin" />
                 <span>Gate-Pass Pending Teacher Review</span>
               </div>
@@ -594,7 +594,7 @@ export default function ShiftBookingView({
               <button
                 type="button"
                 onClick={() => setIsEmergencyModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-xs shadow-md shadow-amber-600/20 shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-bold text-xs shadow-md shadow-yellow-600/20 shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>Request Teacher Gate-Pass</span>
@@ -605,18 +605,18 @@ export default function ShiftBookingView({
       </div>
 
       {/* redBus-inspired Step Navigation Bar */}
-      <div className="flex items-center justify-center border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex items-center justify-center border-b border-gray-200 dark:border-gray-800 pb-2">
         <div className="flex items-center gap-4 sm:gap-8 text-xs font-bold">
           <button
             onClick={() => setActiveStep("SEATS")}
             className={`pb-2 border-b-2 transition-all flex items-center gap-2 ${
               activeStep === "SEATS"
                 ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-slate-400 hover:text-slate-700"
+                : "border-transparent text-gray-400 hover:text-gray-700"
             }`}
           >
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-              activeStep === "SEATS" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800"
+              activeStep === "SEATS" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800"
             }`}>
               1
             </span>
@@ -628,11 +628,11 @@ export default function ShiftBookingView({
             className={`pb-2 border-b-2 transition-all flex items-center gap-2 ${
               activeStep === "BOARDING"
                 ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-slate-400 hover:text-slate-700"
+                : "border-transparent text-gray-400 hover:text-gray-700"
             }`}
           >
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-              activeStep === "BOARDING" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800"
+              activeStep === "BOARDING" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800"
             }`}>
               2
             </span>
@@ -644,11 +644,11 @@ export default function ShiftBookingView({
             className={`pb-2 border-b-2 transition-all flex items-center gap-2 ${
               activeStep === "PASSENGER"
                 ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-slate-400 hover:text-slate-700"
+                : "border-transparent text-gray-400 hover:text-gray-700"
             }`}
           >
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-              activeStep === "PASSENGER" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800"
+              activeStep === "PASSENGER" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800"
             }`}>
               3
             </span>
@@ -661,15 +661,15 @@ export default function ShiftBookingView({
         <div
           className={`p-4 rounded-2xl border text-sm font-semibold flex items-center justify-between gap-3 animate-in fade-in ${
             bookingMessage.type === "success"
-              ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200"
-              : "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200"
+              ? "bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800 text-green-900 dark:text-green-200"
+              : "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-900 dark:text-red-200"
           }`}
         >
           <div className="flex items-center gap-3">
             {bookingMessage.type === "success" ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
             )}
             <span>{bookingMessage.text}</span>
           </div>
@@ -677,7 +677,7 @@ export default function ShiftBookingView({
           {bookingMessage.type === "success" && (
             <button
               onClick={() => setIsQRModalOpen(true)}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md flex-shrink-0"
+              className="px-3.5 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md flex-shrink-0"
             >
               <QrCode className="w-4 h-4" />
               Show QR Pass
@@ -700,7 +700,7 @@ export default function ShiftBookingView({
       {activeStep === "BOARDING" && (
         <div className="space-y-6 animate-in fade-in">
           {/* Dijkstra Route Summary Card */}
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-pink-600 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-xs font-mono bg-white/20 px-3 py-1 rounded-full w-fit">
                 <Sparkles className="w-3.5 h-3.5" /> Dijkstra Shortest Path Computed
@@ -730,13 +730,13 @@ export default function ShiftBookingView({
           </div>
 
           {/* Interactive GIS Map with Dijkstra Corridor Highlight */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+              <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
                 <Layers className="w-4 h-4 text-blue-600" />
                 Live Route Progression & Geographic Corridor
               </h4>
-              <span className="text-xs font-mono text-purple-600 dark:text-purple-400 font-bold">
+              <span className="text-xs font-mono text-pink-600 dark:text-pink-400 font-bold">
                 🟣 Purple Dotted Line: Shortest Path
               </span>
             </div>
@@ -753,9 +753,9 @@ export default function ShiftBookingView({
 
           {/* Station Sequence Progression */}
           {shortestPath && shortestPath.path.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <RouteIcon className="w-4 h-4 text-indigo-600" />
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
+              <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                <RouteIcon className="w-4 h-4 text-blue-600" />
                 Station-by-Station Rapid Transit Sequence
               </h4>
 
@@ -771,32 +771,32 @@ export default function ShiftBookingView({
                       key={s.id}
                       className={`p-3.5 rounded-2xl border flex items-center justify-between ${
                         isFirst
-                          ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800"
+                          ? "bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800"
                           : isLast
                           ? "bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800"
-                          : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700"
+                          : "bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700"
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
                           isFirst
-                            ? "bg-emerald-500 text-white"
+                            ? "bg-green-500 text-white"
                             : isLast
                             ? "bg-blue-600 text-white"
-                            : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                            : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                         }`}>
                           {isFirst ? <MapPin className="w-4 h-4" /> : isLast ? <Building2 className="w-4 h-4" /> : idx + 1}
                         </div>
                         <div>
-                          <div className="font-bold text-xs text-slate-900 dark:text-white">
+                          <div className="font-bold text-xs text-gray-900 dark:text-white">
                             {s.name} ({s.code})
                           </div>
-                          <div className="text-[10px] text-slate-500">{s.landmark}</div>
+                          <div className="text-[10px] text-gray-500">{s.landmark}</div>
                         </div>
                       </div>
 
                       <div className="text-right font-mono text-xs">
-                        <span className="font-bold text-slate-700 dark:text-slate-300">
+                        <span className="font-bold text-gray-700 dark:text-gray-300">
                           {isFirst ? "Boarding Stop" : isLast ? "Terminal Destination" : `+${idx * 10} mins`}
                         </span>
                       </div>
@@ -809,8 +809,8 @@ export default function ShiftBookingView({
 
           {/* Multiple Buses for this stop */}
           {busesForStop.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
+              <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
                 <BusFront className="w-4 h-4 text-blue-600" />
                 Available Buses Serving {selectedStop?.name} ({busesForStop.length} options)
               </h4>
@@ -826,22 +826,22 @@ export default function ShiftBookingView({
                       className={`text-left p-3.5 rounded-2xl border transition-all ${
                         isSelected
                           ? "bg-blue-50/90 dark:bg-blue-950/40 border-blue-500 shadow-md ring-2 ring-blue-500/20"
-                          : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600"
+                          : "bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-gray-600"
                       } space-y-1`}
                     >
-                      <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center justify-between">
+                      <div className="font-bold text-xs text-gray-900 dark:text-white flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
                           {b.busNumber}
                           {isBooked && (
-                            <span className="px-1.5 py-0.5 bg-emerald-500 text-white text-[9px] font-bold rounded-md">
+                            <span className="px-1.5 py-0.5 bg-green-500 text-white text-[9px] font-bold rounded-md">
                               Your Seat
                             </span>
                           )}
                         </span>
-                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">{b.status}</span>
+                        <span className="text-[10px] font-mono text-green-600 dark:text-green-400 font-bold">{b.status}</span>
                       </div>
-                      <div className="text-[10px] text-slate-500">{b.model}</div>
-                      <div className="text-[10px] font-mono text-slate-400">{b.capacity} Seats • {b.seatLayout}</div>
+                      <div className="text-[10px] text-gray-500">{b.model}</div>
+                      <div className="text-[10px] font-mono text-gray-400">{b.capacity} Seats • {b.seatLayout}</div>
                     </button>
                   );
                 })}
@@ -855,11 +855,11 @@ export default function ShiftBookingView({
       {(activeStep === "SEATS" || activeStep === "PASSENGER") && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left 5 Cols: redBus Interactive Visual Seat Selector */}
-          <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center">
+          <div className="lg:col-span-5 bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center">
             {/* Multi-Bus Quick Selector Tabs */}
             {shiftBuses.length > 1 && (
-              <div className="w-full mb-4 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center gap-1.5 overflow-x-auto">
-                <span className="text-[10px] uppercase font-black text-slate-400 px-2 flex-shrink-0">
+              <div className="w-full mb-4 p-1.5 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center gap-1.5 overflow-x-auto">
+                <span className="text-[10px] uppercase font-black text-gray-400 px-2 flex-shrink-0">
                   Select Bus:
                 </span>
                 {shiftBuses.map(sb => {
@@ -873,13 +873,13 @@ export default function ShiftBookingView({
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 flex-shrink-0 ${
                         isSelected
                           ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                          : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                       }`}
                     >
                       <BusFront className="w-3.5 h-3.5" />
                       <span>{sb.busNumber}</span>
                       {hasSeat && (
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-white" />
+                        <span className="w-2 h-2 rounded-full bg-green-400 ring-2 ring-white" />
                       )}
                     </button>
                   );
@@ -890,7 +890,7 @@ export default function ShiftBookingView({
             {bus ? (
               <>
                 <div className="w-full flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
                     <BusFront className="w-4 h-4 text-blue-600" />
                     Bus Seat Layout ({bus.seatLayout || "2x2"} Seater)
                   </h3>
@@ -909,11 +909,11 @@ export default function ShiftBookingView({
               </>
             ) : (
               <div className="text-center py-12 space-y-3">
-                <BusFront className="w-10 h-10 text-slate-400 mx-auto" />
-                <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                <BusFront className="w-10 h-10 text-gray-400 mx-auto" />
+                <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
                   No Bus Allocated Yet
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-gray-400">
                   The transport desk is finalizing bus allocations for this shift.
                 </p>
               </div>
@@ -922,22 +922,22 @@ export default function ShiftBookingView({
 
           {/* Right 7 Cols: Details, Cancellation Policy, & Booking Action */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
               {/* Active Shift & Bus Vehicle Overview Card */}
               {bus && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
                   <div>
-                    <div className="text-lg font-black text-slate-900 dark:text-white">
+                    <div className="text-lg font-black text-gray-900 dark:text-white">
                       {bus.busNumber}
                     </div>
-                    <div className="text-xs text-slate-500 font-mono">
+                    <div className="text-xs text-gray-500 font-mono">
                       {bus.model} • Reg: {bus.registrationNo}
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <span className="text-xs font-bold text-slate-400 uppercase">Coverage</span>
-                    <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                    <span className="text-xs font-bold text-gray-400 uppercase">Coverage</span>
+                    <div className="text-sm font-black text-green-600 dark:text-green-400">
                       Included in Active Pass (₹0.00)
                     </div>
                   </div>
@@ -945,16 +945,16 @@ export default function ShiftBookingView({
               )}
 
               {/* Selected Seat Callout Card */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-teal-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/80 border border-blue-200 dark:border-slate-700 flex items-center justify-between">
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-800/80 border border-blue-200 dark:border-gray-700 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-2xl ${isFull ? "bg-rose-500 text-white" : "bg-teal-500 text-slate-950"} font-black font-mono text-base flex items-center justify-center shadow-md`}>
+                  <div className={`w-12 h-12 rounded-2xl ${isFull ? "bg-red-500 text-white" : "bg-green-500 text-gray-950"} font-black font-mono text-base flex items-center justify-center shadow-md`}>
                     {isFull ? "FULL" : selectedSeatNumber || "1A"}
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">
+                    <div className="text-xs font-bold text-gray-900 dark:text-white">
                       {isFull ? "Bus Fully Booked" : "Selected Reserved Seat"}
                     </div>
-                    <div className="text-[11px] text-slate-500 font-medium">
+                    <div className="text-[11px] text-gray-500 font-medium">
                       {isFull
                         ? "All physical seats occupied • Please select an alternate shift"
                         : `Seat ${selectedSeatNumber || "1A"} • Window / Campus Corridor View`}
@@ -963,12 +963,12 @@ export default function ShiftBookingView({
                 </div>
 
                 <div className="text-right">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Pickup Station</div>
-                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[140px]">
+                  <div className="text-[10px] uppercase font-bold text-gray-400">Pickup Station</div>
+                  <div className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate max-w-[140px]">
                     {selectedStop?.name || "Select Pickup Stop"}
                   </div>
                   {shortestPath && (
-                    <div className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                    <div className="text-[10px] font-mono text-blue-600 dark:text-blue-400 font-bold">
                       ~{shortestPath.totalEstimatedMins}m transit corridor
                     </div>
                   )}
@@ -977,40 +977,40 @@ export default function ShiftBookingView({
 
               {/* Passenger & Emergency Contact Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-center gap-3">
+                <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl flex items-center gap-3">
                   {activeStudent?.photoUrl ? (
                     <img
                       src={activeStudent.photoUrl}
                       alt={activeStudent.fullName}
-                      className="w-10 h-12 rounded-lg object-cover border border-slate-300 dark:border-slate-700 shadow-xs flex-shrink-0"
+                      className="w-10 h-12 rounded-lg object-cover border border-gray-300 dark:border-gray-700 shadow-xs flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-12 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 text-slate-400">
+                    <div className="w-10 h-12 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0 text-gray-400">
                       <Users className="w-4 h-4" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                    <div className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
                       <span>Passenger</span>
                       {activeStudent?.photoUrl && (
-                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">✓ ID Verified</span>
+                        <span className="text-[9px] font-bold text-green-600 dark:text-green-400">✓ ID Verified</span>
                       )}
                     </div>
-                    <div className="font-bold text-slate-900 dark:text-white truncate">
+                    <div className="font-bold text-gray-900 dark:text-white truncate">
                       {currentUser ? (activeStudent?.fullName || currentUser.fullName) : "Guest Commuter"}
                     </div>
-                    <div className="text-[10px] text-slate-400 font-mono truncate">
+                    <div className="text-[10px] text-gray-400 font-mono truncate">
                       {currentUser ? currentUser.email : "Sign in required to book"}
                     </div>
                   </div>
                 </div>
 
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Guardian / Emergency</div>
-                  <div className="font-bold text-slate-900 dark:text-white truncate">
+                <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl">
+                  <div className="text-[10px] uppercase font-bold text-gray-400">Guardian / Emergency</div>
+                  <div className="font-bold text-gray-900 dark:text-white truncate">
                     {activeStudent?.emergencyContact?.name || "Campus Desk"}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono truncate">
+                  <div className="text-[10px] text-gray-400 font-mono truncate">
                     {activeStudent?.emergencyContact?.phone || "—"}
                   </div>
                 </div>
@@ -1018,30 +1018,30 @@ export default function ShiftBookingView({
 
               {/* Final Book Button / Active State */}
               {userExistingBooking && isExistingOnDifferentBus ? (
-                <div className="p-4 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-300 dark:border-amber-700/60 space-y-3">
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-950/40 rounded-2xl border border-yellow-300 dark:border-yellow-700/60 space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <div className="w-9 h-9 rounded-xl bg-yellow-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
                       <Lock className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
-                      <div className="text-xs font-black text-amber-900 dark:text-amber-200 uppercase tracking-wide flex items-center gap-1.5">
+                      <div className="text-xs font-black text-yellow-900 dark:text-yellow-200 uppercase tracking-wide flex items-center gap-1.5">
                         <span>Shift Booking Locked</span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-yellow-200/80 dark:bg-yellow-900/60 text-yellow-900 dark:text-yellow-200">
                           1 Seat Per Shift Limit
                         </span>
                       </div>
-                      <p className="text-xs text-amber-800 dark:text-amber-300/90 leading-relaxed">
-                        You already hold a confirmed reservation on <span className="font-bold text-slate-900 dark:text-white">Bus {existingReservedBus?.busNumber}</span> {userExistingBooking.seatNumber ? `(Seat ${userExistingBooking.seatNumber})` : ""} for this {selectedShift?.name || "shift"}. To book a seat on <span className="font-bold text-slate-900 dark:text-white">{bus?.busNumber}</span>, cancel your existing seat reservation first.
+                      <p className="text-xs text-yellow-800 dark:text-yellow-300/90 leading-relaxed">
+                        You already hold a confirmed reservation on <span className="font-bold text-gray-900 dark:text-white">Bus {existingReservedBus?.busNumber}</span> {userExistingBooking.seatNumber ? `(Seat ${userExistingBooking.seatNumber})` : ""} for this {selectedShift?.name || "shift"}. To book a seat on <span className="font-bold text-gray-900 dark:text-white">{bus?.busNumber}</span>, cancel your existing seat reservation first.
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-200 dark:border-amber-800/60">
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-yellow-200 dark:border-yellow-800/60">
                     {existingReservedBus && (
                       <button
                         type="button"
                         onClick={() => setSelectedBusId(existingReservedBus.id)}
-                        className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 shadow-xs transition-all"
+                        className="px-3.5 py-2 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold rounded-xl border border-gray-300 dark:border-gray-700 flex items-center gap-1.5 shadow-xs transition-all"
                       >
                         <BusFront className="w-3.5 h-3.5 text-blue-600" />
                         <span>Switch View to Bus {existingReservedBus.busNumber}</span>
@@ -1051,7 +1051,7 @@ export default function ShiftBookingView({
                       type="button"
                       onClick={() => handleCancelBooking(userExistingBooking.id)}
                       disabled={isBookingLoading}
-                      className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition-transform active:scale-95 disabled:opacity-50"
+                      className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition-transform active:scale-95 disabled:opacity-50"
                     >
                       {isBookingLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
                       <span>Cancel Seat on {existingReservedBus?.busNumber || "Bus"} to Switch</span>
@@ -1059,16 +1059,16 @@ export default function ShiftBookingView({
                   </div>
                 </div>
               ) : userExistingBooking ? (
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-300 dark:border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="p-4 bg-green-50 dark:bg-green-950/40 rounded-2xl border border-green-300 dark:border-green-800 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div className="space-y-0.5 text-center sm:text-left">
-                    <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <div className="text-xs font-bold text-green-900 dark:text-green-200 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
                       <span>Seat Reservation Confirmed & Ready!</span>
                     </div>
-                    <div className="text-sm font-black text-emerald-700 dark:text-emerald-400">
+                    <div className="text-sm font-black text-green-700 dark:text-green-400">
                       {userExistingBooking.status === "BOARDED" ? "Boarded / Present ✓" : userExistingBooking.status} {userExistingBooking.seatNumber ? `(Physical Seat ${userExistingBooking.seatNumber})` : ""}
                     </div>
-                    <div className="text-[11px] text-slate-500 font-mono">
+                    <div className="text-[11px] text-gray-500 font-mono">
                       Confirmation email & dynamic QR pass generated
                     </div>
                   </div>
@@ -1076,21 +1076,21 @@ export default function ShiftBookingView({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setIsQRModalOpen(true)}
-                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-transform active:scale-95"
+                      className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-transform active:scale-95"
                     >
                       <QrCode className="w-4 h-4" />
                       Show QR Pass
                     </button>
                     <Link
                       href="/portal/pass"
-                      className="px-3.5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl shadow-sm"
+                      className="px-3.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl shadow-sm"
                     >
                       Pass & Billing
                     </Link>
                     <button
                       onClick={() => handleCancelBooking(userExistingBooking.id)}
                       disabled={isBookingLoading}
-                      className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-300 dark:border-rose-900 disabled:opacity-50"
+                      className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400 text-xs font-bold rounded-xl border border-red-300 dark:border-red-900 disabled:opacity-50"
                     >
                       {isBookingLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Cancel"}
                     </button>
@@ -1099,7 +1099,7 @@ export default function ShiftBookingView({
               ) : !currentUser ? (
                 <Link
                   href="/login?redirect=/portal/booking"
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 via-teal-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 via-green-600 to-blue-600 hover:from-blue-700 hover:to-blue-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Sign In to Confirm Seat Reservation ({selectedSeatNumber || "1A"}) →</span>
@@ -1107,7 +1107,7 @@ export default function ShiftBookingView({
               ) : isCutoffPassed ? (
                 <button
                   disabled
-                  className="w-full py-4 bg-amber-100 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-extrabold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-yellow-100 dark:bg-yellow-950/50 border border-yellow-300 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 font-extrabold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <AlertCircle className="w-4 h-4" />
                   <span>Manifest Locked — Booking Closed for this Shift</span>
@@ -1115,7 +1115,7 @@ export default function ShiftBookingView({
               ) : isFull ? (
                 <button
                   disabled
-                  className="w-full py-4 bg-slate-200 dark:bg-slate-800 text-slate-400 font-extrabold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-gray-200 dark:bg-gray-800 text-gray-400 font-extrabold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <AlertCircle className="w-4 h-4" />
                   <span>Bus Fully Booked — Please Select Alternate Shift</span>
@@ -1124,7 +1124,7 @@ export default function ShiftBookingView({
                 shiftEligibility.pendingRequest ? (
                   <button
                     disabled
-                    className="w-full py-4 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-extrabold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-yellow-100 dark:bg-yellow-950/60 border border-yellow-300 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 font-extrabold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Clock className="w-4 h-4 animate-spin" />
                     <span>Gate-Pass Pending Teacher Approval</span>
@@ -1133,7 +1133,7 @@ export default function ShiftBookingView({
                   <button
                     type="button"
                     onClick={() => setIsEmergencyModalOpen(true)}
-                    className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-amber-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
+                    className="w-full py-4 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-yellow-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
                   >
                     <FileText className="w-4 h-4" />
                     <span>Request Teacher Gate-Pass to Book {selectedShift?.name || "Shift"}</span>
@@ -1143,7 +1143,7 @@ export default function ShiftBookingView({
                 <button
                   onClick={handleBook}
                   disabled={isBookingLoading}
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 via-teal-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 via-green-600 to-blue-600 hover:from-blue-700 hover:to-blue-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isBookingLoading ? (
                     <>
@@ -1163,34 +1163,34 @@ export default function ShiftBookingView({
             </div>
 
             {/* Institutional Cancellation & Reservation Policy Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
+              <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
                 <Shield className="w-4 h-4 text-blue-600" />
                 Seat Reservation & Cancellation Policy
               </h4>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <thead className="bg-gray-50 dark:bg-gray-800/60 uppercase font-bold text-gray-400 border-b border-gray-200 dark:border-gray-800">
                     <tr>
                       <th className="p-3">Timeline Prior to Departure</th>
                       <th className="p-3">Action & Policy</th>
                       <th className="p-3">Seat Inventory Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-gray-700 dark:text-gray-300">
                     <tr>
-                      <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">&gt; 45 Minutes</td>
+                      <td className="p-3 font-mono font-bold text-green-600 dark:text-green-400">&gt; 45 Minutes</td>
                       <td className="p-3">Free cancellation with zero strike penalty</td>
                       <td className="p-3">Seat released immediately back to available shift inventory</td>
                     </tr>
                     <tr>
-                      <td className="p-3 font-mono font-bold text-amber-600 dark:text-amber-400">15 - 45 Minutes</td>
+                      <td className="p-3 font-mono font-bold text-yellow-600 dark:text-yellow-400">15 - 45 Minutes</td>
                       <td className="p-3">Late release recorded to student record</td>
                       <td className="p-3">Seat opened for immediate last-minute student booking</td>
                     </tr>
                     <tr>
-                      <td className="p-3 font-mono font-bold text-rose-600 dark:text-rose-400">&lt; 15 Minutes (Finalized)</td>
+                      <td className="p-3 font-mono font-bold text-red-600 dark:text-red-400">&lt; 15 Minutes (Finalized)</td>
                       <td className="p-3">Manifest locked for Conductor Console verification</td>
                       <td className="p-3">Marked as NO_SHOW if unboarded</td>
                     </tr>
@@ -1208,7 +1208,7 @@ export default function ShiftBookingView({
           <div className="relative w-full max-w-md">
             <button
               onClick={() => setIsQRModalOpen(false)}
-              className="absolute -top-3 -right-3 z-30 w-9 h-9 rounded-full bg-slate-900 border border-slate-700 text-white flex items-center justify-center hover:bg-slate-800 shadow-xl"
+              className="absolute -top-3 -right-3 z-30 w-9 h-9 rounded-full bg-gray-900 border border-gray-700 text-white flex items-center justify-center hover:bg-gray-800 shadow-xl"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1230,18 +1230,18 @@ export default function ShiftBookingView({
 
       {/* EMERGENCY EARLY DEPARTURE GATE-PASS REQUEST MODAL */}
       {isEmergencyModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="fixed inset-0 z-50 bg-gray-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-yellow-100 dark:bg-yellow-950 text-yellow-600 flex items-center justify-center font-bold">
                   <GraduationCap className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                  <h3 className="font-bold text-sm text-gray-900 dark:text-white">
                     Emergency Early Departure Gate-Pass
                   </h3>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-gray-400">
                     Requests are routed directly to your allocated Class Teacher
                   </p>
                 </div>
@@ -1249,29 +1249,29 @@ export default function ShiftBookingView({
               <button
                 type="button"
                 onClick={() => setIsEmergencyModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center"
+                className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-1">
-                <div className="font-bold text-slate-800 dark:text-slate-200">
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/60 space-y-1">
+                <div className="font-bold text-gray-800 dark:text-gray-200">
                   Target Shift: {selectedShift?.name}
                 </div>
-                <div className="text-slate-500 text-[11px]">
+                <div className="text-gray-500 text-[11px]">
                   Scheduled Timing: {selectedShift?.startTime} – {selectedShift?.endTime}
                 </div>
                 {shiftEligibility?.isShiftRestricted && (
-                  <div className="text-amber-600 dark:text-amber-400 text-[11px] font-semibold">
+                  <div className="text-yellow-600 dark:text-yellow-400 text-[11px] font-semibold">
                     Shift Restricted by Administration for {shiftEligibility.className || "Your Section"}
                   </div>
                 )}
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
                   Emergency Reason *
                 </label>
                 <textarea
@@ -1280,7 +1280,7 @@ export default function ShiftBookingView({
                   placeholder="Explain your emergency reason (e.g. medical appointment, urgent family matter, etc.)"
                   value={emergencyReason}
                   onChange={(e) => setEmergencyReason(e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                  className="w-full text-xs p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-yellow-500"
                 />
               </div>
 
@@ -1288,7 +1288,7 @@ export default function ShiftBookingView({
                 <button
                   type="button"
                   onClick={() => setIsEmergencyModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                  className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   Cancel
                 </button>
@@ -1326,7 +1326,7 @@ export default function ShiftBookingView({
                       setIsSubmittingEmergency(false);
                     }
                   }}
-                  className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmittingEmergency ? "Submitting..." : "Submit to Teacher"}
                 </button>

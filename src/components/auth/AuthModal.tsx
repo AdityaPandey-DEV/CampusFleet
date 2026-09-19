@@ -110,11 +110,11 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-slate-900 dark:text-white">
+      <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-gray-900 dark:text-white">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -125,13 +125,13 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
             <ShieldCheck className="w-6 h-6" />
           </div>
           <h2 className="text-xl font-black tracking-tight">Institutional Gateway Login</h2>
-          <p className="text-xs text-slate-500 max-w-xs mx-auto">
+          <p className="text-xs text-gray-500 max-w-xs mx-auto">
             CampusFleet Auth • Google SSO & Email Verification
           </p>
         </div>
 
         {errorMessage && (
-          <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl text-xs text-rose-600 flex items-center gap-2">
+          <div className="p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-2xl text-xs text-red-600 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{errorMessage}</span>
           </div>
@@ -144,7 +144,7 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
             <button
               onClick={handleGoogleLogin}
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-800 dark:text-white font-bold text-xs rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+              className="w-full py-3 px-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/80 text-gray-800 dark:text-white font-bold text-xs rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -168,8 +168,8 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
             </button>
 
             <div className="relative flex items-center justify-center my-2">
-              <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
-              <span className="bg-white dark:bg-slate-900 px-3 text-[10px] uppercase font-bold text-slate-400 absolute">
+              <div className="border-t border-gray-200 dark:border-gray-800 w-full" />
+              <span className="bg-white dark:bg-gray-900 px-3 text-[10px] uppercase font-bold text-gray-400 absolute">
                 Or Email OTP
               </span>
             </div>
@@ -177,18 +177,18 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
             {/* Email Form */}
             <form onSubmit={handleSendOtp} className="space-y-3">
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   Campus Email Address
                 </label>
                 <div className="relative mt-1">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
                   <input
                     type="email"
                     required
                     placeholder="student@campus.edu or your.email@gmail.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full text-xs pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                    className="w-full text-xs pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none"
                   />
                 </div>
               </div>
@@ -213,7 +213,7 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
                 Verification code sent to:
               </p>
               <p className="text-xs font-mono font-bold text-blue-900 dark:text-blue-200">{email}</p>
-              <p className="text-[10px] text-slate-400">Enter the 6-digit passcode sent to your inbox</p>
+              <p className="text-[10px] text-gray-400">Enter the 6-digit passcode sent to your inbox</p>
             </div>
 
             <div className="flex justify-between gap-1.5">
@@ -225,7 +225,7 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
                   maxLength={1}
                   value={digit}
                   onChange={e => handleOtpChange(idx, e.target.value)}
-                  className="w-11 h-12 text-center font-mono font-black text-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  className="w-11 h-12 text-center font-mono font-black text-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
               ))}
             </div>
@@ -241,7 +241,7 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
             <button
               type="button"
               onClick={() => setAuthStep("SELECT")}
-              className="w-full text-center text-xs text-slate-400 hover:text-slate-600 font-bold"
+              className="w-full text-center text-xs text-gray-400 hover:text-gray-600 font-bold"
             >
               ← Use a different method or email
             </button>
@@ -251,11 +251,11 @@ export function AuthModal({ isOpen, onClose, initialRole = "student" }: AuthModa
         {/* STEP 3: Success */}
         {authStep === "SUCCESS" && (
           <div className="text-center py-6 space-y-3 animate-in zoom-in-95">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-md shadow-emerald-500/20">
+            <div className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-950/60 text-green-600 dark:text-green-400 flex items-center justify-center mx-auto shadow-md shadow-green-500/20">
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <h3 className="font-black text-lg">Authentication Verified!</h3>
-            <p className="text-xs text-slate-500">Redirecting to your institutional portal...</p>
+            <p className="text-xs text-gray-500">Redirecting to your institutional portal...</p>
           </div>
         )}
       </div>

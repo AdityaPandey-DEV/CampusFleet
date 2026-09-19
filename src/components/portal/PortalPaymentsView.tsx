@@ -204,28 +204,28 @@ export default function PortalPaymentsView({
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
             <CreditCard className="w-7 h-7 text-blue-600" />
             Transit Pass & Billing
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             Secure your semester transit subscription using Razorpay online checkout.
           </p>
         </div>
 
         <div>
           {isPassApproved ? (
-            <span className="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 font-bold text-xs flex items-center gap-1.5 shadow-sm">
+            <span className="px-4 py-2 rounded-xl bg-green-50 border border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-700 dark:text-green-400 font-bold text-xs flex items-center gap-1.5 shadow-sm">
               <ShieldCheck className="w-4 h-4" />
               Active Pass ({remainingDays}d left)
             </span>
           ) : isSubscriptionExpired ? (
-            <span className="px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 text-amber-700 dark:text-amber-400 font-bold text-xs flex items-center gap-1.5 shadow-sm">
+            <span className="px-4 py-2 rounded-xl bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 font-bold text-xs flex items-center gap-1.5 shadow-sm">
               <AlertTriangle className="w-4 h-4" />
               Pass Expired • Renewal Needed
             </span>
           ) : (
-            <span className="px-4 py-2 rounded-xl bg-rose-50 border border-rose-200 dark:bg-rose-900/30 dark:border-rose-800 text-rose-700 dark:text-rose-400 font-bold text-xs flex items-center gap-1.5 shadow-sm">
+            <span className="px-4 py-2 rounded-xl bg-red-50 border border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-700 dark:text-red-400 font-bold text-xs flex items-center gap-1.5 shadow-sm">
               <Lock className="w-4 h-4" />
               Payment Required For Access
             </span>
@@ -234,33 +234,33 @@ export default function PortalPaymentsView({
       </div>
 
       {/* Main Status Hero Card (Flat Design) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col md:flex-row">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col md:flex-row">
         <div className="flex-1 p-6 sm:p-8 space-y-4">
-           <div className="text-xs uppercase font-bold tracking-wider text-slate-500 flex items-center gap-2">
+           <div className="text-xs uppercase font-bold tracking-wider text-gray-500 flex items-center gap-2">
              <Compass className="w-4 h-4 text-blue-500" />
              {currentZone.name}
            </div>
-           <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+           <div className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
              {isPassApproved ? "Academic Term Transit Pass" : "Semester Transit Access"}
            </div>
-           <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
+           <p className="text-sm text-gray-500 max-w-xl leading-relaxed">
              {currentZone.corridorDescription}. Covers morning, afternoon, and evening shifts to the campus.
            </p>
-           <div className="flex flex-wrap items-center gap-4 pt-2 text-sm text-slate-600 dark:text-slate-400">
+           <div className="flex flex-wrap items-center gap-4 pt-2 text-sm text-gray-600 dark:text-gray-400">
              <span>Semester Fee: <strong>{formatCurrency(currentZone.semesterFee)}</strong></span>
-             <span className="text-slate-300 dark:text-slate-700">•</span>
+             <span className="text-gray-300 dark:text-gray-700">•</span>
              <span>Paid Amount: <strong>{formatCurrency(currentPaid)}</strong></span>
            </div>
         </div>
 
-        <div className="bg-slate-50 dark:bg-slate-950/50 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 p-6 sm:p-8 flex flex-col justify-center items-center text-center min-w-[240px]">
-           <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
+        <div className="bg-gray-50 dark:bg-gray-950/50 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-800 p-6 sm:p-8 flex flex-col justify-center items-center text-center min-w-[240px]">
+           <div className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
              Pass Status
            </div>
-           <div className={`text-xl font-black mt-1 ${isPassApproved ? "text-emerald-600" : "text-rose-600"}`}>
+           <div className={`text-xl font-black mt-1 ${isPassApproved ? "text-green-600" : "text-red-600"}`}>
              {isPassApproved ? "UNLOCKED" : "LOCKED"}
            </div>
-           <div className="text-xs text-slate-500 mt-2 font-medium">
+           <div className="text-xs text-gray-500 mt-2 font-medium">
              {isPassApproved
                ? `Valid until ${formatDate(activeStudent?.subscriptionExpiryDate || "2026-12-31")}`
                : "Payment required for access"}
@@ -269,13 +269,13 @@ export default function PortalPaymentsView({
       </div>
 
       {submitError && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 text-sm rounded-xl flex items-center gap-2 shadow-sm">
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-xl flex items-center gap-2 shadow-sm">
           <AlertTriangle className="w-5 h-5 flex-shrink-0" /> {submitError}
         </div>
       )}
 
       {submitSuccess && (
-        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-sm rounded-xl flex items-center gap-2 shadow-sm">
+        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm rounded-xl flex items-center gap-2 shadow-sm">
           <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> {submitSuccess}
         </div>
       )}
@@ -284,81 +284,81 @@ export default function PortalPaymentsView({
         <div className="space-y-6">
           {/* Specifications Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
-              <div className="text-xs font-bold uppercase text-slate-500">Validity</div>
-              <div className="text-sm font-black text-slate-900 dark:text-white">
+            <div className="p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-2 shadow-sm">
+              <div className="text-xs font-bold uppercase text-gray-500">Validity</div>
+              <div className="text-sm font-black text-gray-900 dark:text-white">
                 {formatDate(activeStudent?.subscriptionExpiryDate || "2026-12-31")}
               </div>
             </div>
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
-              <div className="text-xs font-bold uppercase text-slate-500">Corridor</div>
-              <div className="text-sm font-black text-slate-900 dark:text-white">
+            <div className="p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-2 shadow-sm">
+              <div className="text-xs font-bold uppercase text-gray-500">Corridor</div>
+              <div className="text-sm font-black text-gray-900 dark:text-white">
                 {currentZone.name}
               </div>
             </div>
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
-              <div className="text-xs font-bold uppercase text-slate-500">Commuter</div>
-              <div className="text-sm font-black text-slate-900 dark:text-white truncate">
+            <div className="p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-2 shadow-sm">
+              <div className="text-xs font-bold uppercase text-gray-500">Commuter</div>
+              <div className="text-sm font-black text-gray-900 dark:text-white truncate">
                 {activeStudent?.fullName || currentUser?.fullName}
               </div>
             </div>
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm flex flex-col justify-center items-center bg-blue-50/50 dark:bg-blue-900/10 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors" onClick={() => window.print()}>
+            <div className="p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-2 shadow-sm flex flex-col justify-center items-center bg-blue-50/50 dark:bg-blue-900/10 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors" onClick={() => window.print()}>
               <Printer className="w-6 h-6 text-blue-600 mb-1" />
               <div className="text-xs font-bold text-blue-700 dark:text-blue-400">Print Certificate</div>
             </div>
           </div>
 
           <div className="pt-4 space-y-3">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
               Operational Portals
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link href="/portal" className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 bg-white dark:bg-slate-900 flex items-center justify-between group transition-all shadow-sm">
+              <Link href="/portal" className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-blue-500 bg-white dark:bg-gray-900 flex items-center justify-between group transition-all shadow-sm">
                 <div className="flex items-center gap-3">
-                  <BusFront className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">Cockpit</span>
+                  <BusFront className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Cockpit</span>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600" />
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600" />
               </Link>
-              <Link href="/portal/booking" className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 bg-white dark:bg-slate-900 flex items-center justify-between group transition-all shadow-sm">
+              <Link href="/portal/booking" className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-blue-500 bg-white dark:bg-gray-900 flex items-center justify-between group transition-all shadow-sm">
                 <div className="flex items-center gap-3">
-                  <CalendarCheck className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">Booking</span>
+                  <CalendarCheck className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Booking</span>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600" />
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600" />
               </Link>
-              <Link href="/portal/pass" className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 bg-white dark:bg-slate-900 flex items-center justify-between group transition-all shadow-sm">
+              <Link href="/portal/pass" className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-blue-500 bg-white dark:bg-gray-900 flex items-center justify-between group transition-all shadow-sm">
                 <div className="flex items-center gap-3">
-                  <QrCode className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">QR Pass</span>
+                  <QrCode className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">QR Pass</span>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600" />
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600" />
               </Link>
-              <Link href="/portal/tracker" className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 bg-white dark:bg-slate-900 flex items-center justify-between group transition-all shadow-sm">
+              <Link href="/portal/tracker" className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-blue-500 bg-white dark:bg-gray-900 flex items-center justify-between group transition-all shadow-sm">
                 <div className="flex items-center gap-3">
-                  <Compass className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">Radar</span>
+                  <Compass className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Radar</span>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600" />
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600" />
               </Link>
             </div>
           </div>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center space-y-5">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 sm:p-10 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-5">
            <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
              <ShieldCheck className="w-8 h-8 text-blue-600" />
            </div>
            <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Instant Account Activation</h2>
-              <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Instant Account Activation</h2>
+              <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
                 Pay securely using Razorpay (UPI, Cards, Netbanking). Your transit pass will be unlocked instantly upon verification.
               </p>
            </div>
            
-           <div className="w-full max-w-sm p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center my-2">
-             <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Total Amount Due</span>
-             <span className="text-lg font-black text-slate-900 dark:text-white">{formatCurrency(amountToPay)}</span>
+           <div className="w-full max-w-sm p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 flex justify-between items-center my-2">
+             <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Total Amount Due</span>
+             <span className="text-lg font-black text-gray-900 dark:text-white">{formatCurrency(amountToPay)}</span>
            </div>
 
            <button
@@ -379,20 +379,20 @@ export default function PortalPaymentsView({
 
       {/* Payment History */}
       {paymentHistory.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-400" />
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gray-400" />
               Transaction History
             </h3>
-            <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
+            <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">
               {paymentHistory.length} records
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
+          <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-semibold border-b border-slate-100 dark:border-slate-800">
+              <thead className="bg-gray-50 dark:bg-gray-950 text-gray-500 font-semibold border-b border-gray-100 dark:border-gray-800">
                 <tr>
                   <th className="p-4">Date</th>
                   <th className="p-4">Transaction ID</th>
@@ -400,28 +400,28 @@ export default function PortalPaymentsView({
                   <th className="p-4">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {paymentHistory.map((sub: any) => (
-                  <tr key={sub.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                    <td className="p-4 text-slate-600 dark:text-slate-400 text-xs">
+                  <tr key={sub.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/20">
+                    <td className="p-4 text-gray-600 dark:text-gray-400 text-xs">
                       {new Date(sub.created_at).toLocaleString(undefined, {
                         dateStyle: 'medium',
                         timeStyle: 'short'
                       })}
                     </td>
-                    <td className="p-4 font-mono text-xs text-slate-700 dark:text-slate-300">
+                    <td className="p-4 font-mono text-xs text-gray-700 dark:text-gray-300">
                       {sub.transaction_id}
                     </td>
-                    <td className="p-4 font-bold text-slate-900 dark:text-white">
+                    <td className="p-4 font-bold text-gray-900 dark:text-white">
                       {formatCurrency(sub.amount)}
                     </td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] uppercase ${
                         sub.status === "APPROVED" 
-                          ? "bg-emerald-50 text-emerald-600 border border-emerald-200" 
+                          ? "bg-green-50 text-green-600 border border-green-200" 
                           : sub.status === "REJECTED"
-                          ? "bg-rose-50 text-rose-600 border border-rose-200"
-                          : "bg-amber-50 text-amber-600 border border-amber-200"
+                          ? "bg-red-50 text-red-600 border border-red-200"
+                          : "bg-yellow-50 text-yellow-600 border border-yellow-200"
                       }`}>
                         {sub.status}
                       </span>

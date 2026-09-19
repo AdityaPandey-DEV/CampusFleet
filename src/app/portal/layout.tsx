@@ -96,20 +96,20 @@ export default function StudentPortalLayout({
     const roleTitle = role.toUpperCase();
 
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-2xl text-center space-y-4 animate-in fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-gray-900 rounded-3xl p-8 border border-gray-800 shadow-2xl text-center space-y-4 animate-in fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center mx-auto">
             <ShieldAlert className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-black">Student Portal Restricted</h2>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-xs text-gray-400 leading-relaxed">
             You are signed in as <strong>{currentUser.fullName}</strong> with role{" "}
-            <span className="text-purple-400 font-bold uppercase">{roleTitle}</span>. The Student Portal is strictly reserved for enrolled students.
+            <span className="text-pink-400 font-bold uppercase">{roleTitle}</span>. The Student Portal is strictly reserved for enrolled students.
           </p>
           <div className="pt-2">
             <Link
               href={targetRoute}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-black shadow-lg shadow-purple-600/30 transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-pink-600 to-blue-600 hover:from-pink-700 hover:to-blue-700 text-white text-xs font-black shadow-lg shadow-pink-600/30 transition-all active:scale-95"
             >
               <span>Switch to {roleTitle} Console ({targetRoute})</span>
               <ArrowRight className="w-4 h-4" />
@@ -142,7 +142,7 @@ export default function StudentPortalLayout({
   }));
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col pb-20 md:pb-6 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col pb-20 md:pb-6 overflow-x-hidden">
       {/* Zero-Overflow Unified Header with Vertical Slide-Down Command Panel */}
       <UnifiedAppHeader
         role="student"
@@ -171,39 +171,39 @@ export default function StudentPortalLayout({
       {/* Main Content Container with Top-to-Down Progressive Flow */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         {isAccessBlocked ? (
-          <div className="max-w-2xl mx-auto my-10 p-6 sm:p-10 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl text-center space-y-6 animate-in zoom-in-95">
-            <div className="w-16 h-16 rounded-3xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+          <div className="max-w-2xl mx-auto my-10 p-6 sm:p-10 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-2xl text-center space-y-6 animate-in zoom-in-95">
+            <div className="w-16 h-16 rounded-3xl bg-red-100 dark:bg-red-950/60 text-red-600 flex items-center justify-center mx-auto shadow-inner">
               <Lock className="w-8 h-8" />
             </div>
 
             <div className="space-y-2">
-              <div className="inline-block text-[11px] font-extrabold uppercase px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
+              <div className="inline-block text-[11px] font-extrabold uppercase px-3 py-1 rounded-full bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300">
                 Transport Pass Inactive • Payment Required
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
                 Semester Transit Access Locked
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+              <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
                 Without verified transit fee payment, seat booking, digital dynamic QR pass, and live fleet telematics are restricted.
               </p>
             </div>
 
             {activeStudent?.paymentStatus === "PENDING_APPROVAL" ? (
-              <div className="p-4 bg-amber-50 dark:bg-amber-950/60 rounded-2xl border border-amber-200 dark:border-amber-800 text-left space-y-1">
-                <div className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-950/60 rounded-2xl border border-yellow-200 dark:border-yellow-800 text-left space-y-1">
+                <div className="text-xs font-bold text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-yellow-500 animate-ping" />
                   Receipt Uploaded — Awaiting Transport Staff Verification
                 </div>
-                <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                <p className="text-[11px] text-yellow-700 dark:text-yellow-400">
                   Your payment receipt has been uploaded and is queued for verification by the university transport desk.
                 </p>
               </div>
             ) : (
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-left space-y-2">
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <div className="p-4 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 text-left space-y-2">
+                <div className="text-xs font-bold text-gray-700 dark:text-gray-300">
                   How to Unlock Your Transit Pass:
                 </div>
-                <ol className="text-[11px] text-slate-500 space-y-1 list-decimal list-inside">
+                <ol className="text-[11px] text-gray-500 space-y-1 list-decimal list-inside">
                   <li>Choose your residential transit zone and installment option.</li>
                   <li>Scan the university payment QR code and pay via UPI.</li>
                   <li>Upload your payment screenshot — OCR will extract your transaction ID.</li>
@@ -215,7 +215,7 @@ export default function StudentPortalLayout({
             <div className="pt-2">
               <Link
                 href="/portal/payments"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-extrabold text-sm shadow-lg shadow-blue-500/25 transition-transform active:scale-95"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-extrabold text-sm shadow-lg shadow-blue-500/25 transition-transform active:scale-95"
               >
                 <CreditCard className="w-4 h-4" />
                 <span>Go to Pass & Fee Payment Gateway →</span>

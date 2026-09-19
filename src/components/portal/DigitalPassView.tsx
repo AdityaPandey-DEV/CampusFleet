@@ -189,25 +189,25 @@ export default function DigitalPassView({
       <div className="flex items-center justify-between">
         <Link
           href="/portal"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back to My Commute
         </Link>
-        <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 flex items-center gap-1.5 shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           Official Academic Transit Pass
         </span>
       </div>
 
       {/* When Signed Out */}
       {!currentUser ? (
-        <div className="text-center py-12 p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+        <div className="text-center py-12 p-6 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 space-y-4 shadow-sm">
           <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/80 rounded-2xl flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400">
             <QrCode className="w-8 h-8" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-lg font-black text-slate-900 dark:text-white">Sign In Required</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+            <h3 className="text-lg font-black text-gray-900 dark:text-white">Sign In Required</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
               Please sign in with your university account to display your live cryptographic digital boarding pass.
             </p>
           </div>
@@ -224,17 +224,17 @@ export default function DigitalPassView({
         /* ========================================================================= */
         <div className="space-y-6">
           {/* Main Wallet Card */}
-          <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             {/* Top Color Header Strip */}
             <div
               className={`p-5 text-white flex items-center justify-between ${
                 isBoarded
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-700"
+                  ? "bg-gradient-to-r from-green-600 to-green-700"
                   : isStandingPassenger
-                  ? "bg-gradient-to-r from-purple-700 via-indigo-700 to-amber-700"
+                  ? "bg-gradient-to-r from-pink-700 via-blue-700 to-yellow-700"
                   : isWaitlisted
-                  ? "bg-gradient-to-r from-amber-600 to-amber-700"
-                  : "bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600"
+                  ? "bg-gradient-to-r from-yellow-600 to-yellow-700"
+                  : "bg-gradient-to-r from-blue-600 via-blue-600 to-green-600"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -261,36 +261,36 @@ export default function DigitalPassView({
             </div>
 
             {/* Middle Section: Route & Huge Seat Callout */}
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800/80 space-y-4">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-800/80 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                  <span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">
                     Boarding Stop
                   </span>
-                  <div className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-1.5 mt-0.5">
+                  <div className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-1.5 mt-0.5">
                     <MapPin className="w-4 h-4 text-blue-600" />
                     <span>{stop?.name || "Panchakki"}</span>
                   </div>
-                  <div className="text-xs text-slate-500 font-mono mt-0.5">
+                  <div className="text-xs text-gray-500 font-mono mt-0.5">
                     Shift: {shift?.name || "Morning Inbound"} ({formatTime(shift?.startTime || "07:30")})
                   </div>
                 </div>
 
                 {/* Big Seat Badge */}
                 <div className="text-right">
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                  <span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">
                     {isStandingPassenger ? "Pass Type" : "Assigned Seat"}
                   </span>
                   <div
                     className={`text-3xl font-black font-mono tracking-tight mt-0.5 ${
                       isStandingPassenger
-                        ? "text-purple-600 dark:text-purple-400"
+                        ? "text-pink-600 dark:text-pink-400"
                         : "text-blue-600 dark:text-blue-400"
                     }`}
                   >
                     {isStandingPassenger ? "STAND" : activeBooking.seatNumber || "1A"}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">
+                  <div className="text-[10px] text-gray-400 font-bold uppercase">
                     {isStandingPassenger ? "Till Merge Hub" : "Reserved Chassis"}
                   </div>
                 </div>
@@ -298,8 +298,8 @@ export default function DigitalPassView({
             </div>
 
             {/* QR Core Scanner Box */}
-            <div className="p-6 bg-slate-50/50 dark:bg-slate-950/40 text-center space-y-4">
-              <div className="inline-block p-4 bg-white rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800">
+            <div className="p-6 bg-gray-50/50 dark:bg-gray-950/40 text-center space-y-4">
+              <div className="inline-block p-4 bg-white rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800">
                 <QRCodeSVG
                   value={qrPayload}
                   size={200}
@@ -317,11 +317,11 @@ export default function DigitalPassView({
               </div>
 
               <div className="space-y-1">
-                <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 tracking-wider">
+                <div className="text-xs font-mono font-bold text-gray-700 dark:text-gray-300 tracking-wider">
                   {activeBooking.bookingCode || "GEHU-PASS-01"}
                 </div>
-                <div className="text-[10px] text-slate-400 flex items-center justify-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <div className="text-[10px] text-gray-400 flex items-center justify-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
                   <span>Dynamic Cryptographic Token • Verified Conductor Scan</span>
                 </div>
               </div>
@@ -330,7 +330,7 @@ export default function DigitalPassView({
               <div className="pt-1">
                 <button
                   onClick={() => setIsFullScreen(true)}
-                  className="px-5 py-2.5 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-extrabold shadow-md flex items-center gap-2 mx-auto transition-transform active:scale-95 cursor-pointer"
+                  className="px-5 py-2.5 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-950 text-xs font-extrabold shadow-md flex items-center gap-2 mx-auto transition-transform active:scale-95 cursor-pointer"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                   <span>Enlarge for Conductor Scanner</span>
@@ -339,22 +339,22 @@ export default function DigitalPassView({
             </div>
 
             {/* Perforated Divider Strip with Side Cutout Circles */}
-            <div className="relative py-2 border-t border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center">
-              <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 bg-slate-50 dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800 shadow-inner" />
-              <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 bg-slate-50 dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800 shadow-inner" />
+            <div className="relative py-2 border-t border-dashed border-gray-200 dark:border-gray-800 flex items-center justify-center">
+              <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-50 dark:bg-gray-950 rounded-full border border-gray-200 dark:border-gray-800 shadow-inner" />
+              <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-50 dark:bg-gray-950 rounded-full border border-gray-200 dark:border-gray-800 shadow-inner" />
             </div>
 
             {/* Bottom Passenger Meta Strip */}
-            <div className="p-5 flex items-center justify-between gap-3 text-xs bg-white dark:bg-slate-900">
+            <div className="p-5 flex items-center justify-between gap-3 text-xs bg-white dark:bg-gray-900">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center font-bold text-xs">
                   <User className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-bold text-slate-900 dark:text-white">
+                  <div className="font-bold text-gray-900 dark:text-white">
                     {activeStudent.fullName}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono">
+                  <div className="text-[10px] text-gray-400 font-mono">
                     Zone {activeStudent.zoneCode || "B"}
                   </div>
                 </div>
@@ -363,14 +363,14 @@ export default function DigitalPassView({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleShareOrPrint}
-                  className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                  className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
                   title="Print / Save Pass"
                 >
                   <Download className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleCancelSeat}
-                  className="px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-900/40 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-[11px] transition-colors cursor-pointer"
+                  className="px-3 py-2 rounded-xl border border-red-200 dark:border-red-900/40 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 font-bold text-[11px] transition-colors cursor-pointer"
                 >
                   Cancel Seat
                 </button>
@@ -379,10 +379,10 @@ export default function DigitalPassView({
           </div>
 
           {/* Quick Bridge to Live Radar Tracker */}
-          <div className="p-4 rounded-3xl bg-gradient-to-r from-blue-900 to-indigo-900 text-white shadow-lg flex items-center justify-between gap-3">
+          <div className="p-4 rounded-3xl bg-gradient-to-r from-blue-900 to-blue-900 text-white shadow-lg flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-white/10 rounded-2xl">
-                <Compass className="w-5 h-5 text-teal-300" />
+                <Compass className="w-5 h-5 text-green-300" />
               </div>
               <div>
                 <div className="text-xs font-bold">Want to see where your bus is right now?</div>
@@ -394,7 +394,7 @@ export default function DigitalPassView({
 
             <Link
               href="/portal"
-              className="px-4 py-2 bg-teal-400 hover:bg-teal-300 text-slate-950 font-black text-xs rounded-xl shadow transition-transform active:scale-95 shrink-0"
+              className="px-4 py-2 bg-green-400 hover:bg-green-300 text-gray-950 font-black text-xs rounded-xl shadow transition-transform active:scale-95 shrink-0"
             >
               Open Live Radar →
             </Link>
@@ -405,22 +405,22 @@ export default function DigitalPassView({
         /* EMPTY STATE: NO ACTIVE PASS (INVITE TO COMMUTE OR CATCH INCOMING BUS)     */
         /* ========================================================================= */
         <div className="space-y-6">
-          <div className="text-center py-10 p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+          <div className="text-center py-10 p-6 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 space-y-4 shadow-sm">
             <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950 rounded-2xl flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400">
               <QrCode className="w-8 h-8" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+              <h3 className="text-lg font-black text-gray-900 dark:text-white">
                 No Active Boarding Pass for Today
               </h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
                 You do not have a confirmed seat reservation for today. Reserve your seat now to generate your dynamic boarding QR pass.
               </p>
             </div>
             <div className="pt-2 flex items-center justify-center gap-3">
               <Link
                 href="/portal"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-blue-500/20 active:scale-95 transition-transform"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-blue-500/20 active:scale-95 transition-transform"
               >
                 <CalendarCheck className="w-4 h-4" />
                 <span>Book Shift & Pick Seat →</span>
@@ -435,7 +435,7 @@ export default function DigitalPassView({
         <div className="pt-2 flex flex-col items-center justify-center space-y-4">
           <button
             onClick={() => setIsScannerOpen(!isScannerOpen)}
-            className="w-full max-w-sm flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-2xl transition-colors"
+            className="w-full max-w-sm flex items-center justify-center gap-2 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-2xl transition-colors"
           >
             <Camera className="w-4 h-4" />
             {isScannerOpen ? "Close Scanner" : "Scan Bus QR to Board"}
@@ -460,14 +460,14 @@ export default function DigitalPassView({
           </button>
 
           <div className="max-w-xs w-full bg-white p-6 rounded-3xl text-center space-y-4 shadow-2xl">
-            <div className="text-slate-900 space-y-0.5">
+            <div className="text-gray-900 space-y-0.5">
               <div className="text-xs font-black uppercase text-blue-600 tracking-wider">
                 {bus?.busNumber || "Campus Bus 44"}
               </div>
               <div className="text-2xl font-black font-mono">
                 {isStandingPassenger ? "PASSENGER: STAND" : `SEAT: ${activeBooking.seatNumber || "1A"}`}
               </div>
-              <div className="text-xs font-bold text-slate-500">
+              <div className="text-xs font-bold text-gray-500">
                 {activeStudent?.fullName} • {stop?.name}
               </div>
             </div>
@@ -481,7 +481,7 @@ export default function DigitalPassView({
               />
             </div>
 
-            <div className="text-[11px] font-mono text-slate-400 font-bold">
+            <div className="text-[11px] font-mono text-gray-400 font-bold">
               Hold screen steady in front of conductor scanner
             </div>
           </div>

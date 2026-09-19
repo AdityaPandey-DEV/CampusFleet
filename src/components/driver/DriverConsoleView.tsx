@@ -273,13 +273,13 @@ export default function DriverConsoleView({
       : "Go to Student Portal";
 
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl text-center space-y-4 animate-in fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-gray-800 rounded-3xl p-8 border border-gray-700 shadow-2xl text-center space-y-4 animate-in fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
             <AlertTriangle className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-black">Access Restricted</h2>
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-gray-300">
             {isAdmin
               ? "Administrators are restricted from the Driver Console. Commercial heavy vehicle driving qualifications are required. Admins can manage operations in Admin Hub or Staff Ops."
               : isStaff
@@ -303,7 +303,7 @@ export default function DriverConsoleView({
   }
 
   return (
-    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-16 font-sans transition-colors duration-200 selection:bg-emerald-600 selection:text-white">
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 pb-16 font-sans transition-colors duration-200 selection:bg-green-600 selection:text-white">
       {/* Zero-Overflow Cockpit Header with Vertical Command Slide */}
       <UnifiedAppHeader
         role="driver"
@@ -318,10 +318,10 @@ export default function DriverConsoleView({
         customActions={
           <Link
             href="/conductor"
-            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-bold transition-all shadow-2xs"
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-pink-50 dark:bg-pink-950/40 hover:bg-pink-100 dark:hover:bg-pink-900/60 border border-pink-200 dark:border-pink-800 text-pink-700 dark:text-pink-300 text-xs font-bold transition-all shadow-2xs"
             title="Switch to Conductor Manifest Console"
           >
-            <FileCheck2 className="w-3.5 h-3.5 text-purple-500" />
+            <FileCheck2 className="w-3.5 h-3.5 text-pink-500" />
             <span>Conductor</span>
           </Link>
         }
@@ -338,20 +338,20 @@ export default function DriverConsoleView({
         )}
 
         {/* Live Trip Status Card */}
-        <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm dark:shadow-xl">
+        <div className="bg-white dark:bg-gray-900/80 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 space-y-4 shadow-sm dark:shadow-xl">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold">
               Trip: {activeTrip?.tripCode || "Standby Mode"}
             </span>
             <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${activeTrip?.status === "IN_PROGRESS" ? "bg-emerald-500 animate-ping" : "bg-amber-500"}`} />
-              <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">{activeTrip?.status || "STANDBY"}</span>
+              <span className={`w-2.5 h-2.5 rounded-full ${activeTrip?.status === "IN_PROGRESS" ? "bg-green-500 animate-ping" : "bg-yellow-500"}`} />
+              <span className="text-xs font-black uppercase text-gray-800 dark:text-gray-200">{activeTrip?.status || "STANDBY"}</span>
             </div>
           </div>
 
           <div>
-            <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">{route?.name || "Campus Shuttle Route"}</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
+            <div className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">{route?.name || "Campus Shuttle Route"}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5" />
               <span>Capacity: {confirmedCount} / {bus?.capacity || 40} Passengers Confirmed</span>
             </div>
@@ -359,12 +359,12 @@ export default function DriverConsoleView({
 
           {/* Direct Express Callout Banner */}
           {directExpressResult.isExpressDirect && (
-            <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700/80 rounded-2xl text-xs space-y-1 animate-in fade-in">
-              <div className="flex items-center gap-1.5 font-black text-emerald-900 dark:text-emerald-200">
-                <Zap className="w-4 h-4 text-emerald-500 fill-current" />
+            <div className="p-3.5 bg-green-50 dark:bg-green-950/80 border border-green-300 dark:border-green-700/80 rounded-2xl text-xs space-y-1 animate-in fade-in">
+              <div className="flex items-center gap-1.5 font-black text-green-900 dark:text-green-200">
+                <Zap className="w-4 h-4 text-green-500 fill-current" />
                 <span>⚡ Direct Express to Campus Activated</span>
               </div>
-              <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+              <div className="text-[11px] text-green-800 dark:text-green-300 font-medium">
                 {directExpressResult.reason}
               </div>
             </div>
@@ -375,7 +375,7 @@ export default function DriverConsoleView({
             {activeTrip?.status !== "IN_PROGRESS" ? (
               <button
                 onClick={handleStartTrip}
-                className="py-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
+                className="py-4 bg-green-600 hover:bg-green-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-green-600/20 transition-all cursor-pointer"
               >
                 <Play className="w-5 h-5 fill-current" />
                 <span>START TRIP</span>
@@ -383,7 +383,7 @@ export default function DriverConsoleView({
             ) : (
               <button
                 onClick={handleEndTrip}
-                className="py-4 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20 transition-all cursor-pointer"
+                className="py-4 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 transition-all cursor-pointer"
               >
                 <Square className="w-5 h-5 fill-current" />
                 <span>END TRIP</span>
@@ -394,7 +394,7 @@ export default function DriverConsoleView({
               onClick={handleAdvanceStop}
               className={`py-4 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
                 directExpressResult.isExpressDirect
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/25"
+                  ? "bg-gradient-to-r from-green-600 to-green-600 hover:from-green-500 hover:to-green-500 shadow-green-600/25"
                   : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/20"
               }`}
             >
@@ -405,14 +405,14 @@ export default function DriverConsoleView({
         </div>
 
         {/* GPS Live Telematics Broadcaster Card */}
-        <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-sm dark:shadow-xl gap-3">
+        <div className="bg-white dark:bg-gray-900/80 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm dark:shadow-xl gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className={`p-3 rounded-2xl flex-shrink-0 ${isBroadcasting ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 ring-2 ring-emerald-500/30" : "bg-slate-100 dark:bg-slate-800 text-slate-400"}`}>
+            <div className={`p-3 rounded-2xl flex-shrink-0 ${isBroadcasting ? "bg-green-100 dark:bg-green-950/80 text-green-700 dark:text-green-400 ring-2 ring-green-500/30" : "bg-gray-100 dark:bg-gray-800 text-gray-400"}`}>
               <Radio className={`w-5 h-5 ${isBroadcasting ? "animate-pulse" : ""}`} />
             </div>
             <div className="min-w-0">
-              <div className="font-bold text-sm text-slate-900 dark:text-white truncate">GPS Telemetry Stream</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
+              <div className="font-bold text-sm text-gray-900 dark:text-white truncate">GPS Telemetry Stream</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
                 {liveLocation.latitude.toFixed(4)}, {liveLocation.longitude.toFixed(4)} • {liveLocation.speedKmh} km/h
               </div>
             </div>
@@ -421,7 +421,7 @@ export default function DriverConsoleView({
           <button
             onClick={() => setIsBroadcasting(!isBroadcasting)}
             className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-colors flex-shrink-0 cursor-pointer ${
-              isBroadcasting ? "bg-emerald-600 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              isBroadcasting ? "bg-green-600 text-white" : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
             }`}
           >
             {isBroadcasting ? "Broadcasting" : "Paused"}
@@ -429,12 +429,12 @@ export default function DriverConsoleView({
         </div>
 
         {/* Route Station Progression Checklist */}
-        <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm dark:shadow-xl">
+        <div className="bg-white dark:bg-gray-900/80 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 space-y-4 shadow-sm dark:shadow-xl">
           <div className="flex items-center justify-between">
-            <h3 className="font-black text-sm text-slate-900 dark:text-slate-100">
+            <h3 className="font-black text-sm text-gray-900 dark:text-gray-100">
               Station Sequence Checklist
             </h3>
-            <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-bold">
+            <span className="text-xs font-mono text-gray-500 dark:text-gray-400 font-bold">
               Stop {(activeTrip?.currentStopIndex || 0) + 1} of {route?.stops?.length || 0}
             </span>
           </div>
@@ -451,25 +451,25 @@ export default function DriverConsoleView({
                     isCurrent
                       ? "bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-500 text-blue-900 dark:text-blue-200 ring-2 ring-blue-500/20"
                       : isPassed
-                      ? "bg-slate-50 dark:bg-slate-950/50 border-slate-100 dark:border-slate-800/80 text-slate-400 dark:text-slate-500"
-                      : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200"
+                      ? "bg-gray-50 dark:bg-gray-950/50 border-gray-100 dark:border-gray-800/80 text-gray-400 dark:text-gray-500"
+                      : "bg-white dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                         isPassed
-                          ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400"
+                          ? "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400"
                           : isCurrent
                           ? "bg-blue-600 text-white animate-pulse"
-                          : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                          : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                       }`}
                     >
                       {idx + 1}
                     </div>
                     <div className="min-w-0">
                       <div className="font-bold text-xs truncate">{rs.stop.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono truncate">
+                      <div className="text-[10px] text-gray-400 font-mono truncate">
                         {rs.stop.landmark}
                       </div>
                     </div>
@@ -485,8 +485,8 @@ export default function DriverConsoleView({
         </div>
 
         {/* Quick Incident Reporting Triggers */}
-        <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm dark:shadow-xl">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <div className="bg-white dark:bg-gray-900/80 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 space-y-3 shadow-sm dark:shadow-xl">
+          <h4 className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
             One-Tap Incident & Delay Dispatch
           </h4>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -504,9 +504,9 @@ export default function DriverConsoleView({
                     setSelectedIncident(inc.id);
                     setIsIncidentModalOpen(true);
                   }}
-                  className="p-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200 transition-all active:scale-95 cursor-pointer shadow-xs"
+                  className="p-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-950 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-2xl flex flex-col items-center gap-1.5 font-bold text-gray-800 dark:text-gray-200 transition-all active:scale-95 cursor-pointer shadow-xs"
                 >
-                  <Icon className="w-4 h-4 text-amber-500" />
+                  <Icon className="w-4 h-4 text-yellow-500" />
                   <span>{inc.label}</span>
                 </button>
               );
@@ -518,8 +518,8 @@ export default function DriverConsoleView({
       {/* Incident Modal */}
       {isIncidentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl">
-            <h3 className="font-bold text-base flex items-center gap-2 text-amber-600 dark:text-amber-400">
+          <div className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl">
+            <h3 className="font-bold text-base flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
               <AlertTriangle className="w-5 h-5" />
               Report {selectedIncident} Incident
             </h3>
@@ -528,18 +528,18 @@ export default function DriverConsoleView({
               value={incidentNotes}
               onChange={e => setIncidentNotes(e.target.value)}
               placeholder="Add brief details for Transport Office..."
-              className="w-full text-xs p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full text-xs p-3 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-yellow-500"
             />
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsIncidentModalOpen(false)}
-                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl"
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReportIncident}
-                className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl"
+                className="flex-1 py-2.5 bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold rounded-xl"
               >
                 Dispatch Report
               </button>

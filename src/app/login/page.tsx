@@ -321,14 +321,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col justify-between selection:bg-blue-500 selection:text-white">
       {/* Navbar */}
-      <header className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 overflow-x-clip">
+      <header className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 overflow-x-clip">
         <Link href="/" className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 flex-shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 flex-shrink-0">
             <BusFront className="w-5 h-5" />
           </div>
-          <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
+          <span className="text-lg sm:text-xl font-black tracking-tight text-gray-900 dark:text-white whitespace-nowrap">
             Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
           </span>
         </Link>
@@ -337,7 +337,7 @@ export default function LoginPage() {
           <ThemeToggle />
           <Link
             href="/"
-            className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
+            className="text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white whitespace-nowrap"
           >
             ← <span className="hidden sm:inline">Back to </span>Home
           </Link>
@@ -359,22 +359,22 @@ export default function LoginPage() {
             subtitle="Graphic Era Hill University Smart Fleet Gateway"
           />
         )}
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+        <div className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
           {/* Header */}
           <div className="text-center space-y-1.5">
             <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3 shadow-inner">
               <ShieldCheck className="w-7 h-7" />
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
               Unified Campus Gateway
             </h1>
-            <p className="text-xs text-slate-500 max-w-xs mx-auto">
+            <p className="text-xs text-gray-500 max-w-xs mx-auto">
               One login for Students, Parents, Drivers, Conductors & Administrators.
             </p>
           </div>
 
           {errorMessage && (
-            <div className="p-3.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl text-xs text-rose-600 flex items-center gap-2">
+            <div className="p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-2xl text-xs text-red-600 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{errorMessage}</span>
             </div>
@@ -387,7 +387,7 @@ export default function LoginPage() {
               <button
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
-                className="w-full py-3.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-800 dark:text-white font-bold text-xs rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+                className="w-full py-3.5 px-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/80 text-gray-800 dark:text-white font-bold text-xs rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -411,8 +411,8 @@ export default function LoginPage() {
               </button>
 
               <div className="relative flex items-center justify-center my-2">
-                <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
-                <span className="bg-white dark:bg-slate-900 px-3 text-[10px] uppercase font-bold text-slate-400 absolute">
+                <div className="border-t border-gray-200 dark:border-gray-800 w-full" />
+                <span className="bg-white dark:bg-gray-900 px-3 text-[10px] uppercase font-bold text-gray-400 absolute">
                   Or Email OTP Passcode
                 </span>
               </div>
@@ -420,18 +420,18 @@ export default function LoginPage() {
               {/* Email Form */}
               <form onSubmit={handleSendOtp} className="space-y-3">
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                     Institutional Email Address
                   </label>
                   <div className="relative mt-1">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                     <input
                       type="email"
                       required
                       placeholder="e.g. name@gehu.ac.in or admin@campus.edu"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
-                      className="w-full text-xs pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none"
+                      className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none"
                     />
                   </div>
                 </div>
@@ -467,7 +467,7 @@ export default function LoginPage() {
                     maxLength={1}
                     value={digit}
                     onChange={e => handleOtpChange(idx, e.target.value)}
-                    className="w-12 h-14 text-center font-mono font-black text-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    className="w-12 h-14 text-center font-mono font-black text-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   />
                 ))}
               </div>
@@ -483,7 +483,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setAuthStep("LOGIN_FORM")}
-                className="w-full text-center text-xs text-slate-400 hover:text-slate-600 font-bold"
+                className="w-full text-center text-xs text-gray-400 hover:text-gray-600 font-bold"
               >
                 ← Change Email or Method
               </button>
@@ -493,7 +493,7 @@ export default function LoginPage() {
           {/* STEP 3: Required Details & Nearest Stop Selection */}
           {authStep === "ONBOARDING" && (
             <form onSubmit={handleCompleteOnboarding} className="space-y-4 animate-in fade-in">
-              <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl text-white text-center space-y-1">
+              <div className="p-3 bg-gradient-to-r from-blue-600 to-blue-600 rounded-2xl text-white text-center space-y-1">
                 <h3 className="font-black text-sm">Required Details: Student Onboarding</h3>
                 <p className="text-[11px] opacity-90">
                   Select your campus & home location to find your nearest bus stop.
@@ -502,33 +502,33 @@ export default function LoginPage() {
 
               {/* Full Name */}
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   Full Name
                 </label>
                 <div className="relative mt-1">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                   <input
                     type="text"
                     required
                     placeholder="e.g. Aditya Pandey"
                     value={onboardingName}
                     onChange={e => setOnboardingName(e.target.value)}
-                    className="w-full text-xs pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none font-bold"
+                    className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none font-bold"
                   />
                 </div>
               </div>
 
               {/* Campus Selection */}
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   Enrolled Campus
                 </label>
                 <div className="relative mt-1">
-                  <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <Building className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                   <select
                     value={onboardingCampusId}
                     onChange={e => setOnboardingCampusId(e.target.value)}
-                    className="w-full text-xs pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none font-bold cursor-pointer"
+                    className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none font-bold cursor-pointer"
                   >
                     {campuses.map(c => (
                       <option key={c.id} value={c.id}>
@@ -542,7 +542,7 @@ export default function LoginPage() {
               {/* Home Location / Neighborhood */}
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                     Home Location / Area
                   </label>
                   <button
@@ -557,7 +557,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="relative mt-1">
-                  <Home className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <Home className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                   <input
                     type="text"
                     placeholder="e.g. Laldant, Mukhani, Kathgodam, Lalkuan, Nainital..."
@@ -566,12 +566,12 @@ export default function LoginPage() {
                       setHomeLocation(e.target.value);
                       setDetectedDistanceText(null);
                     }}
-                    className="w-full text-xs pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none"
+                    className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none"
                   />
                 </div>
 
                 {detectedDistanceText && (
-                  <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                  <p className="text-[10px] font-bold text-green-600 dark:text-green-400 mt-1">
                     {detectedDistanceText}
                   </p>
                 )}
@@ -579,7 +579,7 @@ export default function LoginPage() {
 
               {/* Nearest Stop Selector Card */}
               <div className="space-y-2 pt-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   Select Your Primary Bus Boarding Stop
                 </label>
 
@@ -600,13 +600,13 @@ export default function LoginPage() {
                             className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
                               isSelected
                                 ? "bg-blue-50/80 dark:bg-blue-950/60 border-blue-600 ring-2 ring-blue-500/20"
-                                : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-blue-300"
+                                : "bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700 hover:border-blue-300"
                             }`}
                           >
-                            <div className="font-bold text-slate-900 dark:text-white truncate">
+                            <div className="font-bold text-gray-900 dark:text-white truncate">
                               {st.name}
                             </div>
-                            <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between mt-1">
+                            <div className="text-[10px] text-gray-500 font-mono flex items-center justify-between mt-1">
                               <span>~{rec.walkingDistanceKm}km walk</span>
                               <span className="text-blue-600 dark:text-blue-400 font-bold">{rec.busCount} buses</span>
                             </div>
@@ -622,10 +622,10 @@ export default function LoginPage() {
                   <select
                     value={selectedStopId}
                     onChange={e => setSelectedStopId(e.target.value)}
-                    className="w-full text-xs pl-10 pr-4 py-3 bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl outline-none font-bold text-slate-900 dark:text-white cursor-pointer"
+                    className="w-full text-xs pl-10 pr-4 py-3 bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl outline-none font-bold text-gray-900 dark:text-white cursor-pointer"
                   >
                     {filteredNearestStops.map(st => (
-                      <option key={st.id} value={st.id} className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white">
+                      <option key={st.id} value={st.id} className="text-gray-900 bg-white dark:bg-gray-900 dark:text-white">
                         {st.name} ({st.code}) — {st.landmark}
                       </option>
                     ))}
@@ -646,11 +646,11 @@ export default function LoginPage() {
           {/* STEP 4: Success Screen */}
           {authStep === "SUCCESS" && (
             <div className="text-center py-6 space-y-3 animate-in zoom-in-95">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-md shadow-emerald-500/20">
+              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-950/60 text-green-600 dark:text-green-400 flex items-center justify-center mx-auto shadow-md shadow-green-500/20">
                 <CheckCircle2 className="w-9 h-9" />
               </div>
               <h3 className="font-black text-xl">Identity Verified!</h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-gray-500">
                 Redirecting to your role dashboard...
               </p>
             </div>
@@ -659,7 +659,7 @@ export default function LoginPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500">
+      <footer className="border-t border-gray-200 dark:border-gray-800 py-6 text-center text-xs text-gray-500">
         CampusFleet © 2026 Smart Transit System • Graphic Era Hill University Network
       </footer>
     </div>

@@ -80,7 +80,7 @@ const ROLE_PORTALS: RolePortalOption[] = [
     path: "/portal",
     icon: GraduationCap,
     color: "text-blue-500",
-    gradient: "from-blue-600 to-indigo-600",
+    gradient: "from-blue-600 to-blue-600",
     description: "Seat bookings, live bus GPS tracking & digital QR pass",
   },
   {
@@ -89,8 +89,8 @@ const ROLE_PORTALS: RolePortalOption[] = [
     shortLabel: "Teacher",
     path: "/teacher",
     icon: BookOpen,
-    color: "text-teal-500",
-    gradient: "from-teal-600 to-cyan-600",
+    color: "text-green-500",
+    gradient: "from-green-600 to-blue-600",
     description: "Real-time today's student arrivals and class roster verification",
   },
   {
@@ -99,8 +99,8 @@ const ROLE_PORTALS: RolePortalOption[] = [
     shortLabel: "Admin Ops",
     path: "/admin",
     icon: LayoutDashboard,
-    color: "text-amber-500",
-    gradient: "from-amber-600 to-orange-600",
+    color: "text-yellow-500",
+    gradient: "from-yellow-600 to-orange-600",
     description: "Fleet command, routes, crew scheduling & finance reports",
   },
   {
@@ -109,8 +109,8 @@ const ROLE_PORTALS: RolePortalOption[] = [
     shortLabel: "Staff Ops",
     path: "/staff",
     icon: Building2,
-    color: "text-indigo-500",
-    gradient: "from-indigo-600 to-blue-600",
+    color: "text-blue-500",
+    gradient: "from-blue-600 to-blue-600",
     description: "Fee approvals, payment QR generator, audits & shuttle merges",
   },
   {
@@ -119,8 +119,8 @@ const ROLE_PORTALS: RolePortalOption[] = [
     shortLabel: "Driver HUD",
     path: "/driver",
     icon: BusFront,
-    color: "text-emerald-500",
-    gradient: "from-emerald-600 to-teal-600",
+    color: "text-green-500",
+    gradient: "from-green-600 to-green-600",
     description: "Live GPS broadcast, stop progression checklist & incident alerts",
   },
   {
@@ -129,8 +129,8 @@ const ROLE_PORTALS: RolePortalOption[] = [
     shortLabel: "Conductor",
     path: "/conductor",
     icon: FileCheck2,
-    color: "text-purple-500",
-    gradient: "from-purple-600 to-pink-600",
+    color: "text-pink-500",
+    gradient: "from-pink-600 to-pink-600",
     description: "High-speed optical QR boarding scanner & passenger radar",
   },
 ];
@@ -236,15 +236,15 @@ export function UnifiedAppHeader({
     switch (r) {
       case "admin":
       case "transport_manager":
-        return "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800";
+        return "bg-yellow-100 dark:bg-yellow-950/60 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800";
       case "teacher":
-        return "bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800";
+        return "bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800";
       case "driver":
-        return "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+        return "bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800";
       case "conductor":
-        return "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800";
+        return "bg-pink-100 dark:bg-pink-950/60 text-pink-800 dark:text-pink-300 border-pink-200 dark:border-pink-800";
       case "staff":
-        return "bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800";
+        return "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800";
       default:
         return "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800";
     }
@@ -314,7 +314,7 @@ export function UnifiedAppHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full max-w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-xs transition-colors overflow-x-clip">
+      <header className="sticky top-0 z-40 w-full max-w-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/80 dark:border-gray-800/80 shadow-xs transition-colors overflow-x-clip">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
           {/* Brand Identity / Left Section (Strictly Non-Shrinkable) */}
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 z-10 min-w-0">
@@ -330,7 +330,7 @@ export function UnifiedAppHeader({
               </div>
               <div className="flex flex-col flex-shrink-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
+                  <span className="text-base sm:text-lg font-black tracking-tight text-gray-900 dark:text-white whitespace-nowrap">
                     Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
                   </span>
                   <span
@@ -342,7 +342,7 @@ export function UnifiedAppHeader({
                   </span>
                 </div>
                 {portalSubtitle && (
-                  <p className="hidden 2xl:block text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[180px]">
+                  <p className="hidden 2xl:block text-[10px] text-gray-500 dark:text-gray-400 font-medium truncate max-w-[180px]">
                     {portalSubtitle}
                   </p>
                 )}
@@ -362,8 +362,8 @@ export function UnifiedAppHeader({
                       href={link.href}
                       className={`text-sm transition-colors ${
                         isActive
-                          ? "text-slate-900 dark:text-white font-medium"
-                          : "text-slate-500 hover:text-slate-900 dark:hover:text-white font-normal"
+                          ? "text-gray-900 dark:text-white font-medium"
+                          : "text-gray-500 hover:text-gray-900 dark:hover:text-white font-normal"
                       }`}
                     >
                       {link.label}
@@ -378,18 +378,18 @@ export function UnifiedAppHeader({
           <div className="hidden lg:flex items-center gap-6 flex-shrink-0 z-10">
             {currentUser ? (
               <div className="flex items-center gap-4">
-                <Link href="/portal/profile" title="Open Settings" className="block w-9 h-9 rounded-full overflow-hidden border border-slate-200 hover:border-slate-300 transition-colors">
+                <Link href="/portal/profile" title="Open Settings" className="block w-9 h-9 rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
                   {activeStudent?.photoUrl ? (
                     <img src={activeStudent.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm">
+                    <div className="w-full h-full bg-yellow-100 text-yellow-600 flex items-center justify-center font-bold text-sm">
                       {initials}
                     </div>
                   )}
                 </Link>
                 <button
                   onClick={handleSignOut}
-                  className="text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   Sign Out
                 </button>
@@ -397,7 +397,7 @@ export function UnifiedAppHeader({
             ) : (
               <Link
                 href="/login"
-                className="text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Sign In
               </Link>
@@ -409,7 +409,7 @@ export function UnifiedAppHeader({
             {/* Mobile Vertical Slide Sheet Trigger */}
             <button
               onClick={() => setIsMobileSheetOpen(true)}
-              className="lg:hidden p-1.5 border border-slate-900 dark:border-white rounded-md text-slate-900 dark:text-white transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="lg:hidden p-1.5 border border-gray-900 dark:border-white rounded-md text-gray-900 dark:text-white transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
               aria-label="Open Navigation Sheet"
             >
               <Menu className="w-5 h-5" />
@@ -428,16 +428,16 @@ export function UnifiedAppHeader({
           />
           
           {/* Menu Panel */}
-          <div className="relative bg-white dark:bg-slate-950 shadow-2xl overflow-y-auto animate-in slide-in-from-top-4 duration-300 max-h-[85vh] rounded-b-2xl pb-4">
+          <div className="relative bg-white dark:bg-gray-950 shadow-2xl overflow-y-auto animate-in slide-in-from-top-4 duration-300 max-h-[85vh] rounded-b-2xl pb-4">
 
           {/* Menu Header */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-            <div className="text-xl font-bold text-slate-900 dark:text-white">
+          <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="text-xl font-bold text-gray-900 dark:text-white">
               {portalTitle}
             </div>
             <button
               onClick={() => setIsMobileSheetOpen(false)}
-              className="p-1.5 border border-slate-900 dark:border-white rounded-md text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="p-1.5 border border-gray-900 dark:border-white rounded-md text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               <X className="w-6 h-6" />
             </button>
@@ -452,7 +452,7 @@ export function UnifiedAppHeader({
                     key={link.href}
                     href={link.href}
                     onClick={() => setIsMobileSheetOpen(false)}
-                    className="block text-base font-medium text-slate-700 dark:text-slate-300"
+                    className="block text-base font-medium text-gray-700 dark:text-gray-300"
                   >
                     {link.label}
                   </Link>
@@ -461,25 +461,25 @@ export function UnifiedAppHeader({
             )}
 
             {/* Separator */}
-            <div className="h-px w-full bg-slate-200 dark:bg-slate-800 my-2" />
+            <div className="h-px w-full bg-gray-200 dark:bg-gray-800 my-2" />
 
             {/* Profile Section */}
             {currentUser && (
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
                   {activeStudent?.photoUrl ? (
-                    <img src={activeStudent.photoUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-slate-200" />
+                    <img src={activeStudent.photoUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-200 text-amber-600 flex items-center justify-center font-bold text-sm">
+                    <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-200 text-yellow-600 flex items-center justify-center font-bold text-sm">
                       {initials}
                     </div>
                   )}
                   <div className="flex flex-col">
-                    <span className="text-base font-semibold text-slate-900 dark:text-white">{currentUser.fullName}</span>
+                    <span className="text-base font-semibold text-gray-900 dark:text-white">{currentUser.fullName}</span>
                     <Link
                       href="/portal/profile"
                       onClick={() => setIsMobileSheetOpen(false)}
-                      className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                      className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
                     >
                       Settings
                     </Link>
@@ -488,7 +488,7 @@ export function UnifiedAppHeader({
 
                 <button
                   onClick={handleSignOut}
-                  className="text-base font-medium text-slate-700 dark:text-slate-300 text-left w-full"
+                  className="text-base font-medium text-gray-700 dark:text-gray-300 text-left w-full"
                 >
                   Sign Out
                 </button>
@@ -500,7 +500,7 @@ export function UnifiedAppHeader({
                 <Link
                   href="/login"
                   onClick={() => setIsMobileSheetOpen(false)}
-                  className="text-base font-medium text-slate-700 dark:text-slate-300 block w-full"
+                  className="text-base font-medium text-gray-700 dark:text-gray-300 block w-full"
                 >
                   Sign In
                 </Link>

@@ -619,19 +619,19 @@ export default function CampusFleetMap({
           : (hasSpecificRoute && shortestPathStopIds[shortestPathStopIds.length - 1] === stop.id) ||
             (!hasSpecificRoute && isCampusTerminal);
 
-        let iconBgClass = "bg-indigo-600 border-white text-white shadow-md";
+        let iconBgClass = "bg-blue-600 border-white text-white shadow-md";
         if (isStudentPickup) {
-          iconBgClass = "bg-emerald-600 border-white text-white ring-4 ring-emerald-400/60 animate-pulse shadow-lg";
+          iconBgClass = "bg-green-600 border-white text-white ring-4 ring-green-400/60 animate-pulse shadow-lg";
         } else if (isCampusTerminal || isEndOfPath) {
           iconBgClass = "bg-blue-600 border-white text-white ring-4 ring-blue-400/50 shadow-md";
         } else if (isStartOfPath) {
-          iconBgClass = "bg-emerald-600 border-white text-white ring-4 ring-emerald-400/50 shadow-md";
+          iconBgClass = "bg-green-600 border-white text-white ring-4 ring-green-400/50 shadow-md";
         } else if (isOnShortestPath) {
-          iconBgClass = "bg-purple-600 border-white text-white ring-2 ring-purple-400/30";
+          iconBgClass = "bg-pink-600 border-white text-white ring-2 ring-pink-400/30";
         } else if (isNext) {
-          iconBgClass = "bg-amber-500 border-white text-white animate-bounce ring-4 ring-amber-400/30";
+          iconBgClass = "bg-yellow-500 border-white text-white animate-bounce ring-4 ring-yellow-400/30";
         } else if (isPassed) {
-          iconBgClass = "bg-slate-300 dark:bg-slate-700 border-slate-400 text-slate-700 dark:text-slate-300";
+          iconBgClass = "bg-gray-300 dark:bg-gray-700 border-gray-400 text-gray-700 dark:text-gray-300";
         }
 
         const stopSymbolHtml = isStudentPickup
@@ -688,10 +688,10 @@ export default function CampusFleetMap({
           className: "custom-draft-pin-icon",
           html: `
             <div class="relative flex items-center justify-center w-10 h-10 -translate-x-1/2 -translate-y-full">
-              <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-2xl flex items-center justify-center text-white text-sm font-black animate-bounce ring-4 ring-rose-400/50">
+              <div class="w-8 h-8 rounded-full bg-red-600 border-2 border-white shadow-2xl flex items-center justify-center text-white text-sm font-black animate-bounce ring-4 ring-red-400/50">
                 ${stopPinSvg}
               </div>
-              <div class="absolute -bottom-1 w-2 h-2 rounded-full bg-rose-700"></div>
+              <div class="absolute -bottom-1 w-2 h-2 rounded-full bg-red-700"></div>
             </div>
           `,
           iconSize: [40, 40],
@@ -735,8 +735,8 @@ export default function CampusFleetMap({
                 <path d="M8 6v6"></path><path d="M15 6v6"></path><path d="M2 12h19.6"></path><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4C2.9 6 1.9 6.8 1.6 7.8L.2 12.8c-.1.4-.2.8-.2 1.2 0 .4.1.8.2 1.2.3 1.1.8 2.8.8 2.8h3"></path><circle cx="7" cy="18" r="2"></circle><path d="M9 18h5"></path><circle cx="16" cy="18" r="2"></circle>
               </svg>
               <span class="absolute -top-1 -right-1 flex h-3 w-3">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
               </span>
             </div>
           `,
@@ -813,23 +813,23 @@ export default function CampusFleetMap({
           const isInTransit = fb.state === "IN_TRANSIT";
 
           const bgClass = isParked
-            ? "bg-slate-800 text-slate-100 border-slate-400 ring-4 ring-slate-400/20 shadow-md"
+            ? "bg-gray-800 text-gray-100 border-gray-400 ring-4 ring-gray-400/20 shadow-md"
             : isStandby
-            ? "bg-amber-500 text-white border-white ring-4 ring-amber-300/50 shadow-md"
+            ? "bg-yellow-500 text-white border-white ring-4 ring-yellow-300/50 shadow-md"
             : "bg-blue-600 text-white border-white ring-4 ring-blue-400/50 shadow-md shadow-blue-500/30";
 
           const pulseBadge = isParked
             ? `<span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white items-center justify-center text-[8px] font-black text-white">✓</span>
+                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-green-500 border-2 border-white items-center justify-center text-[8px] font-black text-white">✓</span>
               </span>`
             : isStandby
             ? `<span class="absolute -top-1 -right-1 flex h-3 w-3">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white"></span>
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-yellow-500 border border-white"></span>
               </span>`
             : `<span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border border-white"></span>
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-green-500 border border-white"></span>
               </span>`;
 
           const busIcon = L.divIcon({
@@ -946,11 +946,11 @@ export default function CampusFleetMap({
           const campusIcon = L.divIcon({
             className: "custom-campus-landmark-icon",
             html: `
-              <div class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-950 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-2xl border-2 border-indigo-400 font-bold text-xs select-none hover:scale-105 transition-transform cursor-pointer -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ring-4 ring-indigo-500/20">
-                <span class="p-1 rounded-xl bg-indigo-600 text-white shadow-xs">${universitySvg}</span>
+              <div class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-950 via-blue-950 to-gray-900 text-white rounded-2xl shadow-2xl border-2 border-blue-400 font-bold text-xs select-none hover:scale-105 transition-transform cursor-pointer -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ring-4 ring-blue-500/20">
+                <span class="p-1 rounded-xl bg-blue-600 text-white shadow-xs">${universitySvg}</span>
                 <div class="leading-tight text-left">
                   <div class="text-[11px] font-black text-white flex items-center gap-1">${campusTerminalStop.name}</div>
-                  <div class="text-[9px] text-indigo-300 font-semibold tracking-wide">${campusTerminalStop.landmark || "Central Terminal & Fleet Depot"}</div>
+                  <div class="text-[9px] text-blue-300 font-semibold tracking-wide">${campusTerminalStop.landmark || "Central Terminal & Fleet Depot"}</div>
                 </div>
               </div>
             `,
@@ -1015,11 +1015,11 @@ export default function CampusFleetMap({
               const secondaryIcon = L.divIcon({
                 className: "custom-secondary-campus-icon",
                 html: `
-                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-violet-900 via-purple-950 to-slate-900 text-white rounded-2xl shadow-xl border-2 border-violet-400 font-bold text-xs select-none hover:scale-105 transition-transform cursor-pointer -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ring-4 ring-violet-500/20">
-                    <span class="p-1 rounded-xl bg-violet-600 text-white shadow-xs">${universitySvg}</span>
+                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-pink-900 via-pink-950 to-gray-900 text-white rounded-2xl shadow-xl border-2 border-pink-400 font-bold text-xs select-none hover:scale-105 transition-transform cursor-pointer -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ring-4 ring-pink-500/20">
+                    <span class="p-1 rounded-xl bg-pink-600 text-white shadow-xs">${universitySvg}</span>
                     <div class="leading-tight text-left">
                       <div class="text-[11px] font-black text-white">${sc.name}</div>
-                      <div class="text-[9px] text-violet-300 font-semibold tracking-wide">${sc.code} \u2022 Branch Campus</div>
+                      <div class="text-[9px] text-pink-300 font-semibold tracking-wide">${sc.code} \u2022 Branch Campus</div>
                     </div>
                   </div>
                 `,
@@ -1139,7 +1139,7 @@ export default function CampusFleetMap({
 
   return (
     <div
-      className={`relative w-full rounded-3xl overflow-hidden shadow-inner border border-slate-200 dark:border-slate-800 z-0 flex flex-col ${
+      className={`relative w-full rounded-3xl overflow-hidden shadow-inner border border-gray-200 dark:border-gray-800 z-0 flex flex-col ${
         height === "100%" ? "h-full min-h-[350px] flex-1" : ""
       }`}
       style={{
@@ -1168,10 +1168,10 @@ export default function CampusFleetMap({
             className={`p-2.5 rounded-2xl shadow-xl border backdrop-blur-md transition-all flex items-center justify-center group ${
               userLocation
                 ? "bg-blue-600 text-white border-blue-400 ring-2 ring-blue-300 hover:bg-blue-700"
-                : "bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                : "bg-white/95 dark:bg-gray-900/95 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-800 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800"
             }`}
           >
-            <Crosshair className={`w-4 h-4 ${isLocating ? "animate-spin text-amber-400" : ""}`} />
+            <Crosshair className={`w-4 h-4 ${isLocating ? "animate-spin text-yellow-400" : ""}`} />
           </button>
         )}
 
@@ -1181,7 +1181,7 @@ export default function CampusFleetMap({
             type="button"
             title={`Center on ${campusTerminalStop.name}`}
             aria-label="Center on Campus"
-            className="p-2.5 rounded-2xl shadow-xl border bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800 backdrop-blur-md transition-all flex items-center justify-center"
+            className="p-2.5 rounded-2xl shadow-xl border bg-white/95 dark:bg-gray-900/95 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-800 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 backdrop-blur-md transition-all flex items-center justify-center"
           >
             <Building2 className="w-4 h-4" />
           </button>
@@ -1190,29 +1190,29 @@ export default function CampusFleetMap({
 
       {/* Floating GPS Location Status Toast */}
       {locationNotice && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1.5 rounded-full bg-slate-900/90 text-white text-xs font-bold shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1.5 rounded-full bg-gray-900/90 text-white text-xs font-bold shadow-2xl border border-gray-700/80 backdrop-blur-md flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2">
           <Navigation className="w-3.5 h-3.5 text-blue-400" />
           <span>{locationNotice}</span>
         </div>
       )}
 
       {/* Google Maps Style Navigation Legend in Bottom Left */}
-      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 shadow-lg text-[10px] font-bold text-slate-700 dark:text-slate-300 select-none">
+      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border border-gray-200/80 dark:border-gray-800/80 shadow-lg text-[10px] font-bold text-gray-700 dark:text-gray-300 select-none">
         <div className="flex items-center gap-1" title="Already traveled road path">
-          <span className="w-3.5 h-1.5 rounded-full bg-slate-400 inline-block"></span>
+          <span className="w-3.5 h-1.5 rounded-full bg-gray-400 inline-block"></span>
           <span>Covered</span>
         </div>
-        <span className="text-slate-300 dark:text-slate-700">•</span>
+        <span className="text-gray-300 dark:text-gray-700">•</span>
         <div className="flex items-center gap-1" title="Upcoming road path ahead">
           <span className="w-3.5 h-1.5 rounded-full bg-blue-500 inline-block shadow-xs shadow-blue-400"></span>
           <span>Ahead</span>
         </div>
         {campusTerminalStop && (
           <>
-            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <span className="text-gray-300 dark:text-gray-700">•</span>
             <div
               onClick={handlePanToCampus}
-              className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline"
+              className="flex items-center gap-1 text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
               title={`Pan to ${campusTerminalStop.name}`}
             >
               <span>🎓</span>
@@ -1222,7 +1222,7 @@ export default function CampusFleetMap({
         )}
         {userLocation && (
           <>
-            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <span className="text-gray-300 dark:text-gray-700">•</span>
             <div
               onClick={() => {
                 if (mapInstanceRef.current && userLocation) {
@@ -1240,14 +1240,14 @@ export default function CampusFleetMap({
       </div>
 
       {interactiveMode === "PIN_DROP" && (
-        <div className="absolute top-3 left-3 z-10 bg-rose-600 text-white font-bold text-xs px-3.5 py-2 rounded-2xl shadow-xl flex items-center gap-2 border border-white/30 animate-pulse pointer-events-none">
+        <div className="absolute top-3 left-3 z-10 bg-red-600 text-white font-bold text-xs px-3.5 py-2 rounded-2xl shadow-xl flex items-center gap-2 border border-white/30 animate-pulse pointer-events-none">
           <MapPin className="w-4 h-4 shrink-0" />
           <span>Click anywhere on the map to set stop coordinates</span>
         </div>
       )}
 
       {isExpressDirect && (
-        <div className="absolute top-16 right-3 z-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-white/40 animate-pulse pointer-events-none">
+        <div className="absolute top-16 right-3 z-10 bg-gradient-to-r from-green-500 to-green-500 text-gray-950 font-black text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-1.5 border border-white/40 animate-pulse pointer-events-none">
           <Zap className="w-3.5 h-3.5 fill-current shrink-0" />
           <span>Direct Non-Stop to Campus</span>
         </div>

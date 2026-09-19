@@ -191,17 +191,17 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     : "ST";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col md:flex-row transition-colors">
       {/* Mobile Top Navigation Bar (Single Sleek Sticky Header - No Duplicate Bars) */}
-      <div className="md:hidden sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+      <div className="md:hidden sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/80 dark:border-gray-800/80 shadow-sm">
         <div className="flex items-center justify-between px-3.5 py-2.5">
           <Link href="/staff" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
               <BusFront className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-xs tracking-tight text-slate-900 dark:text-white">
+                <span className="font-black text-xs tracking-tight text-gray-900 dark:text-white">
                   Campus<span className="text-blue-600">Fleet</span>
                 </span>
                 <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
@@ -209,11 +209,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 </span>
               </div>
               {currentCategory ? (
-                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate max-w-[140px] flex items-center gap-1">
+                <div className="text-[10px] font-bold text-gray-500 dark:text-gray-400 truncate max-w-[140px] flex items-center gap-1">
                   <span>{currentCategory.label}</span>
                 </div>
               ) : (
-                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                <div className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
                   Operations Console
                 </div>
               )}
@@ -231,7 +231,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle Navigation Menu"
-              className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 active:scale-95 transition-transform cursor-pointer"
+              className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 active:scale-95 transition-transform cursor-pointer"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -245,17 +245,17 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           {/* Backdrop Blur Overlay */}
           <div
             onClick={() => setIsMobileMenuOpen(false)}
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-gray-950/60 backdrop-blur-sm"
           />
 
           {/* Drawer Content */}
-          <div className="relative z-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 max-h-[calc(100vh-3.5rem)] overflow-y-auto space-y-4 shadow-2xl">
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <div className="relative z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 max-h-[calc(100vh-3.5rem)] overflow-y-auto space-y-4 shadow-2xl">
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <div>
-                <div className="text-xs font-black text-slate-900 dark:text-white">
+                <div className="text-xs font-black text-gray-900 dark:text-white">
                   {currentUser?.fullName || "Staff Controller"}
                 </div>
-                <div className="text-[10px] text-slate-400 font-mono">{currentUser?.email}</div>
+                <div className="text-[10px] text-gray-400 font-mono">{currentUser?.email}</div>
               </div>
               <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
                 {currentUser?.role?.toUpperCase() || "STAFF"}
@@ -268,7 +268,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 <Link
                   href="/admin"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex-1 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex-1 p-2.5 rounded-xl bg-yellow-50 dark:bg-yellow-950/60 text-yellow-800 dark:text-yellow-300 text-xs font-bold border border-yellow-200 dark:border-yellow-800 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <Shield className="w-3.5 h-3.5" />
                   <span>Admin Console</span>
@@ -277,7 +277,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
               <Link
                 href="/portal"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex-1 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                className="flex-1 p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold border border-gray-200 dark:border-gray-700 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 <span>Student Portal</span>
@@ -286,7 +286,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
             {/* ONLY Main Category Cards */}
             <div className="space-y-1.5 pt-1">
-              <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1">
+              <div className="text-[10px] font-black uppercase tracking-wider text-gray-400 px-1">
                 Select Department Category
               </div>
               {navFolders.map((folder) => {
@@ -301,7 +301,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                     className={`p-3 rounded-2xl border flex items-center justify-between transition-all active:scale-[0.98] ${
                       isCurrentCategoryActive
                         ? "bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-100 shadow-sm"
-                        : "bg-slate-50/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        : "bg-gray-50/70 dark:bg-gray-800/40 border-gray-200 dark:border-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -309,7 +309,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                         className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
                           isCurrentCategoryActive
                             ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
-                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                            : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
                         }`}
                       >
                         <FolderIcon className="w-4 h-4" />
@@ -321,16 +321,16 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
                           )}
                         </div>
-                        <div className="text-[10px] text-slate-400 dark:text-slate-400 truncate">
+                        <div className="text-[10px] text-gray-400 dark:text-gray-400 truncate">
                           {folder.description}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-400 flex-shrink-0 pl-2">
-                      <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                    <div className="flex items-center gap-1.5 text-gray-400 flex-shrink-0 pl-2">
+                      <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded-md bg-gray-200/60 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                         {folder.items.length} tools
                       </span>
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
                     </div>
                   </Link>
                 );
@@ -339,7 +339,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
             <button
               onClick={handleSignOut}
-              className="w-full py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-xs font-black flex items-center justify-center gap-2 border border-rose-200 dark:border-rose-900 cursor-pointer active:scale-98 transition-transform"
+              className="w-full py-2.5 rounded-xl bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-xs font-black flex items-center justify-center gap-2 border border-red-200 dark:border-red-900 cursor-pointer active:scale-98 transition-transform"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>
@@ -350,7 +350,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
       {/* Desktop Left Sidebar with Folder Accordions */}
       <aside
-        className={`hidden md:flex flex-col justify-between sticky top-0 h-screen z-30 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ${
+        className={`hidden md:flex flex-col justify-between sticky top-0 h-screen z-30 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ${
           isSidebarOpen ? "w-64" : "w-20"
         }`}
       >
@@ -358,7 +358,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           {/* Brand Header */}
           <div className="flex items-center justify-between">
             <Link href="/staff" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 flex-shrink-0">
+              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 flex-shrink-0">
                 <BusFront className="w-5 h-5" />
               </div>
               {isSidebarOpen && (
@@ -366,7 +366,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                   <div className="font-black text-base tracking-tight leading-none">
                     Campus<span className="text-blue-600">Fleet</span>
                   </div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mt-0.5">
                     Staff Operations
                   </div>
                 </div>
@@ -376,8 +376,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
           {/* Quick Context Chips */}
           {isSidebarOpen && (
-            <div className="flex items-center justify-between gap-1 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-[11px]">
-              <div className="truncate font-bold text-slate-700 dark:text-slate-300">
+            <div className="flex items-center justify-between gap-1 p-2 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 text-[11px]">
+              <div className="truncate font-bold text-gray-700 dark:text-gray-300">
                 {currentUser?.fullName || "Staff Console"}
               </div>
 
@@ -397,13 +397,13 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                   className={`rounded-2xl border transition-all ${
                     isFolderActive
                       ? "border-blue-200 dark:border-blue-900/60 bg-blue-50/20 dark:bg-blue-950/20"
-                      : "border-slate-200/80 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/40"
+                      : "border-gray-200/80 dark:border-gray-800/80 bg-gray-50/40 dark:bg-gray-900/40"
                   }`}
                 >
                   {/* Folder Header */}
                   <button
                     onClick={() => toggleFolder(folder.id)}
-                    className="w-full px-3 py-2.5 flex items-center justify-between text-xs font-black text-slate-800 dark:text-slate-200 hover:text-blue-600 transition-colors"
+                    className="w-full px-3 py-2.5 flex items-center justify-between text-xs font-black text-gray-800 dark:text-gray-200 hover:text-blue-600 transition-colors"
                     title={folder.label}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -413,7 +413,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                       {isSidebarOpen && <span className="truncate">{folder.label}</span>}
                     </div>
                     {isSidebarOpen && (
-                      <span className="text-slate-400">
+                      <span className="text-gray-400">
                         {isFolderOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                       </span>
                     )}
@@ -421,7 +421,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
                   {/* Sub-portal Links */}
                   {(isFolderOpen || !isSidebarOpen) && (
-                    <div className="p-1.5 space-y-0.5 border-t border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900 rounded-b-2xl">
+                    <div className="p-1.5 space-y-0.5 border-t border-gray-200/60 dark:border-gray-800/60 bg-white dark:bg-gray-900 rounded-b-2xl">
                       {folder.items.map((sub) => {
                         const SubIcon = sub.icon;
                         const isActive = pathname === sub.href;
@@ -433,7 +433,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                               isActive
                                 ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
-                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800/60"
                             }`}
                             title={sub.label}
                           >
@@ -451,13 +451,13 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2 bg-white dark:bg-slate-900">
+        <div className="p-3 border-t border-gray-200 dark:border-gray-800 space-y-2 bg-white dark:bg-gray-900">
           {isSidebarOpen && (
             <div className="flex items-center gap-1.5">
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="flex-1 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[11px] font-bold border border-amber-200 dark:border-amber-800 flex items-center justify-center gap-1 hover:scale-102 transition-transform"
+                  className="flex-1 p-2 rounded-xl bg-yellow-50 dark:bg-yellow-950/60 text-yellow-800 dark:text-yellow-300 text-[11px] font-bold border border-yellow-200 dark:border-yellow-800 flex items-center justify-center gap-1 hover:scale-102 transition-transform"
                   title="Switch to Admin Console"
                 >
                   <Shield className="w-3 h-3" />
@@ -466,7 +466,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
               )}
               <Link
                 href="/portal"
-                className="flex-1 p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1 hover:scale-102 transition-transform"
+                className="flex-1 p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[11px] font-bold border border-gray-200 dark:border-gray-700 flex items-center justify-center gap-1 hover:scale-102 transition-transform"
                 title="Switch to Student Portal"
               >
                 <ExternalLink className="w-3 h-3" />
@@ -478,14 +478,14 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center justify-between">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold"
+              className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs font-bold"
               title={isSidebarOpen ? "Collapse" : "Expand"}
             >
               {isSidebarOpen ? "← Collapse" : "→"}
             </button>
             <button
               onClick={handleSignOut}
-              className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
+              className="p-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
@@ -506,7 +506,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           className="md:hidden fixed bottom-3 inset-x-3 z-40 pointer-events-none"
         >
           <div className="max-w-md mx-auto pointer-events-auto">
-            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
+            <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-200/80 dark:border-gray-800/80 rounded-3xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
               <div
                 className="grid gap-1 items-center"
                 style={{
@@ -523,12 +523,12 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                       className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 active:scale-95 ${
                         isActive
                           ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-md shadow-blue-600/30"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/60"
                       }`}
                     >
                       <SubIcon
                         className={`w-4 h-4 mb-0.5 ${
-                          isActive ? "text-white" : "text-slate-500 dark:text-slate-400"
+                          isActive ? "text-white" : "text-gray-500 dark:text-gray-400"
                         }`}
                       />
                       <span className="text-[10px] font-bold tracking-tight truncate max-w-full text-center">

@@ -148,48 +148,48 @@ export function StudentSelfScanner({ onSuccess }: { onSuccess: () => void }) {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col items-center text-center space-y-4 w-full">
-      <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-black text-lg">
+    <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden flex flex-col items-center text-center space-y-4 w-full">
+      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-black text-lg">
         <QrCode className="w-6 h-6" />
         Self-Boarding Scanner
       </div>
       
-      <p className="text-xs text-slate-500 max-w-sm">
+      <p className="text-xs text-gray-500 max-w-sm">
         Scan the QR code pasted on the bus door to instantly verify your boarding pass. GPS must be enabled to verify you are at the authorized stop.
       </p>
 
       {successMsg ? (
-        <div className="p-6 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-3xl text-emerald-600 dark:text-emerald-400 flex flex-col items-center gap-3 w-full">
+        <div className="p-6 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-3xl text-green-600 dark:text-green-400 flex flex-col items-center gap-3 w-full">
           <CheckCircle2 className="w-12 h-12" />
           <div className="font-bold">{successMsg}</div>
         </div>
       ) : errorMsg ? (
-        <div className="p-6 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-3xl text-rose-600 dark:text-rose-400 flex flex-col items-center gap-3 w-full">
+        <div className="p-6 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-3xl text-red-600 dark:text-red-400 flex flex-col items-center gap-3 w-full">
           <XCircle className="w-12 h-12" />
           <div className="font-bold text-sm">{errorMsg}</div>
           <button 
             onClick={() => { setErrorMsg(null); startCamera(); }}
-            className="mt-2 px-4 py-2 bg-rose-100 dark:bg-rose-900/50 hover:bg-rose-200 rounded-xl text-xs font-bold transition-colors"
+            className="mt-2 px-4 py-2 bg-red-100 dark:bg-red-900/50 hover:bg-red-200 rounded-xl text-xs font-bold transition-colors"
           >
             Try Again
           </button>
         </div>
       ) : isProcessing ? (
-        <div className="p-10 flex flex-col items-center gap-4 text-indigo-500">
+        <div className="p-10 flex flex-col items-center gap-4 text-blue-500">
           <RefreshCw className="w-10 h-10 animate-spin" />
           <div className="text-sm font-bold animate-pulse">Verifying Location & Pass...</div>
         </div>
       ) : (
-        <div className="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-inner">
+        <div className="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 shadow-inner">
           <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
           <canvas ref={canvasRef} className="hidden" />
           
           {!isActive && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 p-6">
-              <CameraOff className="w-10 h-10 text-slate-400 mb-4" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 p-6">
+              <CameraOff className="w-10 h-10 text-gray-400 mb-4" />
               <button 
                 onClick={startCamera}
-                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center gap-2"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center gap-2"
               >
                 <Camera className="w-4 h-4" />
                 Tap to Start Scanner
@@ -198,17 +198,17 @@ export function StudentSelfScanner({ onSuccess }: { onSuccess: () => void }) {
           )}
 
           {isActive && (
-            <div className="absolute inset-0 pointer-events-none border-[3px] border-indigo-500/50 m-6 rounded-3xl">
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-2xl -m-[3px]" />
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-2xl -m-[3px]" />
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-2xl -m-[3px]" />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-2xl -m-[3px]" />
+            <div className="absolute inset-0 pointer-events-none border-[3px] border-blue-500/50 m-6 rounded-3xl">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-2xl -m-[3px]" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-2xl -m-[3px]" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-2xl -m-[3px]" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-2xl -m-[3px]" />
             </div>
           )}
         </div>
       )}
 
-      <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg w-full justify-center">
+      <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg w-full justify-center">
         <MapPin className="w-3 h-3" />
         Geolocation required for scan
       </div>

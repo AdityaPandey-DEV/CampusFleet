@@ -39,7 +39,7 @@ export default function BusLoadingScreen({
   const content = (
     <div className={`relative flex flex-col items-center justify-center select-none text-center ${compact ? "p-6" : "p-8 max-w-lg w-full"}`}>
       {/* Background Ambient Glow (Warm Golden Yellow) */}
-      <div className="absolute -top-12 -bottom-12 -left-12 -right-12 bg-gradient-to-b from-amber-500/15 via-yellow-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-12 -bottom-12 -left-12 -right-12 bg-gradient-to-b from-yellow-500/15 via-yellow-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
 
       {/* Animation Stage */}
       <div className="relative w-full flex flex-col items-center justify-center overflow-hidden mb-6 py-4">
@@ -49,7 +49,7 @@ export default function BusLoadingScreen({
             initial={{ x: "100%" }}
             animate={{ x: "-100%" }}
             transition={{ repeat: Infinity, duration: 1.1, ease: "linear" }}
-            className="w-24 h-0.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent rounded-full"
+            className="w-24 h-0.5 bg-gradient-to-r from-transparent via-yellow-400 to-transparent rounded-full"
           />
           <motion.div
             initial={{ x: "100%" }}
@@ -222,7 +222,7 @@ export default function BusLoadingScreen({
         {/* Animated Road with Scrolling Yellow Highway Markers */}
         <div className="relative w-4/5 h-4 mt-[-4px] overflow-hidden flex items-center justify-center">
           {/* Road Asphalt */}
-          <div className="absolute inset-0 bg-slate-800 dark:bg-slate-900 border-t border-slate-700/60 rounded-full" />
+          <div className="absolute inset-0 bg-gray-800 dark:bg-gray-900 border-t border-gray-700/60 rounded-full" />
 
           {/* Scrolling Dashes */}
           <motion.div
@@ -232,16 +232,16 @@ export default function BusLoadingScreen({
             className="flex space-x-6 whitespace-nowrap"
           >
             {Array.from({ length: 16 }).map((_, i) => (
-              <span key={i} className="inline-block w-6 h-1 bg-amber-400 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
+              <span key={i} className="inline-block w-6 h-1 bg-yellow-400 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
             ))}
           </motion.div>
         </div>
       </div>
 
       {/* Modern Golden Amber Progress Bar */}
-      <div className="w-full max-w-xs h-1.5 bg-slate-200 dark:bg-slate-800/80 rounded-full overflow-hidden mb-5 border border-slate-300/40 dark:border-slate-700/50 shadow-inner">
+      <div className="w-full max-w-xs h-1.5 bg-gray-200 dark:bg-gray-800/80 rounded-full overflow-hidden mb-5 border border-gray-300/40 dark:border-gray-700/50 shadow-inner">
         <motion.div
-          className="h-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.9)]"
+          className="h-full bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-600 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.9)]"
           animate={{
             x: ["-100%", "100%"],
           }}
@@ -263,22 +263,22 @@ export default function BusLoadingScreen({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.25 }}
-            className="text-sm md:text-base font-semibold text-slate-800 dark:text-slate-100 tracking-tight"
+            className="text-sm md:text-base font-semibold text-gray-800 dark:text-gray-100 tracking-tight"
           >
             {currentMessage}
           </motion.p>
         </AnimatePresence>
 
         {subtitle && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium tracking-wide">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium tracking-wide">
             {subtitle}
           </p>
         )}
       </div>
 
       {/* Institutional Yellow Telemetry Badge */}
-      <div className="mt-4 flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
-        <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+      <div className="mt-4 flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-900/60 text-[11px] font-semibold text-yellow-700 dark:text-yellow-400">
+        <span className="w-2 h-2 rounded-full bg-yellow-500 animate-ping" />
         Live Database Sync • 60 FPS Telemetry
       </div>
     </div>
@@ -289,7 +289,7 @@ export default function BusLoadingScreen({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-50/90 dark:bg-[#070b14]/95 backdrop-blur-md transition-colors">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50/90 dark:bg-[#070b14]/95 backdrop-blur-md transition-colors">
       {content}
     </div>
   );

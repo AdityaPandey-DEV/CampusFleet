@@ -84,16 +84,16 @@ export function NearestStopFinder({
   const stopMap = React.useMemo(() => new Map(stops.map(s => [s.id, s])), [stops]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+    <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 dark:border-gray-800">
         <div>
-          <h3 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
+          <h3 className="font-black text-lg text-gray-900 dark:text-white flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-blue-600" />
             Graph-Optimized Stop & Route Recommendation
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Powered by <strong className="text-blue-600 dark:text-blue-400">Bellman-Ford</strong> (walking proximity & bus connectivity) and <strong className="text-indigo-600 dark:text-indigo-400">Dijkstra</strong> (shortest path to campus).
+          <p className="text-xs text-gray-500 mt-0.5">
+            Powered by <strong className="text-blue-600 dark:text-blue-400">Bellman-Ford</strong> (walking proximity & bus connectivity) and <strong className="text-blue-600 dark:text-blue-400">Dijkstra</strong> (shortest path to campus).
           </p>
         </div>
 
@@ -111,7 +111,7 @@ export function NearestStopFinder({
       {/* Quick Region Pills */}
       {dynamicQuickLocations.length > 0 && (
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
             Select Your Neighborhood / Home Stop
           </label>
           <div className="flex flex-wrap gap-2">
@@ -123,7 +123,7 @@ export function NearestStopFinder({
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                   locationLabel === loc.name
                     ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                    : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100"
+                    : "bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
                 }`}
               >
                 {loc.name}
@@ -137,11 +137,11 @@ export function NearestStopFinder({
       {recommendations.length > 0 && (
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-              <Footprints className="w-4 h-4 text-emerald-500" />
+            <span className="font-black text-gray-900 dark:text-white flex items-center gap-1.5">
+              <Footprints className="w-4 h-4 text-green-500" />
               Optimal Stops from {locationLabel}
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">
+            <span className="text-[10px] text-gray-400 font-mono">
               Bellman-Ford & Dijkstra Multi-Criteria Ranking
             </span>
           </div>
@@ -160,7 +160,7 @@ export function NearestStopFinder({
                   className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
                     isSelected
                       ? "bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 ring-2 ring-blue-500/20 shadow-md"
-                      : "bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80 hover:border-blue-400 hover:shadow-sm"
+                      : "bg-white dark:bg-gray-800/40 border-gray-200 dark:border-gray-700/80 hover:border-blue-400 hover:shadow-sm"
                   }`}
                 >
                   <div className="space-y-1">
@@ -169,24 +169,24 @@ export function NearestStopFinder({
                         {stop.code}
                       </span>
                       {isTopPick && (
-                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-800 flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" /> Best Route Match
                         </span>
                       )}
                     </div>
 
-                    <h4 className="font-bold text-sm text-slate-900 dark:text-white pt-1">
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-white pt-1">
                       {stop.name}
                     </h4>
-                    <p className="text-xs text-slate-500">{stop.landmark}</p>
+                    <p className="text-xs text-gray-500">{stop.landmark}</p>
                   </div>
 
                   {/* Algorithm Metadata: Walking distance, bus routes, transit time */}
-                  <div className="grid grid-cols-3 gap-2 py-1.5 px-2 bg-slate-50 dark:bg-slate-900/60 rounded-xl text-[11px] font-mono">
+                  <div className="grid grid-cols-3 gap-2 py-1.5 px-2 bg-gray-50 dark:bg-gray-900/60 rounded-xl text-[11px] font-mono">
                     <div className="flex flex-col">
-                      <span className="text-[9px] text-slate-400 uppercase font-sans">Walk</span>
-                      <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-0.5">
-                        <Footprints className="w-3 h-3 text-emerald-500" />
+                      <span className="text-[9px] text-gray-400 uppercase font-sans">Walk</span>
+                      <span className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-0.5">
+                        <Footprints className="w-3 h-3 text-green-500" />
                         {rec.walkingDistanceKm < 1
                           ? `${Math.round(rec.walkingDistanceKm * 1000)}m`
                           : `${rec.walkingDistanceKm.toFixed(1)}km`}
@@ -194,7 +194,7 @@ export function NearestStopFinder({
                     </div>
 
                     <div className="flex flex-col">
-                      <span className="text-[9px] text-slate-400 uppercase font-sans">Buses</span>
+                      <span className="text-[9px] text-gray-400 uppercase font-sans">Buses</span>
                       <span className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-0.5">
                         <Bus className="w-3 h-3" />
                         {rec.busCount} {rec.busCount === 1 ? "bus" : "buses"}
@@ -202,16 +202,16 @@ export function NearestStopFinder({
                     </div>
 
                     <div className="flex flex-col">
-                      <span className="text-[9px] text-slate-400 uppercase font-sans">Transit ETA</span>
-                      <span className="font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5">
+                      <span className="text-[9px] text-gray-400 uppercase font-sans">Transit ETA</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-0.5">
                         <Clock className="w-3 h-3" />
                         {rec.pathToCampus ? `~${rec.pathToCampus.totalEstimatedMins}m` : "Direct"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
-                    <span className="text-[10px] text-slate-400 font-mono">
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-800 text-xs">
+                    <span className="text-[10px] text-gray-400 font-mono">
                       {rec.pathToCampus ? `${rec.pathToCampus.stopCount} stops to campus` : "Campus line"}
                     </span>
 
@@ -220,7 +220,7 @@ export function NearestStopFinder({
                       className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
                         isSelected
                           ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-600 hover:text-white"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-600 hover:text-white"
                       }`}
                     >
                       {isSelected ? "Selected ✓" : "Select Stop →"}

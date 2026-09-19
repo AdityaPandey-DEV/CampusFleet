@@ -377,7 +377,7 @@ export function StaffCampusesView({
     <div className="space-y-6 animate-in fade-in pb-16">
       {/* Toast Notification */}
       {toast && (
-        <div className="p-4 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-xl flex items-center justify-between animate-in slide-in-from-top">
+        <div className="p-4 rounded-2xl bg-green-600 text-white font-bold text-xs shadow-xl flex items-center justify-between animate-in slide-in-from-top">
           <span>{toast}</span>
           <button onClick={() => setToast(null)} className="text-white/80 hover:text-white">✕</button>
         </div>
@@ -389,10 +389,10 @@ export function StaffCampusesView({
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2">
             <Building2 className="w-3.5 h-3.5" /> Institutional Multi-Campus Infrastructure
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2.5">
             Campus Entities & Fare Zones
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-2xl">
             Configure universities & branch campuses, assign depot bays, price transit zones, and bundle passenger stops strictly per campus.
           </p>
         </div>
@@ -401,7 +401,7 @@ export function StaffCampusesView({
           <button
             type="button"
             onClick={handleOpenCreateCampus}
-            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-extrabold text-xs rounded-2xl flex items-center gap-2 shadow-sm transition-all"
+            className="px-4 py-2.5 bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900 font-extrabold text-xs rounded-2xl flex items-center gap-2 shadow-sm transition-all"
           >
             <Plus className="w-4 h-4" /> Add Campus Entity
           </button>
@@ -418,65 +418,65 @@ export function StaffCampusesView({
 
       {/* KPI Overview Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
           <div className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5" /> Registered Campuses
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+          <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
             {campuses.length}
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[11px] text-gray-500">
             Primary: {campuses.find((c) => c.isPrimary)?.code || "None"}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <div className="text-[11px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
+          <div className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5" /> Total Transit Zones
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+          <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
             {transitZones.length}
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[11px] text-gray-500">
             Across {campuses.length} regional centers
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <div className="text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
+          <div className="text-[11px] font-black uppercase tracking-wider text-green-600 dark:text-green-400 flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5" /> Network Stops
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+          <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
             {stops.length}
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[11px] text-gray-500">
             {activeCampusStops.length} mapped to {activeCampus?.code || "active"}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <div className="text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
+          <div className="text-[11px] font-black uppercase tracking-wider text-yellow-600 dark:text-yellow-400 flex items-center gap-1.5">
             <Bus className="w-3.5 h-3.5" /> Depot Capacity
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+          <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
             {campuses.reduce((acc, c) => acc + (c.parkingBays || 0), 0)} Bays
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[11px] text-gray-500">
             {campuses.reduce((acc, c) => acc + (c.fleetCapacity || 0), 0)} Max bus parking
           </div>
         </div>
       </div>
 
       {/* Navigation Section Tabs */}
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setActiveSection("CAMPUSES")}
             className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-2 transition-all ${
               activeSection === "CAMPUSES"
-                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
             <Building2 className="w-4 h-4" />
@@ -488,8 +488,8 @@ export function StaffCampusesView({
             onClick={() => setActiveSection("ZONES")}
             className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-2 transition-all ${
               activeSection === "ZONES"
-                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
             <Layers className="w-4 h-4 text-blue-500" />
@@ -510,27 +510,27 @@ export function StaffCampusesView({
               return (
                 <div
                   key={campus.id}
-                  className={`bg-white dark:bg-slate-900 rounded-3xl border p-6 shadow-sm flex flex-col justify-between space-y-5 transition-all ${
+                  className={`bg-white dark:bg-gray-900 rounded-3xl border p-6 shadow-sm flex flex-col justify-between space-y-5 transition-all ${
                     campus.isPrimary
                       ? "border-blue-400 dark:border-blue-800 ring-2 ring-blue-500/20"
-                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                      : "border-gray-200 dark:border-gray-800 hover:border-gray-300"
                   }`}
                 >
                   <div className="space-y-4">
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-sm flex items-center justify-center shadow-md">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white font-black text-sm flex items-center justify-center shadow-md">
                           {campus.code?.slice(0, 4) || "CAMP"}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-black text-base text-slate-900 dark:text-white">
+                            <h3 className="font-black text-base text-gray-900 dark:text-white">
                               {campus.name}
                             </h3>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                            <span className="font-bold text-slate-700 dark:text-slate-300">{campus.code}</span>
+                          <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                            <span className="font-bold text-gray-700 dark:text-gray-300">{campus.code}</span>
                             <span>•</span>
                             <span>{campus.city || "Uttarakhand"}</span>
                           </div>
@@ -546,7 +546,7 @@ export function StaffCampusesView({
                           <button
                             type="button"
                             onClick={() => handleSetPrimaryCampus(campus.id)}
-                            className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950 text-slate-600 hover:text-blue-600 text-[10px] font-extrabold transition-all"
+                            className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950 text-gray-600 hover:text-blue-600 text-[10px] font-extrabold transition-all"
                           >
                             Set as Primary
                           </button>
@@ -555,7 +555,7 @@ export function StaffCampusesView({
                         <button
                           type="button"
                           onClick={() => handleOpenEditCampus(campus)}
-                          className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-all"
+                          className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 text-gray-600 hover:text-blue-600 transition-all"
                           title="Edit Campus Details"
                         >
                           <Pencil className="w-4 h-4" />
@@ -565,7 +565,7 @@ export function StaffCampusesView({
                           <button
                             type="button"
                             onClick={() => setDeleteCampusConfirm(campus)}
-                            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition-all"
+                            className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-red-50 text-gray-600 hover:text-red-600 transition-all"
                             title="Delete Campus"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -575,42 +575,42 @@ export function StaffCampusesView({
                     </div>
 
                     {/* Address & Landmark */}
-                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-xs space-y-1 text-slate-600 dark:text-slate-300">
-                      <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-white">
+                    <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 text-xs space-y-1 text-gray-600 dark:text-gray-300">
+                      <div className="flex items-center gap-1.5 font-bold text-gray-800 dark:text-white">
                         <MapPin className="w-3.5 h-3.5 text-blue-500" />
                         <span>{campus.landmark || "Main Campus Entrance"}</span>
                       </div>
-                      <div className="text-[11px] text-slate-400 pl-5">
+                      <div className="text-[11px] text-gray-400 pl-5">
                         {campus.address || "Address not provided"}
                       </div>
                     </div>
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">Parking Bays</div>
-                        <div className="text-base font-black text-slate-900 dark:text-white font-mono mt-0.5">
+                      <div className="p-2.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
+                        <div className="text-[10px] font-bold text-gray-400 uppercase">Parking Bays</div>
+                        <div className="text-base font-black text-gray-900 dark:text-white font-mono mt-0.5">
                           {campus.parkingBays || 16}
                         </div>
                       </div>
 
-                      <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">Fare Zones</div>
-                        <div className="text-base font-black text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">
+                      <div className="p-2.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
+                        <div className="text-[10px] font-bold text-gray-400 uppercase">Fare Zones</div>
+                        <div className="text-base font-black text-blue-600 dark:text-blue-400 font-mono mt-0.5">
                           {zoneCount}
                         </div>
                       </div>
 
-                      <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">Mapped Stops</div>
-                        <div className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+                      <div className="p-2.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
+                        <div className="text-[10px] font-bold text-gray-400 uppercase">Mapped Stops</div>
+                        <div className="text-base font-black text-green-600 dark:text-green-400 font-mono mt-0.5">
                           {stopCount}
                         </div>
                       </div>
                     </div>
 
                     {/* Coordinates & Contact Info */}
-                    <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-wrap items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-800">
                       <div className="flex items-center gap-1 font-mono text-[10px]">
                         <span>GPS: {campus.latitude.toFixed(4)}, {campus.longitude.toFixed(4)}</span>
                         <span>(±{campus.geofenceRadiusMeters || 100}m)</span>
@@ -650,13 +650,13 @@ export function StaffCampusesView({
       {activeSection === "ZONES" && (
         <div className="space-y-6 animate-in fade-in">
           {/* Active Campus Selector Bar */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
                   <Building2 className="w-3.5 h-3.5" /> Active Operating Campus
                 </span>
-                <h3 className="text-base font-black text-slate-900 dark:text-white mt-0.5">
+                <h3 className="text-base font-black text-gray-900 dark:text-white mt-0.5">
                   Choose Campus to Configure Zones, Stops & Pass Pricing
                 </h3>
               </div>
@@ -671,7 +671,7 @@ export function StaffCampusesView({
             </div>
 
             {/* Campus Selector Pills */}
-            <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
               {campuses.map((c) => {
                 const isSelected = c.id === selectedCampusId;
                 const zoneCount = transitZones.filter((z) => z.campusId === c.id).length;
@@ -685,7 +685,7 @@ export function StaffCampusesView({
                     className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all border ${
                       isSelected
                         ? "bg-blue-600 text-white border-blue-600 shadow-md"
-                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                        : "bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300"
                     }`}
                   >
                     <span>{c.name}</span>
@@ -693,7 +693,7 @@ export function StaffCampusesView({
                       className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                         isSelected
                           ? "bg-white/20 text-white"
-                          : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                          : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                       }`}
                     >
                       {zoneCount} Zones
@@ -708,27 +708,27 @@ export function StaffCampusesView({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <h4 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
                   <span>Transit Zones & Pass Pricing for {activeCampus?.name}</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-400">
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400">
                     {activeCampusZones.length} Zones
                   </span>
                 </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Students affiliated with {activeCampus?.name} pay these semester fees based on the corridor zone of their primary boarding stop.
                 </p>
               </div>
             </div>
 
             {activeCampusZones.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-12 text-center space-y-3">
+              <div className="bg-white dark:bg-gray-900 rounded-3xl border border-dashed border-gray-300 dark:border-gray-800 p-12 text-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
                   <Layers className="w-7 h-7" />
                 </div>
-                <h5 className="font-black text-base text-slate-900 dark:text-white">
+                <h5 className="font-black text-base text-gray-900 dark:text-white">
                   No Zones Configured for {activeCampus?.name}
                 </h5>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                <p className="text-xs text-gray-500 max-w-md mx-auto">
                   Every campus encapsulates its own dedicated transit zones and pricing. Click below to bundle stops into this campus's first fare zone.
                 </p>
                 <button
@@ -747,20 +747,20 @@ export function StaffCampusesView({
                   return (
                     <div
                       key={zone.id || zone.code}
-                      className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                      className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
                     >
                       <div className="space-y-3">
                         {/* Zone Header */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-xs tracking-wider shadow-sm">
+                            <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-600 text-white font-black text-xs tracking-wider shadow-sm">
                               {zone.code}
                             </span>
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
                                 zone.isActive !== false
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                                  ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
+                                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                               }`}
                             >
                               {zone.isActive !== false ? "Active" : "Inactive"}
@@ -771,7 +771,7 @@ export function StaffCampusesView({
                             <button
                               type="button"
                               onClick={() => handleOpenEditZone(zone)}
-                              className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-all"
+                              className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 text-gray-600 hover:text-blue-600 transition-all"
                               title="Edit Zone & Assigned Stops"
                             >
                               <Pencil className="w-3.5 h-3.5" />
@@ -779,7 +779,7 @@ export function StaffCampusesView({
                             <button
                               type="button"
                               onClick={() => setDeleteConfirmZone(zone)}
-                              className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition-all"
+                              className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-red-50 text-gray-600 hover:text-red-600 transition-all"
                               title="Delete Zone"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -789,10 +789,10 @@ export function StaffCampusesView({
 
                         {/* Zone Title */}
                         <div>
-                          <h5 className="font-black text-sm text-slate-900 dark:text-white">
+                          <h5 className="font-black text-sm text-gray-900 dark:text-white">
                             {zone.name}
                           </h5>
-                          <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                          <div className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
                             <Building2 className="w-3 h-3" />
                             <span>{activeCampus?.name}</span>
                           </div>
@@ -803,19 +803,19 @@ export function StaffCampusesView({
                           <div className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
                             <IndianRupee className="w-3 h-3" /> Student Pass Price
                           </div>
-                          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+                          <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
                             ₹{Number(zone.semesterFee).toLocaleString("en-IN")}
-                            <span className="text-xs font-bold text-slate-500 font-sans ml-1">/ semester</span>
+                            <span className="text-xs font-bold text-gray-500 font-sans ml-1">/ semester</span>
                           </div>
-                          <div className="text-[10px] text-slate-500 font-medium">
-                            Up to <span className="font-bold text-slate-700 dark:text-slate-300">{zone.installmentsAllowed || 3} installments</span> allowed
+                          <div className="text-[10px] text-gray-500 font-medium">
+                            Up to <span className="font-bold text-gray-700 dark:text-gray-300">{zone.installmentsAllowed || 3} installments</span> allowed
                           </div>
                         </div>
 
                         {/* Assigned Stops Section */}
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-blue-500" />
                               Bundled Stops ({assignedStops.length})
                             </span>
@@ -829,7 +829,7 @@ export function StaffCampusesView({
                           </div>
 
                           {assignedStops.length === 0 ? (
-                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 text-[11px] text-slate-400 italic text-center">
+                            <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-dashed border-gray-200 dark:border-gray-800 text-[11px] text-gray-400 italic text-center">
                               No stops bundled into this zone yet.
                             </div>
                           ) : (
@@ -837,7 +837,7 @@ export function StaffCampusesView({
                               {assignedStops.map((st) => (
                                 <span
                                   key={st.id}
-                                  className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                                  className="px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-[10px] font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
                                 >
                                   {st.name}
                                 </span>
@@ -848,13 +848,13 @@ export function StaffCampusesView({
 
                         {/* Corridor Description */}
                         {zone.corridorDescription && (
-                          <div className="text-[10px] text-slate-400 line-clamp-2">
+                          <div className="text-[10px] text-gray-400 line-clamp-2">
                             <span className="font-bold">Corridor:</span> {zone.corridorDescription}
                           </div>
                         )}
                       </div>
 
-                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                      <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-[10px] text-gray-400">
                         <span>ID: {zone.id?.slice(0, 16) || zone.code}</span>
                         <span>{zone.updatedAt ? `Updated ${formatDate(zone.updatedAt)}` : "Standard"}</span>
                       </div>
@@ -870,14 +870,14 @@ export function StaffCampusesView({
       {/* MODAL: ADD / EDIT CAMPUS ENTITY */}
       {campusModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative max-w-2xl w-full bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="relative max-w-2xl w-full bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
               <div>
-                <h3 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="font-black text-lg text-gray-900 dark:text-white flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-blue-600" />
                   {editingCampus ? `Edit Campus Entity (${editingCampus.code})` : "Register New Campus Entity"}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Configure regional branch, depot parking bays, and GIS coordinates.
                 </p>
               </div>
@@ -885,7 +885,7 @@ export function StaffCampusesView({
               <button
                 type="button"
                 onClick={() => setCampusModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 flex items-center justify-center"
               >
                 ✕
               </button>
@@ -894,7 +894,7 @@ export function StaffCampusesView({
             <form onSubmit={handleSaveCampus} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Campus Full Name *
                   </label>
                   <input
@@ -903,12 +903,12 @@ export function StaffCampusesView({
                     placeholder="e.g. Graphic Era University - Dehradun Campus"
                     value={campusForm.name}
                     onChange={(e) => setCampusForm({ ...campusForm, name: e.target.value })}
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold outline-none focus:border-blue-500"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-bold outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Campus Code (Unique) *
                   </label>
                   <input
@@ -917,14 +917,14 @@ export function StaffCampusesView({
                     placeholder="e.g. GEU-DDN, GEHU-BHT"
                     value={campusForm.code}
                     onChange={(e) => setCampusForm({ ...campusForm, code: e.target.value.toUpperCase() })}
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-mono font-bold uppercase tracking-wider outline-none focus:border-blue-500"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-mono font-bold uppercase tracking-wider outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     City / Region *
                   </label>
                   <input
@@ -933,12 +933,12 @@ export function StaffCampusesView({
                     placeholder="e.g. Dehradun, Bhimtal, Haldwani"
                     value={campusForm.city}
                     onChange={(e) => setCampusForm({ ...campusForm, city: e.target.value })}
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:border-blue-500"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Main Gate / Depot Landmark
                   </label>
                   <input
@@ -946,13 +946,13 @@ export function StaffCampusesView({
                     placeholder="e.g. Bell Road Main Gate & Bus Terminal"
                     value={campusForm.landmark}
                     onChange={(e) => setCampusForm({ ...campusForm, landmark: e.target.value })}
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:border-blue-500"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                   Full Physical Address
                 </label>
                 <input
@@ -960,14 +960,14 @@ export function StaffCampusesView({
                   placeholder="e.g. 566/6, Bell Road, Clement Town, Dehradun 248002"
                   value={campusForm.address}
                   onChange={(e) => setCampusForm({ ...campusForm, address: e.target.value })}
-                  className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:border-blue-500"
+                  className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 outline-none focus:border-blue-500"
                 />
               </div>
 
               {/* GIS Coordinates & Fleet Specs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Latitude
                   </label>
                   <input
@@ -976,12 +976,12 @@ export function StaffCampusesView({
                     required
                     value={campusForm.latitude}
                     onChange={(e) => setCampusForm({ ...campusForm, latitude: Number(e.target.value) })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-mono"
+                    className="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Longitude
                   </label>
                   <input
@@ -990,12 +990,12 @@ export function StaffCampusesView({
                     required
                     value={campusForm.longitude}
                     onChange={(e) => setCampusForm({ ...campusForm, longitude: Number(e.target.value) })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-mono"
+                    className="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Depot Bays
                   </label>
                   <input
@@ -1003,12 +1003,12 @@ export function StaffCampusesView({
                     min={1}
                     value={campusForm.parkingBays}
                     onChange={(e) => setCampusForm({ ...campusForm, parkingBays: Number(e.target.value) })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-mono"
+                    className="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Geofence (m)
                   </label>
                   <input
@@ -1016,7 +1016,7 @@ export function StaffCampusesView({
                     min={20}
                     value={campusForm.geofenceRadiusMeters}
                     onChange={(e) => setCampusForm({ ...campusForm, geofenceRadiusMeters: Number(e.target.value) })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-mono"
+                    className="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-mono"
                   />
                 </div>
               </div>
@@ -1024,7 +1024,7 @@ export function StaffCampusesView({
               {/* Contact Information */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Transport Desk Phone
                   </label>
                   <input
@@ -1032,12 +1032,12 @@ export function StaffCampusesView({
                     value={campusForm.contactPhone}
                     onChange={(e) => setCampusForm({ ...campusForm, contactPhone: e.target.value })}
                     placeholder="+91 8057999901"
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Contact Email
                   </label>
                   <input
@@ -1045,13 +1045,13 @@ export function StaffCampusesView({
                     value={campusForm.contactEmail}
                     onChange={(e) => setCampusForm({ ...campusForm, contactEmail: e.target.value })}
                     placeholder="transport@geu.ac.in"
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950"
                   />
                 </div>
               </div>
 
               {/* Toggles */}
-              <div className="flex flex-wrap gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex flex-wrap gap-4 pt-2 border-t border-gray-100 dark:border-gray-800">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -1059,7 +1059,7 @@ export function StaffCampusesView({
                     onChange={(e) => setCampusForm({ ...campusForm, isPrimary: e.target.checked })}
                     className="w-4 h-4 rounded text-blue-600"
                   />
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
                     Designate as Primary Campus Hub
                   </span>
                 </label>
@@ -1071,17 +1071,17 @@ export function StaffCampusesView({
                     onChange={(e) => setCampusForm({ ...campusForm, isActive: e.target.checked })}
                     className="w-4 h-4 rounded text-blue-600"
                   />
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
                     Campus is Active
                   </span>
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
                 <button
                   type="button"
                   onClick={() => setCampusModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-100"
+                  className="px-4 py-2 text-xs font-bold text-gray-600 rounded-xl hover:bg-gray-100"
                 >
                   Cancel
                 </button>
@@ -1101,14 +1101,14 @@ export function StaffCampusesView({
       {/* MODAL: CREATE / EDIT TRANSIT ZONE & ASSIGN STOPS */}
       {zoneModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative max-w-2xl w-full bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="relative max-w-2xl w-full bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
               <div>
-                <h3 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="font-black text-lg text-gray-900 dark:text-white flex items-center gap-2">
                   <Layers className="w-5 h-5 text-blue-600" />
                   {editingZone ? `Edit Transit Zone (${zoneForm.code})` : "Configure New Transit Zone"}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Assigned strictly to <span className="font-bold text-blue-600">{activeCampus?.name}</span>
                 </p>
               </div>
@@ -1116,7 +1116,7 @@ export function StaffCampusesView({
               <button
                 type="button"
                 onClick={() => setZoneModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 flex items-center justify-center"
               >
                 ✕
               </button>
@@ -1125,7 +1125,7 @@ export function StaffCampusesView({
             <form onSubmit={handleSaveZone} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Zone Code *
                   </label>
                   <input
@@ -1134,16 +1134,16 @@ export function StaffCampusesView({
                     placeholder="e.g. ZONE_A, ZONE_B"
                     value={zoneForm.code}
                     onChange={(e) => setZoneForm({ ...zoneForm, code: e.target.value.toUpperCase() })}
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold uppercase tracking-wider outline-none focus:border-blue-500"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-bold uppercase tracking-wider outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Semester Pass Price (₹) *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-3 text-slate-400 font-bold text-xs">₹</span>
+                    <span className="absolute left-3 top-3 text-gray-400 font-bold text-xs">₹</span>
                     <input
                       type="number"
                       required
@@ -1151,7 +1151,7 @@ export function StaffCampusesView({
                       step={500}
                       value={zoneForm.semesterFee}
                       onChange={(e) => setZoneForm({ ...zoneForm, semesterFee: Number(e.target.value) })}
-                      className="w-full text-xs pl-7 pr-3 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-black font-mono text-sm outline-none focus:border-blue-500 text-blue-600 dark:text-blue-400"
+                      className="w-full text-xs pl-7 pr-3 py-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-black font-mono text-sm outline-none focus:border-blue-500 text-blue-600 dark:text-blue-400"
                     />
                   </div>
                 </div>
@@ -1159,7 +1159,7 @@ export function StaffCampusesView({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Zone Display Name *
                   </label>
                   <input
@@ -1168,18 +1168,18 @@ export function StaffCampusesView({
                     placeholder="e.g. Zone A: Clock Tower & Rajpur Road Corridor"
                     value={zoneForm.name}
                     onChange={(e) => setZoneForm({ ...zoneForm, name: e.target.value })}
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-medium outline-none focus:border-blue-500"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-medium outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Allowed Installments
                   </label>
                   <select
                     value={zoneForm.installmentsAllowed}
                     onChange={(e) => setZoneForm({ ...zoneForm, installmentsAllowed: Number(e.target.value) })}
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-medium outline-none focus:border-blue-500"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-medium outline-none focus:border-blue-500"
                   >
                     <option value={1}>1 Installment (Full Payment Upfront)</option>
                     <option value={2}>2 Installments (50% Split)</option>
@@ -1190,14 +1190,14 @@ export function StaffCampusesView({
               </div>
 
               {/* Stop Assignment Section: Strictly encapsulated for this campus */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2.5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <label className="text-xs font-black text-slate-800 dark:text-white flex items-center gap-1.5">
+                    <label className="text-xs font-black text-gray-800 dark:text-white flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-blue-600" />
                       Take Already Created Stops into this Zone ({zoneForm.assignedStopIds.length} Selected)
                     </label>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-[10px] text-gray-500">
                       Check stops registered for <span className="font-bold">{activeCampus?.name}</span> to bundle them into this pricing zone.
                     </p>
                   </div>
@@ -1210,11 +1210,11 @@ export function StaffCampusesView({
                     >
                       Select All
                     </button>
-                    <span className="text-slate-300">•</span>
+                    <span className="text-gray-300">•</span>
                     <button
                       type="button"
                       onClick={() => handleSelectAllStops(false)}
-                      className="text-[10px] font-bold text-slate-500 hover:underline"
+                      className="text-[10px] font-bold text-gray-500 hover:underline"
                     >
                       Clear
                     </button>
@@ -1223,20 +1223,20 @@ export function StaffCampusesView({
 
                 {/* Stop Search Input */}
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
                   <input
                     type="text"
                     placeholder={`Search ${activeCampusStops.length} stops in ${activeCampus?.code}...`}
                     value={stopFilterSearch}
                     onChange={(e) => setStopFilterSearch(e.target.value)}
-                    className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:border-blue-500"
+                    className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 outline-none focus:border-blue-500"
                   />
                 </div>
 
                 {/* Stops List */}
-                <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-2xl p-2 divide-y divide-slate-100 dark:divide-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40">
+                <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-800 rounded-2xl p-2 divide-y divide-gray-100 dark:divide-gray-800/60 bg-gray-50/50 dark:bg-gray-950/40">
                   {activeCampusStops.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-slate-400 font-medium">
+                    <div className="p-4 text-center text-xs text-gray-400 font-medium">
                       No stops currently mapped to {activeCampus?.name}. Create stops in Route Builder first.
                     </div>
                   ) : (
@@ -1261,22 +1261,22 @@ export function StaffCampusesView({
                             className={`p-2.5 rounded-xl flex items-center justify-between cursor-pointer transition-all ${
                               isChecked
                                 ? "bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200"
-                                : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                                : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                             }`}
                           >
                             <div className="flex items-center gap-2.5">
                               {isChecked ? (
                                 <CheckSquare className="w-4 h-4 text-blue-600 flex-shrink-0" />
                               ) : (
-                                <Square className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                <Square className="w-4 h-4 text-gray-400 flex-shrink-0" />
                               )}
                               <div>
                                 <div className="text-xs font-bold flex items-center gap-1.5">
                                   <span>{s.name}</span>
-                                  <span className="text-[10px] font-mono text-slate-400">({s.code})</span>
+                                  <span className="text-[10px] font-mono text-gray-400">({s.code})</span>
                                 </div>
                                 {s.landmark && (
-                                  <div className="text-[10px] text-slate-400 truncate max-w-sm">
+                                  <div className="text-[10px] text-gray-400 truncate max-w-sm">
                                     {s.landmark}
                                   </div>
                                 )}
@@ -1289,11 +1289,11 @@ export function StaffCampusesView({
                                   Selected
                                 </span>
                               ) : isOtherZone ? (
-                                <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 text-[9px]">
+                                <span className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-gray-500 text-[9px]">
                                   In {s.zoneCode}
                                 </span>
                               ) : (
-                                <span className="text-slate-400 italic text-[9px]">Unassigned</span>
+                                <span className="text-gray-400 italic text-[9px]">Unassigned</span>
                               )}
                             </div>
                           </div>
@@ -1305,7 +1305,7 @@ export function StaffCampusesView({
 
               {/* Corridor Description */}
               <div>
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                   Corridor Description / Stops Summary
                 </label>
                 <textarea
@@ -1313,7 +1313,7 @@ export function StaffCampusesView({
                   value={zoneForm.corridorDescription}
                   onChange={(e) => setZoneForm({ ...zoneForm, corridorDescription: e.target.value })}
                   placeholder="e.g. Clock Tower, Dilaram Chowk, Jakhan, Rajpur Road"
-                  className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:border-blue-500"
+                  className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -1326,16 +1326,16 @@ export function StaffCampusesView({
                   onChange={(e) => setZoneForm({ ...zoneForm, isActive: e.target.checked })}
                   className="w-4 h-4 rounded text-blue-600"
                 />
-                <label htmlFor="zoneActiveModal" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                <label htmlFor="zoneActiveModal" className="text-xs font-bold text-gray-700 dark:text-gray-300">
                   Zone is active and selectable for student pass generation
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
                 <button
                   type="button"
                   onClick={() => setZoneModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-100"
+                  className="px-4 py-2 text-xs font-bold text-gray-600 rounded-xl hover:bg-gray-100"
                 >
                   Cancel
                 </button>
@@ -1355,25 +1355,25 @@ export function StaffCampusesView({
       {/* DELETE CONFIRMATIONS */}
       {deleteConfirmZone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="relative max-w-md w-full bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="font-black text-base text-rose-600 flex items-center gap-2">
+              <span className="font-black text-base text-red-600 flex items-center gap-2">
                 <Trash2 className="w-5 h-5" /> Delete Transit Zone
               </span>
               <button
                 type="button"
                 onClick={() => setDeleteConfirmZone(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 flex items-center justify-center"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300">
-              Are you sure you want to delete <span className="font-bold text-slate-900 dark:text-white">{deleteConfirmZone.name} ({deleteConfirmZone.code})</span> for <span className="font-bold">{activeCampus?.name}</span>?
+            <p className="text-xs text-gray-600 dark:text-gray-300">
+              Are you sure you want to delete <span className="font-bold text-gray-900 dark:text-white">{deleteConfirmZone.name} ({deleteConfirmZone.code})</span> for <span className="font-bold">{activeCampus?.name}</span>?
             </p>
 
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-[11px] text-amber-700 dark:text-amber-300">
+            <div className="p-3 rounded-xl bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-900 text-[11px] text-yellow-700 dark:text-yellow-300">
               Stops bundled into this zone will be unassigned.
             </div>
 
@@ -1381,14 +1381,14 @@ export function StaffCampusesView({
               <button
                 type="button"
                 onClick={() => setDeleteConfirmZone(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-100"
+                className="px-4 py-2 text-xs font-bold text-gray-600 rounded-xl hover:bg-gray-100"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteZone}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl"
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl"
               >
                 Confirm Delete
               </button>
@@ -1399,36 +1399,36 @@ export function StaffCampusesView({
 
       {deleteCampusConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="relative max-w-md w-full bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="font-black text-base text-rose-600 flex items-center gap-2">
+              <span className="font-black text-base text-red-600 flex items-center gap-2">
                 <Trash2 className="w-5 h-5" /> Delete Campus Entity
               </span>
               <button
                 type="button"
                 onClick={() => setDeleteCampusConfirm(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 flex items-center justify-center"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300">
-              Are you sure you want to remove <span className="font-bold text-slate-900 dark:text-white">{deleteCampusConfirm.name} ({deleteCampusConfirm.code})</span>?
+            <p className="text-xs text-gray-600 dark:text-gray-300">
+              Are you sure you want to remove <span className="font-bold text-gray-900 dark:text-white">{deleteCampusConfirm.name} ({deleteCampusConfirm.code})</span>?
             </p>
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setDeleteCampusConfirm(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-100"
+                className="px-4 py-2 text-xs font-bold text-gray-600 rounded-xl hover:bg-gray-100"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteCampus}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl"
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl"
               >
                 Confirm Delete
               </button>

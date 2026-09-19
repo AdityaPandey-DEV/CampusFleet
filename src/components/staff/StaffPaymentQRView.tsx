@@ -134,8 +134,8 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
     <div className="space-y-6">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-bottom-3">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-bottom-3">
+          <CheckCircle2 className="w-4 h-4 text-green-400 dark:text-green-600" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -143,13 +143,13 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Column */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-md space-y-6">
           <div>
-            <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+            <h3 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
               <QrCode className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               <span>Campus Fee Collection QR & UPI VPA Management</span>
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Configure the institutional bank account details, UPI ID, and QR code displayed to commuters in the Student Portal.
             </p>
           </div>
@@ -157,7 +157,7 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
           <form onSubmit={handleSaveQrConfig} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Official UPI ID / VPA
                 </label>
                 <input
@@ -166,12 +166,12 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
                   onChange={(e) => setQrConfig({ ...qrConfig, upi_id: e.target.value })}
                   placeholder="e.g. gehu.transport@sbi"
                   required
-                  className="w-full text-xs font-mono font-bold p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500"
+                  className="w-full text-xs font-mono font-bold p-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Merchant / Beneficiary Name
                 </label>
                 <input
@@ -180,14 +180,14 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
                   onChange={(e) => setQrConfig({ ...qrConfig, account_name: e.target.value })}
                   placeholder="e.g. Graphic Era Hill University"
                   required
-                  className="w-full text-xs font-bold p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500"
+                  className="w-full text-xs font-bold p-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl outline-none focus:border-blue-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Bank Name
                 </label>
                 <input
@@ -195,12 +195,12 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
                   value={qrConfig.bank_name}
                   onChange={(e) => setQrConfig({ ...qrConfig, bank_name: e.target.value })}
                   placeholder="State Bank of India"
-                  className="w-full text-xs font-bold p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500"
+                  className="w-full text-xs font-bold p-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Account Number
                 </label>
                 <input
@@ -208,12 +208,12 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
                   value={qrConfig.account_number}
                   onChange={(e) => setQrConfig({ ...qrConfig, account_number: e.target.value })}
                   placeholder="389201948201"
-                  className="w-full text-xs font-mono font-bold p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500"
+                  className="w-full text-xs font-mono font-bold p-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   IFSC Code
                 </label>
                 <input
@@ -221,18 +221,18 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
                   value={qrConfig.ifsc_code}
                   onChange={(e) => setQrConfig({ ...qrConfig, ifsc_code: e.target.value })}
                   placeholder="SBIN0006240"
-                  className="w-full text-xs font-mono font-bold p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500"
+                  className="w-full text-xs font-mono font-bold p-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl outline-none focus:border-blue-500"
                 />
               </div>
             </div>
 
             {/* Custom QR Image Upload */}
             <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+              <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                 Custom Standee QR Image (Optional)
               </label>
               <div className="flex items-center gap-3">
-                <label className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors border border-slate-200 dark:border-slate-700">
+                <label className="px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors border border-gray-200 dark:border-gray-700">
                   <Upload className="w-4 h-4" />
                   <span>{isUploadingQrImage ? "Uploading to Vercel Blob..." : "Upload High-Res Standee QR"}</span>
                   <input
@@ -247,26 +247,26 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
                   <button
                     type="button"
                     onClick={() => setQrConfig({ ...qrConfig, qr_image_url: "" })}
-                    className="text-xs text-rose-500 hover:text-rose-600 font-bold"
+                    className="text-xs text-red-500 hover:text-red-600 font-bold"
                   >
                     Reset to Dynamic QR
                   </button>
                 )}
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-[11px] text-gray-400 mt-1">
                 If omitted, CampusFleet automatically generates an SVG UPI payment QR from the VPA above.
               </p>
             </div>
 
             <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+              <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                 Instructions for Commuters
               </label>
               <textarea
                 value={qrConfig.instructions}
                 onChange={(e) => setQrConfig({ ...qrConfig, instructions: e.target.value })}
                 rows={2}
-                className="w-full text-xs p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500"
+                className="w-full text-xs p-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl outline-none focus:border-blue-500"
               />
             </div>
 
@@ -284,49 +284,49 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
         </div>
 
         {/* Live Student Preview Card */}
-        <div className="bg-slate-900 text-white rounded-3xl p-6 border border-slate-800 shadow-xl space-y-5 flex flex-col justify-between">
+        <div className="bg-gray-900 text-white rounded-3xl p-6 border border-gray-800 shadow-xl space-y-5 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-slate-300">Live Student Portal Preview</span>
+                <Smartphone className="w-4 h-4 text-green-400" />
+                <span className="text-xs font-bold text-gray-300">Live Student Portal Preview</span>
               </div>
-              <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
+              <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-green-500/20 text-green-300">
                 ACTIVE
               </span>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl flex flex-col items-center justify-center text-slate-900 shadow-inner">
+            <div className="bg-white p-4 rounded-2xl flex flex-col items-center justify-center text-gray-900 shadow-inner">
               <img
                 src={activeQrSrc}
                 alt="Payment QR"
                 className="w-48 h-48 object-contain rounded-lg"
               />
               <div className="mt-3 text-center space-y-0.5">
-                <div className="text-xs font-black text-slate-900">{qrConfig.account_name}</div>
-                <div className="text-[11px] font-mono text-slate-500 flex items-center justify-center gap-1">
+                <div className="text-xs font-black text-gray-900">{qrConfig.account_name}</div>
+                <div className="text-[11px] font-mono text-gray-500 flex items-center justify-center gap-1">
                   <span>{qrConfig.upi_id}</span>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(qrConfig.upi_id)}
-                    className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700"
+                    className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700"
                   >
-                    {copiedVpa ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                    {copiedVpa ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 space-y-2 text-xs">
-              <div className="flex justify-between text-slate-400">
+            <div className="bg-gray-800/80 rounded-2xl p-4 border border-gray-700/60 space-y-2 text-xs">
+              <div className="flex justify-between text-gray-400">
                 <span>Bank</span>
                 <strong className="text-white font-mono">{qrConfig.bank_name}</strong>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between text-gray-400">
                 <span>A/C No</span>
                 <strong className="text-white font-mono">{qrConfig.account_number}</strong>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between text-gray-400">
                 <span>IFSC</span>
                 <strong className="text-white font-mono">{qrConfig.ifsc_code}</strong>
               </div>

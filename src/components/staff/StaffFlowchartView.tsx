@@ -195,30 +195,30 @@ export default function StaffFlowchartView({
     <div className="space-y-6 animate-in fade-in">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-bottom-3">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-bottom-3">
+          <CheckCircle2 className="w-4 h-4 text-green-400 dark:text-green-600" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header & Route Selector */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md space-y-4">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-md space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+            <h3 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
               <GitBranch className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               <span>Corridor Flowchart & Stop-by-Stop Bus Dispatch</span>
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Interactive visual flowchart of transit stops. Click the <strong>+ Deploy Bus</strong> button at any stop to allocate an operational bus starting from that exact origin point.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Active Corridor:</span>
+            <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Active Corridor:</span>
             <select
               value={flowchartRouteId || (routes[0]?.id ?? "")}
               onChange={(e) => setFlowchartRouteId(e.target.value)}
-              className="text-xs font-black px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white outline-none focus:border-blue-500 max-w-[320px]"
+              className="text-xs font-black px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none focus:border-blue-500 max-w-[320px]"
             >
               {routes.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -231,68 +231,68 @@ export default function StaffFlowchartView({
 
         {/* Corridor Overview Banner */}
         {selectedFlowchartRoute && (
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
             <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 rounded-2xl border border-blue-200/60 dark:border-blue-900/40">
               <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Corridor Route</div>
-              <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5 truncate">{selectedFlowchartRoute.name}</div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{selectedFlowchartRoute.totalDistanceKm || 28} km Corridor</div>
+              <div className="text-sm font-black text-gray-900 dark:text-white mt-0.5 truncate">{selectedFlowchartRoute.name}</div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{selectedFlowchartRoute.totalDistanceKm || 28} km Corridor</div>
             </div>
 
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Sequential Stops</div>
-              <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5">{flowchartStops.length} Corridor Stations</div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Direction: {selectedFlowchartRoute.direction || "CAMPUS"}</div>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/60">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Sequential Stops</div>
+              <div className="text-sm font-black text-gray-900 dark:text-white mt-0.5">{flowchartStops.length} Corridor Stations</div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Direction: {selectedFlowchartRoute.direction || "CAMPUS"}</div>
             </div>
 
-            <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200/60 dark:border-emerald-900/40">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Buses Deployed Here</div>
-              <div className="text-sm font-black text-emerald-700 dark:text-emerald-300 mt-0.5">
+            <div className="p-3 bg-green-50/70 dark:bg-green-950/40 rounded-2xl border border-green-200/60 dark:border-green-900/40">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-green-600 dark:text-green-400">Buses Deployed Here</div>
+              <div className="text-sm font-black text-green-700 dark:text-green-300 mt-0.5">
                 {new Set(trips.filter((t) => t.routeId === selectedFlowchartRoute.id).map((t) => t.busId)).size} Active Buses
               </div>
-              <div className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">Assigned along this corridor</div>
+              <div className="text-[10px] text-green-600/80 dark:text-green-400/80 mt-0.5">Assigned along this corridor</div>
             </div>
 
-            <div className="p-3 bg-purple-50/70 dark:bg-purple-950/40 rounded-2xl border border-purple-200/60 dark:border-purple-900/40">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Enrolled Commuters</div>
-              <div className="text-sm font-black text-purple-700 dark:text-purple-300 mt-0.5">
+            <div className="p-3 bg-pink-50/70 dark:bg-pink-950/40 rounded-2xl border border-pink-200/60 dark:border-pink-900/40">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-pink-600 dark:text-pink-400">Enrolled Commuters</div>
+              <div className="text-sm font-black text-pink-700 dark:text-pink-300 mt-0.5">
                 {students.filter((st) => st.primaryRouteId === selectedFlowchartRoute.id).length} Students
               </div>
-              <div className="text-[10px] text-purple-600/80 dark:text-purple-400/80 mt-0.5">Registered on this corridor</div>
+              <div className="text-[10px] text-pink-600/80 dark:text-pink-400/80 mt-0.5">Registered on this corridor</div>
             </div>
           </div>
         )}
 
         {/* Search filter */}
         <div className="relative pt-1">
-          <Search className="w-4 h-4 absolute left-3.5 top-[18px] text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3.5 top-[18px] text-gray-400" />
           <input
             type="text"
             value={flowchartSearchQuery}
             onChange={(e) => setFlowchartSearchQuery(e.target.value)}
             placeholder="Search stop name, station code, or landmark along this corridor..."
-            className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-blue-500 font-bold"
+            className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 font-bold"
           />
         </div>
       </div>
 
       {/* Visual Flowchart Display */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-md">
-        <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-md">
+        <div className="flex items-center justify-between pb-5 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2">
-            <RouteIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            <span className="text-sm font-black text-slate-900 dark:text-white">Corridor Stop Flowchart</span>
+            <RouteIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-black text-gray-900 dark:text-white">Corridor Stop Flowchart</span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
               {flowchartStops.length} Stops
             </span>
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-bold">
+          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 font-bold">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block animate-pulse"></span>
             <span>Origin to Terminus Flow</span>
           </div>
         </div>
 
         {flowchartStops.length === 0 ? (
-          <div className="py-16 text-center text-slate-400 text-xs font-mono">
+          <div className="py-16 text-center text-gray-400 text-xs font-mono">
             No stops found for this corridor or matching your search.
           </div>
         ) : (
@@ -313,7 +313,7 @@ export default function StaffFlowchartView({
                 <div key={st.stopId} className="relative group">
                   {/* Connecting Line */}
                   {!isLast && (
-                    <div className="absolute left-6 top-10 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-indigo-400 to-slate-300 dark:to-slate-700 z-0 group-hover:from-blue-600 transition-colors" />
+                    <div className="absolute left-6 top-10 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-blue-400 to-gray-300 dark:to-gray-700 z-0 group-hover:from-blue-600 transition-colors" />
                   )}
 
                   <div className="flex items-start gap-4 pb-8 relative z-10">
@@ -321,11 +321,11 @@ export default function StaffFlowchartView({
                     <div
                       className={`w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-black text-xs flex-shrink-0 shadow-md transition-all ${
                         isFirst
-                          ? "bg-emerald-600 text-white shadow-emerald-500/20"
+                          ? "bg-green-600 text-white shadow-green-500/20"
                           : isLast
-                          ? "bg-purple-600 text-white shadow-purple-500/20"
+                          ? "bg-pink-600 text-white shadow-pink-500/20"
                           : st.isBusMergeStop
-                          ? "bg-amber-500 text-white shadow-amber-500/20"
+                          ? "bg-yellow-500 text-white shadow-yellow-500/20"
                           : "bg-blue-600 text-white shadow-blue-500/20"
                       }`}
                     >
@@ -333,24 +333,24 @@ export default function StaffFlowchartView({
                     </div>
 
                     {/* Content Card */}
-                    <div className="flex-1 bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 group-hover:border-blue-300 dark:group-hover:border-blue-600 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex-1 bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 group-hover:border-blue-300 dark:group-hover:border-blue-600 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-black text-sm text-slate-900 dark:text-white">{st.stopName}</span>
+                          <span className="font-black text-sm text-gray-900 dark:text-white">{st.stopName}</span>
                           <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
                             {st.stopCode}
                           </span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                             {st.zoneCode}
                           </span>
                           {st.isBusMergeStop && (
-                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300 border border-yellow-300">
                               Merge Hub
                             </span>
                           )}
                         </div>
 
-                        <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 flex-wrap">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 flex-wrap">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5 text-blue-500" />
                             <span>ETA: <strong>{formattedTime}</strong> (+{st.arrivalOffset}m)</span>
@@ -363,7 +363,7 @@ export default function StaffFlowchartView({
                       {/* Action & Bus Indicator */}
                       <div className="flex items-center gap-2 self-end md:self-center flex-shrink-0">
                         {stopBusCount > 0 && (
-                          <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                          <div className="text-[11px] font-bold text-green-600 dark:text-green-400 px-3 py-1.5 rounded-xl bg-green-50 dark:bg-green-950/60 border border-green-200 dark:border-green-800 flex items-center gap-1.5">
                             <BusFront className="w-3.5 h-3.5" />
                             <span>{stopBusCount} Active Bus{stopBusCount > 1 ? "es" : ""}</span>
                           </div>
@@ -389,32 +389,32 @@ export default function StaffFlowchartView({
       {/* Deploy Bus from Stop Modal */}
       {isAssignBusModalOpen && assignTargetStop && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h4 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+          <div className="max-w-md w-full bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+              <h4 className="font-black text-sm text-gray-900 dark:text-white flex items-center gap-2">
                 <BusFront className="w-4 h-4 text-blue-600" />
                 <span>Deploy Bus from {assignTargetStop.stopName}</span>
               </h4>
-              <button onClick={() => setIsAssignBusModalOpen(false)} className="p-1 text-slate-400 hover:text-white">
+              <button onClick={() => setIsAssignBusModalOpen(false)} className="p-1 text-gray-400 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {assignFlowchartError && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300">
+              <div className="p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-xl text-xs text-red-700 dark:text-red-300">
                 {assignFlowchartError}
               </div>
             )}
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Select Fleet Bus
                 </label>
                 <select
                   value={assignBusFormData.busId}
                   onChange={(e) => setAssignBusFormData({ ...assignBusFormData, busId: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold outline-none"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold outline-none"
                 >
                   {buses.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -425,25 +425,25 @@ export default function StaffFlowchartView({
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Scheduled Departure from Stop
                 </label>
                 <input
                   type="time"
                   value={assignBusFormData.departureTime}
                   onChange={(e) => setAssignBusFormData({ ...assignBusFormData, departureTime: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-bold outline-none"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-mono font-bold outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Assign Driver
                 </label>
                 <select
                   value={assignBusFormData.driverId}
                   onChange={(e) => setAssignBusFormData({ ...assignBusFormData, driverId: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold outline-none"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold outline-none"
                 >
                   <option value="">— Select Driver —</option>
                   {staff
@@ -457,13 +457,13 @@ export default function StaffFlowchartView({
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Assign Conductor
                 </label>
                 <select
                   value={assignBusFormData.conductorId}
                   onChange={(e) => setAssignBusFormData({ ...assignBusFormData, conductorId: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold outline-none"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold outline-none"
                 >
                   <option value="">— Select Conductor —</option>
                   {staff
@@ -480,7 +480,7 @@ export default function StaffFlowchartView({
             <div className="flex justify-end gap-2 pt-3">
               <button
                 onClick={() => setIsAssignBusModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
               >
                 Cancel
               </button>

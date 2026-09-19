@@ -59,7 +59,7 @@ export function getSubscriptionStatusLabel(student?: Student | null): {
   if (!student) {
     return {
       label: "UNREGISTERED",
-      badgeClass: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+      badgeClass: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
       isExpired: false,
       isActive: false,
       remainingDays: 0,
@@ -69,7 +69,7 @@ export function getSubscriptionStatusLabel(student?: Student | null): {
   if (student.transportAccessSuspended) {
     return {
       label: "SUSPENDED",
-      badgeClass: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
+      badgeClass: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
       isExpired: false,
       isActive: false,
       remainingDays: 0,
@@ -82,7 +82,7 @@ export function getSubscriptionStatusLabel(student?: Student | null): {
   if (isExpired) {
     return {
       label: "EXPIRED (RENEWAL REQUIRED)",
-      badgeClass: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+      badgeClass: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300",
       isExpired: true,
       isActive: false,
       remainingDays: 0,
@@ -92,7 +92,7 @@ export function getSubscriptionStatusLabel(student?: Student | null): {
   if (student.paymentStatus === "PENDING_APPROVAL") {
     return {
       label: "VERIFICATION PENDING",
-      badgeClass: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+      badgeClass: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300",
       isExpired: false,
       isActive: false,
       remainingDays,
@@ -102,7 +102,7 @@ export function getSubscriptionStatusLabel(student?: Student | null): {
   if (isStudentSubscriptionActive(student)) {
     return {
       label: `ACTIVE (${remainingDays} DAYS REMAINING)`,
-      badgeClass: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+      badgeClass: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
       isExpired: false,
       isActive: true,
       remainingDays,
@@ -111,7 +111,7 @@ export function getSubscriptionStatusLabel(student?: Student | null): {
 
   return {
     label: "PAYMENT REQUIRED",
-    badgeClass: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
+    badgeClass: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
     isExpired: false,
     isActive: false,
     remainingDays: 0,

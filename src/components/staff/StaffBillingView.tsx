@@ -317,7 +317,7 @@ export function StaffBillingView({
     <div className="space-y-6 animate-in fade-in pb-12">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="p-4 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-xl flex items-center justify-between animate-in slide-in-from-top">
+        <div className="p-4 rounded-2xl bg-green-600 text-white font-bold text-xs shadow-xl flex items-center justify-between animate-in slide-in-from-top">
           <span>{toastMessage}</span>
           <button onClick={() => setToastMessage(null)} className="text-white/80 hover:text-white">✕</button>
         </div>
@@ -326,23 +326,23 @@ export function StaffBillingView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2.5">
             <CreditCard className="w-7 h-7 text-blue-600" />
             Fee Management & Staff Payment Approvals
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Configure campus transit zones & pricing, review receipts, and manage student passes.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <div className="flex flex-wrap items-center gap-1.5 bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700">
           <button
             type="button"
             onClick={() => setActiveTab("APPROVALS")}
             className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all ${
               activeTab === "APPROVALS"
-                ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
@@ -354,8 +354,8 @@ export function StaffBillingView({
             onClick={() => setActiveTab("LEDGER")}
             className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all ${
               activeTab === "LEDGER"
-                ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -367,8 +367,8 @@ export function StaffBillingView({
             onClick={() => setActiveTab("ZONES")}
             className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all ${
               activeTab === "ZONES"
-                ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
             }`}
           >
             <Layers className="w-4 h-4 text-blue-500" />
@@ -379,38 +379,38 @@ export function StaffBillingView({
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
-          <div className="text-xs font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-2">
+          <div className="text-xs font-bold uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" /> Pending Verification
           </div>
-          <div className="text-3xl font-black text-amber-600 font-mono">
+          <div className="text-3xl font-black text-yellow-600 font-mono">
             {pendingCount} Receipts
           </div>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-gray-500">
             Awaiting finance staff approval to unlock passes
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
-          <div className="text-xs font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-2">
+          <div className="text-xs font-bold uppercase tracking-wider text-green-500 flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5" /> Approved Submissions
           </div>
-          <div className="text-3xl font-black text-emerald-600 font-mono">
+          <div className="text-3xl font-black text-green-600 font-mono">
             {approvedCount} Passes
           </div>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-gray-500">
             Verified with unlocked student transport access
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-2">
           <div className="text-xs font-bold uppercase tracking-wider text-blue-500">
             Total Reconciled Revenue
           </div>
-          <div className="text-3xl font-black text-slate-900 dark:text-white font-mono">
+          <div className="text-3xl font-black text-gray-900 dark:text-white font-mono">
             {formatCurrency(totalRevenue)}
           </div>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-gray-500">
             Across all approved semester subscription fees
           </div>
         </div>
@@ -418,45 +418,45 @@ export function StaffBillingView({
 
       {/* TAB 1: Staff Approvals (Vercel Blob Receipts) */}
       {activeTab === "APPROVALS" && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-6 space-y-4">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <h3 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
                 <span>Student Payment Verification Queue</span>
                 {pendingCount > 0 && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-extrabold">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 font-extrabold">
                     {pendingCount} Action Required
                   </span>
                 )}
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 Inspect Vercel Blob screenshots, verify UTR, and approve to unlock student portal access.
               </p>
             </div>
 
             <button
               onClick={fetchSubmissions}
-              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300"
+              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300"
             >
               Refresh Queue
             </button>
           </div>
 
           {isLoadingSubmissions ? (
-            <div className="py-12 text-center text-xs text-slate-400 font-bold">
+            <div className="py-12 text-center text-xs text-gray-400 font-bold">
               Loading payment submission records...
             </div>
           ) : submissions.length === 0 ? (
             <div className="py-12 text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-400 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <p className="text-xs font-bold text-slate-500">No payment submissions found in database.</p>
+              <p className="text-xs font-bold text-gray-500">No payment submissions found in database.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <thead className="bg-gray-50 dark:bg-gray-800/60 uppercase font-bold text-gray-400 border-b border-gray-200 dark:border-gray-800">
                   <tr>
                     <th className="p-3">Commuter</th>
                     <th className="p-3">Zone & Route</th>
@@ -467,15 +467,15 @@ export function StaffBillingView({
                     <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                   {submissions.map((sub: any) => {
                     const isPending = sub.status === "PENDING_APPROVAL";
                     const isActioning = actionLoadingId === sub.id;
 
                     return (
-                      <tr key={sub.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                      <tr key={sub.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
                         <td className="p-3">
-                          <div className="font-bold text-slate-900 dark:text-white">
+                          <div className="font-bold text-gray-900 dark:text-white">
                             {sub.student_name || sub.students?.full_name || "Student"}
                           </div>
                                                   </td>
@@ -484,16 +484,16 @@ export function StaffBillingView({
                           <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-black text-[10px]">
                             {sub.zone_code || "ZONE_B"}
                           </span>
-                          <div className="text-[11px] text-slate-500 truncate max-w-[150px] mt-0.5">
+                          <div className="text-[11px] text-gray-500 truncate max-w-[150px] mt-0.5">
                             {sub.stop_name || sub.students?.primary_stop_name || "Designated Stop"}
                           </div>
                         </td>
 
                         <td className="p-3">
-                          <div className="font-black text-sm text-slate-900 dark:text-white font-mono">
+                          <div className="font-black text-sm text-gray-900 dark:text-white font-mono">
                             {formatCurrency(sub.amount || 12000)}
                           </div>
-                          <div className="text-[11px] text-slate-400 uppercase font-bold">
+                          <div className="text-[11px] text-gray-400 uppercase font-bold">
                             {sub.payment_method || "UPI_QR"}
                           </div>
                         </td>
@@ -502,7 +502,7 @@ export function StaffBillingView({
                           <div className="font-mono text-xs font-bold text-blue-600 bg-blue-50/80 dark:bg-blue-950/40 px-2 py-1 rounded-lg inline-block border border-blue-100 dark:border-blue-900">
                             {sub.transaction_ref || sub.transaction_id || "MISSING-UTR"}
                           </div>
-                          <div className="text-[10px] text-slate-400 mt-0.5">
+                          <div className="text-[10px] text-gray-400 mt-0.5">
                             {formatDate(sub.created_at)}
                           </div>
                         </td>
@@ -517,7 +517,7 @@ export function StaffBillingView({
                               <Eye className="w-3.5 h-3.5" /> View Receipt
                             </button>
                           ) : (
-                            <span className="text-slate-400 italic text-[11px]">No Screenshot</span>
+                            <span className="text-gray-400 italic text-[11px]">No Screenshot</span>
                           )}
                         </td>
 
@@ -525,10 +525,10 @@ export function StaffBillingView({
                           <span
                             className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                               sub.status === "APPROVED"
-                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                                ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
                                 : sub.status === "REJECTED"
-                                ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
-                                : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 animate-pulse"
+                                ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                                : "bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 animate-pulse"
                             }`}
                           >
                             {sub.status}
@@ -542,7 +542,7 @@ export function StaffBillingView({
                                 type="button"
                                 disabled={isActioning}
                                 onClick={() => handleApprove(sub.id)}
-                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl flex items-center gap-1 shadow-sm transition-all disabled:opacity-50"
+                                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white font-extrabold text-xs rounded-xl flex items-center gap-1 shadow-sm transition-all disabled:opacity-50"
                               >
                                 <Check className="w-3.5 h-3.5" /> Approve
                               </button>
@@ -550,13 +550,13 @@ export function StaffBillingView({
                                 type="button"
                                 disabled={isActioning}
                                 onClick={() => setRejectModalId(sub.id)}
-                                className="px-3 py-1.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 dark:text-rose-400 font-extrabold text-xs rounded-xl flex items-center gap-1 transition-all border border-rose-200 dark:border-rose-900 disabled:opacity-50"
+                                className="px-3 py-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 font-extrabold text-xs rounded-xl flex items-center gap-1 transition-all border border-red-200 dark:border-red-900 disabled:opacity-50"
                               >
                                 <X className="w-3.5 h-3.5" /> Reject
                               </button>
                             </div>
                           ) : (
-                            <div className="text-[11px] text-slate-400">
+                            <div className="text-[11px] text-gray-400">
                               Reviewed by {sub.reviewed_by || "Staff"}
                             </div>
                           )}
@@ -573,14 +573,14 @@ export function StaffBillingView({
 
       {/* TAB 2: General Ledger Table */}
       {activeTab === "LEDGER" && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-6 space-y-4">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-slate-900 dark:text-white">
+            <h3 className="font-bold text-base text-gray-900 dark:text-white">
               Institutional Fee Accounting Ledger
             </h3>
             <button
               onClick={() => window.print()}
-              className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold rounded-xl flex items-center gap-1.5"
+              className="px-3.5 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-xs font-bold rounded-xl flex items-center gap-1.5"
             >
               <Download className="w-3.5 h-3.5" />
               Print Ledger
@@ -589,7 +589,7 @@ export function StaffBillingView({
 
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
+              <thead className="bg-gray-50 dark:bg-gray-800/60 uppercase font-bold text-gray-400 border-b border-gray-200 dark:border-gray-800">
                 <tr>
                   <th className="p-3">Receipt No.</th>
                   <th className="p-3">Student Passenger</th>
@@ -600,24 +600,24 @@ export function StaffBillingView({
                   <th className="p-3">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {payments.map((pay: any) => (
-                  <tr key={pay.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                  <tr key={pay.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
                     <td className="p-3 font-mono font-bold text-blue-600">{pay.receiptNumber || pay.receipt_number}</td>
                     <td className="p-3 font-medium">{pay.studentName || pay.student_name}</td>
-                    <td className="p-3 text-slate-500">{pay.planName || pay.plan_name}</td>
+                    <td className="p-3 text-gray-500">{pay.planName || pay.plan_name}</td>
                     <td className="p-3 font-black font-mono">{formatCurrency(pay.amount)}</td>
-                    <td className="p-3 font-mono text-slate-400 text-xs">
+                    <td className="p-3 font-mono text-gray-400 text-xs">
                       <div className="flex flex-col gap-0.5">
                         <span>{(pay.transactionRef || pay.transaction_ref)?.startsWith("pay_") ? "RZP Txn: " : "Ref: "}{pay.transactionRef || pay.transaction_ref || "-"}</span>
                         {(pay.receiptNumber || pay.receipt_number)?.startsWith("order_") && (
-                          <span className="text-[10px] text-slate-500">Order: {pay.receiptNumber || pay.receipt_number}</span>
+                          <span className="text-[10px] text-gray-500">Order: {pay.receiptNumber || pay.receipt_number}</span>
                         )}
                       </div>
                     </td>
-                    <td className="p-3 text-slate-500">{formatDate(pay.createdAt || pay.created_at)}</td>
+                    <td className="p-3 text-gray-500">{formatDate(pay.createdAt || pay.created_at)}</td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-extrabold text-[10px] uppercase">
+                      <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-extrabold text-[10px] uppercase">
                         {pay.status}
                       </span>
                     </td>
@@ -633,16 +633,16 @@ export function StaffBillingView({
       {activeTab === "ZONES" && (
         <div className="space-y-6 animate-in fade-in">
           {/* Campus Selector Bar */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5 mb-1">
                   <Building2 className="w-4 h-4" /> Campus Operating Scope
                 </div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                <h3 className="text-lg font-black text-gray-900 dark:text-white">
                   Select Campus to Manage Zones & Pricing
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-gray-500">
                   Every campus encapsulates its own dedicated pickup stops, corridor zones, and student semester fees.
                 </p>
               </div>
@@ -657,7 +657,7 @@ export function StaffBillingView({
             </div>
 
             {/* Campus Pills */}
-            <div className="flex flex-wrap gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex flex-wrap gap-2.5 pt-2 border-t border-gray-100 dark:border-gray-800">
               {campuses.map((c) => {
                 const isSelected = c.id === selectedCampusId;
                 const zoneCount = transitZones.filter((z) => z.campusId === c.id).length;
@@ -671,14 +671,14 @@ export function StaffBillingView({
                     className={`px-4 py-3 rounded-2xl text-left border transition-all flex items-center gap-3 ${
                       isSelected
                         ? "bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-900 dark:text-blue-200 shadow-md ring-2 ring-blue-500/20"
-                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-700 dark:text-slate-300"
+                        : "bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 hover:border-gray-300 text-gray-700 dark:text-gray-300"
                     }`}
                   >
                     <div
                       className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs ${
                         isSelected
                           ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                          : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                       }`}
                     >
                       {c.code?.slice(0, 3) || "CMP"}
@@ -692,7 +692,7 @@ export function StaffBillingView({
                           </span>
                         )}
                       </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-2 font-medium">
+                      <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2 font-medium">
                         <span>{c.city || "Uttarakhand"}</span>
                         <span>•</span>
                         <span>{zoneCount} Zones</span>
@@ -710,27 +710,27 @@ export function StaffBillingView({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <h4 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
                   <span>Zones Configured for {currentCampus?.name || "Selected Campus"}</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-400">
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400">
                     {campusZones.length} Zones Active
                   </span>
                 </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Students registered under this campus are charged according to these zone prices during semester onboarding & pass generation.
                 </p>
               </div>
             </div>
 
             {campusZones.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-12 text-center space-y-3">
+              <div className="bg-white dark:bg-gray-900 rounded-3xl border border-dashed border-gray-300 dark:border-gray-800 p-12 text-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
                   <Layers className="w-7 h-7" />
                 </div>
-                <h5 className="font-black text-base text-slate-900 dark:text-white">
+                <h5 className="font-black text-base text-gray-900 dark:text-white">
                   No Transit Zones for {currentCampus?.name || "this Campus"}
                 </h5>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                <p className="text-xs text-gray-500 max-w-md mx-auto">
                   Set up fare corridors (e.g. Zone A, Zone B) and assign stops for this campus so commuter students can purchase bus passes.
                 </p>
                 <button
@@ -749,20 +749,20 @@ export function StaffBillingView({
                   return (
                     <div
                       key={zone.id || zone.code}
-                      className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                      className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
                     >
                       <div className="space-y-3">
                         {/* Zone Card Header */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-xs tracking-wider shadow-sm">
+                            <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-600 text-white font-black text-xs tracking-wider shadow-sm">
                               {zone.code}
                             </span>
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
                                 zone.isActive !== false
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                                  ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
+                                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                               }`}
                             >
                               {zone.isActive !== false ? "Active" : "Inactive"}
@@ -773,7 +773,7 @@ export function StaffBillingView({
                             <button
                               type="button"
                               onClick={() => handleOpenEditZone(zone)}
-                              className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950 text-slate-600 dark:text-slate-300 hover:text-blue-600 transition-all"
+                              className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950 text-gray-600 dark:text-gray-300 hover:text-blue-600 transition-all"
                               title="Edit Zone & Assign Stops"
                             >
                               <Pencil className="w-3.5 h-3.5" />
@@ -781,7 +781,7 @@ export function StaffBillingView({
                             <button
                               type="button"
                               onClick={() => setDeleteConfirmZone(zone)}
-                              className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950 text-slate-600 dark:text-slate-300 hover:text-rose-600 transition-all"
+                              className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950 text-gray-600 dark:text-gray-300 hover:text-red-600 transition-all"
                               title="Delete Zone"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -791,10 +791,10 @@ export function StaffBillingView({
 
                         {/* Zone Name */}
                         <div>
-                          <h5 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                          <h5 className="font-extrabold text-sm text-gray-900 dark:text-white">
                             {zone.name}
                           </h5>
-                          <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                          <div className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
                             <Building2 className="w-3 h-3" />
                             <span>{currentCampus?.name || "Campus"}</span>
                           </div>
@@ -805,19 +805,19 @@ export function StaffBillingView({
                           <div className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
                             <IndianRupee className="w-3 h-3" /> Student Pass Pricing
                           </div>
-                          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+                          <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
                             ₹{Number(zone.semesterFee).toLocaleString("en-IN")}
-                            <span className="text-xs font-bold text-slate-500 font-sans ml-1">/ semester</span>
+                            <span className="text-xs font-bold text-gray-500 font-sans ml-1">/ semester</span>
                           </div>
-                          <div className="text-[10px] text-slate-500 font-medium">
-                            Permits up to <span className="font-bold text-slate-700 dark:text-slate-300">{zone.installmentsAllowed || 3} installments</span>
+                          <div className="text-[10px] text-gray-500 font-medium">
+                            Permits up to <span className="font-bold text-gray-700 dark:text-gray-300">{zone.installmentsAllowed || 3} installments</span>
                           </div>
                         </div>
 
                         {/* Assigned Stops Details */}
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-blue-500" />
                               Assigned Stops ({assignedStops.length})
                             </span>
@@ -831,7 +831,7 @@ export function StaffBillingView({
                           </div>
 
                           {assignedStops.length === 0 ? (
-                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 text-[11px] text-slate-400 italic text-center">
+                            <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-dashed border-gray-200 dark:border-gray-800 text-[11px] text-gray-400 italic text-center">
                               No stops bundled into this zone yet.
                             </div>
                           ) : (
@@ -839,7 +839,7 @@ export function StaffBillingView({
                               {assignedStops.map((st) => (
                                 <span
                                   key={st.id}
-                                  className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                                  className="px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-[10px] font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
                                 >
                                   {st.name}
                                 </span>
@@ -850,14 +850,14 @@ export function StaffBillingView({
 
                         {/* Corridor Description */}
                         {zone.corridorDescription && (
-                          <div className="text-[10px] text-slate-400 line-clamp-2">
+                          <div className="text-[10px] text-gray-400 line-clamp-2">
                             <span className="font-bold">Corridor:</span> {zone.corridorDescription}
                           </div>
                         )}
                       </div>
 
                       {/* Footer Info */}
-                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                      <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-[10px] text-gray-400">
                         <span>ID: {zone.id?.slice(0, 16) || zone.code}</span>
                         <span>{zone.updatedAt ? `Updated ${formatDate(zone.updatedAt)}` : "Standard"}</span>
                       </div>
@@ -873,15 +873,15 @@ export function StaffBillingView({
       {/* Lightbox Modal for Receipt Preview */}
       {previewImageUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative max-w-2xl w-full bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <span className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-1.5">
+          <div className="relative max-w-2xl w-full bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-2xl border border-gray-200 dark:border-gray-800">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
+              <span className="font-bold text-sm text-gray-800 dark:text-white flex items-center gap-1.5">
                 <FileText className="w-4 h-4 text-blue-600" /> Vercel Blob Receipt Screenshot
               </span>
               <button
                 type="button"
                 onClick={() => setPreviewImageUrl(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-600 dark:text-gray-300 flex items-center justify-center"
               >
                 ✕
               </button>
@@ -896,19 +896,19 @@ export function StaffBillingView({
       {/* Rejection Modal */}
       {rejectModalId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="relative max-w-md w-full bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="font-black text-base text-rose-600">Reject Payment Submission</span>
+              <span className="font-black text-base text-red-600">Reject Payment Submission</span>
               <button
                 type="button"
                 onClick={() => setRejectModalId(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 flex items-center justify-center"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-gray-500">
               Please specify the reason for rejecting this receipt (e.g. invalid UTR, blurred screenshot, amount mismatch).
             </p>
 
@@ -917,14 +917,14 @@ export function StaffBillingView({
               placeholder="Enter reason for rejection..."
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
-              className="w-full text-xs p-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none"
+              className="w-full text-xs p-3 rounded-2xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none"
             />
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setRejectModalId(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-100"
+                className="px-4 py-2 text-xs font-bold text-gray-600 rounded-xl hover:bg-gray-100"
               >
                 Cancel
               </button>
@@ -932,7 +932,7 @@ export function StaffBillingView({
               <button
                 type="button"
                 onClick={handleReject}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl"
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl"
               >
                 Confirm Rejection
               </button>
@@ -944,14 +944,14 @@ export function StaffBillingView({
       {/* CREATE / EDIT TRANSIT ZONE & ASSIGN STOPS MODAL */}
       {zoneModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative max-w-2xl w-full bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="relative max-w-2xl w-full bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4">
               <div>
-                <h3 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="font-black text-lg text-gray-900 dark:text-white flex items-center gap-2">
                   <Layers className="w-5 h-5 text-blue-600" />
                   {editingZone ? `Edit Transit Zone (${zoneForm.code})` : "Configure New Transit Zone"}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Assigned to <span className="font-bold text-blue-600">{currentCampus?.name || "Campus"}</span>
                 </p>
               </div>
@@ -959,7 +959,7 @@ export function StaffBillingView({
               <button
                 type="button"
                 onClick={() => setZoneModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center"
               >
                 ✕
               </button>
@@ -969,7 +969,7 @@ export function StaffBillingView({
               {/* Form Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Zone Identifier Code *
                   </label>
                   <input
@@ -978,17 +978,17 @@ export function StaffBillingView({
                     placeholder="e.g. ZONE_A, ZONE_B"
                     value={zoneForm.code}
                     onChange={(e) => setZoneForm({ ...zoneForm, code: e.target.value.toUpperCase() })}
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold uppercase tracking-wider outline-none focus:border-blue-500"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-bold uppercase tracking-wider outline-none focus:border-blue-500"
                   />
-                  <span className="text-[10px] text-slate-400">Used as system code on passes</span>
+                  <span className="text-[10px] text-gray-400">Used as system code on passes</span>
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Semester Fee / Price (₹) *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-3 text-slate-400 font-bold text-xs">₹</span>
+                    <span className="absolute left-3 top-3 text-gray-400 font-bold text-xs">₹</span>
                     <input
                       type="number"
                       required
@@ -996,16 +996,16 @@ export function StaffBillingView({
                       step={500}
                       value={zoneForm.semesterFee}
                       onChange={(e) => setZoneForm({ ...zoneForm, semesterFee: Number(e.target.value) })}
-                      className="w-full text-xs pl-7 pr-3 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-black font-mono text-sm outline-none focus:border-blue-500 text-blue-600 dark:text-blue-400"
+                      className="w-full text-xs pl-7 pr-3 py-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-black font-mono text-sm outline-none focus:border-blue-500 text-blue-600 dark:text-blue-400"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400">Charged to student commuters</span>
+                  <span className="text-[10px] text-gray-400">Charged to student commuters</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Zone Display Name *
                   </label>
                   <input
@@ -1014,18 +1014,18 @@ export function StaffBillingView({
                     placeholder="e.g. Zone A: Clock Tower & Rajpur Road"
                     value={zoneForm.name}
                     onChange={(e) => setZoneForm({ ...zoneForm, name: e.target.value })}
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-medium outline-none focus:border-blue-500"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-medium outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Allowed Installments
                   </label>
                   <select
                     value={zoneForm.installmentsAllowed}
                     onChange={(e) => setZoneForm({ ...zoneForm, installmentsAllowed: Number(e.target.value) })}
-                    className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-medium outline-none focus:border-blue-500"
+                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-medium outline-none focus:border-blue-500"
                   >
                     <option value={1}>1 Installment (Full Payment Upfront)</option>
                     <option value={2}>2 Installments (50% Split)</option>
@@ -1036,14 +1036,14 @@ export function StaffBillingView({
               </div>
 
               {/* Stop Assignment Section (Encapsulated for this campus) */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2.5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <label className="text-xs font-black text-slate-800 dark:text-white flex items-center gap-1.5">
+                    <label className="text-xs font-black text-gray-800 dark:text-white flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-blue-600" />
                       Take Stops into this Zone ({zoneForm.assignedStopIds.length} Selected)
                     </label>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-[10px] text-gray-500">
                       Select already created stops from <span className="font-bold">{currentCampus?.name}</span> to bundle into this pricing zone.
                     </p>
                   </div>
@@ -1056,11 +1056,11 @@ export function StaffBillingView({
                     >
                       Select All
                     </button>
-                    <span className="text-slate-300">•</span>
+                    <span className="text-gray-300">•</span>
                     <button
                       type="button"
                       onClick={() => handleSelectAllStops(false)}
-                      className="text-[10px] font-bold text-slate-500 hover:underline"
+                      className="text-[10px] font-bold text-gray-500 hover:underline"
                     >
                       Clear
                     </button>
@@ -1069,20 +1069,20 @@ export function StaffBillingView({
 
                 {/* Search in Campus Stops */}
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
                   <input
                     type="text"
                     placeholder={`Search ${campusStops.length} stops for ${currentCampus?.code || "campus"}...`}
                     value={stopFilterSearch}
                     onChange={(e) => setStopFilterSearch(e.target.value)}
-                    className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:border-blue-500"
+                    className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 outline-none focus:border-blue-500"
                   />
                 </div>
 
                 {/* Scrollable Campus Stops List */}
-                <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-2xl p-2 divide-y divide-slate-100 dark:divide-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40">
+                <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-800 rounded-2xl p-2 divide-y divide-gray-100 dark:divide-gray-800/60 bg-gray-50/50 dark:bg-gray-950/40">
                   {campusStops.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-slate-400 font-medium">
+                    <div className="p-4 text-center text-xs text-gray-400 font-medium">
                       No stops currently registered for {currentCampus?.name}. Create stops first in Route Builder.
                     </div>
                   ) : (
@@ -1107,22 +1107,22 @@ export function StaffBillingView({
                             className={`p-2.5 rounded-xl flex items-center justify-between cursor-pointer transition-all ${
                               isChecked
                                 ? "bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200"
-                                : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                                : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                             }`}
                           >
                             <div className="flex items-center gap-2.5">
                               {isChecked ? (
                                 <CheckSquare className="w-4 h-4 text-blue-600 flex-shrink-0" />
                               ) : (
-                                <Square className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                <Square className="w-4 h-4 text-gray-400 flex-shrink-0" />
                               )}
                               <div>
                                 <div className="text-xs font-bold flex items-center gap-1.5">
                                   <span>{s.name}</span>
-                                  <span className="text-[10px] font-mono text-slate-400">({s.code})</span>
+                                  <span className="text-[10px] font-mono text-gray-400">({s.code})</span>
                                 </div>
                                 {s.landmark && (
-                                  <div className="text-[10px] text-slate-400 truncate max-w-sm">
+                                  <div className="text-[10px] text-gray-400 truncate max-w-sm">
                                     {s.landmark}
                                   </div>
                                 )}
@@ -1135,11 +1135,11 @@ export function StaffBillingView({
                                   Selected
                                 </span>
                               ) : isOtherZone ? (
-                                <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 text-[9px]">
+                                <span className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-gray-500 text-[9px]">
                                   In {s.zoneCode}
                                 </span>
                               ) : (
-                                <span className="text-slate-400 italic text-[9px]">Unassigned</span>
+                                <span className="text-gray-400 italic text-[9px]">Unassigned</span>
                               )}
                             </div>
                           </div>
@@ -1151,7 +1151,7 @@ export function StaffBillingView({
 
               {/* Corridor Description */}
               <div>
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                   Corridor Description / Covered Stops Summary
                 </label>
                 <textarea
@@ -1159,9 +1159,9 @@ export function StaffBillingView({
                   value={zoneForm.corridorDescription}
                   onChange={(e) => setZoneForm({ ...zoneForm, corridorDescription: e.target.value })}
                   placeholder="e.g. Clock Tower, Dilaram Chowk, Jakhan, Rajpur Road"
-                  className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:border-blue-500"
+                  className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 outline-none focus:border-blue-500"
                 />
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[10px] text-gray-400">
                   Automatically populated from selected stops, or edit manually.
                 </span>
               </div>
@@ -1175,17 +1175,17 @@ export function StaffBillingView({
                   onChange={(e) => setZoneForm({ ...zoneForm, isActive: e.target.checked })}
                   className="w-4 h-4 rounded text-blue-600"
                 />
-                <label htmlFor="zoneActiveToggle" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                <label htmlFor="zoneActiveToggle" className="text-xs font-bold text-gray-700 dark:text-gray-300">
                   Zone is active and visible to commuters for pass payment
                 </label>
               </div>
 
               {/* Form Action Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
                 <button
                   type="button"
                   onClick={() => setZoneModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </button>
@@ -1206,25 +1206,25 @@ export function StaffBillingView({
       {/* DELETE CONFIRMATION MODAL */}
       {deleteConfirmZone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="relative max-w-md w-full bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="font-black text-base text-rose-600 flex items-center gap-2">
+              <span className="font-black text-base text-red-600 flex items-center gap-2">
                 <Trash2 className="w-5 h-5" /> Delete Transit Zone
               </span>
               <button
                 type="button"
                 onClick={() => setDeleteConfirmZone(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 flex items-center justify-center"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300">
-              Are you sure you want to delete <span className="font-bold text-slate-900 dark:text-white">{deleteConfirmZone.name} ({deleteConfirmZone.code})</span> for <span className="font-bold">{currentCampus?.name}</span>?
+            <p className="text-xs text-gray-600 dark:text-gray-300">
+              Are you sure you want to delete <span className="font-bold text-gray-900 dark:text-white">{deleteConfirmZone.name} ({deleteConfirmZone.code})</span> for <span className="font-bold">{currentCampus?.name}</span>?
             </p>
 
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-[11px] text-amber-700 dark:text-amber-300">
+            <div className="p-3 rounded-xl bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-900 text-[11px] text-yellow-700 dark:text-yellow-300">
               Stops currently assigned to this zone will be unassigned. Student passes already issued remain unaffected.
             </div>
 
@@ -1232,7 +1232,7 @@ export function StaffBillingView({
               <button
                 type="button"
                 onClick={() => setDeleteConfirmZone(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="px-4 py-2 text-xs font-bold text-gray-600 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 Cancel
               </button>
@@ -1240,7 +1240,7 @@ export function StaffBillingView({
               <button
                 type="button"
                 onClick={handleDeleteZone}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow"
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow"
               >
                 Confirm Delete
               </button>

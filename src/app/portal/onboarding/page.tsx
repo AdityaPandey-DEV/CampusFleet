@@ -322,17 +322,17 @@ export default function StudentOnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Flat Header */}
-      <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
+      <div className="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
               <GraduationCap className="w-5 h-5" />
             </div>
-            <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Profile Setup</h1>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Setup</h1>
           </div>
-          <div className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+          <div className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5" /> Secure Onboarding
           </div>
         </div>
@@ -340,17 +340,17 @@ export default function StudentOnboardingPage() {
 
       <div className="flex-1 w-full max-w-3xl mx-auto p-4 sm:p-6 lg:py-10">
         {toast && (
-          <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-sm rounded-xl flex items-center gap-2">
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm rounded-xl flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5" /> {toast}
           </div>
         )}
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
           {/* Form Body */}
           <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">
-            <div className="border-b border-slate-100 dark:border-slate-800 pb-6">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Welcome, {currentUser?.fullName || currentUser?.email}</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+            <div className="border-b border-gray-100 dark:border-gray-800 pb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Welcome, {currentUser?.fullName || currentUser?.email}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 Please complete your student profile. This information is used for ID verification, transit zone allocation, and emergency contacts.
               </p>
             </div>
@@ -358,9 +358,9 @@ export default function StudentOnboardingPage() {
             {/* Official Passport Photo Verification Upload */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Official ID Photo</h3>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Official ID Photo</h3>
                 {isPhotoLocked ? (
-                  <span className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                  <span className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
                     <Lock className="w-3 h-3" /> Locked
                   </span>
                 ) : (
@@ -370,17 +370,17 @@ export default function StudentOnboardingPage() {
                 )}
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
                 {/* Photo Preview Thumbnail */}
                 <div className="flex-shrink-0">
                   {photoUrl ? (
                     <img
                       src={photoUrl}
                       alt="Passport Photo Preview"
-                      className="w-24 h-32 object-cover rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-950"
+                      className="w-24 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-950"
                     />
                   ) : (
-                    <div className="w-24 h-32 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 flex flex-col items-center justify-center text-slate-400">
+                    <div className="w-24 h-32 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 flex flex-col items-center justify-center text-gray-400">
                       <User className="w-8 h-8 mb-2 opacity-50" />
                       <span className="text-[10px] font-medium">No Photo</span>
                     </div>
@@ -391,13 +391,13 @@ export default function StudentOnboardingPage() {
                 <div className="flex-1 w-full">
                   {isPhotoLocked ? (
                     <div className="space-y-2">
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         Your official photo has been verified and locked. Only campus transport staff can update this photo.
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         Upload a clear passport-sized photo. This will be shown to the conductor during boarding.
                       </p>
                       <div className="flex items-center gap-3">
@@ -416,7 +416,7 @@ export default function StudentOnboardingPage() {
                           <button
                             type="button"
                             onClick={() => setPhotoUrl("")}
-                            className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium px-3 py-2 transition-colors"
+                            className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-medium px-3 py-2 transition-colors"
                           >
                             Clear
                           </button>
@@ -431,7 +431,7 @@ export default function StudentOnboardingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
             {/* Full Name */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
                 Full Name
               </label>
               <input
@@ -439,16 +439,16 @@ export default function StudentOnboardingPage() {
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
                 placeholder="Student Name"
-                className="w-full text-sm p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-colors"
+                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
             {/* University Campus */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
                 <span>University Campus</span>
                 {isCampusLocked && (
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">
+                  <span className="text-[10px] text-yellow-600 dark:text-yellow-400 font-bold flex items-center gap-1">
                     <Lock className="w-3 h-3" /> Locked
                   </span>
                 )}
@@ -461,8 +461,8 @@ export default function StudentOnboardingPage() {
                   const c = campuses.find(camp => camp.id === e.target.value);
                   if (c) setCampus(c.name);
                 }}
-                className={`w-full text-sm p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-colors ${
-                  isCampusLocked ? "opacity-75 cursor-not-allowed bg-slate-100 dark:bg-slate-850" : ""
+                className={`w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-colors ${
+                  isCampusLocked ? "opacity-75 cursor-not-allowed bg-gray-100 dark:bg-gray-850" : ""
                 }`}
               >
                 {campuses.map(c => (
@@ -475,7 +475,7 @@ export default function StudentOnboardingPage() {
 
             {/* Contact Mobile Phone */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
                 Student Mobile Phone *
               </label>
               <input
@@ -484,14 +484,14 @@ export default function StudentOnboardingPage() {
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
                 placeholder="+91 98765 43210"
-                className="w-full text-sm p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-colors"
+                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
             {/* ── CASCADED ACADEMIC PICKER: Course/Dept → Year/Sem → Section ── */}
             {/* Step 1: Department / Program */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
                 <span>1. Department / Course *</span>
               </label>
               <select
@@ -505,7 +505,7 @@ export default function StudentOnboardingPage() {
                   setSelectedSection("");
                   setSelectedClassId("");
                 }}
-                className="w-full text-sm p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
+                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
               >
                 <option value="">-- Select Course / Dept --</option>
                 {coursesList.map(crs => (
@@ -518,7 +518,7 @@ export default function StudentOnboardingPage() {
 
             {/* Step 2: Semester */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
                 <span>2. Academic Semester *</span>
               </label>
               <select
@@ -531,7 +531,7 @@ export default function StudentOnboardingPage() {
                   setSelectedSection("");
                   setSelectedClassId("");
                 }}
-                className="w-full text-sm p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
+                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
                 disabled={!selectedCourse && !department}
               >
                 <option value="">-- Select Semester --</option>
@@ -545,7 +545,7 @@ export default function StudentOnboardingPage() {
 
             {/* Step 3: Section / Official Class */}
             <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
                 <span>3. Assigned Section / Class *</span>
               </label>
               <select
@@ -567,7 +567,7 @@ export default function StudentOnboardingPage() {
                     }
                   }
                 }}
-                className="w-full text-sm p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-colors"
+                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-colors"
               >
                 <option value="">-- Select Section --</option>
                 {sectionsList.map(c => (
@@ -581,21 +581,21 @@ export default function StudentOnboardingPage() {
 
           {/* Residential Transit Zone */}
           <div className="space-y-1.5 mt-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
-                <Compass className="w-4 h-4 text-teal-600" />
+                <Compass className="w-4 h-4 text-green-600" />
                 Residential Transit Zone *
               </span>
               {isZoneLocked ? (
-                <span className="flex items-center gap-1 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-800">
+                <span className="flex items-center gap-1 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-800">
                   <Lock className="w-3 h-3" /> Locked
                 </span>
               ) : null}
             </label>
             {isZoneLocked ? (
-              <div className="p-4 rounded-xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 text-xs text-teal-900 dark:text-teal-200">
+              <div className="p-4 rounded-xl bg-green-50/80 dark:bg-green-950/40 border border-green-200 dark:border-green-800/80 text-xs text-green-900 dark:text-green-200">
                 <div className="font-bold flex items-center gap-2 mb-1.5">
-                  <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                  <ShieldCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
                   Zone {selectedZoneCode} — Locked after Fee Clearance
                 </div>
                 <p className="text-xs opacity-80 leading-relaxed">
@@ -614,7 +614,7 @@ export default function StudentOnboardingPage() {
                     setPrimaryStopId(filteredStops[0].id);
                   }
                 }}
-                className="w-full text-sm p-3.5 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-slate-900 dark:text-white outline-none focus:border-teal-500 font-bold transition-colors"
+                className="w-full text-sm p-3.5 rounded-xl border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/30 text-gray-900 dark:text-white outline-none focus:border-green-500 font-bold transition-colors"
               >
                 {transitZones.map(z => (
                   <option key={z.id || `${z.campusId || ""}-${z.code}`} value={z.code}>
@@ -623,14 +623,14 @@ export default function StudentOnboardingPage() {
                 ))}
               </select>
             )}
-            <p className="text-xs text-slate-500 dark:text-slate-400 pl-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 pl-1">
               Covers: {transitZones.find(z => z.code === selectedZoneCode)?.corridorDescription}
             </p>
           </div>
 
           {/* Primary Boarding Stop (Filtered strictly to selected zone) */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-blue-600" />
                 Primary Boarding Stop ({selectedZoneCode}) *
@@ -639,7 +639,7 @@ export default function StudentOnboardingPage() {
             <select
               value={primaryStopId}
               onChange={e => setPrimaryStopId(e.target.value)}
-              className="w-full text-sm p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
+              className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
             >
               {stops
                 .filter(st => (st.zoneCode || "ZONE_B") === selectedZoneCode)
@@ -652,9 +652,9 @@ export default function StudentOnboardingPage() {
           </div>
 
           {/* Emergency Guardian Section */}
-          <div className="p-5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
-              <HeartHandshake className="w-5 h-5 text-rose-500" />
+          <div className="p-5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-200">
+              <HeartHandshake className="w-5 h-5 text-red-500" />
               Emergency & Guardian Contact
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -663,14 +663,14 @@ export default function StudentOnboardingPage() {
                 value={emergencyName}
                 onChange={e => setEmergencyName(e.target.value)}
                 placeholder="Parent / Guardian Name"
-                className="w-full text-sm p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-rose-500 transition-colors"
+                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:border-red-500 transition-colors"
               />
               <input
                 type="tel"
                 value={emergencyPhone}
                 onChange={e => setEmergencyPhone(e.target.value)}
                 placeholder="Guardian Phone (+91 ...)"
-                className="w-full text-sm p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-rose-500 transition-colors"
+                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:border-red-500 transition-colors"
               />
             </div>
           </div>

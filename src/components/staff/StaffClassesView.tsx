@@ -498,13 +498,13 @@ export default function StaffClassesView({
   const getSpecializationBadge = (spec?: string) => {
     switch (spec) {
       case "AIML":
-        return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20";
+        return "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20";
       case "CS":
-        return "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20";
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
       case "Cloud Computing":
-        return "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20";
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
       default:
-        return "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20";
+        return "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20";
     }
   };
 
@@ -512,31 +512,31 @@ export default function StaffClassesView({
     <div className="space-y-6">
       {/* Notifications */}
       {actionSuccess && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-between animate-in fade-in">
+        <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/30 text-green-600 dark:text-green-400 text-xs font-bold flex items-center justify-between animate-in fade-in">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
             <span>{actionSuccess}</span>
           </div>
-          <button onClick={() => setActionSuccess("")} className="text-emerald-500 hover:text-emerald-700 cursor-pointer">
+          <button onClick={() => setActionSuccess("")} className="text-green-500 hover:text-green-700 cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {actionError && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center justify-between animate-in fade-in">
+        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-between animate-in fade-in">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{actionError}</span>
           </div>
-          <button onClick={() => setActionError("")} className="text-rose-500 hover:text-rose-700 cursor-pointer">
+          <button onClick={() => setActionError("")} className="text-red-500 hover:text-red-700 cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/20 border border-blue-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-900/40 via-blue-900/30 to-pink-900/20 border border-blue-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl">
         <div>
           <div className="flex items-center gap-2.5 text-blue-400 font-bold text-xs uppercase tracking-wider">
             <BookOpen className="w-4 h-4" />
@@ -545,7 +545,7 @@ export default function StaffClassesView({
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-1">
             Class & Timetable Management
           </h1>
-          <p className="text-sm text-slate-300 mt-1 max-w-xl">
+          <p className="text-sm text-gray-300 mt-1 max-w-xl">
             Normalized university course structure with active timetable synchronization. The transit engine cross-references these lecture periods to validate real-time bus boarding eligibility.
           </p>
         </div>
@@ -555,7 +555,7 @@ export default function StaffClassesView({
             setActionError("");
             setIsCreateModalOpen(true);
           }}
-          className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all active:scale-95 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-500 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all active:scale-95 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>New Class</span>
@@ -566,15 +566,15 @@ export default function StaffClassesView({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Normalized Classes Roster (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-md space-y-3">
+          <div className="bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-3xl p-4 shadow-md space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-black text-sm uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <h2 className="font-black text-sm uppercase tracking-wider text-gray-400 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-blue-500" />
                 <span>Active Classes ({filteredClasses.length} of {classes.length})</span>
               </h2>
               <button
                 onClick={fetchClasses}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-200 transition-colors cursor-pointer"
                 title="Refresh Classes"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
@@ -583,13 +583,13 @@ export default function StaffClassesView({
 
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search course, semester, section, specialization..."
-                className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-4 py-2 text-xs bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -607,7 +607,7 @@ export default function StaffClassesView({
                   onClick={() => setProgramFilter(chip.id)}
                   className={`px-2.5 py-1 rounded-xl whitespace-nowrap transition-all cursor-pointer ${programFilter === chip.id
                       ? "bg-blue-600 text-white shadow-sm"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
                     }`}
                 >
                   {chip.label}
@@ -618,7 +618,7 @@ export default function StaffClassesView({
             {/* Class Cards List */}
             <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
               {filteredClasses.length === 0 ? (
-                <div className="text-center py-10 text-slate-400 text-xs">
+                <div className="text-center py-10 text-gray-400 text-xs">
                   {isLoading ? "Loading classes from database..." : "No classes found matching criteria."}
                 </div>
               ) : (
@@ -630,19 +630,19 @@ export default function StaffClassesView({
                       onClick={() => setSelectedClass(item)}
                       className={`p-3.5 rounded-2xl border transition-all cursor-pointer text-left group ${isSelected
                           ? "bg-blue-50/80 dark:bg-blue-950/50 border-blue-300 dark:border-blue-700/80 shadow-md ring-1 ring-blue-400/30"
-                          : "bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                          : "bg-white dark:bg-gray-800/40 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
                         }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <div className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                          <div className="font-black text-sm text-gray-900 dark:text-white flex items-center gap-1.5 flex-wrap">
                             <span className="truncate">{item.name}</span>
                             {item.isActive ? (
-                              <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                              <span className="px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold">
                                 Active
                               </span>
                             ) : (
-                              <span className="px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-500 text-[10px] font-bold">
+                              <span className="px-1.5 py-0.5 rounded-md bg-red-500/10 text-red-500 text-[10px] font-bold">
                                 Inactive
                               </span>
                             )}
@@ -653,7 +653,7 @@ export default function StaffClassesView({
                             <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-[10px]">
                               {item.semester || item.year}
                             </span>
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
+                            <span className="px-2 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 font-bold text-[10px]">
                               Sec {item.section}
                             </span>
                             {item.specialization && item.specialization !== "Core" && (
@@ -661,14 +661,14 @@ export default function StaffClassesView({
                                 {item.specialization}
                               </span>
                             )}
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[10px] text-gray-400">
                               • {item.course}
                             </span>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-1">
-                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                             <Users className="w-3 h-3 text-blue-500" />
                             {item.studentCount}
                           </span>
@@ -678,7 +678,7 @@ export default function StaffClassesView({
                             <button
                               type="button"
                               onClick={(e) => handleOpenEditModal(item, e)}
-                              className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors"
+                              className="p-1 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
                               title="Edit Class"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -686,7 +686,7 @@ export default function StaffClassesView({
                             <button
                               type="button"
                               onClick={(e) => handleDeleteClass(item.id, item.name, e)}
-                              className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 transition-colors"
+                              className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-gray-700 transition-colors"
                               title="Delete Class"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -696,16 +696,16 @@ export default function StaffClassesView({
                       </div>
 
                       {/* Teachers list row */}
-                      <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500">
+                      <div className="mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-800/60 flex items-center justify-between text-[11px] text-gray-500">
                         <div className="flex items-center gap-1.5 truncate max-w-[85%]">
-                          <UserCheck className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" />
+                          <UserCheck className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
                           <span className="truncate">
                             {(item.assignedTeachers?.length || 0) > 0
                               ? item.assignedTeachers?.map((t) => t.fullName).join(", ")
                               : "No Faculty Assigned"}
                           </span>
                         </div>
-                        <ChevronRight className={`w-3.5 h-3.5 transition-transform flex-shrink-0 ${isSelected ? "text-blue-500 translate-x-0.5" : "text-slate-400"}`} />
+                        <ChevronRight className={`w-3.5 h-3.5 transition-transform flex-shrink-0 ${isSelected ? "text-blue-500 translate-x-0.5" : "text-gray-400"}`} />
                       </div>
                     </div>
                   );
@@ -718,15 +718,15 @@ export default function StaffClassesView({
         {/* Right Column: Selected Class Operations, Normalized Details & Timetable (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
           {selectedClass ? (
-            <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md space-y-6">
+            <div className="bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-md space-y-6">
               {/* Header Info & Actions */}
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-800">
                 <div className="space-y-2">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-blue-500 flex items-center gap-1.5">
                     <Award className="w-3.5 h-3.5" />
                     <span>Academic Entity Structure</span>
                   </div>
-                  <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                  <h2 className="text-xl font-black text-gray-900 dark:text-white">
                     {selectedClass.name}
                   </h2>
 
@@ -737,29 +737,29 @@ export default function StaffClassesView({
                       <span>{selectedClass.course}</span>
                     </span>
 
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80">
-                      <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80">
+                      <Clock className="w-3.5 h-3.5 text-blue-500" />
                       <span>{selectedClass.semester || "Semester"}</span>
-                      <span className="text-indigo-400 font-normal">({selectedClass.year})</span>
+                      <span className="text-blue-400 font-normal">({selectedClass.year})</span>
                     </span>
 
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80">
-                      <Tag className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/80">
+                      <Tag className="w-3.5 h-3.5 text-green-500" />
                       <span>Section {selectedClass.section}</span>
                     </span>
 
                     {selectedClass.specialization && selectedClass.specialization !== "Core" ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80">
-                        <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800/80">
+                        <Sparkles className="w-3.5 h-3.5 text-pink-500" />
                         <span>{selectedClass.specialization} Track</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                         Core Branch
                       </span>
                     )}
 
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
                       {selectedClass.course}
                     </span>
                   </div>
@@ -769,7 +769,7 @@ export default function StaffClassesView({
                 <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
                   <button
                     onClick={() => handleOpenEditModal(selectedClass)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                   >
                     <Edit2 className="w-3.5 h-3.5 text-blue-500" />
                     <span>Edit</span>
@@ -778,8 +778,8 @@ export default function StaffClassesView({
                   <button
                     onClick={() => handleToggleStatus(selectedClass)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${selectedClass.isActive
-                        ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 border-amber-200 dark:border-amber-900/50 hover:bg-amber-100"
-                        : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100"
+                        ? "bg-yellow-50 dark:bg-yellow-950/40 text-yellow-600 border-yellow-200 dark:border-yellow-900/50 hover:bg-yellow-100"
+                        : "bg-green-50 dark:bg-green-950/40 text-green-600 border-green-200 dark:border-green-900/50 hover:bg-green-100"
                       }`}
                   >
                     {selectedClass.isActive ? "Deactivate" : "Activate"}
@@ -787,7 +787,7 @@ export default function StaffClassesView({
 
                   <button
                     onClick={() => handleDeleteClass(selectedClass.id, selectedClass.name)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/40 transition-colors cursor-pointer"
                     title="Delete Class"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -797,7 +797,7 @@ export default function StaffClassesView({
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2">
+              <div className="flex border-b border-gray-200 dark:border-gray-800 gap-2">
                 {[
                   { id: "overview", label: "Overview & Faculty", icon: Layers },
                   { id: "shifts", label: "Shift Schedule", icon: Clock },
@@ -811,7 +811,7 @@ export default function StaffClassesView({
                       onClick={() => setActiveTab(tab.id as any)}
                       className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${isActive
                           ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                          : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                          : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
                         }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -826,9 +826,9 @@ export default function StaffClassesView({
                 <div className="space-y-5">
                   {/* Stats Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase">Enrolled Students</div>
-                      <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase">Enrolled Students</div>
+                      <div className="text-2xl font-black text-gray-900 dark:text-white mt-1">
                         {selectedClass.studentCount}
                       </div>
                       <div className="text-[11px] text-blue-500 mt-1 font-semibold">
@@ -836,65 +836,65 @@ export default function StaffClassesView({
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase">Assigned Teachers</div>
-                      <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase">Assigned Teachers</div>
+                      <div className="text-2xl font-black text-gray-900 dark:text-white mt-1">
                         {selectedClass.assignedTeachers?.length || 0}
                       </div>
-                      <div className="text-[11px] text-teal-500 mt-1 font-semibold">
+                      <div className="text-[11px] text-green-500 mt-1 font-semibold">
                         Faculty & Class Advisors
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase">Gate Status</div>
-                      <div className="text-2xl font-black text-slate-900 dark:text-white mt-1 flex items-center gap-1.5">
+                    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase">Gate Status</div>
+                      <div className="text-2xl font-black text-gray-900 dark:text-white mt-1 flex items-center gap-1.5">
                         {selectedClass.isActive ? (
                           <>
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                            <span className="text-emerald-600 dark:text-emerald-400 text-lg">Active</span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                            <span className="text-green-600 dark:text-green-400 text-lg">Active</span>
                           </>
                         ) : (
                           <>
-                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                            <span className="text-rose-600 text-lg">Inactive</span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                            <span className="text-red-600 text-lg">Inactive</span>
                           </>
                         )}
                       </div>
-                      <div className="text-[11px] text-slate-400 mt-1">
+                      <div className="text-[11px] text-gray-400 mt-1">
                         Lecture-gate scan protection
                       </div>
                     </div>
                   </div>
 
                   {/* Academic Blueprint Details */}
-                  <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800 space-y-2.5">
-                    <div className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-800 space-y-2.5">
+                    <div className="font-bold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                       <Building2 className="w-3.5 h-3.5 text-blue-500" />
                       <span>Curricular Normalization Profile</span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Department</span>
-                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                      <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+                        <span className="text-[10px] text-gray-400 font-bold block uppercase">Department</span>
+                        <span className="text-xs font-black text-gray-800 dark:text-gray-200 truncate block mt-0.5">
                           {selectedClass.department || "Computer Science"}
                         </span>
                       </div>
-                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Degree Program</span>
-                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                      <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+                        <span className="text-[10px] text-gray-400 font-bold block uppercase">Degree Program</span>
+                        <span className="text-xs font-black text-gray-800 dark:text-gray-200 truncate block mt-0.5">
                           {selectedClass.course}
                         </span>
                       </div>
-                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Academic Standing</span>
-                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                      <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+                        <span className="text-[10px] text-gray-400 font-bold block uppercase">Academic Standing</span>
+                        <span className="text-xs font-black text-gray-800 dark:text-gray-200 truncate block mt-0.5">
                           {selectedClass.year} • {selectedClass.semester}
                         </span>
                       </div>
-                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Section & Track</span>
-                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                      <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+                        <span className="text-[10px] text-gray-400 font-bold block uppercase">Section & Track</span>
+                        <span className="text-xs font-black text-gray-800 dark:text-gray-200 truncate block mt-0.5">
                           Sec {selectedClass.section} ({selectedClass.specialization || "Core"})
                         </span>
                       </div>
@@ -902,14 +902,14 @@ export default function StaffClassesView({
                   </div>
 
                   {/* Teacher Allocation Section */}
-                  <div className="p-5 rounded-3xl bg-gradient-to-tr from-slate-50 to-blue-50/30 dark:from-slate-800/40 dark:to-blue-950/20 border border-slate-200 dark:border-slate-800 space-y-4">
+                  <div className="p-5 rounded-3xl bg-gradient-to-tr from-gray-50 to-blue-50/30 dark:from-gray-800/40 dark:to-blue-950/20 border border-gray-200 dark:border-gray-800 space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                          <UserCheck className="w-4 h-4 text-teal-500" />
+                        <div className="font-bold text-xs uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                          <UserCheck className="w-4 h-4 text-green-500" />
                           <span>Allocated Faculty Advisors ({selectedClass.assignedTeachers?.length || 0})</span>
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                        <p className="text-[11px] text-gray-400 mt-0.5">
                           Teachers and faculty assigned to advise or lecture for this specific section.
                         </p>
                       </div>
@@ -922,7 +922,7 @@ export default function StaffClassesView({
                           setActionError("");
                           setIsAllocateTeacherModalOpen(true);
                         }}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md shadow-teal-500/20 transition-all active:scale-95 cursor-pointer"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-bold shadow-md shadow-green-500/20 transition-all active:scale-95 cursor-pointer"
                       >
                         <UserPlus className="w-3.5 h-3.5" />
                         <span>Allocate Teacher</span>
@@ -934,10 +934,10 @@ export default function StaffClassesView({
                         selectedClass.assignedTeachers.map((t) => (
                           <div
                             key={t.id}
-                            className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                            className="p-3.5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3 shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
                           >
                             <div className="min-w-0">
-                              <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
+                              <div className="font-bold text-xs text-gray-900 dark:text-white flex items-center gap-2 flex-wrap">
                                 <span>{t.fullName}</span>
                                 {t.isPrimary && (
                                   <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase">
@@ -945,7 +945,7 @@ export default function StaffClassesView({
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[11px] text-slate-400 mt-0.5 truncate">
+                              <div className="text-[11px] text-gray-400 mt-0.5 truncate">
                                 {t.email || "Faculty Account"}
                               </div>
                             </div>
@@ -953,7 +953,7 @@ export default function StaffClassesView({
                             <button
                               type="button"
                               onClick={() => handleRemoveTeacher(t.id, t.fullName)}
-                              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex-shrink-0 cursor-pointer"
+                              className="p-2 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex-shrink-0 cursor-pointer"
                               title="Remove teacher from class"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -961,7 +961,7 @@ export default function StaffClassesView({
                           </div>
                         ))
                       ) : (
-                        <div className="text-center py-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-400">
+                        <div className="text-center py-6 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl text-xs text-gray-400">
                           No teachers allocated to this class yet. Click "Allocate Teacher" above to assign faculty.
                         </div>
                       )}
@@ -978,11 +978,11 @@ export default function StaffClassesView({
                     <div>
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        <h4 className="font-black text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                        <h4 className="font-black text-xs text-gray-900 dark:text-white uppercase tracking-wider">
                           Section Shift Eligibility Matrix
                         </h4>
                       </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
                         Shifts run on their own operating days. All shifts are <strong>ON (Allowed)</strong> by default. Toggle OFF any shift or specific day to restrict booking.
                       </p>
                     </div>
@@ -995,7 +995,7 @@ export default function StaffClassesView({
                       )}
                       <button
                         onClick={handleResetAllShifts}
-                        className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 text-[11px] font-bold text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
                       >
                         Reset All (Default ON)
                       </button>
@@ -1021,46 +1021,46 @@ export default function StaffClassesView({
                         <div
                           key={shift.id}
                           className={`p-4 rounded-2xl border transition-all ${isMasterEnabled
-                              ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm"
-                              : "bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/50 opacity-80"
+                              ? "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm"
+                              : "bg-gray-50/60 dark:bg-gray-900/40 border-gray-200/50 dark:border-gray-800/50 opacity-80"
                             }`}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-xs text-slate-900 dark:text-white">
+                                <span className="font-bold text-xs text-gray-900 dark:text-white">
                                   {shift.name}
                                 </span>
                                 <span
                                   className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold ${shift.shiftType === "MORNING"
-                                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                      ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
                                       : shift.shiftType === "AFTERNOON"
-                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                        ? "bg-green-500/10 text-green-600 dark:text-green-400"
                                         : shift.shiftType === "EVENING"
-                                          ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                                          ? "bg-pink-500/10 text-pink-600 dark:text-pink-400"
                                           : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                                     }`}
                                 >
                                   {shift.shiftType}
                                 </span>
-                                <span className="text-[11px] font-mono text-slate-400">
+                                <span className="text-[11px] font-mono text-gray-400">
                                   {shift.startTime} - {shift.endTime}
                                 </span>
                               </div>
-                              <p className="text-[11px] text-slate-400">
+                              <p className="text-[11px] text-gray-400">
                                 Cutoff: {shift.bookingCutoffMins}m before departure • Operating Days: {shiftDays.join(", ")}
                               </p>
                             </div>
 
                             {/* Master Toggle */}
                             <div className="flex items-center gap-2 flex-shrink-0">
-                              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                              <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
                                 {isMasterEnabled ? "Active" : "Disabled"}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => handleToggleShift(shift.id)}
-                                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${isMasterEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${isMasterEnabled ? "bg-green-500" : "bg-gray-300 dark:bg-gray-700"
                                   }`}
                               >
                                 <span
@@ -1073,8 +1073,8 @@ export default function StaffClassesView({
 
                           {/* Operating Day Toggles */}
                           {isMasterEnabled && (
-                            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800/80">
+                              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
                                 Shift Days for this Section (Click to Toggle):
                               </div>
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1087,8 +1087,8 @@ export default function StaffClassesView({
                                       type="button"
                                       onClick={() => handleToggleShift(shift.id, dayKey)}
                                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${isDayEnabled
-                                          ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100"
-                                          : "bg-slate-100 dark:bg-slate-800 text-slate-400 line-through border border-transparent hover:bg-slate-200"
+                                          ? "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50 hover:bg-green-100"
+                                          : "bg-gray-100 dark:bg-gray-800 text-gray-400 line-through border border-transparent hover:bg-gray-200"
                                         }`}
                                       title={isDayEnabled ? `${d}: Enabled for Section` : `${d}: Disabled (Emergency Pass Required)`}
                                     >
@@ -1110,14 +1110,14 @@ export default function StaffClassesView({
               {/* TAB 3: STUDENTS ROSTER */}
               {activeTab === "students" && (
                 <div className="space-y-3">
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-gray-500">
                     Students currently enrolled in <strong>{selectedClass.name}</strong> from database:
                   </div>
 
                   {isLoadingStudents ? (
-                    <div className="text-center py-10 text-xs text-slate-400">Loading student roster...</div>
+                    <div className="text-center py-10 text-xs text-gray-400">Loading student roster...</div>
                   ) : classStudents.length === 0 ? (
-                    <div className="text-center py-10 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-400">
+                    <div className="text-center py-10 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl text-xs text-gray-400">
                       No students enrolled in this class yet.
                     </div>
                   ) : (
@@ -1125,18 +1125,18 @@ export default function StaffClassesView({
                       {classStudents.map((s) => (
                         <div
                           key={s.id}
-                          className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 flex items-center justify-between"
+                          className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800 flex items-center justify-between"
                         >
                           <div>
-                            <div className="font-bold text-xs text-slate-900 dark:text-white">
+                            <div className="font-bold text-xs text-gray-900 dark:text-white">
                               {s.full_name}
                             </div>
-                            <div className="text-[11px] text-slate-500 font-mono">
+                            <div className="text-[11px] text-gray-500 font-mono">
                               {s.email}
                             </div>
                           </div>
 
-                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded-md bg-green-500/10 text-green-600 text-[10px] font-bold">
                             Enrolled
                           </span>
                         </div>
@@ -1147,7 +1147,7 @@ export default function StaffClassesView({
               )}
             </div>
           ) : (
-            <div className="h-full min-h-[300px] flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-8 text-center text-slate-400 text-xs">
+            <div className="h-full min-h-[300px] flex items-center justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-3xl p-8 text-center text-gray-400 text-xs">
               Select a class from the list to view its normalized academic profile and faculty advisors.
             </div>
           )}
@@ -1157,22 +1157,22 @@ export default function StaffClassesView({
       {/* MODAL 1: CREATE CLASS */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-blue-500" />
-                <h3 className="font-black text-base text-slate-900 dark:text-white">Create University Class</h3>
+                <h3 className="font-black text-base text-gray-900 dark:text-white">Create University Class</h3>
               </div>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {actionError && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-rose-600 text-xs font-medium flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 text-red-600 text-xs font-medium flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{actionError}</span>
               </div>
@@ -1180,13 +1180,13 @@ export default function StaffClassesView({
 
             <form onSubmit={handleCreateClass} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                   Academic Course / Program
                 </label>
                 <select
                   value={formData.course}
                   onChange={(e) => setFormData({ ...formData, course: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="B.Tech CSE">B.Tech Computer Science & Engineering (B.Tech CSE)</option>
                   <option value="Diploma CSE">Diploma in Computer Science & Engineering (Diploma CSE)</option>
@@ -1199,7 +1199,7 @@ export default function StaffClassesView({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                     Semester
                   </label>
                   <select
@@ -1211,7 +1211,7 @@ export default function StaffClassesView({
                       const yrSuffix = yrNum === 1 ? '1st' : yrNum === 2 ? '2nd' : yrNum === 3 ? '3rd' : '4th';
                       setFormData({ ...formData, semester: sem, year: `${yrSuffix} Year` });
                     }}
-                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="1st Sem">1st Sem (Year 1)</option>
                     <option value="2nd Sem">2nd Sem (Year 1)</option>
@@ -1225,21 +1225,21 @@ export default function StaffClassesView({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                     Academic Year
                   </label>
                   <input
                     type="text"
                     readOnly
                     value={formData.year}
-                    className="w-full px-3.5 py-2 text-xs bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 cursor-not-allowed"
+                    className="w-full px-3.5 py-2 text-xs bg-gray-100 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                     Section Code
                   </label>
                   <input
@@ -1248,18 +1248,18 @@ export default function StaffClassesView({
                     value={formData.section}
                     onChange={(e) => setFormData({ ...formData, section: e.target.value.toUpperCase() })}
                     placeholder="e.g. A, B, C, CC"
-                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                     Specialization / Track
                   </label>
                   <select
                     value={formData.specialization}
                     onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="Core">Core (Standard)</option>
                     <option value="AIML">AI & Machine Learning (AIML)</option>
@@ -1280,7 +1280,7 @@ export default function StaffClassesView({
                   onChange={(val) => setFormData({ ...formData, assignedTeacherId: val })}
                   clearable
                 />
-                <span className="text-[10px] text-slate-400 mt-1 block">
+                <span className="text-[10px] text-gray-400 mt-1 block">
                   The chosen teacher will automatically be assigned as this class's primary advisor.
                 </span>
               </div>
@@ -1293,7 +1293,7 @@ export default function StaffClassesView({
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1313,22 +1313,22 @@ export default function StaffClassesView({
       {/* MODAL 2: EDIT CLASS */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-blue-500" />
-                <h3 className="font-black text-base text-slate-900 dark:text-white">Edit Academic Class</h3>
+                <h3 className="font-black text-base text-gray-900 dark:text-white">Edit Academic Class</h3>
               </div>
               <button
                 onClick={() => setIsEditModalOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {actionError && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-rose-600 text-xs font-medium flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 text-red-600 text-xs font-medium flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{actionError}</span>
               </div>
@@ -1336,7 +1336,7 @@ export default function StaffClassesView({
 
             <form onSubmit={handleUpdateClass} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                   Course
                 </label>
                 <input
@@ -1345,13 +1345,13 @@ export default function StaffClassesView({
                   value={editFormData.course}
                   onChange={(e) => setEditFormData({ ...editFormData, course: e.target.value })}
                   placeholder="e.g. B.Tech CSE"
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                     Semester
                   </label>
                   <input
@@ -1360,12 +1360,12 @@ export default function StaffClassesView({
                     value={editFormData.semester}
                     onChange={(e) => setEditFormData({ ...editFormData, semester: e.target.value })}
                     placeholder="e.g. 3rd Sem"
-                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                     Academic Year
                   </label>
                   <input
@@ -1374,14 +1374,14 @@ export default function StaffClassesView({
                     value={editFormData.year}
                     onChange={(e) => setEditFormData({ ...editFormData, year: e.target.value })}
                     placeholder="e.g. 2nd Year"
-                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                     Section Code
                   </label>
                   <input
@@ -1390,12 +1390,12 @@ export default function StaffClassesView({
                     value={editFormData.section}
                     onChange={(e) => setEditFormData({ ...editFormData, section: e.target.value.toUpperCase() })}
                     placeholder="e.g. A, B, C"
-                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                     Specialization
                   </label>
                   <input
@@ -1403,7 +1403,7 @@ export default function StaffClassesView({
                     value={editFormData.specialization}
                     onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })}
                     placeholder="e.g. Core, AIML, CS"
-                    className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -1412,7 +1412,7 @@ export default function StaffClassesView({
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1432,24 +1432,24 @@ export default function StaffClassesView({
       {/* MODAL 3: ALLOCATE TEACHER TO CLASS */}
       {isAllocateTeacherModalOpen && selectedClass && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-teal-500" />
-                <h3 className="font-black text-base text-slate-900 dark:text-white">
+                <UserPlus className="w-5 h-5 text-green-500" />
+                <h3 className="font-black text-base text-gray-900 dark:text-white">
                   Allocate Faculty to {selectedClass.name}
                 </h3>
               </div>
               <button
                 onClick={() => setIsAllocateTeacherModalOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {actionError && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 text-rose-600 text-xs font-medium flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 text-red-600 text-xs font-medium flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{actionError}</span>
               </div>
@@ -1468,7 +1468,7 @@ export default function StaffClassesView({
                 />
               </div>
 
-              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
                 <input
                   type="checkbox"
                   id="primaryAdvisorCheck"
@@ -1476,7 +1476,7 @@ export default function StaffClassesView({
                   onChange={(e) => setIsPrimaryTeacher(e.target.checked)}
                   className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
-                <label htmlFor="primaryAdvisorCheck" className="text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
+                <label htmlFor="primaryAdvisorCheck" className="text-xs text-gray-700 dark:text-gray-300 font-medium cursor-pointer">
                   Designate as Primary Class Advisor
                 </label>
               </div>
@@ -1485,14 +1485,14 @@ export default function StaffClassesView({
                 <button
                   type="button"
                   onClick={() => setIsAllocateTeacherModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!selectedTeacherToAllocate || isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-500 shadow-md cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-green-600 text-white text-xs font-bold hover:bg-green-500 shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? "Allocating..." : "Allocate Teacher"}
                 </button>

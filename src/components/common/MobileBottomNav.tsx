@@ -63,7 +63,7 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
       className="md:hidden fixed bottom-3 inset-x-3 z-50 pointer-events-none"
     >
       <div className="max-w-md mx-auto pointer-events-auto">
-        <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-2xl border border-white/60 dark:border-slate-800/80 rounded-3xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
+        <div className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-2xl border border-white/60 dark:border-gray-800/80 rounded-3xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
           <div
             className={`grid gap-1 items-center ${
               isPaymentApproved ? "grid-cols-5" : "grid-cols-1"
@@ -78,7 +78,7 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 text-white font-black text-xs shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-transform"
+                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-green-600 text-white font-black text-xs shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-transform"
                   >
                     <Icon className="w-4 h-4" />
                     <span>Activate Transit Pass & Pay Fees →</span>
@@ -93,9 +93,9 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
                   className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 group active:scale-95 ${
                     isActive
                       ? item.highlight
-                        ? "bg-gradient-to-b from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30 -translate-y-1"
+                        ? "bg-gradient-to-b from-blue-600 to-blue-600 text-white shadow-md shadow-blue-600/30 -translate-y-1"
                         : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold"
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
                   <div className="relative">
@@ -110,8 +110,8 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
                     />
                     {item.highlight && !isActive && (
                       <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                       </span>
                     )}
                   </div>

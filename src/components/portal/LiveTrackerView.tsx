@@ -29,7 +29,7 @@ import {
 const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[450px] rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+    <div className="w-full h-[450px] rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse flex items-center justify-center text-xs text-gray-400 font-bold">
       Loading Live Telematics GIS Radar...
     </div>
   ),
@@ -246,12 +246,12 @@ export default function LiveTrackerView({
 
   if (stops.length === 0 || routes.length === 0) {
     return (
-      <div className="text-center py-16 p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 max-w-lg mx-auto my-8">
+      <div className="text-center py-16 p-6 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 space-y-4 max-w-lg mx-auto my-8">
         <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950 rounded-2xl flex items-center justify-center mx-auto text-blue-600">
           <Compass className="w-8 h-8" />
         </div>
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white">No Active Route Corridors</h3>
-        <p className="text-xs text-slate-500">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">No Active Route Corridors</h3>
+        <p className="text-xs text-gray-500">
           No campus bus stops or route corridors are populated yet. Please use the Admin Operations Console to add stops and allocate fleet buses.
         </p>
         <Link
@@ -269,7 +269,7 @@ export default function LiveTrackerView({
     <div className="space-y-6 animate-in fade-in">
       <Link
         href="/portal"
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100"
       >
         ← Back to My Commute Cockpit
       </Link>
@@ -277,13 +277,13 @@ export default function LiveTrackerView({
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-2.5">
             <Compass className="w-6 h-6 text-blue-600" />
             Live Fleet Tracking & Telematics Radar
           </h1>
-          <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+          <p className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
             <span>Real-time geospatial telemetry for {assignedRoute?.name || "Campus Transit System"}</span>
-            <span className="text-slate-400 dark:text-slate-600">•</span>
+            <span className="text-gray-400 dark:text-gray-600">•</span>
             <span className="font-semibold text-blue-600 dark:text-blue-400">Campus: {studentCampus.name}</span>
           </p>
         </div>
@@ -296,7 +296,7 @@ export default function LiveTrackerView({
               setSelectedRouteId(e.target.value);
               setInspectedStopId("");
             }}
-            className="text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 outline-none shadow-sm cursor-pointer text-slate-900 dark:text-white"
+            className="text-xs font-bold bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 outline-none shadow-sm cursor-pointer text-gray-900 dark:text-white"
           >
             {routes.map(r => (
               <option key={r.id} value={r.id}>
@@ -305,8 +305,8 @@ export default function LiveTrackerView({
             ))}
           </select>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-300 shadow-sm">
-            <span className={`w-2.5 h-2.5 rounded-full ${isTripInProgress ? "bg-emerald-500 animate-ping" : "bg-amber-500"}`} />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 dark:bg-green-950/60 border border-green-300 dark:border-green-800 text-xs font-bold text-green-800 dark:text-green-300 shadow-sm">
+            <span className={`w-2.5 h-2.5 rounded-full ${isTripInProgress ? "bg-green-500 animate-ping" : "bg-yellow-500"}`} />
             <Radio className="w-3.5 h-3.5" />
             <span>{isTripInProgress ? "GPS Beacon Active" : "Stationary at Starting Terminal"}</span>
           </div>
@@ -339,14 +339,14 @@ export default function LiveTrackerView({
       />
 
       {/* View Mode Switcher Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-gray-900 p-3 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="flex items-center gap-1.5 p-1 bg-gray-100 dark:bg-gray-800/80 rounded-xl">
           <button
             onClick={() => setTrackingMode("FLOWCHART")}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
               trackingMode === "FLOWCHART"
-                ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -356,8 +356,8 @@ export default function LiveTrackerView({
             onClick={() => setTrackingMode("MAP")}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
               trackingMode === "MAP"
-                ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
             }`}
           >
             <Navigation className="w-3.5 h-3.5" />
@@ -365,8 +365,8 @@ export default function LiveTrackerView({
           </button>
         </div>
 
-        <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="text-[11px] font-mono text-gray-400 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           <span>{trackingMode === "FLOWCHART" ? "High-Speed Topological Sequence" : "Spatial Terrain Radar"}</span>
         </div>
       </div>
@@ -406,10 +406,10 @@ export default function LiveTrackerView({
 
               {/* Floating Quick ETA Pill */}
               {pickupStop && (
-                <div className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
                   <div className="text-xs">
-                    <span className="font-bold text-slate-900 dark:text-white">
+                    <span className="font-bold text-gray-900 dark:text-white">
                       Next: {pickupStop.name}
                     </span>
                     <span className="text-blue-600 dark:text-blue-400 font-mono font-bold ml-2">
@@ -422,7 +422,7 @@ export default function LiveTrackerView({
               {/* Floating Quick Switch to Flowchart */}
               <button
                 onClick={() => setTrackingMode("FLOWCHART")}
-                className="absolute top-4 right-4 z-10 bg-slate-900/90 text-white hover:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 shadow-lg text-xs font-bold flex items-center gap-1.5 transition-all"
+                className="absolute top-4 right-4 z-10 bg-gray-900/90 text-white hover:bg-gray-800 px-3 py-1.5 rounded-xl border border-gray-700 shadow-lg text-xs font-bold flex items-center gap-1.5 transition-all"
               >
                 <Layers className="w-3.5 h-3.5" />
                 <span>Switch to Flowchart</span>
@@ -431,34 +431,34 @@ export default function LiveTrackerView({
           )}
 
           {/* Telematics Info HUD Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 text-center shadow-sm">
-            <div className="p-2 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
-              <div className="text-[10px] uppercase font-bold text-slate-400 font-sans">Current Speed</div>
-              <div className="text-xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
-                {effectiveLiveLocation.speedKmh} <span className="text-xs font-normal text-slate-500">km/h</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-gray-900 p-4 rounded-3xl border border-gray-200 dark:border-gray-800 text-center shadow-sm">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800/40 rounded-2xl">
+              <div className="text-[10px] uppercase font-bold text-gray-400 font-sans">Current Speed</div>
+              <div className="text-xl font-black text-gray-900 dark:text-white font-mono mt-0.5">
+                {effectiveLiveLocation.speedKmh} <span className="text-xs font-normal text-gray-500">km/h</span>
               </div>
             </div>
 
-            <div className="p-2 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
-              <div className="text-[10px] uppercase font-bold text-slate-400 font-sans">ETA to Pickup</div>
+            <div className="p-2 bg-gray-50 dark:bg-gray-800/40 rounded-2xl">
+              <div className="text-[10px] uppercase font-bold text-gray-400 font-sans">ETA to Pickup</div>
               <div className="text-xl font-black text-blue-600 dark:text-blue-400 font-mono mt-0.5">
                 ~{dynamicEta.etaMinutes} <span className="text-xs font-normal">mins</span>
               </div>
             </div>
 
-            <div className="p-2 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
-              <div className="text-[10px] uppercase font-bold text-slate-400 font-sans">Schedule Status</div>
-              <div className={`text-xl font-black font-mono mt-0.5 ${(liveLocation?.delayMinutes || 0) > 0 ? "text-amber-500" : "text-emerald-500"}`}>
+            <div className="p-2 bg-gray-50 dark:bg-gray-800/40 rounded-2xl">
+              <div className="text-[10px] uppercase font-bold text-gray-400 font-sans">Schedule Status</div>
+              <div className={`text-xl font-black font-mono mt-0.5 ${(liveLocation?.delayMinutes || 0) > 0 ? "text-yellow-500" : "text-green-500"}`}>
                 {(liveLocation?.delayMinutes || 0) > 0 ? `+${liveLocation?.delayMinutes}m` : "On Time"}
               </div>
             </div>
 
-            <div className="p-2 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
-              <div className="text-[10px] uppercase font-bold text-slate-400 font-sans">Allocated Vehicle</div>
-              <div className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono mt-1 truncate">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800/40 rounded-2xl">
+              <div className="text-[10px] uppercase font-bold text-gray-400 font-sans">Allocated Vehicle</div>
+              <div className="text-xs font-bold text-gray-700 dark:text-gray-300 font-mono mt-1 truncate">
                 {assignedBus?.busNumber || "Campus Bus"}
               </div>
-              <div className="text-[10px] text-slate-400 font-mono truncate">
+              <div className="text-[10px] text-gray-400 font-mono truncate">
                 {assignedBus?.registrationNo}
               </div>
             </div>
@@ -466,17 +466,17 @@ export default function LiveTrackerView({
 
           {/* Assigned Driver and Corridor Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-sm">
+            <div className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 flex items-center justify-center font-bold">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Assigned Driver</div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">
+                  <div className="text-[10px] uppercase font-bold text-gray-400">Assigned Driver</div>
+                  <div className="text-xs font-bold text-gray-900 dark:text-white">
                     {driver?.fullName || "University Transport Crew"}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono">
+                  <div className="text-[10px] text-gray-400 font-mono">
                     {driver?.phone || "Campus Dispatch Desk"}
                   </div>
                 </div>
@@ -485,37 +485,37 @@ export default function LiveTrackerView({
               {driver?.phone && (
                 <a
                   href={`tel:${driver.phone}`}
-                  className="p-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950 text-emerald-600 rounded-xl transition-all"
+                  className="p-2 bg-green-50 hover:bg-green-100 dark:bg-green-950 text-green-600 rounded-xl transition-all"
                 >
                   <Phone className="w-4 h-4" />
                 </a>
               )}
             </div>
 
-            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-sm">
+            <div className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm">
               <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400">Dijkstra Shortest Path</div>
-                <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                <div className="text-[10px] uppercase font-bold text-gray-400">Dijkstra Shortest Path</div>
+                <div className="text-xs font-bold text-blue-600 dark:text-blue-400">
                   {shortestPath ? `${shortestPath.totalDistanceKm} km (${shortestPath.stopCount} stops)` : "Direct route"}
                 </div>
-                <div className="text-[10px] text-slate-400 font-mono">
+                <div className="text-[10px] text-gray-400 font-mono">
                   {shortestPath ? `~${shortestPath.totalEstimatedMins} mins total transit` : "Active corridor"}
                 </div>
               </div>
-              <Sparkles className="w-5 h-5 text-indigo-600" />
+              <Sparkles className="w-5 h-5 text-blue-600" />
             </div>
           </div>
         </div>
 
         {/* Right 4-5 Cols: Station Line Progression Timeline */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
               <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                <h3 className="font-bold text-sm text-gray-900 dark:text-white">
                   Route Progression Radar
                 </h3>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[10px] text-gray-400">
                   Click any stop to inspect live ETA
                 </span>
               </div>
@@ -532,7 +532,7 @@ export default function LiveTrackerView({
                 onSelectStop={st => setInspectedStopId(st.id)}
               />
             ) : (
-              <div className="p-6 text-center text-xs text-slate-400 font-mono">
+              <div className="p-6 text-center text-xs text-gray-400 font-mono">
                 No route sequence available.
               </div>
             )}

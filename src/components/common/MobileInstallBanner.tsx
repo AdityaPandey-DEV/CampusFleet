@@ -50,7 +50,7 @@ export function MobileInstallBanner({
       aria-label="App Installation"
       className="fixed bottom-3 inset-x-3 sm:hidden z-40 animate-in slide-in-from-bottom-3 duration-300 pointer-events-auto"
     >
-      <div className="bg-slate-900/95 dark:bg-slate-900/95 text-white p-3 rounded-2xl border border-blue-500/40 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-3">
+      <div className="bg-gray-900/95 dark:bg-gray-900/95 text-white p-3 rounded-2xl border border-blue-500/40 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white flex-shrink-0 shadow-md">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -70,7 +70,7 @@ export function MobileInstallBanner({
               <span>Install CampusFleet</span>
               <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/30 text-blue-300 font-mono">APP</span>
             </div>
-            <div className="text-[11px] text-slate-300 truncate">
+            <div className="text-[11px] text-gray-300 truncate">
               Guaranteed seats & live radar on home screen
             </div>
           </div>
@@ -86,7 +86,7 @@ export function MobileInstallBanner({
           </button>
           <button
             onClick={handleDismiss}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-white transition-colors"
             aria-label="Dismiss banner"
           >
             <X className="w-4 h-4" />

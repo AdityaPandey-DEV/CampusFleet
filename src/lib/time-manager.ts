@@ -151,7 +151,7 @@ export function getShiftOperationalStatus(
     return {
       status: "COMPLETED",
       label: "Shift Completed",
-      badgeColor: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+      badgeColor: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
       minutesToDeparture,
       minutesToCutoff,
       isBookingOpen: false,
@@ -173,7 +173,7 @@ export function getShiftOperationalStatus(
     return {
       status: "BOARDING_IN_PROGRESS",
       label: "Boarding In Progress",
-      badgeColor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300",
+      badgeColor: "bg-green-100 text-green-800 dark:bg-green-950/80 dark:text-green-300",
       minutesToDeparture,
       minutesToCutoff,
       isBookingOpen: false,
@@ -184,7 +184,7 @@ export function getShiftOperationalStatus(
     return {
       status: "CUTOFF_PASSED",
       label: "Booking Closed • Manifest Locked",
-      badgeColor: "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300",
+      badgeColor: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/80 dark:text-yellow-300",
       minutesToDeparture,
       minutesToCutoff,
       isBookingOpen: false,
@@ -195,7 +195,7 @@ export function getShiftOperationalStatus(
     return {
       status: "BOOKING_OPEN",
       label: `Booking Open • Closes in ${minutesToCutoff}m`,
-      badgeColor: "bg-teal-100 text-teal-800 dark:bg-teal-950/80 dark:text-teal-300",
+      badgeColor: "bg-green-100 text-green-800 dark:bg-green-950/80 dark:text-green-300",
       minutesToDeparture,
       minutesToCutoff,
       isBookingOpen: true,
@@ -205,7 +205,7 @@ export function getShiftOperationalStatus(
   return {
     status: "UPCOMING",
     label: "Scheduled / Upcoming",
-    badgeColor: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300",
+    badgeColor: "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300",
     minutesToDeparture,
     minutesToCutoff,
     isBookingOpen: true,
@@ -307,7 +307,7 @@ export function getTripLiveStatus(
       status: "CANCELLED",
       label: "Trip Cancelled",
       delayMins: 0,
-      badgeClass: "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300",
+      badgeClass: "bg-red-100 text-red-700 dark:bg-red-950/80 dark:text-red-300",
     };
   }
 
@@ -316,7 +316,7 @@ export function getTripLiveStatus(
       status: "COMPLETED",
       label: "Completed",
       delayMins: trip.delayMinutes || 0,
-      badgeClass: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+      badgeClass: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
     };
   }
 
@@ -336,7 +336,7 @@ export function getTripLiveStatus(
       label: delay > 5 ? `In Transit (${delay}m Delay)` : "In Transit",
       delayMins: delay,
       badgeClass: delay > 5
-        ? "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300"
+        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/80 dark:text-yellow-300"
         : "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300",
     };
   }
@@ -349,7 +349,7 @@ export function getTripLiveStatus(
         status: "DELAYED",
         label: `Delayed Departure (+${delay}m)`,
         delayMins: delay,
-        badgeClass: "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300",
+        badgeClass: "bg-red-100 text-red-800 dark:bg-red-950/80 dark:text-red-300",
       };
     }
 
@@ -357,7 +357,7 @@ export function getTripLiveStatus(
       status: "MANIFEST_LOCKED",
       label: `Manifest Finalized • Departs in ${depMins - nowMins}m`,
       delayMins: 0,
-      badgeClass: "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300",
+      badgeClass: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/80 dark:text-yellow-300",
     };
   }
 
@@ -367,7 +367,7 @@ export function getTripLiveStatus(
       status: "STANDBY_ORIGIN",
       label: `Standby at Origin • Departs in ${depMins - nowMins}m`,
       delayMins: 0,
-      badgeClass: "bg-teal-100 text-teal-800 dark:bg-teal-950/80 dark:text-teal-300",
+      badgeClass: "bg-green-100 text-green-800 dark:bg-green-950/80 dark:text-green-300",
     };
   }
 
@@ -375,7 +375,7 @@ export function getTripLiveStatus(
     status: "SCHEDULED",
     label: `Scheduled (${formatTimeIST(depTime)})`,
     delayMins: 0,
-    badgeClass: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    badgeClass: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
   };
 }
 

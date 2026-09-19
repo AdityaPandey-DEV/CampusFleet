@@ -607,10 +607,10 @@ export function QRPassScanner({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md dark:shadow-2xl space-y-5 text-slate-900 dark:text-white transition-colors">
+    <div className="bg-white dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-md dark:shadow-2xl space-y-5 text-gray-900 dark:text-white transition-colors">
       {/* Scanner Mode Tabs & Sound Controls */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-950/80 rounded-2xl w-full sm:w-auto border border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-1.5 p-1 bg-gray-100 dark:bg-gray-950/80 rounded-2xl w-full sm:w-auto border border-gray-200 dark:border-gray-800">
           <button
             onClick={() => {
               setActiveTab("CAMERA");
@@ -618,8 +618,8 @@ export function QRPassScanner({
             }}
             className={`flex-1 sm:flex-none py-2 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
               activeTab === "CAMERA"
-                ? "bg-teal-600 dark:bg-teal-500 text-white dark:text-slate-950 shadow-md"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-green-600 dark:bg-green-500 text-white dark:text-gray-950 shadow-md"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
             <Camera className="w-4 h-4" />
@@ -635,7 +635,7 @@ export function QRPassScanner({
             className={`flex-1 sm:flex-none py-2 px-4 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all ${
               activeTab === "MANUAL"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
             <Keyboard className="w-4 h-4" />
@@ -647,8 +647,8 @@ export function QRPassScanner({
           onClick={() => setSoundEnabled(!soundEnabled)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
             soundEnabled
-              ? "bg-teal-50 dark:bg-teal-950/80 border-teal-200 dark:border-teal-700/80 text-teal-800 dark:text-teal-300 shadow-xs"
-              : "bg-slate-100 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-500"
+              ? "bg-green-50 dark:bg-green-950/80 border-green-200 dark:border-green-700/80 text-green-800 dark:text-green-300 shadow-xs"
+              : "bg-gray-100 dark:bg-gray-950/60 border-gray-200 dark:border-gray-800 text-gray-500"
           }`}
           title="Toggle Boarding Audio Confirmation Chimes"
         >
@@ -661,7 +661,7 @@ export function QRPassScanner({
       {activeTab === "CAMERA" && (
         <div className="space-y-4">
           {/* Active Live Camera Stream (Always in DOM so videoRef is never null) */}
-          <div className={`relative aspect-[4/3] sm:aspect-video min-h-[300px] sm:min-h-[360px] w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-slate-800 shadow-2xl text-white ${isCameraActive ? "block" : "hidden"}`}>
+          <div className={`relative aspect-[4/3] sm:aspect-video min-h-[300px] sm:min-h-[360px] w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-gray-800 shadow-2xl text-white ${isCameraActive ? "block" : "hidden"}`}>
             <video
               ref={videoRef}
               className="w-full h-full object-cover"
@@ -672,29 +672,29 @@ export function QRPassScanner({
             <canvas ref={canvasRef} className="hidden" />
 
             {/* Glowing Laser Scan Beam */}
-            <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-teal-400 to-transparent shadow-[0_0_20px_#2dd4bf] animate-bounce z-20 pointer-events-none" />
+            <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent shadow-[0_0_20px_#2dd4bf] animate-bounce z-20 pointer-events-none" />
 
             {/* Viewfinder Overlay with Precision Reticle */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="w-52 h-52 sm:w-60 sm:h-60 border-2 border-dashed border-teal-400/80 rounded-3xl shadow-[0_0_40px_rgba(45,212,191,0.25)] flex flex-col items-center justify-between p-3.5">
+              <div className="w-52 h-52 sm:w-60 sm:h-60 border-2 border-dashed border-green-400/80 rounded-3xl shadow-[0_0_40px_rgba(45,212,191,0.25)] flex flex-col items-center justify-between p-3.5">
                 <div className="w-full flex justify-between">
-                  <div className="w-5 h-5 border-t-3 border-l-3 border-teal-400 rounded-tl-lg" />
-                  <div className="w-5 h-5 border-t-3 border-r-3 border-teal-400 rounded-tr-lg" />
+                  <div className="w-5 h-5 border-t-3 border-l-3 border-green-400 rounded-tl-lg" />
+                  <div className="w-5 h-5 border-t-3 border-r-3 border-green-400 rounded-tr-lg" />
                 </div>
-                <span className="text-[10px] text-teal-300 font-mono font-black tracking-wider bg-black/70 px-3 py-1 rounded-full backdrop-blur border border-teal-500/30">
+                <span className="text-[10px] text-green-300 font-mono font-black tracking-wider bg-black/70 px-3 py-1 rounded-full backdrop-blur border border-green-500/30">
                   SCAN STUDENT QR PASS
                 </span>
                 <div className="w-full flex justify-between">
-                  <div className="w-5 h-5 border-b-3 border-l-3 border-teal-400 rounded-bl-lg" />
-                  <div className="w-5 h-5 border-b-3 border-r-3 border-teal-400 rounded-br-lg" />
+                  <div className="w-5 h-5 border-b-3 border-l-3 border-green-400 rounded-bl-lg" />
+                  <div className="w-5 h-5 border-b-3 border-r-3 border-green-400 rounded-br-lg" />
                 </div>
               </div>
             </div>
 
             {/* Floating Camera Controls Top Bar */}
             <div className="absolute top-3 inset-x-3 flex items-center justify-between z-30">
-              <span className="text-[10px] font-bold text-teal-300 bg-black/70 px-3 py-1.5 rounded-xl backdrop-blur border border-slate-800 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+              <span className="text-[10px] font-bold text-green-300 bg-black/70 px-3 py-1.5 rounded-xl backdrop-blur border border-gray-800 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
                 60 FPS Live Scanner
               </span>
 
@@ -702,14 +702,14 @@ export function QRPassScanner({
                 <button
                   type="button"
                   onClick={toggleCameraFacing}
-                  className="text-[10px] font-bold text-teal-300 hover:text-white bg-black/70 px-3 py-1.5 rounded-xl backdrop-blur border border-slate-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="text-[10px] font-bold text-green-300 hover:text-white bg-black/70 px-3 py-1.5 rounded-xl backdrop-blur border border-gray-800 flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Flip Lens
                 </button>
                 <button
                   type="button"
                   onClick={stopCamera}
-                  className="text-[10px] font-bold text-rose-300 hover:text-white bg-rose-950/80 px-3 py-1.5 rounded-xl backdrop-blur border border-rose-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="text-[10px] font-bold text-red-300 hover:text-white bg-red-950/80 px-3 py-1.5 rounded-xl backdrop-blur border border-red-800 flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <CameraOff className="w-3.5 h-3.5" /> Stop
                 </button>
@@ -719,13 +719,13 @@ export function QRPassScanner({
 
           {/* Standby State with Large Prominent Button */}
           {!isCameraActive && (
-            <div className="w-full rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center space-y-4 text-white">
-              <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-teal-400 shadow-inner">
+            <div className="w-full rounded-3xl bg-gray-950 border border-gray-800 shadow-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center space-y-4 text-white">
+              <div className="w-16 h-16 rounded-3xl bg-gray-900 border border-gray-800 flex items-center justify-center text-green-400 shadow-inner">
                 <QrCode className="w-8 h-8" />
               </div>
               <div className="space-y-1">
                 <h4 className="font-black text-white text-base sm:text-lg">High-Speed Optical QR Radar</h4>
-                <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                <p className="text-xs text-gray-300 max-w-sm mx-auto">
                   Point device camera at student pass to authenticate seat reservation and verify attendance.
                 </p>
               </div>
@@ -733,22 +733,22 @@ export function QRPassScanner({
               <button
                 type="button"
                 onClick={() => startCamera(cameraFacing)}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-sm rounded-2xl shadow-xl shadow-teal-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-green-500 via-green-500 to-green-500 hover:from-green-400 hover:to-green-400 text-gray-950 font-black text-sm rounded-2xl shadow-xl shadow-green-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
               >
                 <Camera className="w-5 h-5" />
                 <span>Start Live Camera Scanner</span>
               </button>
 
-              <div className="flex items-center gap-2 text-xs text-slate-400 font-bold bg-slate-900/90 px-4 py-2 rounded-xl border border-slate-800">
-                <ShieldCheck className="w-4 h-4 text-teal-400" />
+              <div className="flex items-center gap-2 text-xs text-gray-400 font-bold bg-gray-900/90 px-4 py-2 rounded-xl border border-gray-800">
+                <ShieldCheck className="w-4 h-4 text-green-400" />
                 <span>Radar Standby • Anti-Replay Security Enabled</span>
               </div>
             </div>
           )}
 
           {cameraError && (
-            <div className="p-3.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 rounded-2xl text-xs text-amber-800 dark:text-amber-400 font-semibold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="p-3.5 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-300 dark:border-yellow-500/30 rounded-2xl text-xs text-yellow-800 dark:text-yellow-400 font-semibold flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
               <span>{cameraError}</span>
             </div>
           )}
@@ -759,18 +759,18 @@ export function QRPassScanner({
       {activeTab === "MANUAL" && (
         <form onSubmit={handleManualSubmit} className="space-y-3">
           <div className="space-y-1">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Enter Pass Booking Code / Roll No / Name
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                 <input
                   type="text"
                   value={manualInput}
                   onChange={e => setManualInput(e.target.value)}
                   placeholder="e.g. GEHU-PASS-01, GEHU/2023/1045, or student name"
-                  className="w-full text-xs pl-10 pr-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-teal-500 font-mono shadow-inner"
+                  className="w-full text-xs pl-10 pr-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white outline-none focus:border-green-500 font-mono shadow-inner"
                 />
               </div>
               <button
@@ -787,16 +787,16 @@ export function QRPassScanner({
 
       {/* Conductor Visual Identity Confirmation Card */}
       {pendingVerification && (
-        <div className="p-5 rounded-3xl bg-slate-900 border-2 border-teal-500/80 shadow-2xl space-y-4 animate-in zoom-in-95 text-white">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="p-5 rounded-3xl bg-gray-900 border-2 border-green-500/80 shadow-2xl space-y-4 animate-in zoom-in-95 text-white">
+          <div className="flex items-center justify-between pb-3 border-b border-gray-800">
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-ping" />
-              <span className="text-xs font-black uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
-                <BadgeCheck className="w-4 h-4 text-teal-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-ping" />
+              <span className="text-xs font-black uppercase tracking-wider text-green-400 flex items-center gap-1.5">
+                <BadgeCheck className="w-4 h-4 text-green-400" />
                 Step 2: Visual Identity Verification
               </span>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-800">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-green-950 text-green-300 border border-green-800">
               Anti-Impersonation Guard
             </span>
           </div>
@@ -809,17 +809,17 @@ export function QRPassScanner({
                   <img
                     src={pendingVerification.student.photoUrl}
                     alt={pendingVerification.student.fullName}
-                    className="w-28 h-36 sm:w-32 sm:h-40 object-cover rounded-2xl border-2 border-teal-400/80 shadow-lg bg-slate-950"
+                    className="w-28 h-36 sm:w-32 sm:h-40 object-cover rounded-2xl border-2 border-green-400/80 shadow-lg bg-gray-950"
                   />
-                  <div className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full bg-teal-600 text-[9px] font-black text-white uppercase tracking-wider shadow">
+                  <div className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full bg-green-600 text-[9px] font-black text-white uppercase tracking-wider shadow">
                     Official Photo
                   </div>
                 </div>
               ) : (
-                <div className="w-28 h-36 sm:w-32 sm:h-40 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950 flex flex-col items-center justify-center text-slate-500 p-2 text-center">
-                  <User className="w-10 h-10 mb-1 text-slate-600" />
+                <div className="w-28 h-36 sm:w-32 sm:h-40 rounded-2xl border-2 border-dashed border-gray-700 bg-gray-950 flex flex-col items-center justify-center text-gray-500 p-2 text-center">
+                  <User className="w-10 h-10 mb-1 text-gray-600" />
                   <span className="text-[10px] font-bold">No Photo Uploaded</span>
-                  <span className="text-[8px] text-slate-600">Pending Student Submission</span>
+                  <span className="text-[8px] text-gray-600">Pending Student Submission</span>
                 </div>
               )}
             </div>
@@ -830,7 +830,7 @@ export function QRPassScanner({
                 <div className="text-base sm:text-lg font-black text-white">
                   {pendingVerification.student.fullName}
                 </div>
-                <div className="text-xs font-mono text-teal-300 flex items-center justify-center sm:justify-start gap-2">
+                <div className="text-xs font-mono text-green-300 flex items-center justify-center sm:justify-start gap-2">
                   
                   {pendingVerification.student.semester && (
                     <span className="opacity-70">• {pendingVerification.student.semester}</span>
@@ -839,8 +839,8 @@ export function QRPassScanner({
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Allocated Seat</div>
+                <div className="p-2 rounded-xl bg-gray-800/80 border border-gray-700/60">
+                  <div className="text-[10px] uppercase font-bold text-gray-400">Allocated Seat</div>
                   <div className="font-mono font-black text-white text-sm">
                     {pendingVerification.booking.passengerType === "STANDING_TILL_MERGE"
                       ? "STAND (Merge)"
@@ -848,16 +848,16 @@ export function QRPassScanner({
                   </div>
                 </div>
 
-                <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Department</div>
+                <div className="p-2 rounded-xl bg-gray-800/80 border border-gray-700/60">
+                  <div className="text-[10px] uppercase font-bold text-gray-400">Department</div>
                   <div className="font-semibold text-white truncate text-[11px]">
                     {pendingVerification.student.department || "Academic Department"}
                   </div>
                 </div>
               </div>
 
-              <p className="text-[11px] text-amber-300/90 font-medium flex items-center justify-center sm:justify-start gap-1.5 pt-1">
-                <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
+              <p className="text-[11px] text-yellow-300/90 font-medium flex items-center justify-center sm:justify-start gap-1.5 pt-1">
+                <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 text-yellow-400" />
                 <span>Confirm commuter face matches the official registered passport photo before boarding.</span>
               </p>
             </div>
@@ -869,7 +869,7 @@ export function QRPassScanner({
               type="button"
               onClick={handleConfirmBoarding}
               disabled={isProcessing}
-              className="w-full py-3.5 px-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-3 rounded-2xl bg-gradient-to-r from-green-500 to-green-500 hover:from-green-400 hover:to-green-400 text-gray-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-green-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{isProcessing ? "Processing..." : "Confirm & In Bus"}</span>
@@ -879,7 +879,7 @@ export function QRPassScanner({
               type="button"
               onClick={handleConfirmRoaming}
               disabled={isProcessing}
-              className="w-full py-3.5 px-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-3 rounded-2xl bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600 hover:from-yellow-400 hover:to-orange-400 text-gray-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-yellow-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
               title="Hold seat digitally; student can roam campus without bags on seats"
             >
               <Footprints className="w-4 h-4" />
@@ -890,7 +890,7 @@ export function QRPassScanner({
               type="button"
               onClick={handleRejectMismatch}
               disabled={isProcessing}
-              className="w-full py-3.5 px-3 rounded-2xl bg-rose-950/80 hover:bg-rose-900 border border-rose-700/80 text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-3 rounded-2xl bg-red-950/80 hover:bg-red-900 border border-red-700/80 text-red-300 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <UserX className="w-4 h-4" />
               <span>Reject Mismatch</span>
@@ -904,34 +904,34 @@ export function QRPassScanner({
         <div
           className={`p-4 rounded-3xl border transition-all animate-in fade-in ${
             lastResult.status === "APPROVED"
-              ? "bg-emerald-50 dark:bg-emerald-950/80 border-emerald-300 dark:border-emerald-500/80 text-emerald-950 dark:text-emerald-200 shadow-md"
+              ? "bg-green-50 dark:bg-green-950/80 border-green-300 dark:border-green-500/80 text-green-950 dark:text-green-200 shadow-md"
               : lastResult.status === "DUPLICATE"
-              ? "bg-amber-50 dark:bg-amber-950/80 border-amber-300 dark:border-amber-500/80 text-amber-950 dark:text-amber-200 shadow-md"
-              : "bg-rose-50 dark:bg-rose-950/80 border-rose-300 dark:border-rose-500/80 text-rose-950 dark:text-rose-200 shadow-md"
+              ? "bg-yellow-50 dark:bg-yellow-950/80 border-yellow-300 dark:border-yellow-500/80 text-yellow-950 dark:text-yellow-200 shadow-md"
+              : "bg-red-50 dark:bg-red-950/80 border-red-300 dark:border-red-500/80 text-red-950 dark:text-red-200 shadow-md"
           }`}
         >
           <div className="flex items-start gap-3">
             {lastResult.status === "APPROVED" ? (
-              <div className="w-9 h-9 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 flex items-center justify-center flex-shrink-0 font-bold shadow-md">
+              <div className="w-9 h-9 rounded-2xl bg-green-600 dark:bg-green-500 text-white dark:text-gray-950 flex items-center justify-center flex-shrink-0 font-bold shadow-md">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
             ) : lastResult.status === "DUPLICATE" ? (
-              <div className="w-9 h-9 rounded-2xl bg-amber-600 dark:bg-amber-500 text-white dark:text-slate-950 flex items-center justify-center flex-shrink-0 font-bold shadow-md">
+              <div className="w-9 h-9 rounded-2xl bg-yellow-600 dark:bg-yellow-500 text-white dark:text-gray-950 flex items-center justify-center flex-shrink-0 font-bold shadow-md">
                 <AlertTriangle className="w-5 h-5" />
               </div>
             ) : (
-              <div className="w-9 h-9 rounded-2xl bg-rose-600 dark:bg-rose-500 text-white flex items-center justify-center flex-shrink-0 font-bold shadow-md">
+              <div className="w-9 h-9 rounded-2xl bg-red-600 dark:bg-red-500 text-white flex items-center justify-center flex-shrink-0 font-bold shadow-md">
                 <XCircle className="w-5 h-5" />
               </div>
             )}
 
             <div className="space-y-1 flex-1">
               <div className="flex items-center justify-between">
-                <div className="font-black text-sm text-slate-900 dark:text-white">
+                <div className="font-black text-sm text-gray-900 dark:text-white">
                   {lastResult.studentName ? (
                     <span>
                       {lastResult.studentName}{" "}
-                      <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-white/15 ml-1 border border-slate-300 dark:border-white/20 text-slate-800 dark:text-white">
+                      <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-gray-200 dark:bg-white/15 ml-1 border border-gray-300 dark:border-white/20 text-gray-800 dark:text-white">
                         Seat {lastResult.seatNumber}
                       </span>
                     </span>
@@ -947,49 +947,49 @@ export function QRPassScanner({
               <div className="text-xs font-semibold">{lastResult.message}</div>
 
               {lastResult.status === "DUPLICATE" && lastResult.studentName && (
-                <div className="mt-3 p-3 rounded-2xl bg-amber-100/70 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/80 flex items-center gap-3">
+                <div className="mt-3 p-3 rounded-2xl bg-yellow-100/70 dark:bg-yellow-950/60 border border-yellow-300 dark:border-yellow-700/80 flex items-center gap-3">
                   {lastResult.photoUrl ? (
                     <div className="relative flex-shrink-0">
                       <img
                         src={lastResult.photoUrl}
                         alt={lastResult.studentName}
-                        className="w-14 h-18 sm:w-16 sm:h-20 object-cover rounded-xl border-2 border-amber-500 shadow-md bg-slate-900"
+                        className="w-14 h-18 sm:w-16 sm:h-20 object-cover rounded-xl border-2 border-yellow-500 shadow-md bg-gray-900"
                       />
-                      <div className="absolute -bottom-1.5 inset-x-0 mx-auto w-max px-1.5 py-0.5 rounded-full bg-amber-600 text-[8px] font-black text-white uppercase tracking-wider shadow">
+                      <div className="absolute -bottom-1.5 inset-x-0 mx-auto w-max px-1.5 py-0.5 rounded-full bg-yellow-600 text-[8px] font-black text-white uppercase tracking-wider shadow">
                         QR Owner
                       </div>
                     </div>
                   ) : (
-                    <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 flex flex-col items-center justify-center flex-shrink-0 text-amber-700 dark:text-amber-300">
+                    <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-xl border-2 border-dashed border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/30 flex flex-col items-center justify-center flex-shrink-0 text-yellow-700 dark:text-yellow-300">
                       <User className="w-6 h-6" />
                       <span className="text-[8px] font-bold mt-0.5">No Photo</span>
                     </div>
                   )}
 
                   <div className="space-y-0.5 flex-1 min-w-0">
-                    <div className="text-[10px] uppercase font-black tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
-                      <ShieldAlert className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                    <div className="text-[10px] uppercase font-black tracking-wider text-yellow-800 dark:text-yellow-300 flex items-center gap-1">
+                      <ShieldAlert className="w-3 h-3 text-yellow-600 dark:text-yellow-400" />
                       Registered QR Pass Commuter
                     </div>
-                    <div className="font-black text-sm text-slate-900 dark:text-white truncate">
+                    <div className="font-black text-sm text-gray-900 dark:text-white truncate">
                       {lastResult.studentName}
                     </div>
-                    <div className="font-mono text-xs font-bold text-amber-900 dark:text-amber-200">
+                    <div className="font-mono text-xs font-bold text-yellow-900 dark:text-yellow-200">
                       
                     </div>
                     {lastResult.department && (
-                      <div className="text-[11px] text-slate-700 dark:text-slate-300 truncate">
+                      <div className="text-[11px] text-gray-700 dark:text-gray-300 truncate">
                         {lastResult.department}
                       </div>
                     )}
                     <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] font-bold">
                       {lastResult.seatNumber && (
-                        <span className="px-2 py-0.5 rounded-lg bg-amber-200/80 dark:bg-amber-900/60 text-amber-950 dark:text-amber-100 font-mono">
+                        <span className="px-2 py-0.5 rounded-lg bg-yellow-200/80 dark:bg-yellow-900/60 text-yellow-950 dark:text-yellow-100 font-mono">
                           Allocated Seat: {lastResult.seatNumber}
                         </span>
                       )}
                       {lastResult.boardedAt && (
-                        <span className="px-2 py-0.5 rounded-lg bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200">
+                        <span className="px-2 py-0.5 rounded-lg bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-200">
                           Checked-In: {new Date(lastResult.boardedAt).toLocaleTimeString()}
                         </span>
                       )}
@@ -999,7 +999,7 @@ export function QRPassScanner({
               )}
 
               {lastResult.method && (
-                <div className="text-[10px] font-mono opacity-80 text-teal-700 dark:text-teal-300">
+                <div className="text-[10px] font-mono opacity-80 text-green-700 dark:text-green-300">
                   Verified via {lastResult.method} • Synchronized to university attendance database
                 </div>
               )}
@@ -1009,16 +1009,16 @@ export function QRPassScanner({
       )}
 
       {/* 1-Tap Passenger Quick Boarding Queue */}
-      <div className="space-y-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
-        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+      <div className="space-y-2.5 pt-3 border-t border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
           <span className="font-black uppercase tracking-wider text-[10px]">
             Passenger Queue ({pendingBookings.length} Awaiting Check-in)
           </span>
-          <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold">1-Tap Boarding</span>
+          <span className="text-[10px] text-green-600 dark:text-green-400 font-semibold">1-Tap Boarding</span>
         </div>
 
         {pendingBookings.length === 0 ? (
-          <div className="p-3 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="p-3 text-center text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/60 rounded-2xl border border-gray-200 dark:border-gray-800">
             ✓ All passengers on this vehicle are checked in.
           </div>
         ) : (
@@ -1029,17 +1029,17 @@ export function QRPassScanner({
                 <button
                   key={b.id}
                   onClick={() => verifyPassCode(b.bookingCode || b.id, "Manual Secure Entry")}
-                  className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 hover:bg-slate-100 dark:hover:bg-teal-950/60 hover:border-teal-500 text-left flex items-center justify-between transition-colors group"
+                  className="p-2.5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/80 hover:bg-gray-100 dark:hover:bg-green-950/60 hover:border-green-500 text-left flex items-center justify-between transition-colors group"
                 >
                   <div className="truncate">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-teal-600 dark:group-hover:text-teal-300">
+                    <div className="text-xs font-bold text-gray-900 dark:text-white truncate group-hover:text-green-600 dark:group-hover:text-green-300">
                       {s?.fullName || "Commuter"}
                     </div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">
                       Seat {b.seatNumber || `WL-${b.waitlistPosition}`} • {b.bookingCode}
                     </div>
                   </div>
-                  <span className="text-[10px] font-black px-2.5 py-1 rounded-xl bg-teal-600 dark:bg-teal-500 hover:bg-teal-500 text-white dark:text-slate-950 shadow-xs transition-transform active:scale-95">
+                  <span className="text-[10px] font-black px-2.5 py-1 rounded-xl bg-green-600 dark:bg-green-500 hover:bg-green-500 text-white dark:text-gray-950 shadow-xs transition-transform active:scale-95">
                     Board ✓
                   </span>
                 </button>

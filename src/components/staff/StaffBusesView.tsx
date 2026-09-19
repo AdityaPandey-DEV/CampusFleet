@@ -127,11 +127,11 @@ export default function StaffBusesView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2.5">
             <BusFront className="w-7 h-7 text-blue-600" />
             Campus Bus Fleet Management
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Production fleet administration: Add buses, configure seat layouts, allocate vehicles to campus routes & stops.
           </p>
         </div>
@@ -151,32 +151,32 @@ export default function StaffBusesView({
       </div>
 
       {/* Search & Filter bar */}
-      <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex items-center justify-between bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="relative max-w-sm w-full">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search bus name, registration number..."
-            className="w-full text-xs pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+            className="w-full text-xs pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none"
           />
         </div>
 
-        <div className="text-xs font-mono text-slate-500">
+        <div className="text-xs font-mono text-gray-500">
           Showing {filteredBuses.length} of {buses.length} Fleet Vehicles
         </div>
       </div>
 
       {/* Empty State Banner */}
       {buses.length === 0 && (
-        <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="p-12 text-center bg-white dark:bg-gray-900 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-800 space-y-4">
           <div className="w-16 h-16 rounded-3xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center mx-auto">
             <BusFront className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="font-black text-lg text-slate-900 dark:text-white">No Buses in Fleet</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+            <h3 className="font-black text-lg text-gray-900 dark:text-white">No Buses in Fleet</h3>
+            <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
               Start by adding your institution's buses to allocate them to routes, stops, and morning/evening shifts.
             </p>
           </div>
@@ -200,7 +200,7 @@ export default function StaffBusesView({
           return (
             <div
               key={bus.id}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 hover:border-blue-500/60 transition-all flex flex-col justify-between"
+              className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4 hover:border-blue-500/60 transition-all flex flex-col justify-between"
             >
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
@@ -208,7 +208,7 @@ export default function StaffBusesView({
                     <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
                       {bus.registrationNo}
                     </span>
-                    <h3 className="font-bold text-base text-slate-900 dark:text-white mt-0.5">
+                    <h3 className="font-bold text-base text-gray-900 dark:text-white mt-0.5">
                       {bus.busNumber}
                     </h3>
                   </div>
@@ -216,29 +216,29 @@ export default function StaffBusesView({
                   <span
                     className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide uppercase ${
                       bus.status === "ACTIVE"
-                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300"
-                        : "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300"
+                        ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300"
+                        : "bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300"
                     }`}
                   >
                     {bus.status}
                   </span>
                 </div>
 
-                <div className="text-xs text-slate-500">
-                  Model: <span className="font-semibold text-slate-800 dark:text-slate-200">{bus.model}</span>
+                <div className="text-xs text-gray-500">
+                  Model: <span className="font-semibold text-gray-800 dark:text-gray-200">{bus.model}</span>
                 </div>
 
                 {/* Capacity & Seat Config */}
-                <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl text-xs">
+                <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl text-xs">
                   <div>
-                    <span className="text-[10px] uppercase text-slate-400 font-bold">Capacity</span>
-                    <div className="font-black text-slate-900 dark:text-white font-mono mt-0.5">
+                    <span className="text-[10px] uppercase text-gray-400 font-bold">Capacity</span>
+                    <div className="font-black text-gray-900 dark:text-white font-mono mt-0.5">
                       {bus.capacity} Seats ({bus.seatLayout})
                     </div>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase text-slate-400 font-bold">GPS Device ID</span>
-                    <div className="font-bold text-slate-900 dark:text-white font-mono mt-0.5 truncate">
+                    <span className="text-[10px] uppercase text-gray-400 font-bold">GPS Device ID</span>
+                    <div className="font-bold text-gray-900 dark:text-white font-mono mt-0.5 truncate">
                       {bus.gpsDeviceId}
                     </div>
                   </div>
@@ -252,34 +252,34 @@ export default function StaffBusesView({
                   {assignedRoutes.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5 pt-0.5">
                       {assignedRoutes.map(r => (
-                        <span key={r.id} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                        <span key={r.id} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
                           {r.name}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-[11px] text-slate-400 italic">No routes allocated yet</div>
+                    <div className="text-[11px] text-gray-400 italic">No routes allocated yet</div>
                   )}
                 </div>
 
                 {/* Compliance & Expiry */}
-                <div className="text-[11px] text-slate-500 space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-gray-500 space-y-1 pt-2 border-t border-gray-100 dark:border-gray-800">
                   <div className="flex justify-between">
                     <span>Insurance Expiry:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{bus.insuranceExpiry}</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{bus.insuranceExpiry}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Maintenance Due:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{bus.maintenanceDueDate}</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{bus.maintenanceDueDate}</span>
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
                 <button
                   onClick={() => setViewingQrBus(bus)}
-                  className="flex-1 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5"
                   title="Print Boarding QR Code"
                 >
                   <QrCode className="w-3.5 h-3.5" />
@@ -288,7 +288,7 @@ export default function StaffBusesView({
 
                 <button
                   onClick={() => setAllocatingBus(bus)}
-                  className="flex-1 py-2 bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-950/60 text-blue-600 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 bg-gray-100 hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-blue-950/60 text-blue-600 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5"
                 >
                   <MapPin className="w-3.5 h-3.5" />
                   Allocate Route
@@ -296,7 +296,7 @@ export default function StaffBusesView({
 
                 <button
                   onClick={() => handleEditClick(bus)}
-                  className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl"
+                  className="p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl"
                   title="Edit Bus"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
@@ -304,7 +304,7 @@ export default function StaffBusesView({
 
                 <button
                   onClick={() => handleDeleteBus(bus.id, bus.busNumber)}
-                  className="p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 rounded-xl"
+                  className="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 text-red-600 rounded-xl"
                   title="Delete Bus"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -320,7 +320,7 @@ export default function StaffBusesView({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <form
             onSubmit={handleCreateOrUpdateBus}
-            className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl"
+            className="w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl"
           >
             <h3 className="font-black text-lg">
               {editingBus ? `Edit ${editingBus.busNumber}` : "Add New Fleet Bus"}
@@ -328,62 +328,62 @@ export default function StaffBusesView({
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="font-bold uppercase tracking-wider text-slate-400">Bus Identifier Name</label>
+                <label className="font-bold uppercase tracking-wider text-gray-400">Bus Identifier Name</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. BUS-01 (North Campus Express)"
                   value={formData.busNumber}
                   onChange={e => setFormData({ ...formData, busNumber: e.target.value })}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-bold"
+                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Registration Number</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Registration Number</label>
                   <input
                     type="text"
                     required
                     placeholder="DL-01-AX-4821"
                     value={formData.registrationNo}
                     onChange={e => setFormData({ ...formData, registrationNo: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">GPS Device IMEI / ID</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">GPS Device IMEI / ID</label>
                   <input
                     type="text"
                     required
                     placeholder="GPS-TRK-901"
                     value={formData.gpsDeviceId}
                     onChange={e => setFormData({ ...formData, gpsDeviceId: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-mono"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Physical Capacity</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Physical Capacity</label>
                   <input
                     type="number"
                     min={10}
                     max={70}
                     value={formData.capacity}
                     onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) || 40 })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-bold"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Seat Layout Grid</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Seat Layout Grid</label>
                   <select
                     value={formData.seatLayout}
                     onChange={e => setFormData({ ...formData, seatLayout: e.target.value as "2x2" | "3x2" })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-bold"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
                   >
                     <option value="2x2">2+2 Luxury Layout</option>
                     <option value="3x2">3+2 High Capacity Layout</option>
@@ -392,32 +392,32 @@ export default function StaffBusesView({
               </div>
 
               <div>
-                <label className="font-bold uppercase tracking-wider text-slate-400">Bus Model / Make</label>
+                <label className="font-bold uppercase tracking-wider text-gray-400">Bus Model / Make</label>
                 <input
                   type="text"
                   value={formData.model}
                   onChange={e => setFormData({ ...formData, model: e.target.value })}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Insurance Expiry</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Insurance Expiry</label>
                   <input
                     type="date"
                     value={formData.insuranceExpiry}
                     onChange={e => setFormData({ ...formData, insuranceExpiry: e.target.value })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold uppercase tracking-wider text-slate-400">Vehicle Status</label>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Vehicle Status</label>
                   <select
                     value={formData.status}
                     onChange={e => setFormData({ ...formData, status: e.target.value as VehicleStatus })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-bold"
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
                   >
                     <option value="ACTIVE">ACTIVE (Operational)</option>
                     <option value="MAINTENANCE">MAINTENANCE (Workshop)</option>
@@ -434,7 +434,7 @@ export default function StaffBusesView({
                   setIsAddModalOpen(false);
                   setEditingBus(null);
                 }}
-                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-xl"
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
               >
                 Cancel
               </button>
@@ -454,7 +454,7 @@ export default function StaffBusesView({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <form
             onSubmit={handleAllocateRoute}
-            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl"
+            className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
@@ -462,17 +462,17 @@ export default function StaffBusesView({
               </div>
               <div>
                 <h3 className="font-black text-base">Allocate Vehicle to Corridor</h3>
-                <p className="text-xs text-slate-500">{allocatingBus.busNumber} ({allocatingBus.registrationNo})</p>
+                <p className="text-xs text-gray-500">{allocatingBus.busNumber} ({allocatingBus.registrationNo})</p>
               </div>
             </div>
 
             <div className="space-y-2 text-xs">
-              <label className="font-bold uppercase tracking-wider text-slate-400">Select Transit Corridor / Route</label>
+              <label className="font-bold uppercase tracking-wider text-gray-400">Select Transit Corridor / Route</label>
               <select
                 required
                 value={selectedRouteIdToAllocate}
                 onChange={e => setSelectedRouteIdToAllocate(e.target.value)}
-                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-bold"
+                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
               >
                 <option value="">-- Choose Campus Route --</option>
                 {routes.map(r => (
@@ -487,7 +487,7 @@ export default function StaffBusesView({
               <button
                 type="button"
                 onClick={() => setAllocatingBus(null)}
-                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded-xl"
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
               >
                 Cancel
               </button>
@@ -505,23 +505,23 @@ export default function StaffBusesView({
 
       {/* View Bus QR Modal */}
       {viewingQrBus && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <QrCode className="w-5 h-5 text-indigo-500" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="font-black text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-blue-500" />
                 Bus Boarding QR
               </h3>
               <button
                 onClick={() => setViewingQrBus(null)}
-                className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500"
+                className="p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-6 text-center space-y-6">
-              <div className="bg-white p-4 rounded-3xl inline-block shadow-md border border-slate-100">
+              <div className="bg-white p-4 rounded-3xl inline-block shadow-md border border-gray-100">
                 <QRCodeSVG
                   value={JSON.stringify({ type: "BUS_QR", busId: viewingQrBus.id })}
                   size={200}
@@ -532,13 +532,13 @@ export default function StaffBusesView({
               </div>
 
               <div>
-                <h4 className="font-black text-xl text-slate-900 dark:text-white">
+                <h4 className="font-black text-xl text-gray-900 dark:text-white">
                   {viewingQrBus.busNumber}
                 </h4>
-                <p className="text-sm font-mono text-slate-500 mt-1">
+                <p className="text-sm font-mono text-gray-500 mt-1">
                   {viewingQrBus.registrationNo}
                 </p>
-                <p className="text-xs text-slate-400 mt-4 max-w-xs mx-auto">
+                <p className="text-xs text-gray-400 mt-4 max-w-xs mx-auto">
                   Print this QR code and paste it on the bus door. Students will scan this with their CampusFleet app to securely mark their attendance.
                 </p>
               </div>
@@ -546,13 +546,13 @@ export default function StaffBusesView({
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setViewingQrBus(null)}
-                  className="flex-1 py-3 text-sm font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl transition-all"
+                  className="flex-1 py-3 text-sm font-bold bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl transition-all"
                 >
                   Close
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="flex-1 py-3 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl transition-all shadow-md shadow-indigo-600/20"
+                  className="flex-1 py-3 text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-2xl transition-all shadow-md shadow-blue-600/20"
                 >
                   Print QR
                 </button>

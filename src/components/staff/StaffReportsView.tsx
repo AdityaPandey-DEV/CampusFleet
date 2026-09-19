@@ -77,11 +77,11 @@ export default function StaffReportsView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2.5">
             <FileBarChart className="w-7 h-7 text-blue-600" />
             Compliance Reports & CSV Data Export
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Generate auditable spreadsheets for university transport audits, safety boards, and finance.
           </p>
         </div>
@@ -97,7 +97,7 @@ export default function StaffReportsView({
       </div>
 
       {/* Report Selection Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800">
+      <div className="flex items-center gap-2 overflow-x-auto bg-white dark:bg-gray-900 p-2 rounded-2xl border border-gray-200 dark:border-gray-800">
         {[
           { id: "ATTENDANCE", label: "Daily Trip & Attendance Ledger" },
           { id: "OCCUPANCY", label: "Bus Fleet & Seat Occupancy" },
@@ -110,7 +110,7 @@ export default function StaffReportsView({
             className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
               reportType === tab.id
                 ? "bg-blue-600 text-white shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
             }`}
           >
             {tab.label}
@@ -119,13 +119,13 @@ export default function StaffReportsView({
       </div>
 
       {/* Live Data Preview */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+          <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2">
+            <FileSpreadsheet className="w-5 h-5 text-green-600" />
             Live Preview: {reportType} Dataset
           </h3>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-gray-400">
             Export format: RFC 4180 CSV Compliant
           </span>
         </div>
@@ -133,7 +133,7 @@ export default function StaffReportsView({
         {reportType === "ATTENDANCE" && (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
+              <thead className="bg-gray-50 dark:bg-gray-800/60 uppercase font-bold text-gray-400 border-b border-gray-200 dark:border-gray-800">
                 <tr>
                   <th className="p-3">Booking Code</th>
                   <th className="p-3">Commuter / Photo</th>
@@ -143,7 +143,7 @@ export default function StaffReportsView({
                   <th className="p-3">Attendance Time</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {bookings.map(b => {
                   const s = students.find(stud => stud.id === b.studentId);
                   return (
@@ -155,36 +155,36 @@ export default function StaffReportsView({
                             <img
                               src={s.photoUrl}
                               alt={s.fullName}
-                              className="w-8 h-10 object-cover rounded-md border border-slate-300 dark:border-slate-700 shadow-2xs flex-shrink-0"
+                              className="w-8 h-10 object-cover rounded-md border border-gray-300 dark:border-gray-700 shadow-2xs flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-8 h-10 rounded-md border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 text-slate-400">
+                            <div className="w-8 h-10 rounded-md border border-dashed border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0 text-gray-400">
                               <User className="w-4 h-4" />
                             </div>
                           )}
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-white">
+                            <div className="font-bold text-gray-900 dark:text-white">
                               {s?.fullName || "Student"}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="p-3 text-slate-600 dark:text-slate-300">
+                      <td className="p-3 text-gray-600 dark:text-gray-300">
                         {s?.department || "Unassigned"}
                       </td>
                       <td className="p-3 font-mono font-bold">{b.seatNumber || `WL-${b.waitlistPosition}`}</td>
                       <td className="p-3">
                         <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
                           b.status === "BOARDED"
-                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300"
+                            ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300"
                             : b.status === "CONFIRMED"
                             ? "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                            : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                         }`}>
                           {b.status}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-500">
+                      <td className="p-3 text-gray-500">
                         {b.boardedAt ? new Date(b.boardedAt).toLocaleTimeString() : formatDate(b.createdAt)}
                       </td>
                     </tr>
@@ -198,7 +198,7 @@ export default function StaffReportsView({
         {reportType === "OCCUPANCY" && (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
+              <thead className="bg-gray-50 dark:bg-gray-800/60 uppercase font-bold text-gray-400 border-b border-gray-200 dark:border-gray-800">
                 <tr>
                   <th className="p-3">Bus Identifier</th>
                   <th className="p-3">Registration</th>
@@ -207,14 +207,14 @@ export default function StaffReportsView({
                   <th className="p-3">Fleet Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {buses.map(bus => (
                   <tr key={bus.id}>
                     <td className="p-3 font-bold">{bus.busNumber}</td>
                     <td className="p-3 font-mono">{bus.registrationNo}</td>
                     <td className="p-3 font-mono">{bus.capacity} Physical Seats</td>
                     <td className="p-3">{bus.seatLayout}</td>
-                    <td className="p-3 font-bold text-emerald-600">{bus.status}</td>
+                    <td className="p-3 font-bold text-green-600">{bus.status}</td>
                   </tr>
                 ))}
               </tbody>

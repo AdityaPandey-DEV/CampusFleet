@@ -283,7 +283,7 @@ export default function TeacherConsoleView({
       : classes.find((c) => c.id === selectedClassId)?.name || "Assigned Class";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col">
       {/* Zero-Overflow Top Header */}
       <UnifiedAppHeader
         role="teacher"
@@ -298,7 +298,7 @@ export default function TeacherConsoleView({
         customActions={
           <Link
             href="/portal"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 font-bold text-xs rounded-xl border border-teal-200 dark:border-teal-800 transition-colors shadow-2xs"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-950/60 hover:bg-green-100 dark:hover:bg-green-900/60 text-green-700 dark:text-green-300 font-bold text-xs rounded-xl border border-green-200 dark:border-green-800 transition-colors shadow-2xs"
             title="Open Student & Mobility Portal"
           >
             <GraduationCap className="w-3.5 h-3.5" />
@@ -310,16 +310,16 @@ export default function TeacherConsoleView({
       {/* Main Container */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
         {/* Banner */}
-        <div className="bg-gradient-to-r from-teal-900/40 via-cyan-900/30 to-blue-900/20 border border-teal-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-green-900/40 via-blue-900/30 to-blue-900/20 border border-green-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-teal-400 font-bold text-xs uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-green-400 font-bold text-xs uppercase tracking-wider">
               <Sparkles className="w-4 h-4" />
               <span>Real-Time Campus Transit Attendance</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">
               Teacher Portal — Bus Arrival Feed
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl">
+            <p className="text-sm text-gray-300 mt-1 max-w-2xl">
               Track student bus arrivals in real time. Roster shows all enrolled students in your assigned class with live Present or Absent transit status.
             </p>
           </div>
@@ -327,7 +327,7 @@ export default function TeacherConsoleView({
           <div className="flex items-center gap-2">
             <button
               onClick={loadArrivals}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-500/30 font-bold text-xs transition-all active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/30 font-bold text-xs transition-all active:scale-95 cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
               <span>Live Sync</span>
@@ -337,33 +337,33 @@ export default function TeacherConsoleView({
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-5 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="p-5 rounded-3xl bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                 Arrived by Bus Today
               </div>
-              <div className="text-3xl font-black text-teal-600 dark:text-teal-400 mt-1">
+              <div className="text-3xl font-black text-green-600 dark:text-green-400 mt-1">
                 {stats.totalBoarded}
               </div>
-              <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-teal-500" />
+              <div className="text-[11px] text-gray-500 mt-1 flex items-center gap-1 font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
                 <span>Verified by Bus Conductor</span>
               </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-950/60 text-green-600 dark:text-green-400 flex items-center justify-center">
               <BusFront className="w-6 h-6" />
             </div>
           </div>
 
-          <div className="p-5 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="p-5 rounded-3xl bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                 Total Class Students
               </div>
-              <div className="text-3xl font-black text-slate-900 dark:text-white mt-1">
+              <div className="text-3xl font-black text-gray-900 dark:text-white mt-1">
                 {stats.totalEnrolled}
               </div>
-              <div className="text-[11px] text-slate-500 mt-1 truncate max-w-[200px]">
+              <div className="text-[11px] text-gray-500 mt-1 truncate max-w-[200px]">
                 Enrolled in {selectedClassName}
               </div>
             </div>
@@ -372,21 +372,21 @@ export default function TeacherConsoleView({
             </div>
           </div>
 
-          <div className="p-5 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="p-5 rounded-3xl bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                 Transit Attendance Rate
               </div>
-              <div className="text-3xl font-black text-slate-900 dark:text-white mt-1">
+              <div className="text-3xl font-black text-gray-900 dark:text-white mt-1">
                 {stats.totalEnrolled > 0
                   ? `${Math.round((stats.totalBoarded / stats.totalEnrolled) * 100)}%`
                   : "0%"}
               </div>
-              <div className="text-[11px] text-slate-500 mt-1">
+              <div className="text-[11px] text-gray-500 mt-1">
                 {stats.pending} students not boarded yet
               </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-pink-50 dark:bg-pink-950/60 text-pink-600 dark:text-pink-400 flex items-center justify-center">
               <Clock className="w-6 h-6" />
             </div>
           </div>
@@ -394,7 +394,7 @@ export default function TeacherConsoleView({
 
         {/* Class Cards Picker */}
         <div className="space-y-3">
-          <div className="text-xs font-bold text-slate-500 flex items-center justify-between">
+          <div className="text-xs font-bold text-gray-500 flex items-center justify-between">
             <span>Your Assigned Classes</span>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2 snap-x hide-scrollbar">
@@ -403,14 +403,14 @@ export default function TeacherConsoleView({
                 onClick={() => setSelectedClassId("ALL")}
                 className={`snap-start min-w-[200px] flex-shrink-0 p-4 rounded-3xl border transition-all text-left cursor-pointer ${
                   selectedClassId === "ALL"
-                    ? "bg-teal-50 dark:bg-teal-900/40 border-teal-500/50 shadow-md ring-2 ring-teal-500/20"
-                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-teal-500/30"
+                    ? "bg-green-50 dark:bg-green-900/40 border-green-500/50 shadow-md ring-2 ring-green-500/20"
+                    : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-green-500/30"
                 }`}
               >
-                <div className="font-black text-sm text-slate-900 dark:text-white mb-1">
+                <div className="font-black text-sm text-gray-900 dark:text-white mb-1">
                   All Allocated Classes
                 </div>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[11px] text-gray-500">
                   {classes.length} Classes Total
                 </div>
               </button>
@@ -423,11 +423,11 @@ export default function TeacherConsoleView({
                 className={`snap-start min-w-[240px] flex-shrink-0 p-4 rounded-3xl border transition-all text-left cursor-pointer ${
                   selectedClassId === c.id
                     ? "bg-blue-50 dark:bg-blue-900/40 border-blue-500/50 shadow-md ring-2 ring-blue-500/20"
-                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-500/30"
+                    : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-blue-500/30"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <div className="font-black text-sm text-slate-900 dark:text-white truncate">
+                  <div className="font-black text-sm text-gray-900 dark:text-white truncate">
                     {c.name}
                   </div>
                   {c.isPrimary && (
@@ -436,7 +436,7 @@ export default function TeacherConsoleView({
                     </span>
                   )}
                 </div>
-                <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                <div className="text-[11px] text-gray-500 flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" />
                   <span>{c.studentCount} Enrolled Students</span>
                 </div>
@@ -444,7 +444,7 @@ export default function TeacherConsoleView({
             ))}
 
             {classes.length === 0 && (
-              <div className="text-sm text-slate-400 p-4">
+              <div className="text-sm text-gray-400 p-4">
                 No Classes Allocated.
               </div>
             )}
@@ -452,29 +452,29 @@ export default function TeacherConsoleView({
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-3 shadow-sm flex items-center">
+        <div className="bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-3xl p-3 shadow-sm flex items-center">
 
           {/* Search Box */}
           <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search student or roll number..."
-              className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full pl-9 pr-4 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-800 pb-2">
           <button
             onClick={() => setActiveTab("attendance")}
             className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === "attendance"
-                ? "bg-teal-600 text-white shadow-sm"
-                : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
+                ? "bg-green-600 text-white shadow-sm"
+                : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-800"
             }`}
           >
             <BusFront className="w-4 h-4" />
@@ -489,13 +489,13 @@ export default function TeacherConsoleView({
             className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === "gate_passes"
                 ? "bg-blue-600 text-white shadow-sm"
-                : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
+                : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-800"
             }`}
           >
             <ShieldAlert className="w-4 h-4" />
             <span>Emergency Gate-Pass Requests</span>
             {gatePassRequests.filter((r) => r.status === "PENDING").length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-amber-950 animate-pulse">
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-950 animate-pulse">
                 {gatePassRequests.filter((r) => r.status === "PENDING").length}
               </span>
             )}
@@ -506,8 +506,8 @@ export default function TeacherConsoleView({
               onClick={() => setActiveTab("shifts")}
               className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "shifts"
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-800"
               }`}
             >
               <Calendar className="w-4 h-4" />
@@ -518,21 +518,21 @@ export default function TeacherConsoleView({
 
         {/* Tab Content: Emergency Gate-Passes */}
         {activeTab === "gate_passes" && (
-          <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <div className="bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-md space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
               <div>
-                <h2 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
                   <ShieldAlert className="w-5 h-5 text-blue-500" />
                   <span>Student Emergency Early Departure Requests</span>
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Students requesting early shuttle booking during class hours. Approval grants gate-pass authorization.
                 </p>
               </div>
 
               <button
                 onClick={loadGatePasses}
-                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 dark:hover:text-white px-2.5 py-1 rounded-xl bg-gray-100 dark:bg-gray-800 transition-colors"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoadingGatePasses ? "animate-spin" : ""}`} />
                 <span>Refresh</span>
@@ -540,16 +540,16 @@ export default function TeacherConsoleView({
             </div>
 
             {isLoadingGatePasses ? (
-              <div className="py-12 text-center text-xs text-slate-500">
+              <div className="py-12 text-center text-xs text-gray-500">
                 Loading gate pass requests...
               </div>
             ) : gatePassRequests.length === 0 ? (
               <div className="py-12 text-center space-y-2">
-                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
-                <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto" />
+                <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
                   No Emergency Requests Pending
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-gray-500">
                   All students in your assigned class are attending scheduled timetable classes.
                 </div>
               </div>
@@ -565,16 +565,16 @@ export default function TeacherConsoleView({
                       key={req.id}
                       className={`p-4 rounded-2xl border transition-all ${
                         isPending
-                          ? "bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60"
+                          ? "bg-yellow-50/40 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800/60"
                           : isApproved
-                          ? "bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-800/40"
-                          : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-75"
+                          ? "bg-green-50/30 dark:bg-green-950/10 border-green-200 dark:border-green-800/40"
+                          : "bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-800 opacity-75"
                       }`}
                     >
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-1.5 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-sm text-slate-900 dark:text-white">
+                            <span className="font-black text-sm text-gray-900 dark:text-white">
                               {req.student?.full_name || "Student"}
                             </span>
                                                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
@@ -583,33 +583,33 @@ export default function TeacherConsoleView({
                             <span
                               className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
                                 isPending
-                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 animate-pulse"
+                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-300 animate-pulse"
                                   : isApproved
-                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300"
-                                  : "bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300"
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-300"
+                                  : "bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-300"
                               }`}
                             >
                               {req.status}
                             </span>
                           </div>
 
-                          <div className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2 flex-wrap">
+                          <div className="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2 flex-wrap">
                             <span className="font-semibold">Shift: {req.shift?.name || "Corridor Shift"}</span>
                             <span>•</span>
                             <span>Requested for: {req.request_date}</span>
                             <span>•</span>
-                            <span className="text-slate-400">
+                            <span className="text-gray-400">
                               Submitted: {new Date(req.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           </div>
 
-                          <div className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200">
-                            <span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">Emergency Reason:</span>
+                          <div className="p-3 bg-white dark:bg-gray-850 rounded-xl border border-gray-200 dark:border-gray-700 text-xs text-gray-800 dark:text-gray-200">
+                            <span className="font-bold text-gray-500 uppercase text-[10px] block mb-0.5">Emergency Reason:</span>
                             {req.reason}
                           </div>
 
                           {req.teacher_remarks && (
-                            <div className="text-xs text-slate-500 italic">
+                            <div className="text-xs text-gray-500 italic">
                               Remarks: {req.teacher_remarks}
                             </div>
                           )}
@@ -625,13 +625,13 @@ export default function TeacherConsoleView({
                               onChange={(e) =>
                                 setTeacherRemarks((prev) => ({ ...prev, [req.id]: e.target.value }))
                               }
-                              className="w-full text-xs p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
+                              className="w-full text-xs p-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none"
                             />
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleGatePassAction(req.id, "APPROVED")}
                                 disabled={actionLoadingId === req.id}
-                                className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                className="flex-1 py-2 px-3 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                               >
                                 <Check className="w-3.5 h-3.5" />
                                 <span>{actionLoadingId === req.id ? "Saving..." : "Approve Pass"}</span>
@@ -639,7 +639,7 @@ export default function TeacherConsoleView({
                               <button
                                 onClick={() => handleGatePassAction(req.id, "REJECTED")}
                                 disabled={actionLoadingId === req.id}
-                                className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                className="flex-1 py-2 px-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                               >
                                 <X className="w-3.5 h-3.5" />
                                 <span>Reject</span>
@@ -658,20 +658,20 @@ export default function TeacherConsoleView({
 
         {/* Tab Content: Transit Manifest */}
         {activeTab === "attendance" && (
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+        <div className="bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-md space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
             <div>
-              <h2 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
-                <BusFront className="w-5 h-5 text-teal-500" />
+              <h2 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
+                <BusFront className="w-5 h-5 text-green-500" />
                 <span>Today's Bus Arrival Manifest</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 Complete student roll for {selectedClassName}, ordered alphabetically with real-time transit status.
               </p>
             </div>
 
-            <div className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="text-xs font-bold px-3 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span>Conductor Live Feed</span>
             </div>
           </div>
@@ -681,7 +681,7 @@ export default function TeacherConsoleView({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-gray-200 dark:border-gray-800 text-[11px] font-black uppercase tracking-wider text-gray-400">
                   <th className="py-3 px-4 w-14 text-center">S.No.</th>
                   <th className="py-3 px-4">Student Name</th>
                   <th className="py-3 px-4">Class</th>
@@ -690,7 +690,7 @@ export default function TeacherConsoleView({
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60 text-xs">
                 {isLoading ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center">
@@ -704,7 +704,7 @@ export default function TeacherConsoleView({
                   </tr>
                 ) : filteredArrivals.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                    <td colSpan={6} className="py-12 text-center text-gray-400">
                       {classes.length === 0
                         ? "You are not currently allocated to any class. Please contact the administrator."
                         : "No enrolled students found in this class."}
@@ -716,21 +716,21 @@ export default function TeacherConsoleView({
                     return (
                       <tr
                         key={row.studentId || row.id}
-                        className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                        className="hover:bg-gray-50/70 dark:hover:bg-gray-800/40 transition-colors"
                       >
                         {/* Serial Number */}
-                        <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-400 text-xs">
+                        <td className="py-3.5 px-4 text-center font-mono font-bold text-gray-400 text-xs">
                           {index + 1}
                         </td>
 
                         {/* Student Name & Roll */}
-                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
+                        <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
                           <div className="flex items-center gap-2.5">
                             <div
                               className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center flex-shrink-0 ${
                                 isPresent
-                                  ? "bg-teal-100 dark:bg-teal-950/80 text-teal-700 dark:text-teal-300"
-                                  : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                  ? "bg-green-100 dark:bg-green-950/80 text-green-700 dark:text-green-300"
+                                  : "bg-gray-100 dark:bg-gray-800 text-gray-500"
                               }`}
                             >
                               {row.studentName.charAt(0)}
@@ -742,7 +742,7 @@ export default function TeacherConsoleView({
                         </td>
 
                         {/* Class Name */}
-                        <td className="py-3.5 px-4 font-semibold text-slate-600 dark:text-slate-300">
+                        <td className="py-3.5 px-4 font-semibold text-gray-600 dark:text-gray-300">
                           {row.className}
                         </td>
 
@@ -754,31 +754,31 @@ export default function TeacherConsoleView({
                               {row.busName}
                             </span>
                           ) : (
-                            <span className="text-slate-400 font-mono text-xs">—</span>
+                            <span className="text-gray-400 font-mono text-xs">—</span>
                           )}
                         </td>
 
                         {/* Boarding Time */}
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
+                        <td className="py-3.5 px-4 font-mono font-bold text-gray-700 dark:text-gray-300">
                           {isPresent ? (
                             <div className="flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5 text-slate-400" />
+                              <Clock className="w-3.5 h-3.5 text-gray-400" />
                               <span>{row.boardingTime}</span>
                             </div>
                           ) : (
-                            <span className="text-slate-400 font-mono text-xs">—</span>
+                            <span className="text-gray-400 font-mono text-xs">—</span>
                           )}
                         </td>
 
                         {/* Status (Present / Absent) */}
                         <td className="py-3.5 px-4">
                           {isPresent ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/30 text-[11px] font-bold">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               <span>Present</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-[11px] font-bold">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 text-[11px] font-bold">
                               <XCircle className="w-3.5 h-3.5" />
                               <span>Absent</span>
                             </span>
@@ -796,17 +796,17 @@ export default function TeacherConsoleView({
 
         {/* Tab Content: Shift Eligibility Matrix */}
         {activeTab === "shifts" && selectedClassId !== "ALL" && (
-          <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md space-y-6">
+          <div className="bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-md space-y-6">
             {/* Header & Quick Action */}
             <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <h4 className="font-black text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                  <h4 className="font-black text-xs text-gray-900 dark:text-white uppercase tracking-wider">
                     Section Shift Eligibility Matrix
                   </h4>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
                   As the primary advisor, you can restrict specific bus shifts for this class. All shifts are <strong>ON (Allowed)</strong> by default. Toggle OFF any shift or specific day to restrict booking. Students will then require an emergency gate pass to board.
                 </p>
               </div>
@@ -819,7 +819,7 @@ export default function TeacherConsoleView({
                 )}
                 <button
                   onClick={handleResetAllShifts}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 text-[11px] font-bold text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
                 >
                   Reset All (Default ON)
                 </button>
@@ -846,44 +846,44 @@ export default function TeacherConsoleView({
                   <div
                     key={shift.id}
                     className={`p-4 rounded-2xl border transition-all ${isMasterEnabled
-                        ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm"
-                        : "bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/50 opacity-80"
+                        ? "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm"
+                        : "bg-gray-50/60 dark:bg-gray-900/40 border-gray-200/50 dark:border-gray-800/50 opacity-80"
                       }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-xs text-slate-900 dark:text-white">
+                          <span className="font-bold text-xs text-gray-900 dark:text-white">
                             {shift.name}
                           </span>
                           <span
                             className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold ${shift.shiftType === "MORNING"
-                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
                                 : shift.shiftType === "AFTERNOON"
-                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  ? "bg-green-500/10 text-green-600 dark:text-green-400"
                                   : shift.shiftType === "EVENING"
                                     ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                                    : "bg-slate-500/10 text-slate-600 dark:text-slate-400"
+                                    : "bg-gray-500/10 text-gray-600 dark:text-gray-400"
                               }`}
                           >
                             {shift.shiftType}
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-500 flex items-center gap-2">
+                        <div className="text-[11px] text-gray-500 flex items-center gap-2">
                           <span>{shift.startTime} — {shift.endTime}</span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span className="text-gray-300 dark:text-gray-700">•</span>
                           <span>Direction: {shift.direction === "HOME_TO_CAMPUS" ? "Home to Campus" : "Campus to Home"}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] font-bold text-slate-500 pl-2">
+                      <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-xl border border-gray-200 dark:border-gray-800">
+                        <span className="text-[10px] font-bold text-gray-500 pl-2">
                           Master Switch:
                         </span>
                         <button
                           onClick={() => handleToggleShift(shift.id, "MASTER")}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                            isMasterEnabled ? "bg-teal-500" : "bg-slate-300 dark:bg-slate-700"
+                            isMasterEnabled ? "bg-green-500" : "bg-gray-300 dark:bg-gray-700"
                           }`}
                         >
                           <span
@@ -897,8 +897,8 @@ export default function TeacherConsoleView({
 
                     {/* Day-by-Day Toggles */}
                     {isMasterEnabled && (
-                      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/60">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+                      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800/60">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3">
                           Day-Specific Exceptions
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -910,11 +910,11 @@ export default function TeacherConsoleView({
                                 onClick={() => handleToggleShift(shift.id, day.toLowerCase())}
                                 className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                                   isDayEnabled
-                                    ? "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
-                                    : "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20"
+                                    ? "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                                    : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 ring-1 ring-red-500/20"
                                 }`}
                               >
-                                {isDayEnabled ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-rose-500" />}
+                                {isDayEnabled ? <Check className="w-3 h-3 text-green-500" /> : <X className="w-3 h-3 text-red-500" />}
                                 {day.substring(0, 3)}
                               </button>
                             );
@@ -927,11 +927,11 @@ export default function TeacherConsoleView({
               })}
 
               {fleetShifts.length === 0 && (
-                <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                  <div className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <div className="p-6 text-center border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
+                  <div className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
                     No Fleet Shifts Found
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-gray-500">
                     The transport administrator has not configured any global shifts yet.
                   </div>
                 </div>

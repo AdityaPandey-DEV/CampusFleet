@@ -22,7 +22,7 @@ export function InteractiveBusSeatGrid({
 }: InteractiveBusSeatGridProps) {
   if (!bus) {
     return (
-      <div className="p-12 text-center text-xs text-slate-400 font-mono bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+      <div className="p-12 text-center text-xs text-gray-400 font-mono bg-gray-50 dark:bg-gray-800/40 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
         No bus vehicle allocated to this schedule yet.
       </div>
     );
@@ -54,18 +54,18 @@ export function InteractiveBusSeatGrid({
   return (
     <div className="flex flex-col items-center select-none">
       {/* Bus Vehicle Outer Chassis */}
-      <div className="relative w-full max-w-sm bg-slate-50 dark:bg-slate-900/90 rounded-[2.5rem] p-5 sm:p-6 border-2 border-slate-300 dark:border-slate-700 shadow-xl">
+      <div className="relative w-full max-w-sm bg-gray-50 dark:bg-gray-900/90 rounded-[2.5rem] p-5 sm:p-6 border-2 border-gray-300 dark:border-gray-700 shadow-xl">
         {/* Bus Front Windshield & Driver Cabin */}
-        <div className="relative flex items-center justify-between pb-5 mb-5 border-b-2 border-dashed border-slate-200 dark:border-slate-800">
+        <div className="relative flex items-center justify-between pb-5 mb-5 border-b-2 border-dashed border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-            <div className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+            <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping" />
+            <div className="text-[11px] font-black uppercase tracking-wider text-gray-400">
               Front / Entry Gate
             </div>
           </div>
 
           {/* Steering Wheel Indicator (redBus inspired) */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gray-200/80 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700">
             <svg
               className="w-5 h-5 fill-current rotate-90"
               viewBox="0 0 24 24"
@@ -101,20 +101,20 @@ export function InteractiveBusSeatGrid({
                       }
                       className={`relative w-11 h-12 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xs transition-all ${
                         isOccupied
-                          ? "bg-slate-200 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700/40 text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                          ? "bg-gray-200 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700/40 text-gray-400 dark:text-gray-600 cursor-not-allowed"
                           : isSelected
-                          ? "bg-teal-500 text-slate-950 font-black shadow-lg shadow-teal-500/30 scale-105 ring-2 ring-teal-400"
-                          : "bg-white dark:bg-slate-800 border-2 border-emerald-500/70 text-slate-900 dark:text-slate-100 hover:border-blue-500 hover:scale-105 active:scale-95 shadow-sm"
+                          ? "bg-green-500 text-gray-950 font-black shadow-lg shadow-green-500/30 scale-105 ring-2 ring-green-400"
+                          : "bg-white dark:bg-gray-800 border-2 border-green-500/70 text-gray-900 dark:text-gray-100 hover:border-blue-500 hover:scale-105 active:scale-95 shadow-sm"
                       }`}
                     >
                       {/* Seat Top Notch Cushion Effect */}
                       <span
                         className={`absolute top-1 inset-x-2 h-1 rounded-full ${
                           isSelected
-                            ? "bg-slate-950/20"
+                            ? "bg-gray-950/20"
                             : isOccupied
-                            ? "bg-slate-300 dark:bg-slate-700"
-                            : "bg-emerald-200 dark:bg-emerald-800"
+                            ? "bg-gray-300 dark:bg-gray-700"
+                            : "bg-green-200 dark:bg-green-800"
                         }`}
                       />
 
@@ -123,7 +123,7 @@ export function InteractiveBusSeatGrid({
                       </span>
 
                       {isSelected && (
-                        <Check className="w-3 h-3 text-slate-950 font-black stroke-[3]" />
+                        <Check className="w-3 h-3 text-gray-950 font-black stroke-[3]" />
                       )}
                     </button>
                   );
@@ -132,7 +132,7 @@ export function InteractiveBusSeatGrid({
 
               {/* Central Aisle Space (redBus style) */}
               <div className="flex-1 flex items-center justify-center">
-                <span className="text-[9px] font-mono uppercase text-slate-300 dark:text-slate-700 tracking-widest">
+                <span className="text-[9px] font-mono uppercase text-gray-300 dark:text-gray-700 tracking-widest">
                   Aisle
                 </span>
               </div>
@@ -157,20 +157,20 @@ export function InteractiveBusSeatGrid({
                       }
                       className={`relative w-11 h-12 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xs transition-all ${
                         isOccupied
-                          ? "bg-slate-200 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700/40 text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                          ? "bg-gray-200 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700/40 text-gray-400 dark:text-gray-600 cursor-not-allowed"
                           : isSelected
-                          ? "bg-teal-500 text-slate-950 font-black shadow-lg shadow-teal-500/30 scale-105 ring-2 ring-teal-400"
-                          : "bg-white dark:bg-slate-800 border-2 border-emerald-500/70 text-slate-900 dark:text-slate-100 hover:border-blue-500 hover:scale-105 active:scale-95 shadow-sm"
+                          ? "bg-green-500 text-gray-950 font-black shadow-lg shadow-green-500/30 scale-105 ring-2 ring-green-400"
+                          : "bg-white dark:bg-gray-800 border-2 border-green-500/70 text-gray-900 dark:text-gray-100 hover:border-blue-500 hover:scale-105 active:scale-95 shadow-sm"
                       }`}
                     >
                       {/* Seat Top Notch Cushion Effect */}
                       <span
                         className={`absolute top-1 inset-x-2 h-1 rounded-full ${
                           isSelected
-                            ? "bg-slate-950/20"
+                            ? "bg-gray-950/20"
                             : isOccupied
-                            ? "bg-slate-300 dark:bg-slate-700"
-                            : "bg-emerald-200 dark:bg-emerald-800"
+                            ? "bg-gray-300 dark:bg-gray-700"
+                            : "bg-green-200 dark:bg-green-800"
                         }`}
                       />
 
@@ -179,7 +179,7 @@ export function InteractiveBusSeatGrid({
                       </span>
 
                       {isSelected && (
-                        <Check className="w-3 h-3 text-slate-950 font-black stroke-[3]" />
+                        <Check className="w-3 h-3 text-gray-950 font-black stroke-[3]" />
                       )}
                     </button>
                   );
@@ -191,21 +191,21 @@ export function InteractiveBusSeatGrid({
       </div>
 
       {/* redBus-inspired Seat State Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-4 mt-5 text-xs text-slate-600 dark:text-slate-300 font-semibold">
+      <div className="flex flex-wrap items-center justify-center gap-4 mt-5 text-xs text-gray-600 dark:text-gray-300 font-semibold">
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-lg bg-white dark:bg-slate-800 border-2 border-emerald-500" />
+          <div className="w-4 h-4 rounded-lg bg-white dark:bg-gray-800 border-2 border-green-500" />
           <span>Available Seat</span>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-lg bg-teal-500 text-slate-950 font-bold flex items-center justify-center text-[10px]">
+          <div className="w-4 h-4 rounded-lg bg-green-500 text-gray-950 font-bold flex items-center justify-center text-[10px]">
             ✓
           </div>
           <span>Your Selected Seat</span>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-lg bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700" />
+          <div className="w-4 h-4 rounded-lg bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700" />
           <span>Occupied / Sold</span>
         </div>
       </div>

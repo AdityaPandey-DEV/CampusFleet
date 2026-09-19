@@ -216,34 +216,34 @@ export default function StaffMaintenanceView({
     <div className="space-y-6 animate-in fade-in">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-bottom-3">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-bottom-3">
+          <CheckCircle2 className="w-4 h-4 text-green-400 dark:text-green-600" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header Banner */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-amber-500" />
+            <h3 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
+              <Wrench className="w-5 h-5 text-yellow-500" />
               <span>Workshop Maintenance & Fleet Defect Register</span>
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               Staff defect dispatch: Report vehicle mechanical issues, upload photographic evidence, and track workshop repair progress.
             </p>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
               onClick={fetchMaintenanceRequests}
-              className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold"
+              className="p-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
             </button>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
+              className="px-4 py-2.5 bg-yellow-600 hover:bg-yellow-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-yellow-500/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Report Vehicle Defect</span>
@@ -254,54 +254,54 @@ export default function StaffMaintenanceView({
 
       {/* Status Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase font-black tracking-wider text-rose-600 dark:text-rose-400">
+            <div className="text-[10px] uppercase font-black tracking-wider text-red-600 dark:text-red-400">
               Open Defects
             </div>
-            <div className="text-2xl font-black font-mono mt-1 text-slate-900 dark:text-white">{openCount}</div>
-            <div className="text-[10px] text-slate-400 font-mono mt-0.5">Awaiting garage action</div>
+            <div className="text-2xl font-black font-mono mt-1 text-gray-900 dark:text-white">{openCount}</div>
+            <div className="text-[10px] text-gray-400 font-mono mt-0.5">Awaiting garage action</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/60 text-red-600 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase font-black tracking-wider text-amber-600 dark:text-amber-400">
+            <div className="text-[10px] uppercase font-black tracking-wider text-yellow-600 dark:text-yellow-400">
               In Workshop
             </div>
-            <div className="text-2xl font-black font-mono mt-1 text-amber-600 dark:text-amber-400">{inProgressCount}</div>
-            <div className="text-[10px] text-slate-400 font-mono mt-0.5">Under active repair</div>
+            <div className="text-2xl font-black font-mono mt-1 text-yellow-600 dark:text-yellow-400">{inProgressCount}</div>
+            <div className="text-[10px] text-gray-400 font-mono mt-0.5">Under active repair</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-yellow-50 dark:bg-yellow-950/60 text-yellow-600 flex items-center justify-center">
             <Wrench className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase font-black tracking-wider text-emerald-600 dark:text-emerald-400">
+            <div className="text-[10px] uppercase font-black tracking-wider text-green-600 dark:text-green-400">
               Repairs Completed
             </div>
-            <div className="text-2xl font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">{completedCount}</div>
-            <div className="text-[10px] text-slate-400 font-mono mt-0.5">Vehicle cleared for runs</div>
+            <div className="text-2xl font-black font-mono mt-1 text-green-600 dark:text-green-400">{completedCount}</div>
+            <div className="text-[10px] text-gray-400 font-mono mt-0.5">Vehicle cleared for runs</div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-950/60 text-green-600 flex items-center justify-center">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
           <div>
             <div className="text-[10px] uppercase font-black tracking-wider text-blue-600 dark:text-blue-400">
               Total Logged
             </div>
-            <div className="text-2xl font-black font-mono mt-1 text-slate-900 dark:text-white">
+            <div className="text-2xl font-black font-mono mt-1 text-gray-900 dark:text-white">
               {maintenanceRequests.length}
             </div>
-            <div className="text-[10px] text-slate-400 font-mono mt-0.5">All-time register items</div>
+            <div className="text-[10px] text-gray-400 font-mono mt-0.5">All-time register items</div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
             <BusFront className="w-5 h-5" />
@@ -310,16 +310,16 @@ export default function StaffMaintenanceView({
       </div>
 
       {/* Main Register Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-md space-y-4">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-md space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="relative flex-1 max-w-sm">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search vehicle number, part, defect..."
-              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-amber-500 font-bold"
+              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-yellow-500 font-bold"
             />
           </div>
 
@@ -327,7 +327,7 @@ export default function StaffMaintenanceView({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs font-bold px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+              className="text-xs font-bold px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none"
             >
               <option value="ALL">All Statuses ({maintenanceRequests.length})</option>
               <option value="OPEN">Open ({openCount})</option>
@@ -338,14 +338,14 @@ export default function StaffMaintenanceView({
         </div>
 
         {filteredRequests.length === 0 ? (
-          <div className="py-16 text-center text-xs text-slate-400 font-mono space-y-2">
-            <Wrench className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
+          <div className="py-16 text-center text-xs text-gray-400 font-mono space-y-2">
+            <Wrench className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600" />
             <div>No maintenance requests found matching your filter.</div>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-black text-slate-400 border-b border-slate-200 dark:border-slate-800">
+              <thead className="bg-gray-50 dark:bg-gray-800/60 uppercase font-black text-gray-400 border-b border-gray-200 dark:border-gray-800">
                 <tr>
                   <th className="p-3.5">S.No</th>
                   <th className="p-3.5">Vehicle</th>
@@ -356,24 +356,24 @@ export default function StaffMaintenanceView({
                   <th className="p-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filteredRequests.map((req, idx) => (
-                  <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="p-3.5 font-mono text-slate-400">#{req.serialNo || idx + 1}</td>
+                  <tr key={req.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                    <td className="p-3.5 font-mono text-gray-400">#{req.serialNo || idx + 1}</td>
 
                     <td className="p-3.5">
-                      <div className="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                        <BusFront className="w-3.5 h-3.5 text-amber-500" />
+                      <div className="font-black text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <BusFront className="w-3.5 h-3.5 text-yellow-500" />
                         <span>{req.vehicleNo}</span>
                       </div>
-                      <div className="text-[10px] text-slate-400 font-mono">
+                      <div className="text-[10px] text-gray-400 font-mono">
                         {req.date ? new Date(req.date).toLocaleDateString() : "—"}
                       </div>
                     </td>
 
                     <td className="p-3.5 max-w-xs">
-                      <div className="font-bold text-slate-900 dark:text-white truncate">{req.item}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      <div className="font-bold text-gray-900 dark:text-white truncate">{req.item}</div>
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
                         {req.defectDescription || "No notes provided"}
                       </div>
                     </td>
@@ -385,14 +385,14 @@ export default function StaffMaintenanceView({
                             <button
                               key={i}
                               onClick={() => setLightboxImg({ url, title: `Defect Photo ${i + 1} - ${req.vehicleNo}` })}
-                              className="w-8 h-8 rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 relative group cursor-pointer"
+                              className="w-8 h-8 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700 relative group cursor-pointer"
                             >
                               <img src={url} alt="defect" className="w-full h-full object-cover" />
                             </button>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-[10px] text-slate-400 italic">None</span>
+                        <span className="text-[10px] text-gray-400 italic">None</span>
                       )}
                     </td>
 
@@ -400,10 +400,10 @@ export default function StaffMaintenanceView({
                       <span
                         className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
                           req.status === "OPEN"
-                            ? "bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300"
+                            ? "bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300"
                             : req.status === "IN_PROGRESS"
-                            ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300"
-                            : "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300"
+                            ? "bg-yellow-100 dark:bg-yellow-950/60 text-yellow-800 dark:text-yellow-300"
+                            : "bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300"
                         }`}
                       >
                         {req.status}
@@ -412,11 +412,11 @@ export default function StaffMaintenanceView({
 
                     <td className="p-3.5 max-w-xs">
                       {req.workDoneDescription ? (
-                        <div className="text-[11px] text-slate-800 dark:text-slate-200 truncate">
+                        <div className="text-[11px] text-gray-800 dark:text-gray-200 truncate">
                           {req.workDoneDescription}
                         </div>
                       ) : (
-                        <span className="text-[10px] text-slate-400 italic">Awaiting work proof</span>
+                        <span className="text-[10px] text-gray-400 italic">Awaiting work proof</span>
                       )}
                       {req.workDoneImageUrls && req.workDoneImageUrls.length > 0 && (
                         <div className="flex gap-1 mt-1">
@@ -424,7 +424,7 @@ export default function StaffMaintenanceView({
                             <button
                               key={i}
                               onClick={() => setLightboxImg({ url, title: `Repair Proof ${i + 1} - ${req.vehicleNo}` })}
-                              className="w-6 h-6 rounded overflow-hidden border border-emerald-400"
+                              className="w-6 h-6 rounded overflow-hidden border border-green-400"
                             >
                               <img src={url} alt="work proof" className="w-full h-full object-cover" />
                             </button>
@@ -440,7 +440,7 @@ export default function StaffMaintenanceView({
                           setWorkDesc(req.workDoneDescription || "");
                           setWorkImages(req.workDoneImageUrls || []);
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all"
+                        className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold transition-all"
                       >
                         Add Work Proof
                       </button>
@@ -456,13 +456,13 @@ export default function StaffMaintenanceView({
       {/* Create Defect Ticket Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="max-w-lg w-full bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h4 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-amber-500" />
+          <div className="max-w-lg w-full bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+              <h4 className="font-black text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-yellow-500" />
                 <span>Log Vehicle Defect / Workshop Request</span>
               </h4>
-              <button onClick={() => setIsCreateModalOpen(false)} className="p-1 text-slate-400 hover:text-white">
+              <button onClick={() => setIsCreateModalOpen(false)} className="p-1 text-gray-400 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -470,7 +470,7 @@ export default function StaffMaintenanceView({
             <form onSubmit={handleCreateEntry} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                     Select Bus
                   </label>
                   <select
@@ -480,7 +480,7 @@ export default function StaffMaintenanceView({
                       const b = buses.find((item) => item.id === e.target.value);
                       if (b) setVehicleNo(b.busNumber);
                     }}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-bold"
                   >
                     <option value="">— Select from fleet —</option>
                     {buses.map((b) => (
@@ -492,7 +492,7 @@ export default function StaffMaintenanceView({
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                     Vehicle No. *
                   </label>
                   <input
@@ -501,13 +501,13 @@ export default function StaffMaintenanceView({
                     onChange={(e) => setVehicleNo(e.target.value)}
                     placeholder="e.g. UK 04 PA 1234"
                     required
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold font-mono"
+                    className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-bold font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Item / Defect Title *
                 </label>
                 <input
@@ -516,12 +516,12 @@ export default function StaffMaintenanceView({
                   onChange={(e) => setItem(e.target.value)}
                   placeholder="e.g. Brake Pad Replacement, Clutch Slipping"
                   required
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Detailed Defect Description
                 </label>
                 <textarea
@@ -529,16 +529,16 @@ export default function StaffMaintenanceView({
                   onChange={(e) => setDefectDesc(e.target.value)}
                   rows={2}
                   placeholder="Explain the mechanical defect or symptoms observed..."
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none"
                 />
               </div>
 
               {/* Upload Defect Photos */}
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Defect Proof Photos
                 </label>
-                <label className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold flex items-center gap-2 cursor-pointer w-fit">
+                <label className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold flex items-center gap-2 cursor-pointer w-fit">
                   <Upload className="w-3.5 h-3.5" />
                   <span>{isUploading ? "Uploading..." : "Upload Defect Photos"}</span>
                   <input
@@ -553,7 +553,7 @@ export default function StaffMaintenanceView({
                 {defectImages.length > 0 && (
                   <div className="flex gap-2 mt-2">
                     {defectImages.map((url, i) => (
-                      <div key={i} className="w-12 h-12 rounded-xl overflow-hidden relative border border-slate-300">
+                      <div key={i} className="w-12 h-12 rounded-xl overflow-hidden relative border border-gray-300">
                         <img src={url} alt="defect" className="w-full h-full object-cover" />
                       </div>
                     ))}
@@ -565,14 +565,14 @@ export default function StaffMaintenanceView({
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold"
+                  className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-black shadow-sm"
                 >
                   {isSubmitting ? "Submitting..." : "Log Defect in Register"}
                 </button>
@@ -585,20 +585,20 @@ export default function StaffMaintenanceView({
       {/* Work Done Modal */}
       {workModalRequest && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h4 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-emerald-500" />
+          <div className="max-w-md w-full bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+              <h4 className="font-black text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-green-500" />
                 <span>Record Workshop Work & Photos</span>
               </h4>
-              <button onClick={() => setWorkModalRequest(null)} className="p-1 text-slate-400 hover:text-white">
+              <button onClick={() => setWorkModalRequest(null)} className="p-1 text-gray-400 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSaveWorkProof} className="space-y-3 text-xs">
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Work Done Description
                 </label>
                 <textarea
@@ -607,15 +607,15 @@ export default function StaffMaintenanceView({
                   rows={3}
                   placeholder="Describe parts replaced, mechanics involved, workshop test drive..."
                   required
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Upload Work Done Proof Photos
                 </label>
-                <label className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold flex items-center gap-2 cursor-pointer w-fit">
+                <label className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold flex items-center gap-2 cursor-pointer w-fit">
                   <Upload className="w-3.5 h-3.5" />
                   <span>{isUploading ? "Uploading..." : "Upload Repair Photos"}</span>
                   <input
@@ -630,7 +630,7 @@ export default function StaffMaintenanceView({
                 {workImages.length > 0 && (
                   <div className="flex gap-2 mt-2">
                     {workImages.map((url, i) => (
-                      <div key={i} className="w-12 h-12 rounded-xl overflow-hidden relative border border-emerald-400">
+                      <div key={i} className="w-12 h-12 rounded-xl overflow-hidden relative border border-green-400">
                         <img src={url} alt="work" className="w-full h-full object-cover" />
                       </div>
                     ))}
@@ -642,14 +642,14 @@ export default function StaffMaintenanceView({
                 <button
                   type="button"
                   onClick={() => setWorkModalRequest(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold"
+                  className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isWorkSubmitting}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white font-black shadow-sm"
                 >
                   {isWorkSubmitting ? "Saving..." : "Save Work Proof"}
                 </button>
@@ -667,11 +667,11 @@ export default function StaffMaintenanceView({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="max-w-2xl w-full bg-slate-900 rounded-3xl p-4 border border-slate-700 space-y-3 cursor-default"
+            className="max-w-2xl w-full bg-gray-900 rounded-3xl p-4 border border-gray-700 space-y-3 cursor-default"
           >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-xs font-bold text-slate-300">{lightboxImg.title}</span>
-              <button onClick={() => setLightboxImg(null)} className="p-1 text-slate-400 hover:text-white">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-800">
+              <span className="text-xs font-bold text-gray-300">{lightboxImg.title}</span>
+              <button onClick={() => setLightboxImg(null)} className="p-1 text-gray-400 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>

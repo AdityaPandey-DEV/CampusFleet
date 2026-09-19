@@ -34,7 +34,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Student Hub",
     path: "/portal",
     icon: GraduationCap,
-    color: "from-blue-600 to-indigo-600 text-blue-400",
+    color: "from-blue-600 to-blue-600 text-blue-400",
     description: "Seat reservations, live tracking, and digital QR boarding pass",
   },
   {
@@ -43,7 +43,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Teacher Desk",
     path: "/teacher",
     icon: BookOpen,
-    color: "from-teal-600 to-cyan-600 text-teal-400",
+    color: "from-green-600 to-blue-600 text-green-400",
     description: "Assigned classes, student roster, and live today's bus arrivals",
   },
   {
@@ -52,7 +52,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Admin Ops",
     path: "/admin",
     icon: LayoutDashboard,
-    color: "from-amber-600 to-orange-600 text-amber-400",
+    color: "from-yellow-600 to-orange-600 text-yellow-400",
     description: "Fleet CRUD, live dispatch, telemetry logs, and financial reports",
   },
   {
@@ -61,7 +61,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Staff Ops",
     path: "/staff",
     icon: Building2,
-    color: "from-indigo-600 to-blue-600 text-indigo-400",
+    color: "from-blue-600 to-blue-600 text-blue-400",
     description: "Payment QR manager, fee approvals, Excel audit export, route demand & bus merge optimizer",
   },
   {
@@ -70,7 +70,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Driver HUD",
     path: "/driver",
     icon: BusFront,
-    color: "from-emerald-600 to-teal-600 text-emerald-400",
+    color: "from-green-600 to-green-600 text-green-400",
     description: "GPS telemetry beacon, route progression checklist, and SOS",
   },
   {
@@ -79,7 +79,7 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     shortLabel: "Conductor",
     path: "/conductor",
     icon: FileCheck2,
-    color: "from-purple-600 to-pink-600 text-purple-400",
+    color: "from-pink-600 to-pink-600 text-pink-400",
     description: "High-speed optical QR radar passenger validation & real-time manifest",
   },
 ];
@@ -167,7 +167,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
     <div className="relative inline-block" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-800/80 hover:from-slate-200 dark:hover:from-slate-700 border border-slate-300/80 dark:border-slate-700/80 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm transition-all active:scale-95 group"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-800/80 hover:from-gray-200 dark:hover:from-gray-700 border border-gray-300/80 dark:border-gray-700/80 text-xs font-bold text-gray-800 dark:text-gray-200 shadow-sm transition-all active:scale-95 group"
         title="Switch Portal & Active Role"
       >
         <div className="w-5 h-5 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
@@ -175,18 +175,18 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
         </div>
 
         <span className="hidden sm:inline font-black tracking-tight">{currentOption.shortLabel}</span>
-        <span className="text-[10px] text-slate-400 font-normal">Switch</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <span className="text-[10px] text-gray-400 font-normal">Switch</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
       {isOpen && (
-        <div className={`absolute ${getDropdownAlignmentClass()} mt-2 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-2.5 shadow-2xl z-50 animate-in slide-in-from-top-2 fade-in duration-200 space-y-1 text-slate-900 dark:text-white`}>
-          <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className={`absolute ${getDropdownAlignmentClass()} mt-2 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-2.5 shadow-2xl z-50 animate-in slide-in-from-top-2 fade-in duration-200 space-y-1 text-gray-900 dark:text-white`}>
+          <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <div>
-              <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+              <div className="text-[10px] uppercase font-bold tracking-wider text-gray-400">
                 {isAdmin ? "Admin & Staff Switcher" : "Staff Console Switcher"}
               </div>
-              <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <div className="text-xs font-bold text-gray-700 dark:text-gray-300">
                 {currentUser?.fullName || "Active Session"}
               </div>
             </div>
@@ -207,7 +207,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
                   className={`w-full text-left p-2.5 rounded-2xl flex items-start gap-3 transition-all ${
                     isCurrent
                       ? "bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-800/80 border border-transparent"
                   }`}
                 >
                   <div className={`p-2 rounded-xl bg-gradient-to-tr ${opt.color} text-white flex-shrink-0 mt-0.5`}>
@@ -216,14 +216,14 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-slate-900 dark:text-white truncate">
+                      <span className="text-xs font-black text-gray-900 dark:text-white truncate">
                         {opt.label}
                       </span>
                       {isCurrent && (
                         <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 ml-1" />
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
+                    <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5">
                       {opt.description}
                     </p>
                   </div>

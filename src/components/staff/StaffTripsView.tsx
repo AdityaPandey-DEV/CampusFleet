@@ -369,8 +369,8 @@ export default function StaffTripsView({
     <div className="space-y-6 animate-in fade-in pb-12">
       {/* Toast Notification */}
       {feedbackToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2.5 text-xs font-bold animate-in slide-in-from-bottom-3">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-gray-700 flex items-center gap-2.5 text-xs font-bold animate-in slide-in-from-bottom-3">
+          <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
           <span>{feedbackToast}</span>
         </div>
       )}
@@ -378,11 +378,11 @@ export default function StaffTripsView({
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2.5">
             <Navigation className="w-7 h-7 text-blue-600" />
             <span>Trip Schedules & Dispatch Hub</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
             Dispatch bus services across <strong>Home to Campus</strong>, <strong>Campus to Home</strong>, and <strong>Campus to Campus</strong>. Schedule infinite trips at any custom departure time.
           </p>
         </div>
@@ -390,7 +390,7 @@ export default function StaffTripsView({
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setIsManageShiftsOpen(true)}
-            className="px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-2xl flex items-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95"
+            className="px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-800 dark:text-gray-200 font-bold text-xs rounded-2xl flex items-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95"
           >
             <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span>Manage Shift Master ({shifts.length})</span>
@@ -398,7 +398,7 @@ export default function StaffTripsView({
 
           <button
             onClick={() => setIsAddTripOpen(true)}
-            className="px-5 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-600 text-white font-black text-xs rounded-2xl flex items-center gap-2 shadow-lg shadow-blue-600/20 transform active:scale-95 transition-all"
+            className="px-5 py-3 bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-black text-xs rounded-2xl flex items-center gap-2 shadow-lg shadow-blue-600/20 transform active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>+ Schedule New Trip</span>
@@ -409,17 +409,17 @@ export default function StaffTripsView({
       {/* Quick KPI Overview Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Active Trips */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Trips</span>
-            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
+            <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">Total Trips</span>
+            <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300">
               <CalendarDays className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-2">
+          <div className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mt-2">
             {stats.total}
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-bold">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-bold">
             {stats.confirmedPassengers} Commuters Booked
           </p>
         </div>
@@ -427,9 +427,9 @@ export default function StaffTripsView({
         {/* Home to Campus Inbound */}
         <div
           onClick={() => setSelectedDirection("HOME_TO_CAMPUS")}
-          className={`cursor-pointer bg-white dark:bg-slate-900 rounded-3xl p-5 border transition-all ${selectedDirection === "HOME_TO_CAMPUS"
+          className={`cursor-pointer bg-white dark:bg-gray-900 rounded-3xl p-5 border transition-all ${selectedDirection === "HOME_TO_CAMPUS"
               ? "border-blue-500 ring-2 ring-blue-500/20 shadow-md"
-              : "border-slate-200 dark:border-slate-800 hover:border-blue-400"
+              : "border-gray-200 dark:border-gray-800 hover:border-blue-400"
             }`}
         >
           <div className="flex items-center justify-between">
@@ -443,7 +443,7 @@ export default function StaffTripsView({
           <div className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 mt-2">
             {stats.homeToCampus}
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-bold">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-bold">
             Morning Inbound Services
           </p>
         </div>
@@ -451,23 +451,23 @@ export default function StaffTripsView({
         {/* Campus to Home Return */}
         <div
           onClick={() => setSelectedDirection("CAMPUS_TO_HOME")}
-          className={`cursor-pointer bg-white dark:bg-slate-900 rounded-3xl p-5 border transition-all ${selectedDirection === "CAMPUS_TO_HOME"
-              ? "border-purple-500 ring-2 ring-purple-500/20 shadow-md"
-              : "border-slate-200 dark:border-slate-800 hover:border-purple-400"
+          className={`cursor-pointer bg-white dark:bg-gray-900 rounded-3xl p-5 border transition-all ${selectedDirection === "CAMPUS_TO_HOME"
+              ? "border-pink-500 ring-2 ring-pink-500/20 shadow-md"
+              : "border-gray-200 dark:border-gray-800 hover:border-pink-400"
             }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
+            <span className="text-[10px] font-black uppercase tracking-wider text-pink-600 dark:text-pink-400">
               Campus → Home
             </span>
-            <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 flex items-center justify-center">
               <Building2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 mt-2">
+          <div className="text-2xl sm:text-3xl font-black text-pink-600 dark:text-pink-400 mt-2">
             {stats.campusToHome}
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-bold">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-bold">
             Evening Return Dispersal
           </p>
         </div>
@@ -475,34 +475,34 @@ export default function StaffTripsView({
         {/* Campus to Campus Inter-Campus */}
         <div
           onClick={() => setSelectedDirection("CAMPUS_TO_CAMPUS")}
-          className={`cursor-pointer bg-white dark:bg-slate-900 rounded-3xl p-5 border transition-all ${selectedDirection === "CAMPUS_TO_CAMPUS"
-              ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-md"
-              : "border-slate-200 dark:border-slate-800 hover:border-emerald-400"
+          className={`cursor-pointer bg-white dark:bg-gray-900 rounded-3xl p-5 border transition-all ${selectedDirection === "CAMPUS_TO_CAMPUS"
+              ? "border-green-500 ring-2 ring-green-500/20 shadow-md"
+              : "border-gray-200 dark:border-gray-800 hover:border-green-400"
             }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            <span className="text-[10px] font-black uppercase tracking-wider text-green-600 dark:text-green-400">
               Campus ⇄ Campus
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-green-100 dark:bg-green-950 text-green-600 dark:text-green-400 flex items-center justify-center">
               <Shuffle className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-2">
+          <div className="text-2xl sm:text-3xl font-black text-green-600 dark:text-green-400 mt-2">
             {stats.campusToCampus}
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-bold">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-bold">
             Inter-Campus Express Shuttles
           </p>
         </div>
       </div>
 
       {/* Filter & Search Toolbar */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 sm:p-5 border border-gray-200 dark:border-gray-800 shadow-xs space-y-4">
         {/* Operational Shift Date Selector */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 text-xs font-black text-slate-700 dark:text-slate-300 mr-1">
+            <div className="flex items-center gap-1.5 text-xs font-black text-gray-700 dark:text-gray-300 mr-1">
               <CalendarDays className="w-4 h-4 text-blue-600" />
               <span>Shift Date:</span>
             </div>
@@ -513,10 +513,10 @@ export default function StaffTripsView({
               className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
                 selectedDate === todayDate
                   ? "bg-blue-600 text-white shadow-sm shadow-blue-500/25 ring-2 ring-blue-400/40"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               <span>Today ({todayDate})</span>
               <span className="ml-1 px-1.5 py-0.2 rounded-md text-[10px] bg-white/20">
                 {trips.filter((t) => t.tripDate === todayDate).length}
@@ -533,12 +533,12 @@ export default function StaffTripsView({
                   onClick={() => setSelectedDate(d)}
                   className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     selectedDate === d
-                      ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                      ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
                   }`}
                 >
                   <span>{d}</span>
-                  <span className="ml-1 text-[10px] text-slate-400">
+                  <span className="ml-1 text-[10px] text-gray-400">
                     ({trips.filter((t) => t.tripDate === d).length})
                   </span>
                 </button>
@@ -549,8 +549,8 @@ export default function StaffTripsView({
               onClick={() => setSelectedDate("ALL")}
               className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 selectedDate === "ALL"
-                  ? "bg-amber-600 text-white shadow-sm"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  ? "bg-yellow-600 text-white shadow-sm"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
               }`}
             >
               <span>All Dates Archive ({trips.length})</span>
@@ -558,7 +558,7 @@ export default function StaffTripsView({
           </div>
 
           {/* Date Picker Input for any custom date */}
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+          <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
             <span>Pick Date:</span>
             <input
               type="date"
@@ -566,19 +566,19 @@ export default function StaffTripsView({
               onChange={(e) => {
                 if (e.target.value) setSelectedDate(e.target.value);
               }}
-              className="px-2.5 py-1 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500"
+              className="px-2.5 py-1 text-xs rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono font-bold text-gray-800 dark:text-gray-200 outline-none focus:border-blue-500"
             />
           </div>
         </div>
 
         {/* Direction Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => setSelectedDirection("ALL")}
               className={`px-3.5 py-2 text-xs font-black rounded-xl transition-all ${selectedDirection === "ALL"
-                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                 }`}
             >
               All Directions ({stats.total})
@@ -598,8 +598,8 @@ export default function StaffTripsView({
             <button
               onClick={() => setSelectedDirection("CAMPUS_TO_HOME")}
               className={`px-3.5 py-2 text-xs font-black rounded-xl flex items-center gap-1.5 transition-all ${selectedDirection === "CAMPUS_TO_HOME"
-                  ? "bg-purple-600 text-white shadow-sm"
-                  : "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900"
+                  ? "bg-pink-600 text-white shadow-sm"
+                  : "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900"
                 }`}
             >
               <Building2 className="w-3.5 h-3.5" />
@@ -609,8 +609,8 @@ export default function StaffTripsView({
             <button
               onClick={() => setSelectedDirection("CAMPUS_TO_CAMPUS")}
               className={`px-3.5 py-2 text-xs font-black rounded-xl flex items-center gap-1.5 transition-all ${selectedDirection === "CAMPUS_TO_CAMPUS"
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900"
+                  ? "bg-green-600 text-white shadow-sm"
+                  : "bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900"
                 }`}
             >
               <Shuffle className="w-3.5 h-3.5" />
@@ -618,7 +618,7 @@ export default function StaffTripsView({
             </button>
           </div>
 
-          <div className="text-xs font-bold text-slate-400">
+          <div className="text-xs font-bold text-gray-400">
             Showing {filteredTrips.length} of {dateScopedTrips.length} schedules {selectedDate !== "ALL" && `for ${selectedDate}`}
           </div>
         </div>
@@ -628,13 +628,13 @@ export default function StaffTripsView({
 
           {/* Search Box */}
           <div className="relative min-w-[240px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search route, bus, trip code, or crew..."
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-blue-500 font-bold"
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 font-bold"
             />
           </div>
         </div>
@@ -642,14 +642,14 @@ export default function StaffTripsView({
 
       {/* Trips Grid */}
       {filteredTrips.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-12 text-center border border-gray-200 dark:border-gray-800 shadow-xs space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 mx-auto flex items-center justify-center font-bold">
             <Navigation className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-black text-slate-900 dark:text-white">
+          <h3 className="text-base font-black text-gray-900 dark:text-white">
             No Trip Schedules Found
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+          <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto">
             No departures match your current direction or recurrence filters. Click below to schedule a new trip service.
           </p>
           <button
@@ -680,7 +680,7 @@ export default function StaffTripsView({
             return (
               <div
                 key={trip.id}
-                className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between"
+                className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-5 hover:border-gray-300 dark:hover:border-gray-700 transition-all flex flex-col justify-between"
               >
                 {/* Card Top: Direction Badge, Trip Code & Status */}
                 <div className="space-y-3">
@@ -688,10 +688,10 @@ export default function StaffTripsView({
                     {/* Direction Badge */}
                     <span
                       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${dir === "HOME_TO_CAMPUS"
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                          ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
                           : dir === "CAMPUS_TO_HOME"
                             ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                            : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
+                            : "bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300"
                         }`}
                     >
                       {dir === "HOME_TO_CAMPUS" && <Home className="w-3 h-3" />}
@@ -709,13 +709,13 @@ export default function StaffTripsView({
                     {/* Status & Recurrence Tags */}
                     <div className="flex items-center gap-2 flex-wrap">
                       {trip.tripDate && (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200/60 dark:border-gray-700/60">
                           {trip.tripDate}
                         </span>
                       )}
 
                       {trip.isSpecial && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-yellow-100 dark:bg-yellow-950/80 text-yellow-800 dark:text-yellow-300 border border-yellow-300/60 dark:border-yellow-700/60">
                           <GraduationCap className="w-3 h-3" />
                           <span>{trip.facilityType === "PLACEMENT_DRIVE" ? "Placement Special" : trip.facilityType === "EVENT" ? "Campus Event" : "Special Facility"}</span>
                         </span>
@@ -723,8 +723,8 @@ export default function StaffTripsView({
 
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${trip.status === "IN_PROGRESS"
-                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 animate-pulse"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                            ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 animate-pulse"
+                            : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                           }`}
                       >
                         {trip.status}
@@ -735,30 +735,30 @@ export default function StaffTripsView({
                   {/* Route & Time Details */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-black text-lg text-slate-900 dark:text-white leading-tight">
+                      <h3 className="font-black text-lg text-gray-900 dark:text-white leading-tight">
                         {displayRouteName}
                       </h3>
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 shrink-0">
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 shrink-0">
                         {trip.tripCode}
                       </span>
                     </div>
 
                     {/* Pickup / Drop Corridor Flow */}
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/50 text-xs font-semibold">
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200/70 dark:border-gray-700/50 text-xs font-semibold">
                       {dir === "HOME_TO_CAMPUS" ? (
                         <>
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 shrink-0">
                               Pickup
                             </span>
-                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">{cityOrigin}</span>
+                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">{cityOrigin}</span>
                           </div>
-                          <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <ArrowRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
                               Drop
                             </span>
-                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">
+                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
                               {store.getCampuses().find(c => c.id === route?.destinationCampusId || c.id === route?.campusId)?.name || store.getPrimaryCampus()?.name || "Campus Terminal"}
                             </span>
                           </div>
@@ -769,50 +769,50 @@ export default function StaffTripsView({
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
                               Pickup
                             </span>
-                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">
+                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
                               {store.getCampuses().find(c => c.id === route?.originCampusId || c.id === route?.campusId)?.name || store.getPrimaryCampus()?.name || "Campus Terminal"}
                             </span>
                           </div>
                           <ArrowRight className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 shrink-0">
                               Drop
                             </span>
-                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">{cityOrigin} (Reverse Route)</span>
+                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">{cityOrigin} (Reverse Route)</span>
                           </div>
                         </>
                       ) : (
                         <>
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300 shrink-0">
                               Origin
                             </span>
-                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">Bhimtal Campus</span>
+                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">Bhimtal Campus</span>
                           </div>
-                          <ArrowRight className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                          <ArrowRight className="w-3.5 h-3.5 text-pink-500 shrink-0" />
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300 shrink-0">
                               Destination
                             </span>
-                            <span className="truncate text-slate-800 dark:text-slate-200 font-bold">Dehradun Clement Town</span>
+                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">Dehradun Clement Town</span>
                           </div>
                         </>
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-500 dark:text-slate-400 pt-1">
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-gray-500 dark:text-gray-400 pt-1">
                       <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-mono font-black bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-md">
                         <Clock className="w-3.5 h-3.5" />
                         <span>Departure: {formatTime(departureTime)}</span>
                       </span>
 
                       <span className="inline-flex items-center gap-1 font-mono">
-                        <BusFront className="w-3.5 h-3.5 text-slate-400" />
+                        <BusFront className="w-3.5 h-3.5 text-gray-400" />
                         <span>{displayBusNumber}</span>
                       </span>
 
                       {bus.registrationNo && (
-                        <span className="font-mono text-[11px] text-slate-400">
+                        <span className="font-mono text-[11px] text-gray-400">
                           ({bus.registrationNo})
                         </span>
                       )}
@@ -820,25 +820,25 @@ export default function StaffTripsView({
                   </div>
 
                   {/* Passenger Load Bar */}
-                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-2">
+                  <div className="p-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/60 space-y-2">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span>
                         Occupancy: <strong>{confirmedCount}</strong> / {bus.capacity} Seats
                       </span>
                       {waitlistCount > 0 ? (
-                        <span className="text-amber-600 dark:text-amber-400 font-mono font-bold bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded-md">
+                        <span className="text-yellow-600 dark:text-yellow-400 font-mono font-bold bg-yellow-100 dark:bg-yellow-950 px-2 py-0.5 rounded-md">
                           {waitlistCount} Waitlisted (WL)
                         </span>
                       ) : (
-                        <span className="text-emerald-600 dark:text-emerald-400 text-[11px]">
+                        <span className="text-green-600 dark:text-green-400 text-[11px]">
                           Seats Available
                         </span>
                       )}
                     </div>
-                    <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all ${confirmedCount >= (bus.capacity || 40)
-                            ? "bg-amber-500"
+                            ? "bg-yellow-500"
                             : "bg-blue-600"
                           }`}
                         style={{ width: `${Math.min(100, (confirmedCount / (bus.capacity || 40)) * 100)}%` }}
@@ -848,15 +848,15 @@ export default function StaffTripsView({
 
                   {/* Crew Assignment */}
                   <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                      <div className="text-[10px] uppercase font-bold text-slate-400">Assigned Driver</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200 truncate mt-0.5">
+                    <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
+                      <div className="text-[10px] uppercase font-bold text-gray-400">Assigned Driver</div>
+                      <div className="font-bold text-gray-800 dark:text-gray-200 truncate mt-0.5">
                         {driver?.fullName || "Unassigned"}
                       </div>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                      <div className="text-[10px] uppercase font-bold text-slate-400">Boarding Conductor</div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200 truncate mt-0.5">
+                    <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
+                      <div className="text-[10px] uppercase font-bold text-gray-400">Boarding Conductor</div>
+                      <div className="font-bold text-gray-800 dark:text-gray-200 truncate mt-0.5">
                         {conductor?.fullName || "Unassigned"}
                       </div>
                     </div>
@@ -864,10 +864,10 @@ export default function StaffTripsView({
                 </div>
 
                 {/* Manifest Status & Bottom Actions */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+                <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2.5">
                   <div className="flex-1 min-w-[140px]">
                     {trip.manifestLocked ? (
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-green-600 dark:text-green-400 flex items-center gap-1.5">
                         <Lock className="w-4 h-4 shrink-0" />
                         <span>Manifest Frozen & Dispatched</span>
                       </span>
@@ -887,7 +887,7 @@ export default function StaffTripsView({
                     <button
                       type="button"
                       onClick={() => setAllocatingTrip(trip)}
-                      className="px-3.5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all shrink-0 active:scale-95"
+                      className="px-3.5 py-2.5 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all shrink-0 active:scale-95"
                       title="Allocate eligible students who can view and book this special facility"
                     >
                       <GraduationCap className="w-4 h-4" />
@@ -899,7 +899,7 @@ export default function StaffTripsView({
                     type="button"
                     title="Cancel / Delete Trip"
                     onClick={() => handleDeleteTrip(trip.id, trip.tripCode)}
-                    className="p-2.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 transition-all shrink-0"
+                    className="p-2.5 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 transition-all shrink-0"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -915,40 +915,40 @@ export default function StaffTripsView({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in overflow-y-auto">
           <form
             onSubmit={handleCreateTrip}
-            className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 space-y-5 text-slate-900 dark:text-white shadow-2xl my-8 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-7 space-y-5 text-gray-900 dark:text-white shadow-2xl my-8 max-h-[90vh] overflow-y-auto"
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
               <div>
                 <h3 className="font-black text-lg flex items-center gap-2">
                   <Plus className="w-5 h-5 text-blue-600" />
                   <span>Schedule Departure Trip</span>
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Deploy N instances of services at your custom desired departure times.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddTripOpen(false)}
-                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* STEP 1: Special Facility Classification */}
-            <div className="p-3.5 bg-amber-50/80 dark:bg-amber-950/30 rounded-2xl border border-amber-200 dark:border-amber-800/60 space-y-3">
+            <div className="p-3.5 bg-yellow-50/80 dark:bg-yellow-950/30 rounded-2xl border border-yellow-200 dark:border-yellow-800/60 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-xl bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 flex items-center justify-center">
                     <GraduationCap className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-black text-slate-900 dark:text-white">
+                    <div className="text-xs font-black text-gray-900 dark:text-white">
                       Special Facility / Exclusive Allocation
                     </div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
                       Restricts booking visibility to only admin-allocated students
                     </div>
                   </div>
@@ -964,31 +964,31 @@ export default function StaffTripsView({
                       facilityType: e.target.checked ? (prev.facilityType === "REGULAR" ? "PLACEMENT_DRIVE" : prev.facilityType) : "REGULAR",
                     }))
                   }
-                  className="w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-amber-500"
+                  className="w-4 h-4 text-yellow-600 rounded border-gray-300 focus:ring-yellow-500"
                 />
               </div>
 
               {newTrip.isSpecial && (
-                <div className="pt-2 border-t border-amber-200/60 dark:border-amber-800/40 flex items-center gap-4 text-xs font-bold">
-                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-800 dark:text-slate-200">
+                <div className="pt-2 border-t border-yellow-200/60 dark:border-yellow-800/40 flex items-center gap-4 text-xs font-bold">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-gray-800 dark:text-gray-200">
                     <input
                       type="radio"
                       name="facilityType"
                       value="PLACEMENT_DRIVE"
                       checked={newTrip.facilityType === "PLACEMENT_DRIVE"}
                       onChange={() => setNewTrip((prev) => ({ ...prev, facilityType: "PLACEMENT_DRIVE" }))}
-                      className="text-amber-600"
+                      className="text-yellow-600"
                     />
                     <span>🎓 Placement Drive</span>
                   </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer text-slate-800 dark:text-slate-200">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-gray-800 dark:text-gray-200">
                     <input
                       type="radio"
                       name="facilityType"
                       value="EVENT"
                       checked={newTrip.facilityType === "EVENT"}
                       onChange={() => setNewTrip((prev) => ({ ...prev, facilityType: "EVENT" }))}
-                      className="text-amber-600"
+                      className="text-yellow-600"
                     />
                     <span>🏢 Campus Event / Conclave</span>
                   </label>
@@ -998,7 +998,7 @@ export default function StaffTripsView({
 
             {/* STEP 2: Service Date */}
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 2. Specify Departure Service Date *
               </label>
               <input
@@ -1006,21 +1006,21 @@ export default function StaffTripsView({
                 required
                 value={newTrip.tripDate}
                 onChange={(e) => setNewTrip((prev) => ({ ...prev, tripDate: e.target.value }))}
-                className="w-full p-2.5 text-xs font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:border-blue-500"
+                className="w-full p-2.5 text-xs font-bold rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-blue-500"
               />
             </div>
 
             {/* STEP 4: Corridor Route, Shift & Bus Allocation */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   4. Select Corridor Route *
                 </label>
                 <select
                   required
                   value={newTrip.routeId}
                   onChange={(e) => setNewTrip((prev) => ({ ...prev, routeId: e.target.value }))}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white outline-none font-bold text-xs"
+                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold text-xs"
                 >
                   <option value="">-- Choose Corridor --</option>
                   {routes.map((r) => (
@@ -1032,7 +1032,7 @@ export default function StaffTripsView({
               </div>
 
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   5. Assign to Shift *
                 </label>
                 <select
@@ -1046,7 +1046,7 @@ export default function StaffTripsView({
                       shiftId: selectedShiftId,
                     }));
                   }}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white outline-none font-bold text-xs"
+                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold text-xs"
                 >
                   {shifts.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -1057,14 +1057,14 @@ export default function StaffTripsView({
               </div>
 
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   6. Allocate Fleet Bus *
                 </label>
                 <select
                   required
                   value={newTrip.busId}
                   onChange={(e) => setNewTrip((prev) => ({ ...prev, busId: e.target.value }))}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white outline-none font-bold text-xs"
+                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold text-xs"
                 >
                   <option value="">-- Choose Vehicle --</option>
                   {buses.map((b) => (
@@ -1077,8 +1077,8 @@ export default function StaffTripsView({
             </div>
 
             {newTrip.shiftId && shifts.find((s) => s.id === newTrip.shiftId)?.shiftType === "AFTERNOON" && (
-              <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+              <div className="p-3 rounded-2xl bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 text-xs font-semibold flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shrink-0" />
                 <span>Single-Gate Progressive Departure: Buses release from Gate 1 sequentially as passenger seats fill.</span>
               </div>
             )}
@@ -1086,13 +1086,13 @@ export default function StaffTripsView({
             {/* STEP 5: Crew Assignment (Optional) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Assign Driver (Optional)
                 </label>
                 <select
                   value={newTrip.driverId}
                   onChange={(e) => setNewTrip((prev) => ({ ...prev, driverId: e.target.value }))}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white outline-none font-bold text-xs"
+                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold text-xs"
                 >
                   <option value="">-- Select Driver (Can assign later) --</option>
                   {staff
@@ -1106,13 +1106,13 @@ export default function StaffTripsView({
               </div>
 
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Assign Conductor (Optional)
                 </label>
                 <select
                   value={newTrip.conductorId}
                   onChange={(e) => setNewTrip((prev) => ({ ...prev, conductorId: e.target.value }))}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white outline-none font-bold text-xs"
+                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold text-xs"
                 >
                   <option value="">-- Select Conductor (Can assign later) --</option>
                   {staff
@@ -1127,11 +1127,11 @@ export default function StaffTripsView({
             </div>
 
             {/* Modal Bottom Actions */}
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
               <button
                 type="button"
                 onClick={() => setIsAddTripOpen(false)}
-                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl text-xs font-bold transition-all"
+                className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-2xl text-xs font-bold transition-all"
               >
                 Cancel
               </button>
@@ -1173,23 +1173,23 @@ export default function StaffTripsView({
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-            <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 space-y-5 text-slate-900 dark:text-white shadow-2xl my-8 max-h-[90vh] flex flex-col">
+            <div className="w-full max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-7 space-y-5 text-gray-900 dark:text-white shadow-2xl my-8 max-h-[90vh] flex flex-col">
               {/* Header */}
-              <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-start justify-between border-b border-gray-100 dark:border-gray-800 pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="p-2 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                    <span className="p-2 rounded-xl bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">
                       <GraduationCap className="w-5 h-5" />
                     </span>
                     <h3 className="font-black text-lg">
                       Allocate Commuters to Special Facility
                     </h3>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                     <strong>{tripShift?.name || "Special Placement Shift"}</strong> • Route: {tripRoute?.name || "Campus-to-Campus Express"}
                   </p>
                   <div className="flex items-center gap-2 pt-1">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-yellow-50 dark:bg-yellow-950/60 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800">
                       🔒 Access Controlled: Only allocated students will see this shift on their portal.
                     </span>
                   </div>
@@ -1200,7 +1200,7 @@ export default function StaffTripsView({
                     setAllocatingTrip(null);
                     setStudentSearch("");
                   }}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                  className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1208,21 +1208,21 @@ export default function StaffTripsView({
 
               {/* Stats Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Total Allocated</div>
-                  <div className="text-lg font-black text-slate-900 dark:text-white">
+                <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700">
+                  <div className="text-[10px] uppercase font-bold text-gray-400">Total Allocated</div>
+                  <div className="text-lg font-black text-gray-900 dark:text-white">
                     {shiftAllocations.length} Students
                   </div>
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Bus Capacity</div>
-                  <div className="text-lg font-black text-slate-900 dark:text-white">
+                <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700">
+                  <div className="text-[10px] uppercase font-bold text-gray-400">Bus Capacity</div>
+                  <div className="text-lg font-black text-gray-900 dark:text-white">
                     {tripBus?.capacity || 36} Seats ({tripBus?.busNumber || "Bus"})
                   </div>
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 col-span-2 sm:col-span-1">
-                  <div className="text-[10px] uppercase font-bold text-slate-400">Shift Code</div>
-                  <div className="text-sm font-mono font-bold text-slate-900 dark:text-white truncate">
+                <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 col-span-2 sm:col-span-1">
+                  <div className="text-[10px] uppercase font-bold text-gray-400">Shift Code</div>
+                  <div className="text-sm font-mono font-bold text-gray-900 dark:text-white truncate">
                     {allocatingTrip.tripCode}
                   </div>
                 </div>
@@ -1230,20 +1230,20 @@ export default function StaffTripsView({
 
               {/* Search Bar */}
               <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search student by name, enrollment no, or department..."
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-yellow-500"
                 />
               </div>
 
               {/* Students List */}
               <div className="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[360px]">
                 {filteredStudents.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-slate-400 font-bold">
+                  <div className="text-center py-8 text-xs text-gray-400 font-bold">
                     No matching students found.
                   </div>
                 ) : (
@@ -1253,25 +1253,25 @@ export default function StaffTripsView({
                       <div
                         key={student.id}
                         className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${isAllocated
-                            ? "bg-amber-50/70 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800"
-                            : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60"
+                            ? "bg-yellow-50/70 dark:bg-yellow-950/30 border-yellow-300 dark:border-yellow-800"
+                            : "bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700/60"
                           }`}
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isAllocated ? "bg-amber-500 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isAllocated ? "bg-yellow-500 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                             }`}>
                             {student.fullName.charAt(0)}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-xs text-slate-900 dark:text-white truncate flex items-center gap-2">
+                            <div className="font-bold text-xs text-gray-900 dark:text-white truncate flex items-center gap-2">
                               <span>{student.fullName}</span>
                               {isAllocated && (
-                                <span className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200">
+                                <span className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-200">
                                   Allocated ✓
                                 </span>
                               )}
                             </div>
-                            <div className="text-[10px] text-slate-400 font-mono truncate">
+                            <div className="text-[10px] text-gray-400 font-mono truncate">
                               {student.department} (Sem {student.semester})
                             </div>
                           </div>
@@ -1286,7 +1286,7 @@ export default function StaffTripsView({
                               setAllocations([...store.getSpecialShiftAllocations()]);
                               showToast(`Removed ${student.fullName} from facility allocation.`);
                             }}
-                            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold rounded-xl border border-rose-200 dark:border-rose-900 transition-all shrink-0"
+                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400 text-xs font-bold rounded-xl border border-red-200 dark:border-red-900 transition-all shrink-0"
                           >
                             Remove
                           </button>
@@ -1298,7 +1298,7 @@ export default function StaffTripsView({
                               setAllocations([...store.getSpecialShiftAllocations()]);
                               showToast(`Allocated ${student.fullName} to ${tripShift?.name || "facility"}.`);
                             }}
-                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 flex items-center gap-1"
+                            className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 flex items-center gap-1"
                           >
                             <UserPlus className="w-3.5 h-3.5" />
                             <span>Allocate +</span>
@@ -1311,14 +1311,14 @@ export default function StaffTripsView({
               </div>
 
               {/* Modal Footer */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-end">
                 <button
                   type="button"
                   onClick={() => {
                     setAllocatingTrip(null);
                     setStudentSearch("");
                   }}
-                  className="px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-xs transition-all"
+                  className="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs rounded-xl shadow-xs transition-all"
                 >
                   Done & Save Allocations
                 </button>
@@ -1330,19 +1330,19 @@ export default function StaffTripsView({
 
       {/* SHIFT MASTER MANAGEMENT MODAL */}
       {isManageShiftsOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 my-auto max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 bg-gray-950/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 my-auto max-h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                  <h2 className="text-lg font-black text-gray-900 dark:text-white">
                     Campus Fleet Shift Master Directory
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-gray-500">
                     Configure institutional transit shifts, gate departure windows, and booking cutoff thresholds.
                   </p>
                 </div>
@@ -1353,16 +1353,16 @@ export default function StaffTripsView({
                   setIsManageShiftsOpen(false);
                   setEditingShift(null);
                 }}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Shift Form (Add or Edit) */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-3 shrink-0">
+            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 space-y-3 shrink-0">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                <span className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                   {editingShift?.id ? `Edit Shift: ${editingShift.name || editingShift.id}` : "Create New Transit Shift"}
                 </span>
@@ -1370,7 +1370,7 @@ export default function StaffTripsView({
                   <button
                     type="button"
                     onClick={() => setEditingShift(null)}
-                    className="text-[11px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold"
+                    className="text-[11px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-bold"
                   >
                     Cancel Editing
                   </button>
@@ -1379,25 +1379,25 @@ export default function StaffTripsView({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Shift Name *</label>
+                  <label className="text-[10px] font-bold uppercase text-gray-400">Shift Name *</label>
                   <input
                     type="text"
                     placeholder="e.g. Afternoon Half-Day Shift"
                     value={editingShift?.name || ""}
                     onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), name: e.target.value }))}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-bold"
+                    className="w-full text-xs p-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Shift Type / Category</label>
+                  <label className="text-[10px] font-bold uppercase text-gray-400">Shift Type / Category</label>
                   <input
                     type="text"
                     list="shift-type-suggestions"
                     placeholder="e.g. MORNING, AFTERNOON, EVENING, SPECIAL..."
                     value={editingShift?.shiftType || ""}
                     onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), shiftType: e.target.value.toUpperCase() }))}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none font-bold uppercase"
+                    className="w-full text-xs p-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none font-bold uppercase"
                   />
                   <datalist id="shift-type-suggestions">
                     <option value="MORNING" />
@@ -1411,21 +1411,21 @@ export default function StaffTripsView({
 
                 <div className="grid grid-cols-2 gap-1.5">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Start Time</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-400">Start Time</label>
                     <input
                       type="time"
                       value={editingShift?.startTime || "08:00"}
                       onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), startTime: e.target.value }))}
-                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none font-bold"
+                      className="w-full text-xs p-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none font-bold"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-slate-400">End Time</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-400">End Time</label>
                     <input
                       type="time"
                       value={editingShift?.endTime || "09:00"}
                       onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), endTime: e.target.value }))}
-                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none font-bold"
+                      className="w-full text-xs p-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none font-bold"
                     />
                   </div>
                 </div>
@@ -1434,7 +1434,7 @@ export default function StaffTripsView({
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={Boolean(editingShift?.isSpecial)}
@@ -1444,7 +1444,7 @@ export default function StaffTripsView({
                     <span>Special Facility / Restricted Shift</span>
                   </label>
 
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                  <div className="flex items-center gap-1 text-[11px] text-gray-500">
                     <span>Cutoff:</span>
                     <input
                       type="number"
@@ -1452,7 +1452,7 @@ export default function StaffTripsView({
                       max="180"
                       value={editingShift?.bookingCutoffMins ?? 30}
                       onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), bookingCutoffMins: Number(e.target.value) }))}
-                      className="w-14 p-1 text-center text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                      className="w-14 p-1 text-center text-xs font-bold rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
                     />
                     <span>mins</span>
                   </div>
@@ -1496,7 +1496,7 @@ export default function StaffTripsView({
 
             {/* List of Existing Shifts */}
             <div className="overflow-y-auto flex-1 space-y-2.5 pr-1">
-              <div className="text-xs font-black uppercase tracking-wider text-slate-400">
+              <div className="text-xs font-black uppercase tracking-wider text-gray-400">
                 Configured Shifts in Database ({shifts.length})
               </div>
 
@@ -1504,31 +1504,31 @@ export default function StaffTripsView({
                 return (
                   <div
                     key={sh.id}
-                    className="p-4 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-755 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-blue-400 transition-all"
+                    className="p-4 rounded-2xl bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-755 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-blue-400 transition-all"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black text-sm text-slate-900 dark:text-white">
+                        <span className="font-black text-sm text-gray-900 dark:text-white">
                           {sh.name}
                         </span>
                         <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
                           {sh.shiftType}
                         </span>
                         {sh.isSpecial && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">
                             🔒 Special Facility
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                        <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span className="font-mono font-bold text-gray-700 dark:text-gray-300">
                           {sh.startTime} – {sh.endTime}
                         </span>
                         <span>•</span>
                         <span>Cutoff: {sh.bookingCutoffMins}m before</span>
                         <span>•</span>
-                        <span className="font-mono text-[11px] text-slate-400">ID: {sh.id}</span>
+                        <span className="font-mono text-[11px] text-gray-400">ID: {sh.id}</span>
                       </div>
                     </div>
 
@@ -1560,7 +1560,7 @@ export default function StaffTripsView({
                       <button
                         type="button"
                         onClick={() => setEditingShift(sh)}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
                       >
                         Edit
                       </button>
@@ -1574,7 +1574,7 @@ export default function StaffTripsView({
                             showToast(`Deleted shift ${sh.name}`);
                           }
                         }}
-                        className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                        className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400 text-xs font-bold rounded-xl transition-all cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -1585,8 +1585,8 @@ export default function StaffTripsView({
             </div>
 
             {/* Footer */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
-              <span className="text-[11px] text-slate-400">
+            <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+              <span className="text-[11px] text-gray-400">
                 Any number of custom or regular corridor shifts can be added here.
               </span>
               <button
@@ -1595,7 +1595,7 @@ export default function StaffTripsView({
                   setIsManageShiftsOpen(false);
                   setEditingShift(null);
                 }}
-                className="px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-xs transition-all"
+                className="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs rounded-xl shadow-xs transition-all"
               >
                 Close Shift Master
               </button>
