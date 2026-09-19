@@ -19,7 +19,11 @@ export async function extractTransactionIdFromImage(
 ): Promise<OcrExtractionResult> {
   try {
     if (onProgress) onProgress("Initializing neural OCR engine...");
-    const worker = await createWorker("eng");
+    const worker = await createWorker("eng", 1, {
+      workerPath: "/tesseract/worker.min.js",
+      corePath: "/tesseract/tesseract-core.wasm.js",
+      langPath: "/tesseract/lang-data",
+    });
 
     if (onProgress) onProgress("Scanning receipt for UPI Ref / UTR number & amount...");
     const ret = await worker.recognize(imageFile);

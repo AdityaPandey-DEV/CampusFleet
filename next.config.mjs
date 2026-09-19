@@ -65,7 +65,7 @@ const nextConfig = {
           },
           {
             key: "Cross-Origin-Resource-Policy",
-            value: "cross-origin",
+            value: "same-origin",
           },
 
           // ── Content Security Policy ─────────────────────────────────
@@ -74,12 +74,11 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://unpkg.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' https://fonts.gstatic.com",
-              "worker-src 'self' blob:",
-              "connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://*.vercel.app https://*.upstash.io https://unpkg.com https://tessdata.projectnaptha.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://*.vercel.app https://*.upstash.io",
               "frame-src 'self' https://accounts.google.com",
               "object-src 'none'",
               "base-uri 'self'",
