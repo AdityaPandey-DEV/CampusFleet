@@ -395,6 +395,13 @@ export default function StaffFeeApprovalsView({
                         <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
                           Roll: {student.enrollment_no} • {student.department || "General"}
                         </div>
+                        {(student.email || student.phone) && (
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-3">
+                            {student.email && <span>{student.email}</span>}
+                            {student.email && student.phone && <span>•</span>}
+                            {student.phone && <span>{student.phone}</span>}
+                          </div>
+                        )}
                       </div>
                     </div>
 
