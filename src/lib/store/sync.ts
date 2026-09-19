@@ -526,14 +526,56 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
     }
 
     if (isBasicUser) {
-      // PREVENT DATA LOSS ON REFRESH FOR STUDENTS
+      // Ensure we load the single active student profile to prevent layout redirects
       const activeStudentUser = this.currentUser;
       if (activeStudentUser && activeStudentUser.role === "student") {
-        const existingProfile = this.students.find(
+        let profile = this.students.find(
           s => s.userId === activeStudentUser.id || s.email?.toLowerCase() === activeStudentUser.email?.toLowerCase()
         );
-        if (existingProfile && existingProfile.campusId) {
-          this.students = [existingProfile];
+        
+        if (!profile) {
+          // Fetch just this student
+          const { data: s } = await supabase
+            .from("students_full")
+            .select("*")
+            .or(`user_id.eq.${activeStudentUser.id},email.ilike.${activeStudentUser.email}`)
+            .single();
+            
+          if (s) {
+            profile = {
+              id: s.id,
+              userId: s.user_id,
+              fullName: s.full_name,
+              email: s.email,
+              phone: s.phone || null,
+              department: s.department || "B.Tech CSE",
+              semester: s.semester || "5th",
+              campusId: s.campus_id || s.campus || "",
+              campus: s.campus || "",
+              primaryStopId: s.primary_stop_id || "",
+              primaryRouteId: s.primary_route_id || "",
+              emergencyContact: s.emergency_contact || {
+                name: s.emergency_contact_name || null,
+                relationship: s.emergency_contact_relation || null,
+                phone: s.emergency_contact_phone || null,
+              },
+              transportAccessSuspended: s.transport_access_suspended || false,
+              hasActiveSubscription: s.has_active_subscription || false,
+              subscriptionExpiryDate: s.subscription_expiry_date,
+              classId: s.class_id,
+              className: s.class_name,
+              zoneCode: s.zone_code || "ZONE_B",
+              paymentStatus: s.payment_status || (s.has_active_subscription ? "APPROVED" : "UNPAID"),
+              totalFeeDue: s.total_fee_due || (s.zone_semester_fee ? Number(s.zone_semester_fee) : 12000),
+              totalFeePaid: s.total_fee_paid || 0,
+              photoUrl: s.photo_url || "",
+              photoLocked: Boolean(s.photo_url && s.photo_url.trim() !== "") || Boolean(s.photo_locked),
+            };
+          }
+        }
+        
+        if (profile) {
+          this.students = [profile];
         }
       }
       this.notify();

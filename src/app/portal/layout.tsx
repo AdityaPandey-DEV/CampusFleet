@@ -37,12 +37,14 @@ export default function StudentPortalLayout({
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
   const [isSOSOpen, setIsSOSOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isStoreReady, setIsStoreReady] = useState(store.isReady());
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
       setStudents(store.getStudents());
       setActiveChildId(store.getActiveChildId());
+      setIsStoreReady(store.isReady());
     });
     return unsub;
   }, []);
@@ -78,6 +80,8 @@ export default function StudentPortalLayout({
 
   // Auto-redirect logic for onboarding and payment
   useEffect(() => {
+    if (!isStoreReady) return; // Wait until store is populated before forcing redirects
+    
     if (isStudent) {
       // 1. Force onboarding if profile is incomplete
       if (!hasCompleteProfile && !isOnboardingPage) {
@@ -87,8 +91,12 @@ export default function StudentPortalLayout({
       else if (hasCompleteProfile && !isSubscriptionActive && !isPaymentPage && !isOnboardingPage) {
         router.replace("/portal/payments");
       }
+      // 3. Return to portal if they try to access onboarding/payment when already active
+      else if (hasCompleteProfile && isSubscriptionActive && (isOnboardingPage || isPaymentPage)) {
+        router.replace("/portal");
+      }
     }
-  }, [isStudent, hasCompleteProfile, isSubscriptionActive, pathname, router, isOnboardingPage, isPaymentPage]);
+  }, [isStudent, hasCompleteProfile, isSubscriptionActive, pathname, router, isOnboardingPage, isPaymentPage, isStoreReady]);
 
   if (currentUser && !isAuthorizedStudent) {
     const role = currentUser.role;

@@ -65,6 +65,14 @@ export async function POST(request: NextRequest) {
     });
   } catch (err: any) {
     console.error("Razorpay create-order error:", err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    
+    // Razorpay often throws an object with an 'error' property rather than an Error instance
+    let errorMessage = "Unknown payment error.";
+    if (err.message) errorMessage = err.message;
+    else if (err.error?.description) errorMessage = err.error.description;
+    else if (typeof err === "string") errorMessage = err;
+    else errorMessage = JSON.stringify(err);
+
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
