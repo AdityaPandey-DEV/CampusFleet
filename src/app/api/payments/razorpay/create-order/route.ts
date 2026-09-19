@@ -12,8 +12,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { amount, studentId } = body; // amount in INR (rupees)
 
-    if (!amount || amount <= 0) {
-      return NextResponse.json({ success: false, error: "Invalid amount." }, { status: 400 });
+    const amountInPaise = Math.round(Number(amount) * 100);
+    if (!amountInPaise || amountInPaise < 100) {
+      return NextResponse.json({ success: false, error: "Invalid amount. Minimum amount is 1 INR." }, { status: 400 });
     }
 
     // Verify ownership
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     const keySecret = process.env.RAZORPAY_KEY_SECRET.trim().replace(/['"]/g, "");
 
     const options = {
-      amount: Math.round(Number(amount) * 100), // amount in the smallest currency unit (paise)
+      amount: amountInPaise, // amount in the smallest currency unit (paise)
       currency: "INR",
       receipt: `rcpt_${studentId}_${Date.now()}`.substring(0, 40),
       notes: {
