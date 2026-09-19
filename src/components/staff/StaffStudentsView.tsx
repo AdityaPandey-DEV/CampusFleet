@@ -133,18 +133,34 @@ export default function StaffStudentsView({
     setPhotoModalOpen(true);
   };
 
-  const handleStaffPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStaffPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
       alert("Photo file size must be under 2MB.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setNewStaffPhotoUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+
+    setIsUpdatingPhoto(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    try {
+      const res = await fetch("/api/payments/upload-receipt", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNewStaffPhotoUrl(data.url);
+      } else {
+        alert(data.error || "Failed to upload photo. Please try again.");
+      }
+    } catch (err: any) {
+      alert("Upload failed: " + err.message);
+    } finally {
+      setIsUpdatingPhoto(false);
+    }
   };
 
   const handleSaveStaffPhoto = async (e: React.FormEvent) => {

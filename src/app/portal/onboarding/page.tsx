@@ -16,7 +16,9 @@ import {
   Camera,
   Upload,
   Lock,
+  Loader2,
 } from "lucide-react";
+import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
 
 export default function StudentOnboardingPage() {
   const router = useRouter();
@@ -81,12 +83,14 @@ export default function StudentOnboardingPage() {
   const [emergencyPhone, setEmergencyPhone] = useState("");
   const [emergencyRel, setEmergencyRel] = useState("Parent / Guardian");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
-  const isPhotoLocked = Boolean(activeStudent?.photoUrl || activeStudent?.photoLocked);
-  const isZoneLocked = activeStudent?.paymentStatus === "APPROVED" || Boolean(activeStudent?.hasActiveSubscription);
-  const isCampusLocked = Boolean(activeStudent?.campusId || activeStudent?.campus);
+  const isPassApproved = isStudentSubscriptionActive(activeStudent);
+  const isPhotoLocked = isPassApproved || Boolean(activeStudent?.photoLocked);
+  const isZoneLocked = isPassApproved;
+  const isCampusLocked = isPassApproved;
 
-  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isPhotoLocked) {
       alert("Official photo is locked. Only Campus Staff/Admin can update your photo.");
       return;
@@ -97,11 +101,27 @@ export default function StudentOnboardingPage() {
       alert("Photo file size must be under 2MB.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhotoUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    
+    setIsUploadingPhoto(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    try {
+      const res = await fetch("/api/payments/upload-receipt", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPhotoUrl(data.url);
+      } else {
+        alert(data.error || "Failed to upload photo. Please try again.");
+      }
+    } catch (err: any) {
+      alert("Upload failed: " + err.message);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   useEffect(() => {
@@ -323,17 +343,18 @@ export default function StudentOnboardingPage() {
                         Upload a clear passport-sized photo. This will be shown to the conductor during boarding.
                       </p>
                       <div className="flex items-center gap-3">
-                        <label className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium flex items-center gap-2 cursor-pointer transition-colors shadow-sm">
-                          <Upload className="w-4 h-4" />
-                          <span>Choose File</span>
+                        <label className={`px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium flex items-center gap-2 transition-colors shadow-sm ${isUploadingPhoto ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                          {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                          <span>{isUploadingPhoto ? 'Uploading...' : 'Choose File'}</span>
                           <input
                             type="file"
                             accept="image/*"
+                            disabled={isUploadingPhoto}
                             onChange={handlePhotoFileChange}
                             className="hidden"
                           />
                         </label>
-                        {photoUrl && (
+                        {photoUrl && !isUploadingPhoto && (
                           <button
                             type="button"
                             onClick={() => setPhotoUrl("")}
