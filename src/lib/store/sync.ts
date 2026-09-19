@@ -506,6 +506,11 @@ CampusFleetStore.prototype.syncLiveTransit = async function(this: CampusFleetSto
 
 CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore) {
   try {
+    const isBasicUser =
+      this.currentUser?.role === "student" ||
+      this.currentUser?.role === "driver" ||
+      this.currentUser?.role === "conductor";
+
     // 4.1 Fetch Special Shift Allocations
     const { data: dbAllocations } = await supabase.from("special_shift_allocations").select("*");
     if (dbAllocations) {
@@ -518,6 +523,21 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
         allocatedBy: a.allocated_by || undefined,
         createdAt: a.created_at || undefined,
       }));
+    }
+
+    if (isBasicUser) {
+      // PREVENT DATA LOSS ON REFRESH FOR STUDENTS
+      const activeStudentUser = this.currentUser;
+      if (activeStudentUser && activeStudentUser.role === "student") {
+        const existingProfile = this.students.find(
+          s => s.userId === activeStudentUser.id || s.email?.toLowerCase() === activeStudentUser.email?.toLowerCase()
+        );
+        if (existingProfile && existingProfile.campusId) {
+          this.students = [existingProfile];
+        }
+      }
+      this.notify();
+      return;
     }
 
     // 5. Fetch Users

@@ -338,8 +338,7 @@ export default function AdminMaintenanceView({
       )}
 
       {/* Header Banner */}
-      <div className="bg-gray-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-gray-800">
-        <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-gray-900 rounded-3xl p-6 sm:p-8 text-white shadow-sm relative overflow-hidden border border-gray-800">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-mono font-black tracking-wider uppercase">
@@ -473,7 +472,8 @@ export default function AdminMaintenanceView({
 
       {/* Physical Register Table */}
       <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
             {/* Table Header Styled as Physical Ledger */}
             <thead>
@@ -694,6 +694,76 @@ export default function AdminMaintenanceView({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
+          {filteredRequests.length === 0 ? (
+            <div className="p-12 text-center text-gray-400">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <Wrench className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                <div className="font-bold text-sm text-gray-600 dark:text-gray-400">No maintenance records found</div>
+              </div>
+            </div>
+          ) : (
+            filteredRequests.map((req) => (
+              <div key={req.id} className="p-4 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-black text-gray-900 dark:text-white font-mono text-sm">{req.vehicleNo}</div>
+                    <div className="text-[10px] text-gray-400">By: {req.requestedByName} • #{req.serialNo}</div>
+                  </div>
+                  {renderStatusBadge(req.status)}
+                </div>
+                
+                <div>
+                  <div className="font-bold text-gray-900 dark:text-white text-xs">{req.item}</div>
+                  {req.defectDescription && (
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
+                      {req.defectDescription}
+                    </p>
+                  )}
+                </div>
+                
+                <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-3 mt-1">
+                  <div className="font-mono font-black text-gray-900 dark:text-white">
+                    ₹{Number(req.amount).toLocaleString("en-IN")} <span className="text-[10px] font-medium text-gray-400">(Qty: {req.quantity})</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {req.status === "OPEN" && (
+                      <button
+                        onClick={() => handleStatusChange(req.id, "IN_PROGRESS")}
+                        className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm"
+                      >
+                        Approve
+                      </button>
+                    )}
+                    {req.status === "IN_PROGRESS" && (
+                      <button
+                        onClick={() => {
+                          setCompletionRequest(req);
+                          setCompleteWorkDesc(req.workDoneDescription || "");
+                          setCompleteWorkImages(req.workDoneImageUrls || []);
+                          setCompleteReceiptUrl(req.paymentReceiptUrl || "");
+                          setCompleteTxnId(req.paymentTransactionId || "");
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-xs shadow-sm"
+                      >
+                        Complete
+                      </button>
+                    )}
+                    {req.status === "COMPLETED" && (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 dark:text-green-400">
+                        <Check className="w-4 h-4" />
+                        Archived
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
