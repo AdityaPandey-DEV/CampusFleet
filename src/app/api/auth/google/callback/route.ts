@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { signToken, createSessionCookie } from "@/lib/jwt";
+import { signToken, COOKIE_NAME } from "@/lib/jwt";
 import { findOrCreateUser } from "@/lib/account-service";
 
 // Allowed redirect origins (prevent open redirect attacks)
@@ -137,13 +137,18 @@ export async function GET(req: NextRequest) {
     }
 
     const response = NextResponse.redirect(`${origin}${redirectPath}`);
-    response.headers.set("Set-Cookie", createSessionCookie(token));
+    
+    // Set the session cookie using Next.js native API to prevent multiple Set-Cookie overwrite issues
+    response.cookies.set(COOKIE_NAME, token, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60,
+      secure: process.env.NODE_ENV === "production",
+    });
 
     // Clear the CSRF state cookie
-    response.headers.append(
-      "Set-Cookie",
-      "oauth_csrf_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
-    );
+    response.cookies.delete("oauth_csrf_state");
 
     return response;
   } catch (e: any) {
