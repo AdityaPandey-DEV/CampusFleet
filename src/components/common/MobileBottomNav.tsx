@@ -13,49 +13,35 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 
-interface MobileBottomNavProps {
-  isPaymentApproved?: boolean;
+interface MobileBottomNavItem {
+  href: string;
+  label: string;
+  icon: any;
+  highlight?: boolean;
 }
 
-export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavProps) {
+interface MobileBottomNavProps {
+  isPaymentApproved?: boolean;
+  navItems?: MobileBottomNavItem[];
+}
+
+export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: MobileBottomNavProps) {
   const pathname = usePathname();
 
-  const navItems = isPaymentApproved
+  // If no dynamic items provided, default to the student navigation logic
+  const defaultNavItems = isPaymentApproved
     ? [
-        {
-          href: "/portal",
-          label: "Hub",
-          icon: LayoutDashboard,
-        },
-        {
-          href: "/portal/booking",
-          label: "Seats",
-          icon: CalendarCheck,
-        },
-        {
-          href: "/portal/pass",
-          label: "Pass",
-          icon: QrCode,
-          highlight: true,
-        },
-        {
-          href: "/portal/tracker",
-          label: "Radar",
-          icon: Compass,
-        },
-        {
-          href: "/portal/profile",
-          label: "Profile",
-          icon: User,
-        },
+        { href: "/portal", label: "Hub", icon: LayoutDashboard },
+        { href: "/portal/booking", label: "Seats", icon: CalendarCheck },
+        { href: "/portal/pass", label: "Pass", icon: QrCode, highlight: true },
+        { href: "/portal/tracker", label: "Radar", icon: Compass },
+        { href: "/portal/profile", label: "Profile", icon: User },
       ]
     : [
-        {
-          href: "/portal/payments",
-          label: "Activate Transit Pass",
-          icon: CreditCard,
-        },
+        { href: "/portal/payments", label: "Activate Transit Pass", icon: CreditCard },
       ];
+
+  const itemsToRender = navItems.length > 0 ? navItems : defaultNavItems;
 
   return (
     <nav
@@ -69,11 +55,11 @@ export function MobileBottomNav({ isPaymentApproved = true }: MobileBottomNavPro
               isPaymentApproved ? "grid-cols-5" : "grid-cols-1"
             }`}
           >
-            {navItems.map((item) => {
+            {itemsToRender.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href) && item.href !== "/portal");
 
-              if (!isPaymentApproved) {
+              if (!isPaymentApproved && item.href === "/portal/payments") {
                 return (
                   <Link
                     key={item.href}

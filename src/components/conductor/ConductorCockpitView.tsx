@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
+import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 import { Trip, Bus, Route, Booking, Student, Stop, Shift } from "@/lib/types";
@@ -46,6 +47,10 @@ export interface ConductorCockpitProps {
   initialShifts?: Shift[];
   initialUser?: any;
 }
+
+const conductorNavLinks = [
+  { href: "/conductor", label: "Conductor Dashboard", icon: FileCheck2 },
+];
 
 export default function ConductorCockpitView({
   initialTrips = [],
@@ -261,29 +266,32 @@ export default function ConductorCockpitView({
       : "Go to Student Portal";
 
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-gray-800 rounded-3xl p-8 border border-gray-700 shadow-2xl text-center space-y-4 animate-in fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-black">Access Restricted</h2>
-          <p className="text-xs text-gray-300">
-            {isAdmin
-              ? "Administrators are restricted from the Conductor Console. Admin and Staff can manage operations in Admin Hub or Staff Ops."
-              : isStaff
-              ? "Staff members are restricted from the Conductor Console. Please return to the Staff Operations Panel."
-              : "Ticketing & optical manifest authorization required to access the Conductor Console."}
-          </p>
-          <div className="pt-2">
-            <Link
-              href={targetPortal}
-              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
-            >
-              <span>{targetLabel}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+      <div className="min-h-screen bg-gray-900 text-white flex flex-col pb-20 md:pb-6">
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-gray-800 rounded-3xl p-8 border border-gray-700 shadow-2xl text-center space-y-4 animate-in fade-in">
+            <div className="w-16 h-16 rounded-2xl bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-black">Access Restricted</h2>
+            <p className="text-xs text-gray-300">
+              {isAdmin
+                ? "Administrators are restricted from the Conductor Console. Admin and Staff can manage operations in Admin Hub or Staff Ops."
+                : isStaff
+                ? "Staff members are restricted from the Conductor Console. Please return to the Staff Operations Panel."
+                : "Ticketing & optical manifest authorization required to access the Conductor Console."}
+            </p>
+            <div className="pt-2">
+              <Link
+                href={targetPortal}
+                className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
+              >
+                <span>{targetLabel}</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
         </div>
+        <MobileBottomNav isPaymentApproved={true} navItems={conductorNavLinks} />
       </div>
     );
   }
@@ -1140,68 +1148,7 @@ export default function ConductorCockpitView({
         </div>
       )}
 
-      {/* Sticky Mobile Bottom Ergonomic Action Bar */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 p-2 flex items-center justify-around shadow-2xl">
-        <button
-          onClick={() => setActiveConsoleTab("SCANNER")}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
-            activeConsoleTab === "SCANNER"
-              ? "text-green-600 dark:text-green-400 font-bold scale-105"
-              : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
-          }`}
-        >
-          <QrCode className="w-5 h-5" />
-          <span className="text-[10px]">QR Radar</span>
-        </button>
-
-        <button
-          onClick={() => setActiveConsoleTab("MANIFEST")}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
-            activeConsoleTab === "MANIFEST"
-              ? "text-green-600 dark:text-green-400 font-bold scale-105"
-              : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
-          }`}
-        >
-          <FileText className="w-5 h-5" />
-          <span className="text-[10px]">Manifest</span>
-        </button>
-
-        <button
-          onClick={() => setActiveConsoleTab("SEAT_MAP")}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
-            activeConsoleTab === "SEAT_MAP"
-              ? "text-green-600 dark:text-green-400 font-bold scale-105"
-              : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
-          }`}
-        >
-          <LayoutGrid className="w-5 h-5" />
-          <span className="text-[10px]">Seat Map</span>
-        </button>
-
-        <button
-          onClick={() => setActiveConsoleTab("AUDIT")}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
-            activeConsoleTab === "AUDIT"
-              ? "text-green-600 dark:text-green-400 font-bold scale-105"
-              : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
-          }`}
-        >
-          <ShieldCheck className="w-5 h-5" />
-          <span className="text-[10px]">Audit Log</span>
-        </button>
-
-        <button
-          onClick={() => setActiveConsoleTab("BUS_QR")}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
-            activeConsoleTab === "BUS_QR"
-              ? "text-green-600 dark:text-green-400 font-bold scale-105"
-              : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-300"
-          }`}
-        >
-          <QrCode className="w-5 h-5" />
-          <span className="text-[10px]">Bus QR</span>
-        </button>
-      </div>
+      <MobileBottomNav isPaymentApproved={true} navItems={conductorNavLinks} />
     </div>
   );
 }

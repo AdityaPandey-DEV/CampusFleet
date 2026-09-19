@@ -431,6 +431,8 @@ export default function StaffFeeApprovalsView({
                               className={`p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border ${
                                 isPending
                                   ? "bg-white dark:bg-gray-900 border-yellow-200 dark:border-yellow-900/50"
+                                  : sub.auto_detected
+                                  ? "bg-purple-50/50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
                                   : "bg-white/60 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 opacity-90 hover:opacity-100"
                               }`}
                             >
@@ -465,12 +467,14 @@ export default function StaffFeeApprovalsView({
                                       className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
                                         isPending
                                           ? "bg-yellow-100 dark:bg-yellow-900/60 text-yellow-800 dark:text-yellow-200"
+                                          : sub.auto_detected
+                                          ? "bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200"
                                           : isApproved
                                           ? "bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-200"
                                           : "bg-red-100 dark:bg-red-900/60 text-red-800 dark:text-red-200"
                                       }`}
                                     >
-                                      {sub.status}
+                                      {sub.auto_detected ? "AUTO-APPROVED" : sub.status}
                                     </span>
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5 flex flex-wrap gap-2">
@@ -520,6 +524,10 @@ export default function StaffFeeApprovalsView({
                                       Reject
                                     </button>
                                   </>
+                                ) : sub.auto_detected ? (
+                                  <span className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                                    <ShieldCheck className="w-4 h-4" /> Razorpay Verified
+                                  </span>
                                 ) : isApproved ? (
                                   <span className="text-xs font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
                                     <Check className="w-4 h-4" /> Verified

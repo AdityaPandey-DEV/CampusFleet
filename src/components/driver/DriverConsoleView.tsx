@@ -26,6 +26,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
+import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 import { supabase } from "@/lib/supabaseClient";
 import type { Trip, Bus, Route, Booking, Stop } from "@/lib/types";
@@ -272,32 +273,40 @@ export default function DriverConsoleView({
       ? "Go to Conductor Console"
       : "Go to Student Portal";
 
+    const driverNavLinks = [
+      { href: "/driver", label: "Driver Console", icon: BusFront },
+    ];
+
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-gray-800 rounded-3xl p-8 border border-gray-700 shadow-2xl text-center space-y-4 animate-in fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-black">Access Restricted</h2>
-          <p className="text-xs text-gray-300">
-            {isAdmin
-              ? "Administrators are restricted from the Driver Console. Commercial heavy vehicle driving qualifications are required. Admins can manage operations in Admin Hub or Staff Ops."
-              : isStaff
-              ? "Staff members are restricted from the Driver Console. Staff cannot operate driver telematics."
-              : isConductor
-              ? "Conductors are restricted from viewing the Driver Console. Commercial heavy vehicle driving qualifications are required."
-              : "Commercial heavy vehicle driving credentials required to operate the Driver Telematics Cockpit."}
-          </p>
-          <div className="pt-2">
-            <Link
-              href={targetPortal}
-              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
-            >
-              <span>{targetLabel}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+      <div className="min-h-screen bg-gray-900 text-white flex flex-col pb-20 md:pb-6">
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-gray-800 rounded-3xl p-8 border border-gray-700 shadow-2xl text-center space-y-4 animate-in fade-in">
+            <div className="w-16 h-16 rounded-2xl bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-black">Access Restricted</h2>
+            <p className="text-xs text-gray-300">
+              {isAdmin
+                ? "Administrators are restricted from the Driver Console. Commercial heavy vehicle driving qualifications are required. Admins can manage operations in Admin Hub or Staff Ops."
+                : isStaff
+                ? "Staff members are restricted from the Driver Console. Staff cannot operate driver telematics."
+                : isConductor
+                ? "Conductors are restricted from viewing the Driver Console. Commercial heavy vehicle driving qualifications are required."
+                : "Commercial heavy vehicle driving credentials required to operate the Driver Telematics Cockpit."}
+            </p>
+            <div className="pt-2">
+              <Link
+                href={targetPortal}
+                className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-lg transition-all"
+              >
+                <span>{targetLabel}</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
         </div>
+
+        <MobileBottomNav isPaymentApproved={true} navItems={driverNavLinks} />
       </div>
     );
   }

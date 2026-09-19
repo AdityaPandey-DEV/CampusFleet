@@ -146,12 +146,27 @@ export default function StaffPaymentQRView({ initialUser }: StaffPaymentQRViewPr
         <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-md space-y-6">
           <div>
             <h3 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <span>Campus Fee Collection QR & UPI VPA Management</span>
+              <ShieldCheck className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <span>Payment Gateway & Fallback Configuration</span>
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Configure the institutional bank account details, UPI ID, and QR code displayed to commuters in the Student Portal.
+              Automated Razorpay payments are active. Configure the fallback offline UPI bank details displayed to commuters if gateway fails.
             </p>
+          </div>
+
+          <div className="bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs">
+                RZP
+              </div>
+              <div>
+                <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  Razorpay Auto-Sync Active
+                  <span className="flex w-2 h-2 rounded-full bg-green-500"></span>
+                </div>
+                <div className="text-xs text-gray-500">Gateway configured. Transactions are automatically verified via Webhook.</div>
+              </div>
+            </div>
           </div>
 
           <form onSubmit={handleSaveQrConfig} className="space-y-4">

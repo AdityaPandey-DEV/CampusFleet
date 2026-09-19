@@ -26,6 +26,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
+import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 
 export interface TodayArrival {
@@ -282,8 +283,12 @@ export default function TeacherConsoleView({
       ? "All Allocated Classes"
       : classes.find((c) => c.id === selectedClassId)?.name || "Assigned Class";
 
+  const teacherNavLinks = [
+    { href: "/teacher", label: "Today's Arrivals", icon: Users },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col pb-20 md:pb-6">
       {/* Zero-Overflow Top Header */}
       <UnifiedAppHeader
         role="teacher"
@@ -940,6 +945,8 @@ export default function TeacherConsoleView({
           </div>
         )}
       </main>
+
+      <MobileBottomNav isPaymentApproved={true} navItems={teacherNavLinks} />
     </div>
   );
 }

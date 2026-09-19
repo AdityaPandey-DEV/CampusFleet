@@ -10,15 +10,11 @@ import {
   FileText,
   CheckCircle2,
   Search,
-  ArrowUpRight,
   ShieldCheck,
   Clock,
   Check,
   X,
   Eye,
-  AlertCircle,
-  ExternalLink,
-  Sparkles,
   Building2,
   Layers,
   Plus,
@@ -26,10 +22,8 @@ import {
   Trash2,
   MapPin,
   IndianRupee,
-  Tag,
   CheckSquare,
   Square,
-  Filter,
 } from "lucide-react";
 
 interface StaffBillingViewProps {
@@ -113,7 +107,11 @@ export function StaffBillingView({
 
   const pendingCount = submissions.filter((s) => s.status === "PENDING_APPROVAL").length;
   const approvedCount = submissions.filter((s) => s.status === "APPROVED").length;
-  const totalRevenue = payments.reduce((acc: number, p: any) => acc + (p.status === "PAID" ? p.amount : 0), 0);
+  
+  // Calculate revenue from both old payments table and new payment_submissions table (Razorpay)
+  const legacyRevenue = payments.reduce((acc: number, p: any) => acc + (p.status === "PAID" ? p.amount : 0), 0);
+  const submissionsRevenue = submissions.reduce((acc: number, s: any) => acc + (s.status === "APPROVED" ? Number(s.amount) || 0 : 0), 0);
+  const totalRevenue = legacyRevenue + submissionsRevenue;
 
   const handleApprove = async (submissionId: string) => {
     setActionLoadingId(submissionId);
@@ -601,10 +599,34 @@ export function StaffBillingView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {payments.map((pay: any) => (
+                {[
+                  ...payments.map((p: any) => ({ ...p, _source: "legacy" })),
+                  ...submissions
+                    .filter((s: any) => s.status === "APPROVED")
+                    .map((s: any) => ({
+                      id: s.id,
+                      receiptNumber: s.receipt_number,
+                      studentName: s.student_name || s.students?.full_name,
+                      planName: `Zone: ${s.zone_code}`,
+                      amount: s.amount,
+                      transactionRef: s.transaction_id || s.transaction_ref,
+                      createdAt: s.created_at,
+                      status: "PAID", // Map APPROVED to PAID for consistency in UI
+                      _source: s.auto_detected ? "razorpay" : "manual"
+                    }))
+                ].sort((a, b) => new Date(b.createdAt || b.created_at).getTime() - new Date(a.createdAt || a.created_at).getTime()).map((pay: any) => (
                   <tr key={pay.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
                     <td className="p-3 font-mono font-bold text-blue-600">{pay.receiptNumber || pay.receipt_number}</td>
-                    <td className="p-3 font-medium">{pay.studentName || pay.student_name}</td>
+                    <td className="p-3 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <span>{pay.studentName || pay.student_name}</span>
+                        {pay._source === "razorpay" && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-bold border border-purple-200">
+                            Razorpay
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-3 text-gray-500">{pay.planName || pay.plan_name}</td>
                     <td className="p-3 font-black font-mono">{formatCurrency(pay.amount)}</td>
                     <td className="p-3 font-mono text-gray-400 text-xs">
