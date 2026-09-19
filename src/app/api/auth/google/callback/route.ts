@@ -1,26 +1,72 @@
 import { NextRequest, NextResponse } from "next/server";
 import { signToken, createSessionCookie } from "@/lib/jwt";
-import { supabaseAdmin } from "@/lib/supabaseClient";
 import { findOrCreateUser } from "@/lib/account-service";
+
+// Allowed redirect origins (prevent open redirect attacks)
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_APP_URL,
+  "http://localhost:3000",
+  "http://localhost:3001",
+].filter(Boolean) as string[];
 
 /**
  * GET /api/auth/google/callback
- * Handles Google OAuth callback — exchanges code for tokens,
- * upserts user in DB, sets JWT session cookie.
+ *
+ * Handles Google OAuth callback:
+ * 1. Validates CSRF state from cookie (prevents CSRF attacks)
+ * 2. Exchanges authorization code for tokens
+ * 3. Upserts user in DB via centralized account service
+ * 4. Sets JWT session cookie
+ * 5. Redirects to role-appropriate portal
  */
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
-  const state = req.nextUrl.searchParams.get("state") || req.nextUrl.origin;
+  const stateParam = req.nextUrl.searchParams.get("state");
+  const fallbackOrigin = req.nextUrl.origin;
 
   if (!code) {
-    return NextResponse.redirect(`${state}/login?error=no_code`);
+    return NextResponse.redirect(`${fallbackOrigin}/login?error=no_code`);
+  }
+
+  // ── CSRF State Validation ──────────────────────────────────────────
+  const csrfCookie = req.cookies.get("oauth_csrf_state")?.value;
+  let origin = fallbackOrigin;
+
+  if (!csrfCookie || !stateParam) {
+    console.warn("OAuth CSRF: Missing state cookie or parameter");
+    return NextResponse.redirect(`${fallbackOrigin}/login?error=csrf_validation_failed`);
+  }
+
+  if (csrfCookie !== stateParam) {
+    console.warn("OAuth CSRF: State mismatch — possible CSRF attack");
+    return NextResponse.redirect(`${fallbackOrigin}/login?error=csrf_state_mismatch`);
+  }
+
+  // Parse origin from state
+  try {
+    const statePayload = JSON.parse(Buffer.from(stateParam, "base64url").toString());
+    const stateOrigin = statePayload.origin;
+    const stateTimestamp = statePayload.timestamp;
+
+    // Validate state is not too old (10 minute max)
+    if (Date.now() - stateTimestamp > 10 * 60 * 1000) {
+      return NextResponse.redirect(`${fallbackOrigin}/login?error=oauth_state_expired`);
+    }
+
+    // Validate origin against allowlist
+    if (stateOrigin && isAllowedOrigin(stateOrigin)) {
+      origin = stateOrigin;
+    }
+  } catch {
+    console.warn("OAuth CSRF: Failed to parse state payload");
+    // Continue with fallback origin
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect(`${state}/login?error=oauth_not_configured`);
+    return NextResponse.redirect(`${origin}/login?error=oauth_not_configured`);
   }
 
   try {
@@ -32,7 +78,7 @@ export async function GET(req: NextRequest) {
         code,
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: `${state}/api/auth/google/callback`,
+        redirect_uri: `${origin}/api/auth/google/callback`,
         grant_type: "authorization_code",
       }),
     });
@@ -41,7 +87,7 @@ export async function GET(req: NextRequest) {
 
     if (!tokenData.access_token) {
       console.error("Google token exchange failed:", tokenData);
-      return NextResponse.redirect(`${state}/login?error=token_exchange_failed`);
+      return NextResponse.redirect(`${origin}/login?error=token_exchange_failed`);
     }
 
     // 2. Get user profile from Google
@@ -55,7 +101,7 @@ export async function GET(req: NextRequest) {
     const avatarUrl = profile.picture || null;
 
     if (!email) {
-      return NextResponse.redirect(`${state}/login?error=no_email`);
+      return NextResponse.redirect(`${origin}/login?error=no_email`);
     }
 
     // 3. Find or create user via centralized account service
@@ -77,7 +123,7 @@ export async function GET(req: NextRequest) {
       avatarUrl: user.avatar_url || avatarUrl,
     });
 
-    // 6. Determine redirect based on role
+    // 5. Determine redirect based on role
     let redirectPath = "/portal";
     switch (user.role) {
       case "admin": redirectPath = "/admin"; break;
@@ -90,11 +136,54 @@ export async function GET(req: NextRequest) {
       default: redirectPath = "/portal";
     }
 
-    const response = NextResponse.redirect(`${state}${redirectPath}`);
+    const response = NextResponse.redirect(`${origin}${redirectPath}`);
     response.headers.set("Set-Cookie", createSessionCookie(token));
+
+    // Clear the CSRF state cookie
+    response.headers.append(
+      "Set-Cookie",
+      "oauth_csrf_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
+    );
+
     return response;
   } catch (e: any) {
     console.error("Google OAuth callback error:", e);
-    return NextResponse.redirect(`${state}/login?error=oauth_failed`);
+    return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+  }
+}
+
+/**
+ * Validates that a redirect origin is in the allowlist.
+ * Prevents open redirect attacks via OAuth state manipulation.
+ */
+function isAllowedOrigin(testOrigin: string): boolean {
+  try {
+    const testUrl = new URL(testOrigin);
+
+    for (const allowed of ALLOWED_ORIGINS) {
+      try {
+        const allowedUrl = new URL(allowed);
+        if (testUrl.origin === allowedUrl.origin) return true;
+      } catch {
+        continue;
+      }
+    }
+
+    // Allow Vercel preview deployments for the same project
+    if (testUrl.hostname.endsWith(".vercel.app")) {
+      return true;
+    }
+
+    // Allow localhost in development
+    if (
+      process.env.NODE_ENV !== "production" &&
+      testUrl.hostname === "localhost"
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
   }
 }

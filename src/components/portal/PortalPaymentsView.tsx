@@ -6,6 +6,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { TRANSIT_ZONES, TransitZone, Student } from "@/lib/types";
 import { QRCodeSVG } from "qrcode.react";
 import { extractTransactionIdFromImage } from "@/lib/ocrService";
+import type { OcrExtractionResult } from "@/lib/ocrService";
 import Link from "next/link";
 import {
   CreditCard,
@@ -114,8 +115,11 @@ export default function PortalPaymentsView({
   const [ocrStatus, setOcrStatus] = useState<string | null>(null);
   const [isScanningOcr, setIsScanningOcr] = useState<boolean>(false);
   const [detectedTransactionId, setDetectedTransactionId] = useState<string | null>(null);
+  const [detectedAmount, setDetectedAmount] = useState<number | null>(null);
+  const [ocrFullText, setOcrFullText] = useState<string>("");
   const [transactionIdInput, setTransactionIdInput] = useState<string>("");
   const [manualInputRequired, setManualInputRequired] = useState<boolean>(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -124,6 +128,7 @@ export default function PortalPaymentsView({
   const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([]);
   const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
   const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
+  const [showFinalConfirmation, setShowFinalConfirmation] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -199,10 +204,13 @@ export default function PortalPaymentsView({
     const objectUrl = URL.createObjectURL(file);
     setReceiptPreviewUrl(objectUrl);
     setSubmitError(null);
+    setDuplicateError(null);
     setDetectedTransactionId(null);
+    setDetectedAmount(null);
+    setOcrFullText("");
     setManualInputRequired(false);
 
-    // Trigger OCR Detection
+    // Trigger OCR Detection (extracts both Transaction ID AND Amount)
     setIsScanningOcr(true);
     setOcrStatus("Analyzing receipt image with OCR...");
 
@@ -210,6 +218,7 @@ export default function PortalPaymentsView({
       const result = await extractTransactionIdFromImage(file, (msg) => setOcrStatus(msg));
       setIsScanningOcr(false);
       setOcrStatus(null);
+      setOcrFullText(result.fullText || "");
 
       if (result.transactionId) {
         setDetectedTransactionId(result.transactionId);
@@ -218,6 +227,12 @@ export default function PortalPaymentsView({
       } else {
         setDetectedTransactionId(null);
         setManualInputRequired(true);
+      }
+
+      // Extract amount from receipt
+      if (result.amount && result.amount > 0) {
+        setDetectedAmount(result.amount);
+        setPaymentAmountInput(String(result.amount));
       }
     } catch (err) {
       console.warn("OCR failure:", err);
@@ -243,8 +258,29 @@ export default function PortalPaymentsView({
       return;
     }
 
+    // Check if this receipt will complete the full payment — show confirmation first
+    const currentPaid = Number(activeStudent?.totalFeePaid || 0);
+    const pendingAmount = pendingSubmissions
+      .filter((s: any) => s.status === "PENDING_APPROVAL")
+      .reduce((sum: number, s: any) => sum + Number(s.amount || 0), 0);
+    const totalAfterThis = currentPaid + pendingAmount + amountToPay;
+    const totalDue = currentZone.semesterFee;
+
+    if (totalDue > 0 && totalAfterThis >= totalDue) {
+      // This receipt completes the full fee — show confirmation step
+      setShowFinalConfirmation(true);
+      return;
+    }
+
+    // Otherwise submit directly
+    await executeSubmit();
+  };
+
+  // Actual submission logic (called directly or after confirmation)
+  const executeSubmit = async () => {
     setIsSubmitting(true);
     setSubmitError(null);
+    setDuplicateError(null);
 
     try {
       // 1. Upload receipt to Vercel Blob Storage
@@ -254,6 +290,7 @@ export default function PortalPaymentsView({
       const uploadRes = await fetch("/api/payments/upload-receipt", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
       const uploadData = await uploadRes.json();
 
@@ -263,47 +300,70 @@ export default function PortalPaymentsView({
 
       const receiptBlobUrl = uploadData.url;
 
-      // 2. Submit payment record for staff approval
+      // 2. Submit payment record for staff approval (with uniqueness check + amount tracking)
       const submitRes = await fetch("/api/payments/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           studentId: activeStudent?.id || `stud-${currentUser.id}`,
           studentName: activeStudent?.fullName || currentUser.fullName,
           enrollmentNo: activeStudent?.enrollmentNo || "PENDING",
           zoneCode: currentZone.code || selectedZoneCode,
           amount: amountToPay,
-          installmentNo: 1,
-          totalInstallments: 1,
+          scannedAmount: detectedAmount,
+          installmentNo: (pendingSubmissions.filter((s: any) => s.status !== "REJECTED").length || 0) + 1,
+          totalInstallments: currentZone.installmentsAllowed || 3,
           receiptUrl: receiptBlobUrl,
           transactionId: transactionIdInput.trim(),
           autoDetected: Boolean(detectedTransactionId && detectedTransactionId === transactionIdInput.trim()),
+          ocrFullText: ocrFullText.slice(0, 2000),
         }),
       });
       const submitData = await submitRes.json();
 
       if (!submitRes.ok || !submitData.success) {
+        // Handle duplicate transaction ID specifically
+        if (submitData.code === "DUPLICATE_TRANSACTION_ID") {
+          setDuplicateError(submitData.error);
+          throw new Error(submitData.error);
+        }
         throw new Error(submitData.error || "Failed to record payment submission.");
       }
 
       // 3. Update local student state
       if (activeStudent) {
-        activeStudent.paymentStatus = "PENDING_APPROVAL";
+        activeStudent.paymentStatus = submitData.balance?.isFullyPaid ? "APPROVED" : "PENDING_APPROVAL";
         activeStudent.zoneCode = currentZone.code || selectedZoneCode;
+        if (submitData.balance) {
+          activeStudent.totalFeePaid = submitData.balance.totalPaid;
+        }
       }
 
-      setSubmitSuccess("Payment receipt uploaded successfully! Transport staff has been notified for verification.");
+      const balanceMsg = submitData.balance
+        ? ` Balance: ₹${submitData.balance.amountLeft.toLocaleString()} remaining.`
+        : "";
+      setSubmitSuccess(
+        submitData.balance?.isFullyPaid
+          ? "🎉 All installments submitted! Your receipts are queued for staff verification. Access will be unlocked automatically once approved."
+          : `Payment receipt uploaded successfully!${balanceMsg} Transport staff has been notified.`
+      );
       setReceiptFile(null);
       setReceiptPreviewUrl(null);
       setTransactionIdInput("");
+      setPaymentAmountInput("");
       setDetectedTransactionId(null);
+      setDetectedAmount(null);
+      setOcrFullText("");
       setManualInputRequired(false);
 
       // Refresh store
       store.syncFromSupabase();
     } catch (err: any) {
       console.error("Payment submission failed:", err);
-      setSubmitError(err.message || "Payment submission failed. Please try again.");
+      if (!duplicateError) {
+        setSubmitError(err.message || "Payment submission failed. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -819,7 +879,24 @@ export default function PortalPaymentsView({
                     <div>
                       <div className="font-extrabold">✓ Transaction ID Auto-Detected from Receipt!</div>
                       <div className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                        Found UTR: <span className="font-mono font-bold text-slate-900 dark:text-white">{detectedTransactionId}</span>. Please verify or edit below if needed.
+                        Found UTR: <span className="font-mono font-bold text-slate-900 dark:text-white">{detectedTransactionId}</span>
+                        {detectedAmount ? (
+                          <> | Amount: <span className="font-mono font-bold text-slate-900 dark:text-white">₹{detectedAmount.toLocaleString()}</span></>
+                        ) : null}
+                        . Please verify or edit below if needed.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Duplicate Transaction ID Error */}
+                {duplicateError && (
+                  <div className="p-3.5 bg-rose-50 dark:bg-rose-950/60 rounded-2xl border border-rose-200 dark:border-rose-800 flex items-start gap-3 text-xs text-rose-800 dark:text-rose-300">
+                    <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-extrabold">⚠ Duplicate Transaction ID Detected</div>
+                      <div className="text-[11px] text-rose-700 dark:text-rose-400 mt-0.5">
+                        {duplicateError}
                       </div>
                     </div>
                   </div>
@@ -834,6 +911,34 @@ export default function PortalPaymentsView({
                       <div className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
                         Please write or copy your 12-digit UPI UTR number / Bank Reference ID manually below.
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Running Balance Progress Bar */}
+                {currentZone.semesterFee > 0 && (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Payment Progress</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">
+                        {formatCurrency(Number(activeStudent?.totalFeePaid || 0))} / {formatCurrency(currentZone.semesterFee)}
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ease-out ${
+                          remainingDue <= 0
+                            ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                            : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                        }`}
+                        style={{ width: `${Math.min(100, ((Number(activeStudent?.totalFeePaid || 0)) / currentZone.semesterFee) * 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>Approved: {formatCurrency(Number(activeStudent?.totalFeePaid || 0))}</span>
+                      <span className={remainingDue <= 0 ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
+                        {remainingDue <= 0 ? "✓ Fully Paid" : `₹${remainingDue.toLocaleString()} remaining`}
+                      </span>
                     </div>
                   </div>
                 )}

@@ -7,7 +7,11 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 const COOKIE_NAME = "campusfleet_session";
-const TOKEN_EXPIRY = "7d";
+const TOKEN_EXPIRY = "24h"; // Reduced from 7d for security — silent refresh handles UX
+const COOKIE_MAX_AGE = 24 * 60 * 60; // 24 hours in seconds
+
+const ISSUER = "campusfleet";
+const AUDIENCE = "campusfleet-app";
 
 export interface SessionPayload extends JWTPayload {
   userId: string;
@@ -21,23 +25,31 @@ export interface SessionPayload extends JWTPayload {
 
 /**
  * Create a signed JWT token from user data.
+ * Includes jti (JWT ID) for token uniqueness and revocation support,
+ * iss (issuer) and aud (audience) for validation.
  */
-export async function signToken(payload: Omit<SessionPayload, "iat" | "exp">): Promise<string> {
+export async function signToken(payload: Omit<SessionPayload, "iat" | "exp" | "jti">): Promise<string> {
+  const jti = crypto.randomUUID(); // Unique token ID for revocation support
+
   return new SignJWT(payload as JWTPayload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(TOKEN_EXPIRY)
-    .setIssuer("campusfleet")
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
+    .setJti(jti)
     .sign(JWT_SECRET);
 }
 
 /**
  * Verify and decode a JWT token.
+ * Validates issuer, audience, and expiration.
  */
 export async function verifyToken(token: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET, {
-      issuer: "campusfleet",
+      issuer: ISSUER,
+      audience: AUDIENCE,
     });
     return payload as SessionPayload;
   } catch {
@@ -66,6 +78,7 @@ export async function getSession(): Promise<SessionPayload | null> {
 
 /**
  * Create a Set-Cookie header value for the session.
+ * HttpOnly + SameSite=Lax + Secure (in production) for maximum security.
  */
 export function createSessionCookie(token: string): string {
   const isProduction = process.env.NODE_ENV === "production";
@@ -74,7 +87,7 @@ export function createSessionCookie(token: string): string {
     "Path=/",
     "HttpOnly",
     "SameSite=Lax",
-    `Max-Age=${7 * 24 * 60 * 60}`, // 7 days
+    `Max-Age=${COOKIE_MAX_AGE}`,
   ];
   if (isProduction) {
     parts.push("Secure");

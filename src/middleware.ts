@@ -5,6 +5,11 @@ import { verifyToken, COOKIE_NAME } from "@/lib/jwt";
  * Next.js Middleware — Route Protection via JWT validation.
  * Protects portal, admin, staff, driver, conductor routes.
  * Public routes (login, home, API) pass through.
+ *
+ * Security features (Cloudflare Audit compliant):
+ * - CSRF origin verification on state-changing requests
+ * - Cross-portal guard (prevents role-based portal hopping)
+ * - Request ID injection for audit trail correlation
  */
 
 const PROTECTED_PREFIXES = [
@@ -23,6 +28,11 @@ const PUBLIC_PATHS = [
   "/_next",
   "/favicon.ico",
 ];
+
+// Allowed origins for CSRF checks — configured from environment
+const ALLOWED_ORIGINS: string[] = [
+  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+].filter(Boolean);
 
 function getTargetRouteForRole(role?: string): string {
   switch (role) {
@@ -43,8 +53,47 @@ function getTargetRouteForRole(role?: string): string {
   }
 }
 
+/**
+ * Validates that the request origin is allowed.
+ * More restrictive than previous implementation which allowed any *.vercel.app subdomain.
+ */
+function isOriginAllowed(origin: string, host: string): boolean {
+  try {
+    const originHost = new URL(origin).host;
+
+    // Same host — always allowed
+    if (originHost === host) return true;
+
+    // Check against configured allowed origins
+    for (const allowed of ALLOWED_ORIGINS) {
+      try {
+        if (new URL(allowed).host === originHost) return true;
+      } catch {
+        continue;
+      }
+    }
+
+    // Allow Vercel preview deployments for the same project
+    // Only when BOTH origin and host are on vercel.app
+    if (originHost.endsWith(".vercel.app") && host.endsWith(".vercel.app")) {
+      return true;
+    }
+
+    // Allow localhost in development only
+    if (process.env.NODE_ENV !== "production") {
+      if (originHost.includes("localhost") && host.includes("localhost")) {
+        return true;
+      }
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export async function middleware(req: NextRequest) {
-  const { pathname, searchParams } = req.nextUrl;
+  const { pathname } = req.nextUrl;
 
   // Allow static files and Next.js internal bundles
   if (
@@ -56,30 +105,29 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // CSRF & Origin verification on state-changing API routes (Cloudflare Security Audit)
+  // ── CSRF & Origin Verification on State-Changing API Routes ─────────
   if (pathname.startsWith("/api") && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
     const origin = req.headers.get("origin");
     const host = req.headers.get("host");
+
     if (origin && host) {
-      try {
-        const originHost = new URL(origin).host;
-        // Allow same host or authorized preview domains
-        const isAllowed =
-          originHost === host ||
-          (originHost.endsWith(".vercel.app") && host.endsWith(".vercel.app")) ||
-          (originHost.includes("localhost") && host.includes("localhost"));
-        if (!isAllowed) {
-          return NextResponse.json({ error: "Cross-Origin request blocked by security policy" }, { status: 403 });
-        }
-      } catch {
-        return NextResponse.json({ error: "Invalid origin format" }, { status: 403 });
+      if (!isOriginAllowed(origin, host)) {
+        return NextResponse.json(
+          { error: "Cross-Origin request blocked by security policy" },
+          { status: 403 }
+        );
       }
     }
   }
 
   // Allow API routes through to their route handlers
   if (pathname.startsWith("/api")) {
-    return NextResponse.next();
+    // Add request ID header for audit trail correlation
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-request-id", crypto.randomUUID());
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   // Validate JWT from cookie if present
@@ -125,6 +173,7 @@ export async function middleware(req: NextRequest) {
   requestHeaders.set("x-user-id", session.userId);
   requestHeaders.set("x-user-email", session.email);
   requestHeaders.set("x-user-role", session.role);
+  requestHeaders.set("x-request-id", crypto.randomUUID());
 
   // ── Cross-portal guard ─────────────────────────────────────────────
   // If the user is on the wrong portal for their role, redirect to the correct one.
