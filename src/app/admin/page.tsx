@@ -1,5 +1,5 @@
 import { HubDashboardView, HubModule } from "@/components/common/HubDashboardView";
-import { Wrench, Users } from "lucide-react";
+import { Wrench, Users, Home } from "lucide-react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -18,6 +18,12 @@ const adminModules: HubModule[] = [
     description: "Manage system administrators, configure role-based access, and view audit logs.",
     icon: Users,
     href: "/admin/staff"
+  },
+  {
+    title: "Staff Operations Panel",
+    description: "Switch to the Staff Panel to manage billing, fleet dispatch, students, and more.",
+    icon: Home, // Assuming Home is imported, let's check imports
+    href: "/staff"
   }
 ];
 
