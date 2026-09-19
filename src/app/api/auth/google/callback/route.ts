@@ -136,13 +136,23 @@ export async function GET(req: NextRequest) {
       default: redirectPath = "/portal";
     }
 
-    const response = NextResponse.redirect(`${origin}${redirectPath}`);
+    const redirectUrl = `${origin}${redirectPath}`;
+    const cookieValue = createSessionCookie(token);
     
-    // Set the session cookie using standard headers. 
-    // We avoid setting multiple Set-Cookie headers to prevent Vercel Edge from dropping them.
-    response.headers.set("Set-Cookie", createSessionCookie(token));
-
-    return response;
+    // Return a 200 HTML page that sets the cookie, then redirects.
+    // This bypasses the Vercel Edge issue where Set-Cookie headers
+    // are silently dropped on 307 redirect responses.
+    return new NextResponse(
+      `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${redirectUrl}"><script>window.location.replace("${redirectUrl}")</script></head><body>Signing in...</body></html>`,
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html",
+          "Set-Cookie": cookieValue,
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (e: any) {
     console.error("Google OAuth callback error:", e);
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
