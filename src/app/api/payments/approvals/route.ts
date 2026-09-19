@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabaseAdmin
       .from("payment_submissions")
-      .select("*, student:students(*)")
+      .select("*")
       .order("created_at", { ascending: false });
 
     // Non-staff can only see their own submissions
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       query = query.eq("status", status);
     }
 
-    const { data: submissions, error } = await query;
+    const { data: rawSubmissions, error } = await query;
     if (error) {
       return NextResponse.json(
         { success: false, error: error.message },
@@ -54,7 +54,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, submissions: submissions || [] });
+    // Manual merge since there is no explicit foreign key constraint
+    let submissions = rawSubmissions || [];
+    if (submissions.length > 0) {
+      const studentIds = Array.from(new Set(submissions.map(s => s.student_id)));
+      const { data: students } = await supabaseAdmin
+        .from("students")
+        .select("id, full_name, enrollment_no, department, phone, total_fee_due, total_fee_paid, payment_status, zone_code")
+        .in("id", studentIds);
+
+      const studentMap = (students || []).reduce((acc: any, student: any) => {
+        acc[student.id] = student;
+        return acc;
+      }, {});
+
+      submissions = submissions.map(sub => ({
+        ...sub,
+        student: studentMap[sub.student_id] || null
+      }));
+    }
+
+    return NextResponse.json({ success: true, submissions });
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: err?.message || "Internal server error" },
