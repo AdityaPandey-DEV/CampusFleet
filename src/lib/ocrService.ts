@@ -110,7 +110,7 @@ function extractAmount(text: string): number | null {
     const match = cleanText.match(pattern);
     if (match?.[1]) {
       const parsed = parseIndianAmount(match[1]);
-      if (parsed && parsed >= 10 && parsed <= 500000) {
+      if (parsed && parsed >= 1 && parsed <= 500000) {
         return parsed;
       }
     }
