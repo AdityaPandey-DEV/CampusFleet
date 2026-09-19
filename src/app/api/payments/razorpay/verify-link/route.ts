@@ -69,26 +69,9 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (!existingTxn) {
-      // Default fee to add (could be dynamically fetched or passed, but for now we'll just activate the pass)
-      const expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + 6); // 6 months validity
-
-      // Update student table
-      const { error: updateError } = await supabaseAdmin
-        .from("students")
-        .update({
-          subscription_expiry_date: expiryDate.toISOString(),
-          total_fee_paid: (Number(studentRecord.total_fee_paid) || 0) + 8545,
-          payment_status: "APPROVED"
-        })
-        .eq("id", studentId);
-
-      if (updateError) {
-        console.error("Database update error:", updateError);
-        return NextResponse.json({ success: false, error: "Failed to update student record." }, { status: 500 });
-      }
-
-      // Insert into payment_submissions so it shows in the app history
+      // 1. Insert into payment_submissions so it shows in the app history
+      // This will trigger the `trg_fulfill_subscription_submissions_insert` trigger
+      // which handles extending the subscription logically.
       const receiptNumber = `RZP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       await supabaseAdmin.from("payment_submissions").insert({
         student_id: studentId,
