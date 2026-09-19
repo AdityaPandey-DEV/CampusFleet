@@ -221,6 +221,15 @@ export default function ShiftBookingView({
     }
   }, [activeStudent, selectedStopId, stops]);
 
+  useEffect(() => {
+    if (activeStep === "SUCCESS") {
+      const timer = setTimeout(() => {
+        router.push("/portal/pass");
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [activeStep, router]);
+
   const todayStr = currentDate;
   const selectedShift = shifts.find(s => s.id === selectedShiftId) || shifts[0];
   const shiftStatus = selectedShift ? getShiftStatus(selectedShift) : null;
@@ -371,29 +380,29 @@ export default function ShiftBookingView({
     }
   }, [visibleShifts, selectedShiftId]);
 
-  const handleBook = async () => {
+  const handleBook = async (): Promise<boolean> => {
     if (!currentUser || !activeStudent) {
       router.push("/login?redirect=/portal/booking");
-      return;
+      return false;
     }
     if (!bus || !targetTrip) {
       setBookingMessage({ type: "error", text: "No active bus or trip scheduled for this shift yet. Please contact the Transport Admin." });
-      return;
+      return false;
     }
     if (isCutoffPassed) {
       setBookingMessage({
         type: "error",
         text: `Booking is closed for ${selectedShift?.name || "this shift"} (${shiftStatus?.label}). Departure manifest is locked. Please select an upcoming shift.`,
       });
-      return;
+      return false;
     }
     if (!targetTrip) {
       setBookingMessage({ type: "error", text: "No scheduled trip found for this shift." });
-      return;
+      return false;
     }
     if (!selectedStopId) {
       setBookingMessage({ type: "error", text: "Please select a boarding pickup stop." });
-      return;
+      return false;
     }
 
     setIsBookingLoading(true);
@@ -411,9 +420,14 @@ export default function ShiftBookingView({
           text: res.message || `✓ Seat ${selectedSeatNumber || "1A"} Confirmed on ${bus.busNumber}! Present your QR code to the bus conductor upon boarding.`,
         });
         setIsQRModalOpen(true);
+        return true;
       } else {
         setBookingMessage({ type: "error", text: res.message });
+        return false;
       }
+    } catch (e: any) {
+      setBookingMessage({ type: "error", text: e?.message || "Booking failed" });
+      return false;
     } finally {
       setIsBookingLoading(false);
     }
@@ -542,9 +556,11 @@ export default function ShiftBookingView({
                   <button 
                     onClick={async () => { 
                       setIsBookingLoading(true);
-                      await handleBook(); 
+                      const ok = await handleBook(); 
                       setIsBookingLoading(false);
-                      setActiveStep("SUCCESS"); 
+                      if (ok) {
+                        setActiveStep("SUCCESS"); 
+                      }
                     }} 
                     disabled={isBookingLoading}
                     className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 text-white text-sm font-black rounded-2xl hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2"
@@ -572,11 +588,19 @@ export default function ShiftBookingView({
              </p>
            </div>
            
-           <div className="pt-6">
-             <Link href="/portal" className="inline-flex items-center gap-2 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl">
+           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+             <Link href="/portal/pass" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-blue-600/30">
+               <QrCode className="w-5 h-5" /> View Boarding Pass & QR Code →
+             </Link>
+             <Link href="/portal" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-black rounded-2xl transition-all">
                <Compass className="w-4 h-4" /> Go to Dashboard
              </Link>
            </div>
+
+           <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1.5 font-medium mt-4">
+             <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-500" />
+             Redirecting to your Digital QR Pass in a moment...
+           </p>
         </div>
       )}
 

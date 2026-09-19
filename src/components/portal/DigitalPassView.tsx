@@ -74,6 +74,8 @@ export default function DigitalPassView({
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [securityPing, setSecurityPing] = useState(0);
+  const [isBookingShiftId, setIsBookingShiftId] = useState<string | null>(null);
+  const [quickBookingError, setQuickBookingError] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialStudent) {
@@ -174,6 +176,48 @@ export default function DigitalPassView({
     ) {
       const res = await store.cancelBooking(activeBooking.id);
       alert(res.message);
+    }
+  };
+
+  const handleQuickBookShift = async (shiftId: string) => {
+    if (!currentUser || !activeStudent) {
+      setQuickBookingError("Please sign in to generate a boarding pass.");
+      return;
+    }
+
+    setQuickBookingError(null);
+    setIsBookingShiftId(shiftId);
+
+    try {
+      let targetTrip = trips.find(
+        t => t.shiftId === shiftId && (
+          (activeStudent.primaryRouteId && t.routeId === activeStudent.primaryRouteId) ||
+          (t.busId && buses.find(b => b.id === t.busId)?.currentRouteId === activeStudent.primaryRouteId)
+        )
+      );
+      if (!targetTrip) {
+        targetTrip = trips.find(t => t.shiftId === shiftId);
+      }
+      if (!targetTrip) {
+        setQuickBookingError("No scheduled bus trip found for this shift. Please contact transport admin.");
+        return;
+      }
+
+      const boardingStopId = activeStudent.primaryStopId || stops[0]?.id || "stop-1";
+
+      const res = await store.bookShift(
+        activeStudent.id,
+        targetTrip.id,
+        boardingStopId
+      );
+
+      if (!res.success) {
+        setQuickBookingError(res.message || "Failed to reserve pass.");
+      }
+    } catch (err: any) {
+      setQuickBookingError(err?.message || "An unexpected error occurred while booking.");
+    } finally {
+      setIsBookingShiftId(null);
     }
   };
 
@@ -402,30 +446,82 @@ export default function DigitalPassView({
         </div>
       ) : (
         /* ========================================================================= */
-        /* EMPTY STATE: NO ACTIVE PASS (INVITE TO COMMUTE OR CATCH INCOMING BUS)     */
+        /* SHIFT CARDS: INSTANT QR PASS GENERATION ("SHIFT CARD -> QR")              */
         /* ========================================================================= */
         <div className="space-y-6">
-          <div className="text-center py-10 p-6 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 space-y-4 shadow-sm">
-            <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950 rounded-2xl flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400">
-              <QrCode className="w-8 h-8" />
+          <div className="text-center sm:text-left space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[11px] font-black uppercase tracking-wider mb-1">
+              <Sparkles className="w-3.5 h-3.5" /> Instant Pass Generator
             </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-black text-gray-900 dark:text-white">
-                No Active Boarding Pass for Today
-              </h3>
-              <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                You do not have a confirmed seat reservation for today. Reserve your seat now to generate your dynamic boarding QR pass.
-              </p>
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+              Select Shift to Generate Pass
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500 max-w-lg">
+              Choose your commute shift below. Your dynamic QR boarding pass will be issued immediately.
+            </p>
+          </div>
+
+          {quickBookingError && (
+            <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs flex items-center gap-2 font-semibold animate-in fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{quickBookingError}</span>
             </div>
-            <div className="pt-2 flex items-center justify-center gap-3">
-              <Link
-                href="/portal"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700  text-white font-black text-xs rounded-2xl shadow-lg shadow-blue-500/20 active:scale-95 transition-transform"
-              >
-                <CalendarCheck className="w-4 h-4" />
-                <span>Book Shift & Pick Seat →</span>
-              </Link>
-            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {shifts.map((shiftItem) => {
+              const isBookingThis = isBookingShiftId === shiftItem.id;
+              return (
+                <div
+                  key={shiftItem.id}
+                  onClick={() => !isBookingThis && handleQuickBookShift(shiftItem.id)}
+                  className={`group relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-blue-500 dark:hover:border-blue-500 ${
+                    isBookingThis ? "opacity-75 pointer-events-none ring-2 ring-blue-500" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                      {isBookingThis ? (
+                        <RefreshCw className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <Clock className="w-6 h-6" />
+                      )}
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-800">
+                      {shiftItem.shiftType}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {shiftItem.name}
+                  </h3>
+
+                  <p className="text-xs text-gray-500 mt-2 flex items-center gap-1.5 font-semibold">
+                    <Clock className="w-3.5 h-3.5 text-gray-400" />
+                    <span>{formatTime(shiftItem.startTime)} - {formatTime(shiftItem.endTime)}</span>
+                  </p>
+
+                  <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-400 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-green-500" /> Instant Pass
+                    </span>
+                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                      {isBookingThis ? "Issuing..." : "Generate QR →"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pt-2 text-center">
+            <Link
+              href="/portal/booking"
+              className="inline-flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              <CalendarCheck className="w-4 h-4" />
+              <span>Need to pick a specific seat chassis or stop? Open Seat Booking →</span>
+            </Link>
           </div>
         </div>
       )}
