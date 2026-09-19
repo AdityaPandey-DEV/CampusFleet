@@ -3,16 +3,48 @@ import { supabase } from "../supabaseClient";
 import { telematicsService } from "../telematicsService";
 import type { Student } from "../types";
 
+// ── Simple Debounce Utility ──────────────────────────────────────────────────
+function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  return function (this: any, ...args: Parameters<T>) {
+    const context = this;
+    if (timeout !== null) clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  } as T;
+}
+
 // ── Module Augmentation ─────────────────────────────────────────────────────
 declare module "./_base" {
   interface CampusFleetStore {
     syncFromSupabase(): Promise<void>;
+    syncMasterData(): Promise<void>;
+    syncLiveTransit(): Promise<void>;
+    syncUserData(): Promise<void>;
+    
     initCrossTabSync(): void;
     initSupabaseRealtime(): void;
     initStudentPaymentSync(): void;
     initTelematicsSync(): void;
+
+    // Debounced versions for real-time listeners
+    debouncedSyncMasterData: () => void;
+    debouncedSyncLiveTransit: () => void;
+    debouncedSyncUserData: () => void;
   }
 }
+
+// Attach debounced functions to the prototype
+CampusFleetStore.prototype.debouncedSyncMasterData = debounce(function(this: CampusFleetStore) {
+  this.syncMasterData();
+}, 1000);
+
+CampusFleetStore.prototype.debouncedSyncLiveTransit = debounce(function(this: CampusFleetStore) {
+  this.syncLiveTransit();
+}, 1000);
+
+CampusFleetStore.prototype.debouncedSyncUserData = debounce(function(this: CampusFleetStore) {
+  this.syncUserData();
+}, 1000);
 
 // ── Real-time cross-tab synchronization via BroadcastChannel & Storage Event ──
 
@@ -55,14 +87,32 @@ CampusFleetStore.prototype.initSupabaseRealtime = function (this: CampusFleetSto
   try {
     supabase
       .channel("campusfleet-realtime-global-sync")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, async () => {
-        await this.syncFromSupabase();
+      // User Data changes (Bookings, Students, Staff, special allocations)
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+        this.debouncedSyncUserData();
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "trips" }, async () => {
-        await this.syncFromSupabase();
+      .on("postgres_changes", { event: "*", schema: "public", table: "students" }, () => {
+        this.debouncedSyncUserData();
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "students" }, async () => {
-        await this.syncFromSupabase();
+      .on("postgres_changes", { event: "*", schema: "public", table: "special_shift_allocations" }, () => {
+        this.debouncedSyncUserData();
+      })
+      // Live Transit Data changes (Trips, Buses, Issues, Attendance)
+      .on("postgres_changes", { event: "*", schema: "public", table: "trips" }, () => {
+        this.debouncedSyncLiveTransit();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "buses" }, () => {
+        this.debouncedSyncLiveTransit();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "vehicle_issues" }, () => {
+        this.debouncedSyncLiveTransit();
+      })
+      // Master Data changes (Zones, Routes, Stops, Plans, Campuses, Shifts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "routes" }, () => {
+        this.debouncedSyncMasterData();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "stops" }, () => {
+        this.debouncedSyncMasterData();
       })
       .subscribe();
   } catch (err) {
@@ -72,16 +122,10 @@ CampusFleetStore.prototype.initSupabaseRealtime = function (this: CampusFleetSto
 
 // ── Student payment/subscription polling ──
 
-/**
- * Polls /api/students/me every 30s and on tab focus to instantly reflect
- * payment approval, subscription activation, and photo changes made by
- * admin/staff — without requiring a page reload or re-login.
- */
 CampusFleetStore.prototype.initStudentPaymentSync = function (this: CampusFleetStore) {
   if (typeof window === "undefined") return;
 
   const syncStudentStatus = async () => {
-    // Only run for authenticated students
     const user = this.currentUser;
     if (!user || user.role !== "student") return;
 
@@ -132,62 +176,56 @@ CampusFleetStore.prototype.initStudentPaymentSync = function (this: CampusFleetS
       this.saveToLocalStorage();
       this.notify();
     } catch {
-      // Silent fail — non-critical background poll
+      // Silent fail
     }
   };
 
-  // Run immediately on initialization
   syncStudentStatus();
-
-  // Poll every 30 seconds
   setInterval(syncStudentStatus, 30_000);
 
-  // Sync immediately on tab becoming visible
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       syncStudentStatus();
     }
   });
-
-  // Also sync on window focus
   window.addEventListener("focus", syncStudentStatus);
 };
 
 // ── Telematics synchronization ──
 
-/** Subscribe to real-time telematics broadcasts over WebSockets / BroadcastChannel */
 CampusFleetStore.prototype.initTelematicsSync = function (this: CampusFleetStore) {
   telematicsService.subscribe((incomingLocation) => {
     this.liveLocation = {
       ...this.liveLocation,
       ...incomingLocation,
     };
-    // Pure in-memory reactive notification — zero localStorage write, zero DB write
     this.listeners.forEach((cb) => cb());
   });
 };
 
-// ── Main Supabase Database Sync ──
+// ── Cache Fetching Utility ──
 
-CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetStore) {
+async function getCachedState() {
+  if (typeof window === "undefined") return null;
   try {
-    // ── CACHE FETCH (Redis Read-Through) ──
-    let cachedState: any = null;
-    if (typeof window !== "undefined") {
-      try {
-        const res = await fetch("/api/sync/state");
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success) {
-            cachedState = json.data;
-          }
-        }
-      } catch (e) {
-        console.warn("Could not fetch cached state, falling back to direct DB queries:", e);
-      }
+    const res = await fetch("/api/sync/state");
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success) return json.data;
     }
+  } catch (e) {
+    console.warn("Cache fetch failed:", e);
+  }
+  return null;
+}
 
-    // 0. Fetch Transit Zones (PostgreSQL Master Data)
+// ── Modular Sync Functions ──
+
+CampusFleetStore.prototype.syncMasterData = async function(this: CampusFleetStore) {
+  try {
+    const cachedState = await getCachedState();
+
+    // 0. Fetch Transit Zones
     const { data: dbZones } = await supabase.from("transit_zones").select("*").order("created_at", { ascending: true });
     if (dbZones && dbZones.length > 0) {
       this.transitZones = dbZones.map(z => ({
@@ -204,7 +242,7 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       }));
     }
 
-    // 0.1 Fetch Campus Locations (PostgreSQL Master Data)
+    // 0.1 Fetch Campus Locations
     const { data: dbCampuses } = await supabase
       .from("campuses")
       .select("*")
@@ -247,7 +285,6 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
         zoneCode: s.zone_code || "ZONE_B",
       }));
 
-      // Dynamic origin: sync idle telematics position from first departure terminal in database
       if (this.stops.length > 0 && (!this.liveLocation.busId || this.liveLocation.latitude === 29.2889)) {
         this.liveLocation = {
           ...this.liveLocation,
@@ -257,25 +294,38 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       }
     }
 
-    // 2. Fetch Buses
-    const dbBuses: any[] = cachedState?.buses || (await supabase.from("buses").select("*")).data || [];
-    if (dbBuses && dbBuses.length > 0) {
-      this.buses = dbBuses.map((b: any) => ({
-        id: b.id,
-        busNumber: b.bus_number,
-        registrationNo: b.registration_no,
-        model: b.model,
-        capacity: b.capacity,
-        seatLayout: b.seat_layout || "2x2",
-        status: b.status || "ACTIVE",
-        gpsDeviceId: b.gps_device_id,
-        insuranceExpiry: b.insurance_expiry,
-        maintenanceDueDate: b.maintenance_due_date,
-        currentRouteId: b.current_route_id,
+    // 10. Fetch Subscription Plans
+    const { data: dbPlans } = await supabase.from("subscription_plans").select("*");
+    if (dbPlans && dbPlans.length > 0) {
+      this.plans = dbPlans.map(p => ({
+        id: p.id,
+        name: p.name,
+        durationMonths: p.duration_months || 6,
+        price: p.price,
+        description: p.description || "Official Semester Bus Pass (6 Months)",
+        corridorTier: p.corridor_tier,
+        stoppages: p.stoppages || [],
+        features: [
+          "Unlimited Morning & Evening Shifts",
+          "Reserved Bus Seat Allocation",
+          "Digital Dynamic QR Pass",
+          "Real-Time GPS Telematics & Delay Alerts",
+        ],
       }));
     }
 
-    // 3. Fetch Routes (100% database-driven from PostgreSQL stops_data)
+    // 11. Fetch Stop-Route mappings
+    const dbStopRoutes: any[] = cachedState?.stopRoutes || (await supabase.from("route_stops").select("*")).data || [];
+    if (dbStopRoutes && dbStopRoutes.length > 0) {
+      this.stopRoutes = dbStopRoutes.map((sr: any) => ({
+        stopId: sr.stop_id,
+        routeId: sr.route_id,
+        busId: sr.bus_id || "",
+        stopOrder: sr.stop_order || 0,
+      }));
+    }
+
+    // 3. Fetch Routes
     const dbRoutes: any[] = cachedState?.routes || (await supabase.from("routes").select("*")).data || [];
     if (dbRoutes && dbRoutes.length > 0) {
       this.routes = dbRoutes.map((r: any) => {
@@ -348,6 +398,114 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       }));
     }
 
+    this.notify();
+  } catch (e) {
+    console.warn("syncMasterData failed:", e);
+  }
+};
+
+CampusFleetStore.prototype.syncLiveTransit = async function(this: CampusFleetStore) {
+  try {
+    const cachedState = await getCachedState();
+
+    // 2. Fetch Buses
+    const dbBuses: any[] = cachedState?.buses || (await supabase.from("buses").select("*")).data || [];
+    if (dbBuses && dbBuses.length > 0) {
+      this.buses = dbBuses.map((b: any) => ({
+        id: b.id,
+        busNumber: b.bus_number,
+        registrationNo: b.registration_no,
+        model: b.model,
+        capacity: b.capacity,
+        seatLayout: b.seat_layout || "2x2",
+        status: b.status || "ACTIVE",
+        gpsDeviceId: b.gps_device_id,
+        insuranceExpiry: b.insurance_expiry,
+        maintenanceDueDate: b.maintenance_due_date,
+        currentRouteId: b.current_route_id,
+      }));
+    }
+
+    // 6. Fetch Trips
+    const dbTrips: any[] = cachedState?.trips || (await supabase.from("trips").select("*")).data || [];
+    if (dbTrips && dbTrips.length > 0) {
+      this.trips = dbTrips.map((t: any) => ({
+        id: t.id,
+        tripCode: t.trip_code,
+        routeId: t.route_id,
+        busId: t.bus_id,
+        shiftId: t.shift_id,
+        driverId: t.driver_id || "",
+        conductorId: t.conductor_id || "",
+        tripDate: t.trip_date,
+        status: t.status || "SCHEDULED",
+        delayMinutes: t.delay_minutes || 0,
+        manifestLocked: t.manifest_locked || false,
+        manifestLockedAt: t.manifest_locked_at,
+        startedAt: t.started_at,
+        completedAt: t.completed_at,
+        currentStopIndex: t.current_stop_index || 0,
+        direction: t.direction || undefined,
+        scheduleType: t.schedule_type || undefined,
+        customDays: t.custom_days || undefined,
+        departureTime: t.departure_time || undefined,
+        arrivalTime: t.arrival_time || undefined,
+        isSpecial: Boolean(t.is_special),
+        facilityType: t.facility_type || (Boolean(t.is_special) ? "PLACEMENT_DRIVE" : "REGULAR"),
+      }));
+    }
+
+    // 12. Fetch Attendance Records
+    const { data: dbAttendance } = await supabase
+      .from("attendance_records")
+      .select("*")
+      .order("timestamp", { ascending: false })
+      .limit(100);
+    if (dbAttendance && dbAttendance.length > 0) {
+      this.attendanceRecords = dbAttendance.map(a => ({
+        id: a.id,
+        studentId: a.student_id,
+        bookingId: a.booking_id || "",
+        tripId: a.trip_id,
+        method: a.method || "QR_SCAN",
+        status: a.status || "BOARDED",
+        verifiedBy: a.verified_by || a.conductor_id || "Conductor Terminal",
+        signatureToken: a.signature_token || "",
+        notes: a.notes,
+        timestamp: a.timestamp || new Date().toISOString(),
+      }));
+    }
+
+    // 13. Fetch Vehicle Issues
+    const { data: dbIssues } = await supabase
+      .from("vehicle_issues_full")
+      .select("*")
+      .order("reported_at", { ascending: false })
+      .limit(50);
+    if (dbIssues && dbIssues.length > 0) {
+      this.issues = dbIssues.map(i => ({
+        id: i.id,
+        busId: i.bus_id,
+        busNumber: i.bus_number,
+        reportedBy: i.reported_by,
+        issueType: i.issue_type,
+        severity: i.severity,
+        description: i.description,
+        status: i.status || "OPEN",
+        location: (i.latitude && i.longitude) ? { latitude: i.latitude, longitude: i.longitude } : undefined,
+        reportedAt: i.reported_at,
+        resolvedAt: i.resolved_at,
+      }));
+    }
+
+    this.notify();
+  } catch (e) {
+    console.warn("syncLiveTransit failed:", e);
+  }
+};
+
+CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore) {
+  try {
     // 4.1 Fetch Special Shift Allocations
     const { data: dbAllocations } = await supabase.from("special_shift_allocations").select("*");
     if (dbAllocations) {
@@ -378,36 +536,7 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       }));
     }
 
-    // 6. Fetch Trips (with driver/conductor from users table)
-    const dbTrips: any[] = cachedState?.trips || (await supabase.from("trips").select("*")).data || [];
-    if (dbTrips && dbTrips.length > 0) {
-      this.trips = dbTrips.map((t: any) => ({
-        id: t.id,
-        tripCode: t.trip_code,
-        routeId: t.route_id,
-        busId: t.bus_id,
-        shiftId: t.shift_id,
-        driverId: t.driver_id || "",
-        conductorId: t.conductor_id || "",
-        tripDate: t.trip_date,
-        status: t.status || "SCHEDULED",
-        delayMinutes: t.delay_minutes || 0,
-        manifestLocked: t.manifest_locked || false,
-        manifestLockedAt: t.manifest_locked_at,
-        startedAt: t.started_at,
-        completedAt: t.completed_at,
-        currentStopIndex: t.current_stop_index || 0,
-        direction: t.direction || undefined,
-        scheduleType: t.schedule_type || undefined,
-        customDays: t.custom_days || undefined,
-        departureTime: t.departure_time || undefined,
-        arrivalTime: t.arrival_time || undefined,
-        isSpecial: Boolean(t.is_special),
-        facilityType: t.facility_type || (Boolean(t.is_special) ? "PLACEMENT_DRIVE" : "REGULAR"),
-      }));
-    }
-
-    // 7. Fetch Students via normalized VIEW (profiles JOIN → single source of truth for name/email/phone)
+    // 7. Fetch Students
     const { data: dbStudents } = await supabase.from("students_full").select("*");
     let mappedStudents: Student[] = [];
     if (dbStudents && dbStudents.length > 0) {
@@ -442,34 +571,26 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       }));
     }
 
-    // NOTE: Auto-registration logic has been removed from sync loop.
-    // Client-side auto-registration causes infinite loops when RLS filters the `students_full` view,
-    // as it triggers an upsert -> postgres_changes -> sync -> upsert cycle.
-
-    // PREVENT DATA LOSS ON REFRESH FOR STUDENTS:
-    // If the current user is a student, their detailed profile is securely fetched via /api/students/me 
-    // and stored in this.students by `syncStudentStatus()`. We must NOT overwrite it with an empty
-    // stub if the public Supabase query `students_full` blocked their row due to RLS!
+    // PREVENT DATA LOSS ON REFRESH FOR STUDENTS
     const activeStudentUser = this.currentUser;
     if (activeStudentUser && activeStudentUser.role === "student") {
       const existingProfile = this.students.find(
         s => s.userId === activeStudentUser.id || s.email?.toLowerCase() === activeStudentUser.email?.toLowerCase()
       );
-      if (existingProfile && existingProfile.campusId) { // Check if it has real data
+      if (existingProfile && existingProfile.campusId) {
         const mappedIdx = mappedStudents.findIndex(
           s => s.userId === activeStudentUser.id || s.email?.toLowerCase() === activeStudentUser.email?.toLowerCase()
         );
         if (mappedIdx >= 0) {
-          mappedStudents[mappedIdx] = existingProfile; // Restore the real data over the blank stub
+          mappedStudents[mappedIdx] = existingProfile;
         } else {
           mappedStudents.push(existingProfile);
         }
       }
     }
-
     this.students = mappedStudents;
 
-    // 8. Fetch Staff via normalized VIEW (profiles JOIN → single source of truth for name/email/phone)
+    // 8. Fetch Staff
     const { data: dbStaff } = await supabase.from("staff_full").select("*");
     if (dbStaff && dbStaff.length > 0) {
       this.staff = dbStaff.map(s => ({
@@ -488,7 +609,7 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       }));
     }
 
-    // 9. Fetch Bookings via normalized VIEW (bus_id derived from trips JOIN — no manual fallback)
+    // 9. Fetch Bookings
     const { data: dbBookings } = await supabase.from("bookings_full").select("*");
     if (dbBookings) {
       this.bookings = dbBookings.map(b => ({
@@ -508,131 +629,51 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       }));
     }
 
-    // 10. Fetch Subscription Plans
-    const { data: dbPlans } = await supabase.from("subscription_plans").select("*");
-    if (dbPlans && dbPlans.length > 0) {
-      this.plans = dbPlans.map(p => ({
-        id: p.id,
-        name: p.name,
-        durationMonths: p.duration_months || 6,
-        price: p.price,
-        description: p.description || "Official Semester Bus Pass (6 Months)",
-        corridorTier: p.corridor_tier,
-        stoppages: p.stoppages || [],
-        features: [
-          "Unlimited Morning & Evening Shifts",
-          "Reserved Bus Seat Allocation",
-          "Digital Dynamic QR Pass",
-          "Real-Time GPS Telematics & Delay Alerts",
-        ],
-      }));
-    }
+    this.notify();
+  } catch (e) {
+    console.warn("syncUserData failed:", e);
+  }
+};
 
-    // 11. Fetch Stop-Route mappings from normalized route_stops table (canonical junction)
-    const dbStopRoutes: any[] = cachedState?.stopRoutes || (await supabase.from("route_stops").select("*")).data || [];
-    if (dbStopRoutes && dbStopRoutes.length > 0) {
-      this.stopRoutes = dbStopRoutes.map((sr: any) => ({
-        stopId: sr.stop_id,
-        routeId: sr.route_id,
-        busId: sr.bus_id || "",
-        stopOrder: sr.stop_order || 0,
-      }));
-    }
+// ── Main Supabase Database Sync ──
 
-    // 12. Fetch Attendance Records from actual PostgreSQL table
-    const { data: dbAttendance } = await supabase
-      .from("attendance_records")
-      .select("*")
-      .order("timestamp", { ascending: false })
-      .limit(100);
-    if (dbAttendance && dbAttendance.length > 0) {
-      this.attendanceRecords = dbAttendance.map(a => ({
-        id: a.id,
-        studentId: a.student_id,
-        bookingId: a.booking_id || "",
-        tripId: a.trip_id,
-        method: a.method || "QR_SCAN",
-        status: a.status || "BOARDED",
-        verifiedBy: a.verified_by || a.conductor_id || "Conductor Terminal",
-        signatureToken: a.signature_token || "",
-        notes: a.notes,
-        timestamp: a.timestamp || new Date().toISOString(),
-      }));
-    }
+CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetStore) {
+  try {
+    // Run all sync routines in parallel to minimize load time
+    await Promise.all([
+      this.syncMasterData(),
+      this.syncLiveTransit(),
+      this.syncUserData()
+    ]);
 
-    // 13. Fetch Vehicle Issues via normalized VIEW (bus_number derived from buses JOIN)
-    const { data: dbIssues } = await supabase
-      .from("vehicle_issues_full")
-      .select("*")
-      .order("reported_at", { ascending: false })
-      .limit(50);
-    if (dbIssues && dbIssues.length > 0) {
-      this.issues = dbIssues.map(i => ({
-        id: i.id,
-        busId: i.bus_id,
-        busNumber: i.bus_number,
-        reportedBy: i.reported_by,
-        issueType: i.issue_type,
-        severity: i.severity,
-        description: i.description,
-        status: i.status || "OPEN",
-        location: (i.latitude && i.longitude) ? { latitude: i.latitude, longitude: i.longitude } : undefined,
-        reportedAt: i.reported_at,
-        resolvedAt: i.resolved_at,
-      }));
-    }
+    // Self-Healing Daily Rollover check decoupled from core sync latency
+    setTimeout(() => {
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(now.getTime() + istOffset);
+      const todayStr = istDate.toISOString().split("T")[0];
 
-    // Self-Healing Daily Rollover check
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istDate = new Date(now.getTime() + istOffset);
-    const todayStr = istDate.toISOString().split("T")[0];
-
-    const hasTodayTrips = this.trips.some(t => t.tripDate === todayStr);
-    if (!hasTodayTrips && typeof window !== "undefined") {
-      fetch("/api/cron/daily-rollover", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetDate: todayStr, triggeredBy: "LAZY_STORE_INIT" }),
-      })
-        .then(res => res.json())
-        .then(async data => {
-          if (data.success && data.newTripsCount > 0) {
-            const { data: refreshedTrips } = await supabase.from("trips").select("*");
-            if (refreshedTrips && refreshedTrips.length > 0) {
-              this.trips = refreshedTrips.map(t => ({
-                id: t.id,
-                tripCode: t.trip_code,
-                routeId: t.route_id,
-                busId: t.bus_id,
-                shiftId: t.shift_id,
-                driverId: t.driver_id || "",
-                conductorId: t.conductor_id || "",
-                tripDate: t.trip_date,
-                status: t.status || "SCHEDULED",
-                delayMinutes: t.delay_minutes || 0,
-                manifestLocked: t.manifest_locked || false,
-                manifestLockedAt: t.manifest_locked_at,
-                startedAt: t.started_at,
-                completedAt: t.completed_at,
-                currentStopIndex: t.current_stop_index || 0,
-                direction: t.direction || undefined,
-                scheduleType: t.schedule_type || undefined,
-                customDays: t.custom_days || undefined,
-                departureTime: t.departure_time || undefined,
-                arrivalTime: t.arrival_time || undefined,
-              }));
-              this.notify();
-            }
-          }
+      const hasTodayTrips = this.trips.some(t => t.tripDate === todayStr);
+      if (!hasTodayTrips && typeof window !== "undefined") {
+        fetch("/api/cron/daily-rollover", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetDate: todayStr, triggeredBy: "LAZY_STORE_INIT" }),
         })
-        .catch(e => console.warn("Lazy daily rollover notice:", e));
-    }
+          .then(res => res.json())
+          .then(async data => {
+            if (data.success && data.newTripsCount > 0) {
+              await this.syncLiveTransit();
+            }
+          })
+          .catch(e => console.warn("Lazy daily rollover notice:", e));
+      }
+    }, 2000);
 
     this.isInitialized = true;
     this.notify();
   } catch (e) {
-    console.warn("Supabase database sync:", e);
+    console.warn("Supabase initial database sync failed:", e);
     this.isInitialized = true;
     this.notify();
   }
