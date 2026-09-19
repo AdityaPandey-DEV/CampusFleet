@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { signToken, COOKIE_NAME } from "@/lib/jwt";
 import { findOrCreateUser } from "@/lib/account-service";
 
@@ -139,7 +140,8 @@ export async function GET(req: NextRequest) {
     const response = NextResponse.redirect(`${origin}${redirectPath}`);
     
     // Set the session cookie using Next.js native API to prevent multiple Set-Cookie overwrite issues
-    response.cookies.set(COOKIE_NAME, token, {
+    const cookieStore = await cookies();
+    cookieStore.set(COOKIE_NAME, token, {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
@@ -148,7 +150,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Clear the CSRF state cookie
-    response.cookies.delete("oauth_csrf_state");
+    cookieStore.delete("oauth_csrf_state");
 
     return response;
   } catch (e: any) {
