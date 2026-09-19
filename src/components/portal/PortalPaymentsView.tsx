@@ -873,16 +873,15 @@ export default function PortalPaymentsView({
                 )}
 
                 {/* Auto-Detection Notification */}
-                {detectedTransactionId && !isScanningOcr && (
+                {(detectedTransactionId || detectedAmount) && !isScanningOcr && (
                   <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/60 rounded-2xl border border-emerald-200 dark:border-emerald-800 flex items-start gap-3 text-xs text-emerald-800 dark:text-emerald-300">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-extrabold">✓ Transaction ID Auto-Detected from Receipt!</div>
+                      <div className="font-extrabold">✓ Data Auto-Detected from Receipt!</div>
                       <div className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                        Found UTR: <span className="font-mono font-bold text-slate-900 dark:text-white">{detectedTransactionId}</span>
-                        {detectedAmount ? (
-                          <> | Amount: <span className="font-mono font-bold text-slate-900 dark:text-white">₹{detectedAmount.toLocaleString()}</span></>
-                        ) : null}
+                        {detectedTransactionId && <span>Found UTR: <span className="font-mono font-bold text-slate-900 dark:text-white">{detectedTransactionId}</span></span>}
+                        {detectedTransactionId && detectedAmount && <span> | </span>}
+                        {detectedAmount && <span>Amount: <span className="font-mono font-bold text-slate-900 dark:text-white">₹{detectedAmount.toLocaleString()}</span></span>}
                         . Please verify or edit below if needed.
                       </div>
                     </div>
@@ -902,14 +901,27 @@ export default function PortalPaymentsView({
                   </div>
                 )}
 
-                {/* Fallback Notification if not detected */}
-                {manualInputRequired && !isScanningOcr && (
+                {/* Fallback Notification if Transaction ID not detected */}
+                {receiptFile && !isScanningOcr && !detectedTransactionId && (
                   <div className="p-3.5 bg-amber-50 dark:bg-amber-950/60 rounded-2xl border border-amber-200 dark:border-amber-800 flex items-start gap-3 text-xs text-amber-800 dark:text-amber-300">
                     <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-extrabold">Could Not Auto-Detect Transaction ID and Amount (Rs)</div>
+                      <div className="font-extrabold">Could Not Auto-Detect Transaction ID</div>
                       <div className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
-                        Please write or copy your 12-digit UPI UTR number / Bank Reference ID and Paid Amount (Rs) manually below.
+                        Please write or copy your 12-digit UPI UTR number / Bank Reference ID manually below.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fallback Notification if Amount not detected */}
+                {receiptFile && !isScanningOcr && !detectedAmount && (
+                  <div className="p-3.5 bg-amber-50 dark:bg-amber-950/60 rounded-2xl border border-amber-200 dark:border-amber-800 flex items-start gap-3 text-xs text-amber-800 dark:text-amber-300">
+                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-extrabold">Could Not Auto-Detect Amount (Rs)</div>
+                      <div className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                        Please verify and enter the Paid Amount (Rs) manually below.
                       </div>
                     </div>
                   </div>
