@@ -168,7 +168,6 @@ export default function ShiftBookingView({
       ) || initialStudent || {
         id: `stud-${currentUser.id || currentUser.userId || "guest"}`,
         userId: currentUser.id || currentUser.userId,
-        enrollmentNo: "PENDING",
         fullName: currentUser.fullName || "Student Commuter",
         email: currentUser.email,
         phone: null,
@@ -1001,7 +1000,7 @@ export default function ShiftBookingView({
                       {currentUser ? (activeStudent?.fullName || currentUser.fullName) : "Guest Commuter"}
                     </div>
                     <div className="text-[10px] text-slate-400 font-mono truncate">
-                      {currentUser ? (activeStudent?.enrollmentNo || currentUser.email) : "Sign in required to book"}
+                      {currentUser ? currentUser.email : "Sign in required to book"}
                     </div>
                   </div>
                 </div>

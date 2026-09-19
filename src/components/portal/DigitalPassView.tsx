@@ -355,7 +355,7 @@ export default function DigitalPassView({
                     {activeStudent.fullName}
                   </div>
                   <div className="text-[10px] text-slate-400 font-mono">
-                    {activeStudent.enrollmentNo || "GEHU/2023/1108"} • Zone {activeStudent.zoneCode || "B"}
+                    Zone {activeStudent.zoneCode || "B"}
                   </div>
                 </div>
               </div>

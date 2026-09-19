@@ -42,7 +42,6 @@ export default function StudentOnboardingPage() {
   const [fullName, setFullName] = useState("");
   const [campusId, setCampusId] = useState(() => store.getPrimaryCampus()?.id || "");
   const [campus, setCampus] = useState(() => store.getPrimaryCampus()?.name || "Main Campus");
-  const [enrollmentNo, setEnrollmentNo] = useState("");
   const [department, setDepartment] = useState("");
   const [semester, setSemester] = useState("");
   const [classesList, setClassesList] = useState<any[]>([]);
@@ -189,7 +188,6 @@ export default function StudentOnboardingPage() {
     
     // Auto-populate data
     setFullName(activeStudent?.fullName || currentUser?.fullName || "");
-    setEnrollmentNo(activeStudent?.enrollmentNo && activeStudent?.enrollmentNo !== "PENDING" ? activeStudent.enrollmentNo : "");
     setPhone(activeStudent?.phone || "");
     setCampusId(activeStudent?.campusId || store.getPrimaryCampus()?.id || "");
     setCampus(activeStudent?.campus || store.getPrimaryCampus()?.name || "Main Campus");
@@ -221,7 +219,6 @@ export default function StudentOnboardingPage() {
 
     const res = await store.updateStudentProfile(targetStudentId, {
       fullName: fullName.trim() || currentUser?.fullName || "Student",
-      enrollmentNo: enrollmentNo.trim() ? enrollmentNo.trim().toUpperCase() : "NOT_SPECIFIED",
       campusId,
       campus: chosenCampus?.name || campus,
       department,
@@ -413,21 +410,6 @@ export default function StudentOnboardingPage() {
                   </option>
                 ))}
               </select>
-            </div>
-
-            {/* Enrollment / Roll No */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>Roll / Enrollment No</span>
-                <span className="text-[10px] lowercase text-slate-400 font-normal">(optional)</span>
-              </label>
-              <input
-                type="text"
-                value={enrollmentNo}
-                onChange={e => setEnrollmentNo(e.target.value)}
-                placeholder="e.g. GEHU/2023/1045 (optional)"
-                className="w-full text-sm font-mono font-bold p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 outline-none focus:border-blue-500 transition-colors"
-              />
             </div>
 
             {/* Contact Mobile Phone */}

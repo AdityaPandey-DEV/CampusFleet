@@ -11,7 +11,6 @@ describe("Shift-Level Booking Lock & Concurrency Integrity Tests", () => {
   const mockStudent: Student = {
     id: "stud-lock-1",
     userId: "u-stud-lock-1",
-    enrollmentNo: "ENR-2026-001",
     fullName: "Aarav Sharma",
     email: "aarav.sharma@campus.edu",
     phone: "+91 9876543210",

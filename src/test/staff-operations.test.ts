@@ -104,7 +104,6 @@ export function formatAuditRowsForExcel(submissions: any[]) {
     "S.No": idx + 1,
     "Submission ID": sub.id,
     "Student Name": sub.student?.full_name || "N/A",
-    "Enrollment / Roll No": sub.student?.enrollment_no || "PENDING",
     "Department": sub.student?.department || "General",
     "Transit Zone": sub.zone_code || "ZONE_B",
     "Amount Paid (INR)": Number(sub.amount_paid) || 0,
@@ -195,7 +194,7 @@ describe("Staff Operations: Excel (.xlsx) Report Generation", () => {
     const sampleSubmissions = [
       {
         id: "sub-1",
-        student: { full_name: "Rahul Rawat", enrollment_no: "GEHU2024001", department: "B.Tech CSE" },
+        student: { full_name: "Rahul Rawat", department: "B.Tech CSE" },
         zone_code: "ZONE_B",
         amount_paid: 6000,
         installment_number: 1,
@@ -207,7 +206,7 @@ describe("Staff Operations: Excel (.xlsx) Report Generation", () => {
       },
       {
         id: "sub-2",
-        student: { full_name: "Pooja Joshi", enrollment_no: "GEHU2024002", department: "MCA" },
+        student: { full_name: "Pooja Joshi", department: "MCA" },
         zone_code: "ZONE_C",
         amount_paid: 10000,
         installment_number: 1,

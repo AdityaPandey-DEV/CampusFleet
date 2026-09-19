@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     // Fetch student's class_id
     const { data: student } = await supabaseAdmin
       .from("students")
-      .select("id, full_name, enrollment_no, class_id, class_name")
+      .select("id, full_name, class_id, class_name")
       .or(`id.eq.${targetStudentId},user_id.eq.${targetStudentId}`)
       .limit(1)
       .maybeSingle();

@@ -57,7 +57,7 @@ export default async function TeacherPage() {
   const { data: dbStudents } = classIds.length > 0
     ? await supabaseAdmin
         .from("students")
-        .select("id, full_name, enrollment_no, class_id, class_name")
+        .select("id, full_name, class_id, class_name")
         .in("class_id", classIds)
         .order("full_name", { ascending: true })
     : { data: [] };
@@ -131,7 +131,6 @@ export default async function TeacherPage() {
         sno: index + 1,
         studentId: student.id,
         studentName: student.full_name || "Unknown Student",
-        enrollmentNo: student.enrollment_no || "GEHU/2023/--",
         classId: student.class_id || "ALL",
         className: student.class_name || primaryClass?.name || "Assigned Section",
         busId: record.bus_id,
@@ -155,7 +154,6 @@ export default async function TeacherPage() {
       sno: index + 1,
       studentId: student.id,
       studentName: student.full_name || "Unknown Student",
-      enrollmentNo: student.enrollment_no || "GEHU/2023/--",
       classId: student.class_id || "ALL",
       className: student.class_name || primaryClass?.name || "Assigned Section",
       busId: undefined,

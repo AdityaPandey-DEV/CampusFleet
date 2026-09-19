@@ -247,7 +247,7 @@ export default function StudentPortalView({
                 </span>
               </h1>
               <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl leading-relaxed">
-                {activeStudent?.department || "Computer Science"} • Section {activeStudent?.className || "A"} • Enr: {activeStudent?.enrollmentNo || "VERIFIED"}
+                {activeStudent?.department || "Computer Science"} • Section {activeStudent?.className || "A"}
               </p>
             </div>
           </div>

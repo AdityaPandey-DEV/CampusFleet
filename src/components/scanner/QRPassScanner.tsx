@@ -117,8 +117,7 @@ export function QRPassScanner({
   const [lastResult, setLastResult] = useState<{
     status: "APPROVED" | "DUPLICATE" | "REJECTED" | "WRONG_BUS";
     studentName?: string;
-    enrollmentNo?: string;
-    seatNumber?: string;
+        seatNumber?: string;
     photoUrl?: string;
     department?: string;
     boardedAt?: string;
@@ -171,8 +170,7 @@ export function QRPassScanner({
             setLastResult({
               status: "REJECTED",
               studentName: data.activeClass?.studentName || data.studentName || "Student",
-              enrollmentNo: data.activeClass?.className || data.className || "Academic Restriction",
-              message: data.message || `❌ BOARDING DENIED: Student has a scheduled lecture (${data.activeClass?.subject || data.subject || "Lecture"}) at this time.`,
+                            message: data.message || `❌ BOARDING DENIED: Student has a scheduled lecture (${data.activeClass?.subject || data.subject || "Lecture"}) at this time.`,
               timestamp: new Date().toLocaleTimeString(),
             });
           } else if (data.code === "ALREADY_BOARDED" || data.status === "DUPLICATE") {
@@ -181,12 +179,11 @@ export function QRPassScanner({
             setLastResult({
               status: "DUPLICATE",
               studentName: data.student?.fullName || data.studentName || "Commuter",
-              enrollmentNo: data.student?.enrollmentNo || data.enrollmentNo || "VERIFIED",
-              seatNumber: data.booking?.seatNumber || data.seatNumber || "Seat Assigned",
+                            seatNumber: data.booking?.seatNumber || data.seatNumber || "Seat Assigned",
               photoUrl: data.student?.photoUrl || data.photoUrl || "",
               department: data.student?.department || data.department || "",
               boardedAt: data.booking?.boardedAt || data.boardedAt || "",
-              message: data.message || `DUPLICATE REPLAY: Pass belongs to ${data.student?.fullName || "Student"} (Roll: ${data.student?.enrollmentNo || "N/A"}), who was ALREADY checked in earlier today. Each student can board strictly once per shift.`,
+              message: data.message || `DUPLICATE REPLAY: Pass belongs to ${data.student?.fullName || "Student"} , who was ALREADY checked in earlier today. Each student can board strictly once per shift.`,
               timestamp: new Date().toLocaleTimeString(),
             });
           } else {
@@ -201,7 +198,7 @@ export function QRPassScanner({
         }
 
         // Server responded READY_FOR_CONFIRMATION with verified student and photo details
-        const studentInfo = data.student || { fullName: "Student", enrollmentNo: "" };
+        const studentInfo = data.student || { fullName: "Student" };
         const bookingInfo = data.booking || {};
 
         setPendingVerification({
@@ -250,7 +247,7 @@ export function QRPassScanner({
           const studentMatch = students.find(
             s =>
               (studentId && (s.id === studentId || s.userId === studentId)) ||
-              (bookingCode && (s.enrollmentNo?.toLowerCase() === bookingCode.toLowerCase() || s.fullName.toLowerCase().includes(bookingCode.toLowerCase()) || s.email?.toLowerCase() === bookingCode.toLowerCase()))
+              (bookingCode && (s.fullName.toLowerCase().includes(bookingCode.toLowerCase()) || s.email?.toLowerCase() === bookingCode.toLowerCase()))
           );
 
           if (studentMatch) {
@@ -285,8 +282,7 @@ export function QRPassScanner({
         ) || {
           id: targetBooking.studentId,
           fullName: parsedPayload?.studentName || "University Student",
-          enrollmentNo: "VERIFIED",
-          photoUrl: "",
+                    photoUrl: "",
           department: "",
         };
 
@@ -296,12 +292,11 @@ export function QRPassScanner({
         setLastResult({
           status: "DUPLICATE",
           studentName: student.fullName,
-          enrollmentNo: student.enrollmentNo,
-          seatNumber: targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`,
+                    seatNumber: targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`,
           photoUrl: student.photoUrl,
           department: (student as any).department || "",
           boardedAt: targetBooking.boardedAt,
-          message: `DUPLICATE REPLAY: Pass belongs to ${student.fullName} (Roll: ${student.enrollmentNo}), who was checked in at ${new Date(targetBooking.boardedAt || "").toLocaleTimeString() || "earlier today"}. Duplicate scan blocked.`,
+          message: `DUPLICATE REPLAY: Pass belongs to ${student.fullName} , who was checked in at ${new Date(targetBooking.boardedAt || "").toLocaleTimeString() || "earlier today"}. Duplicate scan blocked.`,
           timestamp: new Date().toLocaleTimeString(),
         });
         setIsProcessing(false);
@@ -314,8 +309,7 @@ export function QRPassScanner({
         setLastResult({
           status: "WRONG_BUS",
           studentName: student.fullName,
-          enrollmentNo: student.enrollmentNo,
-          seatNumber: targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`,
+                    seatNumber: targetBooking.seatNumber || `WL-${targetBooking.waitlistPosition}`,
           message: `WRONG VEHICLE: Pass is for a DIFFERENT shuttle shift.`,
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -363,12 +357,11 @@ export function QRPassScanner({
           setLastResult({
             status: "DUPLICATE",
             studentName: student.fullName,
-            enrollmentNo: student.enrollmentNo,
-            seatNumber: booking.seatNumber || booking.seat_number,
+                        seatNumber: booking.seatNumber || booking.seat_number,
             photoUrl: student.photoUrl,
             department: student.department,
             boardedAt: booking.boardedAt,
-            message: `DUPLICATE REPLAY: Pass belongs to ${student.fullName} (Roll: ${student.enrollmentNo}), who was ALREADY checked in earlier today. Duplicate scan blocked.`,
+            message: `DUPLICATE REPLAY: Pass belongs to ${student.fullName} , who was ALREADY checked in earlier today. Duplicate scan blocked.`,
             timestamp: new Date().toLocaleTimeString(),
           });
         } else {
@@ -403,8 +396,7 @@ export function QRPassScanner({
     setLastResult({
       status: "APPROVED",
       studentName: student.fullName,
-      enrollmentNo: student.enrollmentNo,
-      seatNumber: isStanding ? "STAND" : (booking.seatNumber || booking.seat_number || "Seat Assigned"),
+            seatNumber: isStanding ? "STAND" : (booking.seatNumber || booking.seat_number || "Seat Assigned"),
       method,
       message: isStanding
         ? `⚡ Attendance Marked! Standing Passenger Authorized Till ${booking.mergeStopName || "Merge Stop"}.`
@@ -444,8 +436,7 @@ export function QRPassScanner({
         setLastResult({
           status: "APPROVED",
           studentName: student.fullName,
-          enrollmentNo: student.enrollmentNo,
-          seatNumber: booking.seatNumber || booking.seat_number || "Seat Held",
+                    seatNumber: booking.seatNumber || booking.seat_number || "Seat Held",
           method,
           message: `🎒 SEAT HELD & ROAMING ACTIVE: ${student.fullName} (Seat ${booking.seatNumber || booking.seat_number || "Held"}) is free to roam campus without keeping a physical bag on the seat. Audible departure alert will ring when bus fills.`,
           timestamp: new Date().toLocaleTimeString(),
@@ -483,8 +474,7 @@ export function QRPassScanner({
     setLastResult({
       status: "REJECTED",
       studentName: student.fullName,
-      enrollmentNo: student.enrollmentNo,
-      message: `❌ BOARDING DENIED: Identity verification failed. Commuter face does not match official passport photo for ${student.fullName}.`,
+            message: `❌ BOARDING DENIED: Identity verification failed. Commuter face does not match official passport photo for ${student.fullName}.`,
       timestamp: new Date().toLocaleTimeString(),
     });
 
@@ -841,7 +831,7 @@ export function QRPassScanner({
                   {pendingVerification.student.fullName}
                 </div>
                 <div className="text-xs font-mono text-teal-300 flex items-center justify-center sm:justify-start gap-2">
-                  <span>ID: {pendingVerification.student.enrollmentNo || "VERIFIED"}</span>
+                  
                   {pendingVerification.student.semester && (
                     <span className="opacity-70">• {pendingVerification.student.semester}</span>
                   )}
@@ -985,7 +975,7 @@ export function QRPassScanner({
                       {lastResult.studentName}
                     </div>
                     <div className="font-mono text-xs font-bold text-amber-900 dark:text-amber-200">
-                      Roll / ID: {lastResult.enrollmentNo || "VERIFIED"}
+                      
                     </div>
                     {lastResult.department && (
                       <div className="text-[11px] text-slate-700 dark:text-slate-300 truncate">

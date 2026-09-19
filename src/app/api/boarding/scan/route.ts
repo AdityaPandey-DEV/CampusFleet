@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     // 3. Retrieve Student and Class Details from Database (including official passport photo)
     const { data: studentsFound, error: studentErr } = await supabaseAdmin
       .from("students")
-      .select("id, full_name, enrollment_no, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status")
+      .select("id, full_name, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status")
       .or(`id.eq.${resolvedStudentId},user_id.eq.${resolvedStudentId}`)
       .limit(1);
 
@@ -76,11 +76,10 @@ export async function POST(req: NextRequest) {
           success: false,
           status: "DUPLICATE",
           code: "ALREADY_BOARDED",
-          message: `DUPLICATE REPLAY: Pass belongs to ${student?.full_name || "Student"} (Roll: ${student?.enrollment_no || "N/A"}), who was ALREADY checked in at ${boardedTime}. Duplicate scan blocked.`,
+          message: `DUPLICATE REPLAY: Pass belongs to ${student?.full_name || "Student"} , who was ALREADY checked in at ${boardedTime}. Duplicate scan blocked.`,
           student: {
             id: student?.id || resolvedStudentId,
             fullName: student?.full_name || "University Student",
-            enrollmentNo: student?.enrollment_no || "VERIFIED",
             photoUrl: student?.photo_url || null,
             department: student?.department || "Academic Department",
             semester: student?.semester || "Enrolled Semester",
@@ -93,7 +92,6 @@ export async function POST(req: NextRequest) {
             boardedAt: targetBooking.boarded_at,
           },
           studentName: student?.full_name || "Student",
-          enrollmentNo: student?.enrollment_no || "VERIFIED",
           seatNumber: targetBooking.seat_number,
           photoUrl: student?.photo_url || null,
           boardedAt: targetBooking.boarded_at,
@@ -245,7 +243,6 @@ export async function POST(req: NextRequest) {
         student: {
           id: student?.id || resolvedStudentId,
           fullName: student?.full_name || "University Student",
-          enrollmentNo: student?.enrollment_no || "VERIFIED",
           photoUrl: student?.photo_url || null,
           department: student?.department || "Academic Department",
           semester: student?.semester || "Enrolled Semester",
@@ -337,7 +334,6 @@ export async function POST(req: NextRequest) {
       student: {
         id: student?.id || resolvedStudentId,
         fullName: student?.full_name || "University Student",
-        enrollmentNo: student?.enrollment_no || "VERIFIED",
         photoUrl: student?.photo_url || null,
         className: student?.class_name || "Enrolled Class",
       },

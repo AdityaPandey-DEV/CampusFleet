@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         notes,
         allocated_by,
         created_at,
-        student:students(id, full_name, enrollment_no, department, semester),
+        student:students(id, full_name, department, semester),
         shift:shifts(id, name, type, start_time, end_time, is_special)
       `);
 

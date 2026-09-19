@@ -196,7 +196,6 @@ export default function StaffStudentsView({
   const filteredStudents = students.filter(
     (s) =>
       s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.enrollmentNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.className?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -241,7 +240,6 @@ export default function StaffStudentsView({
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="p-3.5">Roll / ID</th>
                 <th className="p-3.5">Photo</th>
                 <th className="p-3.5">Student Commuter</th>
                 <th className="p-3.5">Assigned University Class</th>
@@ -258,9 +256,6 @@ export default function StaffStudentsView({
 
                 return (
                   <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <td className="p-3.5 font-mono font-bold text-blue-600 dark:text-blue-400">
-                      {s.enrollmentNo || "PENDING"}
-                    </td>
                     <td className="p-3.5">
                       <div className="relative w-9 h-11 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
                         {s.photoUrl ? (
@@ -375,7 +370,7 @@ export default function StaffStudentsView({
                 {selectedStudentForClass.fullName}
               </div>
               <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                Roll: {selectedStudentForClass.enrollmentNo} • {selectedStudentForClass.email}
+                {selectedStudentForClass.email}
               </div>
             </div>
 
@@ -448,7 +443,7 @@ export default function StaffStudentsView({
                 {selectedStudentForPhoto.fullName}
               </div>
               <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                Roll: {selectedStudentForPhoto.enrollmentNo} • {selectedStudentForPhoto.email}
+                {selectedStudentForPhoto.email}
               </div>
             </div>
 

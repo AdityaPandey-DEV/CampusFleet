@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
         teacher_remarks,
         reviewed_at,
         created_at,
-        student:students(id, full_name, enrollment_no, department, photo_url, phone),
+        student:students(id, full_name, department, photo_url, phone),
         class:classes(id, name, course, semester, section),
         shift:shifts(id, name, start_time, end_time)
       `)
@@ -127,7 +127,7 @@ export async function PATCH(req: NextRequest) {
         status,
         teacher_remarks,
         reviewed_at,
-        student:students(id, full_name, enrollment_no)
+        student:students(id, full_name)
       `)
       .single();
 

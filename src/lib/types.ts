@@ -168,7 +168,6 @@ export interface Trip {
 export interface Student {
   id: string;
   userId: string;
-  enrollmentNo: string;
   fullName: string;
   email: string;
   phone: string | null;
@@ -349,7 +348,6 @@ export interface PaymentSubmission {
   id: string;
   studentId: string;
   studentName: string;
-  enrollmentNo?: string;
   zoneCode: string;
   amount: number;
   installmentNo: number;
@@ -547,7 +545,6 @@ export interface AuditLogEntry {
 export interface TodayBusArrival {
   studentId: string;
   studentName: string;
-  enrollmentNo?: string;
   classId: string;
   className: string;
   busId: string;

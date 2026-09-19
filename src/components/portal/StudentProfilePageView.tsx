@@ -155,7 +155,6 @@ export default function StudentProfilePageView({
     const matched = students.find(
       s =>
         s.fullName?.toLowerCase().includes("ananya") ||
-        s.enrollmentNo?.includes("1092") ||
         s.email?.toLowerCase().includes("ananya")
     );
     if (matched) return matched;
@@ -217,6 +216,10 @@ export default function StudentProfilePageView({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete account");
+      
+      // Also wipe local state so they don't see deleted data if they reload
+      store.wipeAllData();
+      localStorage.removeItem("campusfleet_store");
       
       // Redirect to login page on success
       window.location.href = "/login?message=Account%20deleted%20successfully";
@@ -281,12 +284,6 @@ export default function StudentProfilePageView({
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-slate-300 font-medium">
                 <span>
                   {activeStudent?.department || "B.Tech Computer Science & Engineering"}
-                </span>
-                <span>•</span>
-                <span className="font-mono font-bold text-blue-300">
-                  {activeStudent?.enrollmentNo && activeStudent.enrollmentNo !== "PENDING"
-                    ? activeStudent.enrollmentNo
-                    : "GEHU/2023/1092"}
                 </span>
                 <span>•</span>
                 <span className="px-2 py-0.5 rounded-md bg-white/10 text-slate-200 text-xs font-bold">
@@ -413,11 +410,6 @@ export default function StudentProfilePageView({
               <div className="min-w-0 space-y-1">
                 <div className="text-sm font-black text-white truncate">
                   {activeStudent?.fullName || currentUser?.fullName || "Student Commuter"}
-                </div>
-                <div className="text-[11px] font-mono text-blue-300">
-                  {activeStudent?.enrollmentNo && activeStudent.enrollmentNo !== "PENDING"
-                    ? activeStudent.enrollmentNo
-                    : "GEHU/2023/1092"}
                 </div>
                 <div className="text-[10px] text-slate-300 truncate">
                   {activeStudent?.className || activeStudent?.department || "B.Tech CSE"}
@@ -569,17 +561,6 @@ export default function StudentProfilePageView({
                 <div className="font-black text-slate-900 dark:text-white text-sm">
                   {activeStudent?.className ||
                     `${activeStudent?.semester || "4th"} Semester • Section IV (CC)`}
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
-                  Enrollment Number
-                </div>
-                <div className="font-mono font-black text-blue-600 dark:text-blue-400 text-sm">
-                  {activeStudent?.enrollmentNo && activeStudent.enrollmentNo !== "PENDING"
-                    ? activeStudent.enrollmentNo
-                    : "GEHU/2023/1092"}
                 </div>
               </div>
 
@@ -944,9 +925,6 @@ export default function StudentProfilePageView({
                 <span>Live Translation Preview ({languageOptions.find((l) => l.code === primaryLanguage)?.name})</span>
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
-                <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium">
-                  {t("student_id")}: <strong className="font-bold text-indigo-600 dark:text-indigo-400">{activeStudent?.enrollmentNo || "STU-2026"}</strong>
-                </span>
                 <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium">
                   {t("bus_number")}: <strong className="font-bold text-indigo-600 dark:text-indigo-400">{assignedBus?.busNumber || "Bus 1"}</strong>
                 </span>

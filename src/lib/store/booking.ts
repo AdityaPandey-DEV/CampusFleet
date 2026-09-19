@@ -23,7 +23,7 @@ CampusFleetStore.prototype.recordAttendance = async function (
   status: "BOARDED" | "ABSENT" | "NO_SHOW" = "BOARDED",
   notes?: string
 ) {
-  const student = this.students.find(s => s.id === studentId || s.userId === studentId || s.enrollmentNo?.toLowerCase() === studentId.toLowerCase() || s.email?.toLowerCase() === studentId.toLowerCase());
+  const student = this.students.find(s => s.id === studentId || s.userId === studentId || s.email?.toLowerCase() === studentId.toLowerCase());
   const resolvedStudentId = student?.id || studentId;
 
   const matchedBooking = this.bookings.find(
@@ -174,7 +174,6 @@ CampusFleetStore.prototype.bookShift = async function (this: CampusFleetStore, s
   const student = this.students.find(s => s.id === studentId) || {
     id: studentId,
     userId: this.currentUser?.id || "u-guest",
-    enrollmentNo: "PENDING",
     fullName: this.currentUser?.fullName || "Student",
     email: this.currentUser?.email || "student@campus.edu",
     phone: null,

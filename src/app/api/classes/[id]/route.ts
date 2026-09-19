@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // 2. Enrolled students
     const { data: students } = await supabaseAdmin
       .from("students")
-      .select("id, full_name, enrollment_no, email, phone, semester, transport_access_suspended")
+      .select("id, full_name, email, phone, semester, transport_access_suspended")
       .eq("class_id", classId);
 
     // 3. Assigned teachers

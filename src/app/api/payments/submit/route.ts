@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
     const {
       studentId,
       studentName,
-      enrollmentNo,
       zoneCode,
       amount,
       installmentNo,
@@ -108,7 +107,6 @@ export async function POST(request: NextRequest) {
       .insert({
         student_id: studentId,
         student_name: studentName || "Student Commuter",
-        enrollment_no: enrollmentNo || "PENDING",
         zone_code: zoneCode || "ZONE_B",
         amount: submittedAmount,
         scanned_amount: scannedAmount ? Number(scannedAmount) : null,

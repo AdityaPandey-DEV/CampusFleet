@@ -60,7 +60,6 @@ interface TimetableSlot {
 interface StudentItem {
   id: string;
   full_name: string;
-  enrollment_no: string;
   email: string;
   phone?: string;
 }
@@ -1133,7 +1132,7 @@ export default function StaffClassesView({
                               {s.full_name}
                             </div>
                             <div className="text-[11px] text-slate-500 font-mono">
-                              Roll: {s.enrollment_no} • {s.email}
+                              {s.email}
                             </div>
                           </div>
 

@@ -50,7 +50,6 @@ describe("Special Shift & Placement Facility Student Allocation Tests", () => {
   const mockStudent1: Student = {
     id: "stud-eligible-1",
     userId: "u-eligible-1",
-    enrollmentNo: "ENR-CS-2026-001",
     fullName: "Priya Sharma",
     email: "priya@campus.edu",
     phone: "+91 9876543210",
@@ -65,7 +64,6 @@ describe("Special Shift & Placement Facility Student Allocation Tests", () => {
   const mockStudent2: Student = {
     id: "stud-regular-2",
     userId: "u-regular-2",
-    enrollmentNo: "ENR-ME-2026-042",
     fullName: "Rahul Verma",
     email: "rahul@campus.edu",
     phone: "+91 9876543211",

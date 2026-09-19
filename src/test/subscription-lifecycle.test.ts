@@ -12,7 +12,6 @@ describe("Student Subscription Lifecycle Engine", () => {
     userId: "usr-101",
     fullName: "Aarav Sharma",
     email: "aarav@gehu.ac.in",
-    enrollmentNo: "GEHU/2026/CS/042",
     contactNo: "+919876543210",
     pickupStopId: "stop-kathgodam",
     stopName: "Kathgodam Station",

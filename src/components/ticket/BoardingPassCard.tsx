@@ -142,9 +142,6 @@ export function BoardingPassCard({
               <div className="text-base font-bold text-slate-900 dark:text-white truncate">
                 {student?.fullName || "Student Passenger"}
               </div>
-              <div className="text-xs font-mono text-slate-500 dark:text-slate-400 truncate">
-                ID: {student?.enrollmentNo || "GEHU-STUDENT"}
-              </div>
             </div>
           </div>
 

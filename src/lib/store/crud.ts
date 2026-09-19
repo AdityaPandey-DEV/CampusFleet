@@ -209,7 +209,6 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
   studentId: string,
   profileData: {
     fullName?: string;
-    enrollmentNo?: string;
     campusId?: string;
     campus?: string;
     department?: string;
@@ -238,7 +237,6 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
     student = {
       id: targetId,
       userId: u?.id || studentId,
-      enrollmentNo: profileData.enrollmentNo || "",
       fullName: profileData.fullName || u?.fullName || "",
       email: u?.email || "",
       phone: profileData.phone || "",
@@ -287,7 +285,6 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
   const updatedStudent: Student = {
     ...student,
     fullName: profileData.fullName || student.fullName,
-    enrollmentNo: profileData.enrollmentNo || student.enrollmentNo,
     campusId: resolvedCampusId || student.campusId || this.getPrimaryCampus()?.id || "",
     campus: resolvedCampusName || student.campus || this.getPrimaryCampus()?.name || "",
     department: profileData.department || student.department,
@@ -344,7 +341,6 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
         body: JSON.stringify({
           studentId: updatedStudent.id,
           fullName: updatedStudent.fullName,
-          enrollmentNo: updatedStudent.enrollmentNo,
           campusId: updatedStudent.campusId,
           campus: updatedStudent.campus,
           department: updatedStudent.department,
@@ -379,7 +375,6 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
       zone_code: updatedStudent.zoneCode || "ZONE_B",
       campus_id: updatedStudent.campusId || null,
       campus: updatedStudent.campus,
-      enrollment_no: updatedStudent.enrollmentNo,
       primary_stop_id: updatedStudent.primaryStopId || null,
       primary_route_id: updatedStudent.primaryRouteId || null,
       emergency_contact: updatedStudent.emergencyContact,

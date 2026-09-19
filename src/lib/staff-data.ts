@@ -142,7 +142,6 @@ export async function getStaffServerData(redirectPath: string = "/staff") {
     id: s.id,
     userId: s.user_id,
     fullName: s.full_name,
-    enrollmentNo: s.enrollment_no,
     email: s.email,
     phone: s.phone,
     department: s.department,

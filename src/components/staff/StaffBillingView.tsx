@@ -478,10 +478,7 @@ export function StaffBillingView({
                           <div className="font-bold text-slate-900 dark:text-white">
                             {sub.student_name || sub.students?.full_name || "Student"}
                           </div>
-                          <div className="text-[11px] text-slate-400">
-                            {sub.enrollment_no || sub.students?.enrollment_no || "N/A"}
-                          </div>
-                        </td>
+                                                  </td>
 
                         <td className="p-3">
                           <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-black text-[10px]">

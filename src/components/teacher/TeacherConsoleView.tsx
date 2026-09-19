@@ -33,7 +33,6 @@ export interface TodayArrival {
   sno?: number;
   studentId: string;
   studentName: string;
-  enrollmentNo: string;
   classId: string;
   className: string;
   busId?: string;
@@ -269,7 +268,6 @@ export default function TeacherConsoleView({
       (a) =>
         !q ||
         a.studentName.toLowerCase().includes(q) ||
-        a.enrollmentNo.toLowerCase().includes(q) ||
         a.busName.toLowerCase().includes(q) ||
         a.className.toLowerCase().includes(q)
     );
@@ -579,10 +577,7 @@ export default function TeacherConsoleView({
                             <span className="font-black text-sm text-slate-900 dark:text-white">
                               {req.student?.full_name || "Student"}
                             </span>
-                            <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                              {req.student?.enrollment_no || "N/A"}
-                            </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
                               {req.class?.name || "Class"}
                             </span>
                             <span
@@ -742,9 +737,6 @@ export default function TeacherConsoleView({
                             </div>
                             <div>
                               <div>{row.studentName}</div>
-                              <div className="text-[10px] font-mono text-slate-400">
-                                Roll: {row.enrollmentNo}
-                              </div>
                             </div>
                           </div>
                         </td>

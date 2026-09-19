@@ -1166,7 +1166,6 @@ export default function StaffTripsView({
           const query = studentSearch.toLowerCase();
           return (
             s.fullName.toLowerCase().includes(query) ||
-            s.enrollmentNo.toLowerCase().includes(query) ||
             s.department.toLowerCase().includes(query) ||
             s.email.toLowerCase().includes(query)
           );
@@ -1273,7 +1272,7 @@ export default function StaffTripsView({
                               )}
                             </div>
                             <div className="text-[10px] text-slate-400 font-mono truncate">
-                              {student.enrollmentNo} • {student.department} (Sem {student.semester})
+                              {student.department} (Sem {student.semester})
                             </div>
                           </div>
                         </div>

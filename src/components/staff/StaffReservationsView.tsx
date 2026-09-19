@@ -141,9 +141,6 @@ export default function StaffReservationsView({
                       <div className="font-bold text-slate-900 dark:text-white">
                         {s?.fullName}
                       </div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        {s?.enrollmentNo}
-                      </div>
                     </td>
                     <td className="p-3.5">
                       <div className="font-semibold text-slate-800 dark:text-slate-200">

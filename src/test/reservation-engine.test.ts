@@ -12,7 +12,6 @@ describe("CampusFleet Fleet Reservation Engine Tests", () => {
   const mockStudent1: Student = {
     id: "stud-1",
     userId: "u-stud-1",
-    enrollmentNo: "2023-CS-084",
     fullName: "Aarav Sharma",
     email: "aarav@campus.edu",
     phone: "+91 98101 23456",

@@ -134,7 +134,6 @@ export default function ConductorCockpitView({
     const matchesQuery =
       !query ||
       s?.fullName.toLowerCase().includes(query) ||
-      s?.enrollmentNo?.toLowerCase().includes(query) ||
       b.seatNumber?.toLowerCase().includes(query) ||
       b.bookingCode?.toLowerCase().includes(query) ||
       stop?.name.toLowerCase().includes(query);
@@ -735,8 +734,6 @@ export default function ConductorCockpitView({
                             )}
                           </div>
                           <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5 flex items-center gap-2 flex-wrap">
-                            <span>Roll: <strong className="text-slate-700 dark:text-slate-300">{s?.enrollmentNo || "Pending"}</strong></span>
-                            <span>•</span>
                             <span className="flex items-center gap-1 text-teal-600 dark:text-teal-300">
                               <MapPin className="w-3 h-3" /> {stop?.name || "Boarding Stop"}
                             </span>
@@ -1037,9 +1034,6 @@ export default function ConductorCockpitView({
                   <div className="text-xs text-slate-400">Reserved Passenger:</div>
                   <div className="text-base font-black text-slate-900 dark:text-white">
                     {selectedSeatForModal.student?.fullName || "University Commuter"}
-                  </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                    ID: {selectedSeatForModal.student?.enrollmentNo || "Pending"}
                   </div>
                 </div>
 

@@ -57,14 +57,13 @@ export async function POST(request: NextRequest) {
 
       const { data: student } = await supabaseAdmin
         .from("students")
-        .select("full_name, enrollment_no, zone_code, total_fee_due, total_fee_paid")
+        .select("full_name, zone_code, total_fee_due, total_fee_paid")
         .eq("id", studentId)
         .maybeSingle();
 
       await supabaseAdmin.from("payment_submissions").insert({
         student_id: studentId,
         student_name: student?.full_name || "Student Commuter",
-        enrollment_no: student?.enrollment_no || "PENDING",
         zone_code: student?.zone_code || "ZONE_B",
         amount: amountPaid,
         installment_no: 1,

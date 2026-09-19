@@ -126,7 +126,6 @@ export default async function ShiftBookingPage() {
     id: s.id,
     userId: s.user_id || s.id,
     fullName: s.full_name || s.name || "Student",
-    enrollmentNo: s.enrollment_no || s.enrollment_number || "",
     email: s.email || "",
     phone: s.phone || "",
     department: s.department || "Computer Science",

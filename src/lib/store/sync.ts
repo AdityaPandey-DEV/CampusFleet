@@ -94,7 +94,6 @@ CampusFleetStore.prototype.initStudentPaymentSync = function (this: CampusFleetS
       const serverStudent: Student = {
         id: student.id,
         userId: student.userId || user.id,
-        enrollmentNo: student.enrollmentNo || "PENDING",
         fullName: student.fullName || user.fullName,
         email: student.email || user.email,
         phone: student.phone || null,
@@ -415,7 +414,6 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       mappedStudents = dbStudents.map(s => ({
         id: s.id,
         userId: s.user_id,
-        enrollmentNo: s.enrollment_no || "PENDING",
         fullName: s.full_name,
         email: s.email,
         phone: s.phone || null,
@@ -452,7 +450,6 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
         const newStudent: Student = {
           id: `stud-${u.id}`,
           userId: u.id,
-          enrollmentNo: "PENDING",
           fullName: u.fullName || "Student Commuter",
           email: u.email,
           phone: u.phone || null,
@@ -483,7 +480,6 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
           department: newStudent.department,
           semester: newStudent.semester,
           campus_id: newStudent.campusId || newStudent.campus || "",
-          enrollment_no: newStudent.enrollmentNo,
           primary_stop_id: newStudent.primaryStopId || null,
           primary_route_id: newStudent.primaryRouteId || null,
           has_active_subscription: false,

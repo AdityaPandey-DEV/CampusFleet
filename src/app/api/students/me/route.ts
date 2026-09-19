@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const { data: students, error } = await supabaseAdmin
       .from("students_full")
       .select(
-        "id, user_id, enrollment_no, full_name, email, phone, department, semester, campus, campus_id, primary_stop_id, primary_route_id, emergency_contact, transport_access_suspended, has_active_subscription, subscription_expiry_date, class_id, class_name, zone_code, payment_status, total_fee_due, total_fee_paid, photo_url, photo_locked, avatar_url, created_at"
+        "id, user_id, full_name, email, phone, department, semester, campus, campus_id, primary_stop_id, primary_route_id, emergency_contact, transport_access_suspended, has_active_subscription, subscription_expiry_date, class_id, class_name, zone_code, payment_status, total_fee_due, total_fee_paid, photo_url, photo_locked, avatar_url, created_at"
       )
       .or(`user_id.eq.${session.userId},email.ilike.${session.email}`)
       .order("created_at", { ascending: false })
@@ -42,7 +42,6 @@ export async function GET(req: NextRequest) {
       student: {
         id: student.id,
         userId: student.user_id,
-        enrollmentNo: student.enrollment_no || "",
         fullName: student.full_name,
         email: student.email,
         phone: student.phone || null,

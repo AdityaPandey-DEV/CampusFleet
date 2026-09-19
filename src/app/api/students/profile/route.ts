@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
     const {
       studentId,
       fullName,
-      enrollmentNo,
       campusId,
       campus,
       department,
@@ -95,7 +94,6 @@ export async function POST(req: NextRequest) {
       campus: effectiveCampus,
       department: (department || "").trim() || null,
       semester: (semester || "").trim() || null,
-      enrollment_no: (enrollmentNo || "").trim().toUpperCase() || null,
       zone_code: zoneCode || null,
       primary_stop_id: primaryStopId || null,
       emergency_contact: emergencyContact || null,

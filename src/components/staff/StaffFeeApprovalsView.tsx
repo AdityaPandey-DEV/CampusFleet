@@ -148,7 +148,6 @@ export default function StaffFeeApprovalsView({
       "S.No": idx + 1,
       "Submission ID": sub.id,
       "Student Name": sub.student?.full_name || sub.student_name || "N/A",
-      "Enrollment / Roll No": sub.student?.enrollment_no || sub.enrollment_no || "PENDING",
       "Department": sub.student?.department || "General",
       "Transit Zone": sub.zone_code || "ZONE_B",
       "Amount Paid (INR)": sub.amount || 0,
@@ -183,8 +182,6 @@ export default function StaffFeeApprovalsView({
       return (
         sub.student?.full_name?.toLowerCase().includes(q) ||
         sub.student_name?.toLowerCase().includes(q) ||
-        sub.student?.enrollment_no?.toLowerCase().includes(q) ||
-        sub.enrollment_no?.toLowerCase().includes(q) ||
         sub.transaction_id?.toLowerCase().includes(q) ||
         sub.zone_code?.toLowerCase().includes(q)
       );
@@ -201,7 +198,6 @@ export default function StaffFeeApprovalsView({
           student: sub.student || {
             id: studentId,
             full_name: sub.student_name || "Unknown Student",
-            enrollment_no: sub.enrollment_no || "N/A",
             total_fee_due: 0,
             total_fee_paid: 0,
             payment_status: "UNKNOWN",
@@ -393,7 +389,7 @@ export default function StaffFeeApprovalsView({
                           )}
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                          Roll: {student.enrollment_no} • {student.department || "General"}
+                          {student.department || "General"}
                         </div>
                         {(student.email || student.phone) && (
                           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-3">

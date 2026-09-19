@@ -12,7 +12,6 @@ describe("Attendance and Passport Photo Anti-Impersonation Verification", () => 
       const newStudent: Student = {
         id: testStudentId,
         userId: "u-photo-test",
-        enrollmentNo: "GEHU/2024/TEST01",
         fullName: "Vikram Malhotra",
         email: "vikram.test@gehu.ac.in",
         phone: "+91 98765 43210",

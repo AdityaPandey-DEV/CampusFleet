@@ -38,10 +38,10 @@ export default function StaffReportsView({
       let filename = `campusfleet_${reportType.toLowerCase()}_report.csv`;
 
       if (reportType === "ATTENDANCE") {
-        csvContent = "BookingCode,StudentName,EnrollmentNo,Department,Seat,Status,BoardedAt,CreatedAt\n";
+        csvContent = "BookingCode,StudentName,Department,Seat,Status,BoardedAt,CreatedAt\n";
         bookings.forEach(b => {
           const s = students.find(stud => stud.id === b.studentId);
-          csvContent += `"${b.bookingCode}","${s?.fullName || ""}","${s?.enrollmentNo || ""}","${s?.department || ""}","${b.seatNumber || `WL-${b.waitlistPosition}`}","${b.status}","${b.boardedAt || ""}","${b.createdAt}"\n`;
+          csvContent += `"${b.bookingCode}","${s?.fullName || ""}","${s?.department || ""}","${b.seatNumber || `WL-${b.waitlistPosition}`}","${b.status}","${b.boardedAt || ""}","${b.createdAt}"\n`;
         });
       } else if (reportType === "OCCUPANCY") {
         csvContent = "BusNumber,Registration,Capacity,Status,GPS_ID\n";
@@ -165,9 +165,6 @@ export default function StaffReportsView({
                           <div>
                             <div className="font-bold text-slate-900 dark:text-white">
                               {s?.fullName || "Student"}
-                            </div>
-                            <div className="font-mono text-[10px] text-slate-400">
-                              {s?.enrollmentNo || "N/A"}
                             </div>
                           </div>
                         </div>

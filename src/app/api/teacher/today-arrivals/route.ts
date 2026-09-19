@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     // 2. Fetch all enrolled students for the target class(es), ordered ascending by name
     let studentQuery = supabaseAdmin
       .from("students")
-      .select("id, full_name, enrollment_no, class_id, class_name, email, phone")
+      .select("id, full_name, class_id, class_name, email, phone")
       .order("full_name", { ascending: true });
 
     if (authorizedClassIds.length > 0) {
@@ -135,7 +135,6 @@ export async function GET(req: NextRequest) {
           sno: index + 1,
           studentId: student.id,
           studentName: student.full_name,
-          enrollmentNo: student.enrollment_no,
           classId: student.class_id,
           className: student.class_name || "Assigned Section",
           busId: record.bus_id,
@@ -153,7 +152,6 @@ export async function GET(req: NextRequest) {
         sno: index + 1,
         studentId: student.id,
         studentName: student.full_name,
-        enrollmentNo: student.enrollment_no,
         classId: student.class_id,
         className: student.class_name || "Assigned Section",
         busId: undefined,

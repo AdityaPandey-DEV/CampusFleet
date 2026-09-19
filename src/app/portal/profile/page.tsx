@@ -41,7 +41,6 @@ export default async function StudentProfilePage() {
     id: s.id,
     userId: s.user_id || s.id,
     fullName: s.full_name || s.name || "Student",
-    enrollmentNo: (s.enrollment_no && s.enrollment_no !== "NOT_SPECIFIED" && s.enrollment_no !== "PENDING") ? s.enrollment_no : "",
     email: s.email || "",
     phone: s.phone || null,
     department: s.department || "Computer Science",
