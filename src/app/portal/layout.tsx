@@ -79,7 +79,7 @@ export default function StudentPortalLayout({
   
   const isAccessBlocked = isStudent && !isSubscriptionActive && !isPaymentPage && !isOnboardingPage;
 
-  // Auto-redirect logic for onboarding and payment
+  // Auto-redirect logic for onboarding
   useEffect(() => {
     if (!isStoreReady) return; // Wait until store is populated before forcing redirects
     
@@ -89,18 +89,13 @@ export default function StudentPortalLayout({
         console.warn("[PortalLayout Redirect] Profile Incomplete -> Redirecting to /portal/onboarding", { hasCompleteProfile, isOnboardingPage });
         router.replace("/portal/onboarding");
       } 
-      // 2. Force payment if profile is complete but subscription inactive
-      else if (hasCompleteProfile && !isSubscriptionActive && !isPaymentPage && !isOnboardingPage) {
-        console.warn("[PortalLayout Redirect] Subscription Inactive -> Redirecting to /portal/payments", { hasCompleteProfile, isSubscriptionActive, isPaymentPage, isOnboardingPage });
-        router.replace("/portal/payments");
-      }
-      // 3. Return to portal if they try to access onboarding/payment when already active
-      else if (hasCompleteProfile && isSubscriptionActive && (isOnboardingPage || isPaymentPage)) {
-        console.warn("[PortalLayout Redirect] Subscription Active but user is on payment/onboarding page -> Redirecting to /portal", { hasCompleteProfile, isSubscriptionActive, isOnboardingPage, isPaymentPage });
+      // 2. Return to portal if they try to access onboarding when already complete
+      else if (hasCompleteProfile && isOnboardingPage) {
+        console.warn("[PortalLayout Redirect] Profile Complete -> Redirecting away from onboarding to /portal", { hasCompleteProfile, isOnboardingPage });
         router.replace("/portal");
       }
     }
-  }, [isStudent, hasCompleteProfile, isSubscriptionActive, pathname, router, isOnboardingPage, isPaymentPage, isStoreReady]);
+  }, [isStudent, hasCompleteProfile, pathname, router, isOnboardingPage, isStoreReady]);
 
   if (currentUser && !isAuthorizedStudent) {
     const role = currentUser.role;
