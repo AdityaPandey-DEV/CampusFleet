@@ -333,7 +333,8 @@ export default function PortalPaymentsView({
 
       // 3. Update local student state
       if (activeStudent) {
-        activeStudent.paymentStatus = submitData.balance?.isFullyPaid ? "APPROVED" : "PENDING_APPROVAL";
+        // Staff must still verify the receipts, so it goes to PENDING_APPROVAL
+        activeStudent.paymentStatus = "PENDING_APPROVAL";
         activeStudent.zoneCode = currentZone.code || selectedZoneCode;
         if (submitData.balance) {
           activeStudent.totalFeePaid = submitData.balance.totalPaid;
