@@ -180,10 +180,30 @@ export default function PortalPaymentsView({
         description: `Transit Pass - ${currentZone.name}`,
         order_id: orderData.order.id,
         handler: async function (response: any) {
-           setSubmitSuccess("🎉 Payment Successful! Your transit pass will be unlocked momentarily.");
-           setTimeout(() => {
-             window.location.reload();
-           }, 2500);
+           try {
+             const verifyRes = await fetch("/api/payments/razorpay/verify", {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({
+                 razorpay_order_id: response.razorpay_order_id,
+                 razorpay_payment_id: response.razorpay_payment_id,
+                 razorpay_signature: response.razorpay_signature,
+               }),
+             });
+             
+             const verifyData = await verifyRes.json();
+             
+             if (verifyRes.ok && verifyData.success) {
+               setSubmitSuccess("🎉 Payment Successful! Your transit pass will be unlocked momentarily.");
+               setTimeout(() => {
+                 window.location.reload();
+               }, 2500);
+             } else {
+               setSubmitError(`Payment verification failed: ${verifyData.error || "Unknown error"}`);
+             }
+           } catch (err: any) {
+             setSubmitError(`Verification error: ${err.message}`);
+           }
         },
         prefill: {
           name: activeStudent?.fullName || currentUser.fullName || "",
