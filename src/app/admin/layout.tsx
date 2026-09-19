@@ -89,6 +89,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { href: "/admin", label: "← Hub", shortLabel: "Hub", icon: Home },
         { href: "/admin/maintenance", label: "Workshop", shortLabel: "Workshop", icon: Wrench },
+        { href: "/staff", label: "Staff Panel", shortLabel: "Staff Ops", icon: ShieldCheck },
       ]
     },
     staff: {
@@ -96,6 +97,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { href: "/admin", label: "← Hub", shortLabel: "Hub", icon: Home },
         { href: "/admin/staff", label: "Staff Directory", shortLabel: "Staff", icon: Users },
+        { href: "/staff", label: "Staff Panel", shortLabel: "Staff Ops", icon: ShieldCheck },
       ]
     }
   };
@@ -103,6 +105,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const topLevelLinks = [
     { href: "/admin/maintenance", label: "Maintenance", icon: Wrench },
     { href: "/admin/staff", label: "Staff & RBAC", icon: Users },
+    { href: "/staff", label: "Staff Panel", icon: ShieldCheck },
   ];
 
   let currentNavLinks = topLevelLinks;
