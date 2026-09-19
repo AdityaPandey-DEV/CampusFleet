@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { signToken, COOKIE_NAME } from "@/lib/jwt";
+import { signToken, createSessionCookie, COOKIE_NAME } from "@/lib/jwt";
 import { findOrCreateUser } from "@/lib/account-service";
 
 // Allowed redirect origins (prevent open redirect attacks)
@@ -139,18 +138,9 @@ export async function GET(req: NextRequest) {
 
     const response = NextResponse.redirect(`${origin}${redirectPath}`);
     
-    // Set the session cookie using Next.js native API to prevent multiple Set-Cookie overwrite issues
-    const cookieStore = await cookies();
-    cookieStore.set(COOKIE_NAME, token, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60,
-      secure: process.env.NODE_ENV === "production",
-    });
-
-    // Clear the CSRF state cookie
-    cookieStore.delete("oauth_csrf_state");
+    // Set the session cookie using standard headers. 
+    // We avoid setting multiple Set-Cookie headers to prevent Vercel Edge from dropping them.
+    response.headers.set("Set-Cookie", createSessionCookie(token));
 
     return response;
   } catch (e: any) {
