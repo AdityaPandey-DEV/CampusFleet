@@ -9,10 +9,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const secret = process.env.RAZORPAY_KEY_SECRET;
+    let secret = process.env.RAZORPAY_KEY_SECRET;
     if (!secret) {
       return NextResponse.json({ success: false, error: "Razorpay secret not configured" }, { status: 500 });
     }
+    secret = secret.trim().replace(/['"]/g, "");
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto

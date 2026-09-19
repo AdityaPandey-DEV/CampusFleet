@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/jwt";
-import Razorpay from "razorpay";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 
 export async function POST(request: NextRequest) {
@@ -41,10 +40,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    });
+    const keyId = process.env.RAZORPAY_KEY_ID.trim().replace(/['"]/g, "");
+    const keySecret = process.env.RAZORPAY_KEY_SECRET.trim().replace(/['"]/g, "");
 
     const options = {
       amount: Math.round(Number(amount) * 100), // amount in the smallest currency unit (paise)
@@ -56,28 +53,34 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    const order = await razorpay.orders.create(options);
+    const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+    const rzpRes = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${auth}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(options),
+    });
+
+    const orderData = await rzpRes.json();
+
+    if (!rzpRes.ok) {
+      console.error("Razorpay API Error:", orderData);
+      let errMsg = orderData.error?.description || orderData.error?.message || "Failed to create order";
+      if (errMsg.includes("Authentication failed") || rzpRes.status === 401) {
+        errMsg = `Razorpay Authentication Failed: Your keys (${keyId.substring(0, 5)}...) are invalid.`;
+      }
+      return NextResponse.json({ success: false, error: errMsg }, { status: 400 });
+    }
 
     return NextResponse.json({ 
       success: true, 
-      order,
-      key_id: process.env.RAZORPAY_KEY_ID 
+      order: orderData,
+      key_id: keyId 
     });
   } catch (err: any) {
     console.error("Razorpay create-order error:", err);
-    
-    // Razorpay often throws an object with an 'error' property rather than an Error instance
-    let errorMessage = "Unknown payment error.";
-    if (err.message) errorMessage = err.message;
-    else if (err.error?.description) errorMessage = err.error.description;
-    else if (typeof err === "string") errorMessage = err;
-    else errorMessage = JSON.stringify(err);
-
-    // Provide a clearer error if it's Razorpay's key authentication failure
-    if (errorMessage.includes("Authentication failed")) {
-      errorMessage = "Razorpay Authentication Failed: Your RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is invalid. Please check your environment variables.";
-    }
-
-    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Internal Server Error when connecting to Razorpay" }, { status: 500 });
   }
 }
