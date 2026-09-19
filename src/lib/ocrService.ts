@@ -101,40 +101,38 @@ function extractAmount(text: string): number | null {
   const cleanText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ');
 
   // Strategy 1: Labeled amount patterns (most reliable)
-  // Matches: "Amount ₹14,000" / "Paid ₹ 6,000.00" / "Total: Rs. 12000" / "Debited INR 10,000"
   const labeledPatterns = [
-    /(?:Amount|Paid|Total|Debited|Debit|Sent|Transferred|Payment)[\s:₹]*(?:₹|Rs\.?|INR)?\s*([0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{1,2})?)/i,
-    /(?:₹|Rs\.?|INR)\s*([0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{1,2})?)\s*(?:paid|sent|debited|transferred|successful)/i,
+    /(?:Amount|Paid|Total|Debited|Debit|Sent|Transferred|Payment|Transfer|Fee|Bal)[\s:₹-]*(?:₹|Rs\.?|INR|Rupees)?\s*([0-9]{1,5}(?:,?[0-9]{3})*(?:\.[0-9]{1,2})?)/i,
+    /(?:₹|Rs\.?|INR|Rupees)\s*([0-9]{1,5}(?:,?[0-9]{3})*(?:\.[0-9]{1,2})?)\s*(?:paid|sent|debited|transferred|successful)/i,
   ];
 
   for (const pattern of labeledPatterns) {
     const match = cleanText.match(pattern);
     if (match?.[1]) {
       const parsed = parseIndianAmount(match[1]);
-      if (parsed && parsed >= 100 && parsed <= 500000) {
+      if (parsed && parsed >= 10 && parsed <= 500000) {
         return parsed;
       }
     }
   }
 
   // Strategy 2: Currency symbol/prefix followed by amount
-  // Matches: "₹14,000" / "Rs. 6000" / "INR 12,000.00"
   const currencyMatch = cleanText.match(
-    /(?:₹|Rs\.?|INR)\s*([0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{1,2})?)/i
+    /(?:₹|Rs\.?|INR|Rupees)\s*([0-9]{1,5}(?:,?[0-9]{3})*(?:\.[0-9]{1,2})?)/i
   );
   if (currencyMatch?.[1]) {
     const parsed = parseIndianAmount(currencyMatch[1]);
-    if (parsed && parsed >= 100 && parsed <= 500000) {
+    if (parsed && parsed >= 10 && parsed <= 500000) {
       return parsed;
     }
   }
 
-  // Strategy 3: Standalone large numbers that look like payment amounts (4-6 digits)
-  // Only as last resort — matches amounts like "14000" or "6,000"
-  const standaloneMatch = cleanText.match(/\b([0-9]{1,2},?[0-9]{3}(?:\.[0-9]{1,2})?)\b/);
+  // Strategy 3: Standalone large numbers (Fallback)
+  const standaloneMatch = cleanText.match(/\b([0-9]{2,6}(?:\.[0-9]{1,2})?)\b/);
   if (standaloneMatch?.[1]) {
     const parsed = parseIndianAmount(standaloneMatch[1]);
-    if (parsed && parsed >= 1000 && parsed <= 100000) {
+    // For standalone numbers, we are slightly more conservative to avoid small IDs, but allow >= 100
+    if (parsed && parsed >= 100 && parsed <= 500000) {
       return parsed;
     }
   }
