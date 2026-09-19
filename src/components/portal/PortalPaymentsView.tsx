@@ -120,24 +120,8 @@ export default function PortalPaymentsView({
     setSubmitError(null);
     setSubmitSuccess(null);
 
-    // Dynamically load Razorpay SDK to prevent "not a constructor" errors
-    const loadRazorpay = () => {
-      return new Promise((resolve) => {
-        if ((window as any).Razorpay) {
-          resolve(true);
-          return;
-        }
-        const script = document.createElement("script");
-        script.src = "https://checkout.razorpay.com/v1/checkout.js";
-        script.onload = () => resolve(true);
-        script.onerror = () => resolve(false);
-        document.body.appendChild(script);
-      });
-    };
-
-    const isLoaded = await loadRazorpay();
-    if (!isLoaded) {
-      setSubmitError("Failed to load Razorpay SDK. Please check your internet connection and disable adblockers.");
+    if (!(window as any).Razorpay) {
+      setSubmitError("Failed to load Razorpay SDK. Please check your internet connection or network firewall.");
       setIsRazorpayLoading(false);
       return;
     }
