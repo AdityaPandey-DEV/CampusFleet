@@ -907,9 +907,9 @@ export default function PortalPaymentsView({
                   <div className="p-3.5 bg-amber-50 dark:bg-amber-950/60 rounded-2xl border border-amber-200 dark:border-amber-800 flex items-start gap-3 text-xs text-amber-800 dark:text-amber-300">
                     <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-extrabold">Could Not Auto-Detect Transaction ID</div>
+                      <div className="font-extrabold">Could Not Auto-Detect Transaction ID and Amount (Rs)</div>
                       <div className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
-                        Please write or copy your 12-digit UPI UTR number / Bank Reference ID manually below.
+                        Please write or copy your 12-digit UPI UTR number / Bank Reference ID and Paid Amount (Rs) manually below.
                       </div>
                     </div>
                   </div>
