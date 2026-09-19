@@ -31,6 +31,8 @@ import {
   Sun,
   Moon,
   Laptop,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { useTheme } from "@/components/common/ThemeProvider";
 import { useTranslation } from "@/components/common/LanguageProvider";
@@ -90,6 +92,10 @@ export default function StudentProfilePageView({
     t,
     languageOptions,
   } = useTranslation();
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (initialStudents.length > 0 && students.length === 0) setStudents(initialStudents);
@@ -195,6 +201,28 @@ export default function StudentProfilePageView({
 
   const handleEditProfile = () => {
     window.dispatchEvent(new CustomEvent("open-student-profile"));
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmName !== (activeStudent?.fullName || currentUser?.fullName)) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete account");
+      
+      // Redirect to login page on success
+      window.location.href = "/login?message=Account%20deleted%20successfully";
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while deleting your account.");
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -934,6 +962,79 @@ export default function StudentProfilePageView({
           </div>
         </div>
       </div>
+
+      {/* 5. Danger Zone */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-rose-200 dark:border-rose-900/30 ring-1 ring-rose-50 dark:ring-rose-900/10 transition-all duration-300">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h2 className="text-base sm:text-lg font-black text-rose-600 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" /> Danger Zone
+            </h2>
+            <p className="text-xs text-slate-500 mt-1 max-w-lg">
+              Permanently delete your CampusFleet account. This will erase all your personal data, past trips, payment receipts, and active subscriptions immediately. This action cannot be undone.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="shrink-0 px-5 py-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 font-bold text-sm rounded-xl border border-rose-200 dark:border-rose-800 transition-colors flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" /> Delete Account
+          </button>
+        </div>
+      </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto shadow-md">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                Delete Account?
+              </h2>
+              <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold bg-rose-50 dark:bg-rose-950/30 p-3 rounded-xl border border-rose-100 dark:border-rose-900/50 leading-relaxed">
+                Warning: Your active transport subscription, payment receipts, and booking history will be permanently lost!
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                To confirm, type your full name: <span className="font-mono text-blue-600 select-all">{activeStudent?.fullName || currentUser?.fullName}</span>
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmName}
+                onChange={(e) => setDeleteConfirmName(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold outline-none focus:border-rose-500"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmName("");
+                }}
+                className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting || deleteConfirmName !== (activeStudent?.fullName || currentUser?.fullName)}
+                onClick={handleDeleteAccount}
+                className="flex-1 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? "Deleting..." : "Permanently Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
