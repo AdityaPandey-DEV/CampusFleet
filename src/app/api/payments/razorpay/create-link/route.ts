@@ -17,15 +17,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid amount. Minimum amount is 1 INR." }, { status: 400 });
     }
 
+    // Fetch student details to get phone number for Razorpay
+    const { data: studentRecord } = await supabaseAdmin
+      .from("students")
+      .select("user_id, phone, full_name, email")
+      .eq("id", studentId)
+      .maybeSingle();
+
     // Verify ownership
     const isStaffOrAdmin = ["admin", "staff", "transport_manager", "supervisor"].includes(session.role);
     if (!isStaffOrAdmin) {
-      const { data: studentRecord } = await supabaseAdmin
-        .from("students")
-        .select("user_id")
-        .eq("id", studentId)
-        .maybeSingle();
-
       if (!studentRecord || studentRecord.user_id !== session.userId) {
         return NextResponse.json(
           { success: false, error: "You can only generate orders for your own account." },
@@ -55,11 +56,12 @@ export async function POST(request: NextRequest) {
       reference_id: `ref_${studentId}_${Date.now()}`.substring(0, 40),
       description: "CampusFleet Transit Pass",
       customer: {
-        name: session.fullName || "Student",
-        email: session.email || "student@example.com",
+        name: studentRecord?.full_name || session.fullName || "Student",
+        email: studentRecord?.email || session.email || "student@example.com",
+        ...(studentRecord?.phone ? { contact: studentRecord.phone } : {})
       },
       notify: {
-        sms: false,
+        sms: !!studentRecord?.phone,
         email: true
       },
       reminder_enable: false,
