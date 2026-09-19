@@ -418,10 +418,18 @@ export function UnifiedAppHeader({
         </div>
       </header>
 
-      {/* Mobile Full-Screen Slide Sheet */}
+      {/* Mobile Slide Sheet with Blurred Backdrop */}
       {isMobileSheetOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-white dark:bg-slate-950 overflow-y-auto animate-in slide-in-from-top-4 duration-300">
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col">
+          {/* Blurred Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => setIsMobileSheetOpen(false)}
+          />
           
+          {/* Menu Panel */}
+          <div className="relative bg-white dark:bg-slate-950 shadow-2xl overflow-y-auto animate-in slide-in-from-top-4 duration-300 max-h-[85vh] rounded-b-2xl pb-4">
+
           {/* Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
             <div className="text-xl font-bold text-slate-900 dark:text-white">
@@ -498,6 +506,7 @@ export function UnifiedAppHeader({
                 </Link>
               </div>
             )}
+          </div>
           </div>
         </div>
       )}
