@@ -136,14 +136,19 @@ export async function GET(req: NextRequest) {
       default: redirectPath = "/portal";
     }
 
+    // ── Set cookie via redirect response ──────────────────────────────
+    // IMPORTANT: The middleware.ts MUST have an early return for /api/auth/*
+    // routes to prevent NextResponse.next({ request: { headers } }) from
+    // stripping this Set-Cookie header. See middleware.ts for details.
     const response = NextResponse.redirect(`${origin}${redirectPath}`);
     response.headers.set("Set-Cookie", createSessionCookie(token));
 
-    // Clear the CSRF state cookie
+    // Clear the CSRF state cookie (using append to not overwrite session cookie)
     response.headers.append(
       "Set-Cookie",
       "oauth_csrf_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
     );
+
     return response;
   } catch (e: any) {
     console.error("Google OAuth callback error:", e);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { store } from "@/lib/store";
@@ -40,6 +40,13 @@ export default function StudentPortalLayout({
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isStoreReady, setIsStoreReady] = useState(store.isReady());
 
+  // ── Sticky Subscription Guard ──────────────────────────────────────
+  // Once we confirm subscription is active, we NEVER downgrade it to
+  // inactive due to a transient sync/re-render. This prevents the
+  // "flicker to /payments" bug caused by the store briefly having an
+  // empty students array during re-sync.
+  const confirmedActiveRef = useRef(false);
+
   useEffect(() => {
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
@@ -66,12 +73,20 @@ export default function StudentPortalLayout({
           (activeChildId && (s.id === activeChildId || s.userId === activeChildId)) ||
           (currentUser.studentId && s.id === currentUser.studentId) ||
           s.userId === currentUser.id ||
+          s.id === currentUser.id ||
           s.email?.toLowerCase() === currentUser.email?.toLowerCase()
       ) || null
     : null;
 
   const isStudent = currentUser?.role === "student";
-  const isSubscriptionActive = isStudentSubscriptionActive(activeStudent) || currentUser?.role === "admin";
+  const isSubscriptionActiveNow = isStudentSubscriptionActive(activeStudent) || currentUser?.role === "admin";
+
+  // Sticky guard: once active, stays active (prevents flicker)
+  if (isSubscriptionActiveNow) {
+    confirmedActiveRef.current = true;
+  }
+  const isSubscriptionActive = confirmedActiveRef.current || isSubscriptionActiveNow;
+
   const hasCompleteProfile = Boolean(activeStudent?.phone && activeStudent.phone.trim() !== "");
   
   const isOnboardingPage = pathname === "/portal/onboarding";
@@ -79,22 +94,24 @@ export default function StudentPortalLayout({
   
   const isAccessBlocked = isStudent && !isSubscriptionActive && !isPaymentPage && !isOnboardingPage;
 
-  // Debounce redirect decisions: wait for store sync to stabilize after initial load
+  // Auto-redirect logic for onboarding and payments
+  // Only runs ONCE after store is truly settled (3 seconds after ready)
   const [isRedirectReady, setIsRedirectReady] = useState(false);
   useEffect(() => {
     if (!isStoreReady) return;
-    const timer = setTimeout(() => setIsRedirectReady(true), 2000);
+    const timer = setTimeout(() => setIsRedirectReady(true), 3000);
     return () => clearTimeout(timer);
   }, [isStoreReady]);
 
-  // Auto-redirect logic for onboarding and payments
   useEffect(() => {
-    if (!isRedirectReady) return; // Wait until store is populated AND stabilized before forcing redirects
+    if (!isRedirectReady) return;
+    // Skip if we don't have a student resolved yet (still loading)
+    if (isStudent && !activeStudent) return;
     
     if (isStudent) {
       // 1. Force onboarding if profile is incomplete
       if (!hasCompleteProfile && !isOnboardingPage) {
-        console.warn("[REDIRECT] Profile Incomplete -> /portal/onboarding", { hasCompleteProfile, phone: activeStudent?.phone });
+        console.warn("[REDIRECT] Profile Incomplete -> /portal/onboarding");
         router.replace("/portal/onboarding");
       } 
       // 2. Return to portal if they try to access onboarding when already complete
@@ -102,12 +119,13 @@ export default function StudentPortalLayout({
         router.replace("/portal");
       }
       // 3. Force payment if profile is complete but subscription inactive
-      else if (hasCompleteProfile && !isSubscriptionActive && !isPaymentPage && !isOnboardingPage) {
-        console.warn("[REDIRECT] Subscription Inactive -> /portal/payments", { isSubscriptionActive });
+      // ONLY if confirmedActiveRef was never set (truly never paid)
+      else if (hasCompleteProfile && !confirmedActiveRef.current && !isPaymentPage && !isOnboardingPage) {
+        console.warn("[REDIRECT] Subscription Inactive -> /portal/payments");
         router.replace("/portal/payments");
       }
     }
-  }, [isStudent, hasCompleteProfile, isSubscriptionActive, pathname, router, isOnboardingPage, isPaymentPage, isRedirectReady]);
+  }, [isStudent, hasCompleteProfile, activeStudent, pathname, router, isOnboardingPage, isPaymentPage, isRedirectReady]);
 
   if (currentUser && !isAuthorizedStudent) {
     const role = currentUser.role;
