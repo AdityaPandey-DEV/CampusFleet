@@ -374,10 +374,15 @@ export default function PortalPaymentsView({
     ? Date.now() > new Date(activeStudent.subscriptionExpiryDate).getTime()
     : false;
   const remainingDays = getSubscriptionRemainingDays(activeStudent);
-  const isPendingApproval =
+  const currentPaid = Number(activeStudent?.totalFeePaid || 0);
+  const pendingAmountVal = pendingSubmissions
+    .filter((s: any) => s.status === "PENDING_APPROVAL" || s.status === "APPROVED")
+    .reduce((sum: number, s: any) => sum + Number(s.amount || 0), 0);
+  const totalSubmittedOrApproved = currentPaid + pendingAmountVal;
+  
+  const isFullySubmitted =
     !isPassApproved &&
-    (activeStudent?.paymentStatus === "PENDING_APPROVAL" ||
-      pendingSubmissions.some((s) => s.status === "PENDING_APPROVAL"));
+    (currentZone?.semesterFee > 0 && totalSubmittedOrApproved >= currentZone.semesterFee);
 
   return (
     <div className="space-y-8 animate-in fade-in max-w-5xl mx-auto pb-12">
@@ -389,6 +394,7 @@ export default function PortalPaymentsView({
             Pass & Fee Payment Gateway
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            You can upload multiple receipts until your total semester fee is paid.
             Official semester transit subscription with UPI QR payments, multiple installment options, and Vercel Blob verification.
           </p>
         </div>
@@ -405,7 +411,7 @@ export default function PortalPaymentsView({
               <AlertTriangle className="w-4 h-4 text-amber-600" />
               Pass Expired • Renewal Needed
             </span>
-          ) : isPendingApproval ? (
+          ) : isFullySubmitted ? (
             <span className="px-4 py-2 rounded-2xl bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-extrabold text-xs flex items-center gap-1.5 shadow-sm">
               <Clock className="w-4 h-4 text-amber-600 animate-spin" />
               Receipt Under Staff Verification
@@ -424,7 +430,7 @@ export default function PortalPaymentsView({
         className={`rounded-3xl p-6 text-white shadow-xl relative overflow-hidden transition-all ${
           isPassApproved
             ? "bg-gradient-to-r from-teal-800 via-emerald-800 to-blue-900"
-            : isPendingApproval
+            : isFullySubmitted
             ? "bg-gradient-to-r from-amber-700 via-orange-800 to-slate-900"
             : "bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950"
         }`}
@@ -453,12 +459,12 @@ export default function PortalPaymentsView({
               Access Status
             </div>
             <div className="text-xl font-black mt-1">
-              {isPassApproved ? "UNLOCKED" : isPendingApproval ? "AUDITING" : "LOCKED"}
+              {isPassApproved ? "UNLOCKED" : isFullySubmitted ? "AUDITING" : "LOCKED"}
             </div>
             <div className="text-[11px] text-teal-200 mt-1">
               {isPassApproved
                 ? `Valid until ${formatDate(activeStudent?.subscriptionExpiryDate || "2026-12-31")}`
-                : isPendingApproval
+                : isFullySubmitted
                 ? "Awaiting Staff Review"
                 : "Pay Fee to Unlock"}
             </div>
@@ -705,7 +711,7 @@ export default function PortalPaymentsView({
           </div>
 
           {/* Step 1: UPI QR Code & Vercel Blob Receipt Upload */}
-          {!isPendingApproval ? (
+          {!isFullySubmitted ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left Col: UPI QR Code */}
             <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-6">
@@ -1032,7 +1038,7 @@ export default function PortalPaymentsView({
                   ) : (
                     <>
                       <ShieldCheck className="w-4 h-4" />
-                      <span>Send Receipt for Staff Verification</span>
+                      <span>Submit Payment Receipt</span>
                     </>
                   )}
                 </button>
@@ -1045,7 +1051,7 @@ export default function PortalPaymentsView({
                 <Clock className="w-10 h-10 animate-spin" />
               </div>
               <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-                Payment Verification in Progress
+                All Receipts Submitted — Verification in Progress
               </h2>
               <p className="text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
                 Your payment receipt is currently under manual review by the campus transport staff. The UPI Payment form has been hidden while we process your existing transaction. Access will be unlocked automatically once approved.

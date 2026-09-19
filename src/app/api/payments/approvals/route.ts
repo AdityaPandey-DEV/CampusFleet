@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabaseAdmin
       .from("payment_submissions")
-      .select("*")
+      .select("*, student:students(*)")
       .order("created_at", { ascending: false });
 
     // Non-staff can only see their own submissions
