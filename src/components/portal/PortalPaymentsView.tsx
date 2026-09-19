@@ -285,7 +285,7 @@ export default function PortalPaymentsView({
     try {
       // 1. Upload receipt to Vercel Blob Storage
       const formData = new FormData();
-      formData.append("file", receiptFile);
+      formData.append("file", receiptFile as File);
 
       const uploadRes = await fetch("/api/payments/upload-receipt", {
         method: "POST",
