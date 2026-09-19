@@ -90,7 +90,6 @@ export default function StudentPortalView({
   );
 
   const [bookingMessage, setBookingMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [roamingData, setRoamingData] = useState<{
     fullness?: any;
     activeAlert?: any;
@@ -217,95 +216,74 @@ export default function StudentPortalView({
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300 pb-16 md:pb-6">
-      {/* 1. Hero Commute Cockpit Card */}
-      <div className="relative overflow-hidden rounded-3xl sm:rounded-[2.5rem] bg-gray-900 text-white p-5 sm:p-8 md:p-10 shadow-2xl border border-white/10">
-        {/* Subtle Ambient Background Mesh */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-green-500/15 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[11px] font-extrabold tracking-wide uppercase flex items-center gap-1.5 shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                Transit Network Live
+      {/* 1. Professional Dashboard Header */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-black uppercase tracking-wider">
+                Student Dashboard
               </span>
-              <span className="px-3 py-1 rounded-full bg-white/10 text-gray-200 border border-white/10 text-[11px] font-bold flex items-center gap-1">
-                <Building className="w-3.5 h-3.5 text-blue-300" />
-                {studentCampus?.name || "Campus Terminal"}
-              </span>
-              <span className="font-mono text-xs text-blue-200/80 px-2 py-0.5 rounded-md bg-white/5">
+              <span className="text-xs font-mono text-gray-500 dark:text-gray-400 font-bold bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md">
                 {currentTime} IST
               </span>
             </div>
-
-            <div>
-              <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
-                {greetingTime},{" "}
-                <span className="bg-blue-300  ">
-                  {activeStudent?.fullName?.split(" ")[0] || currentUser?.fullName?.split(" ")[0] || "Commuter"}
-                </span>
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-300 mt-1 max-w-xl leading-relaxed">
-                {activeStudent?.department || "Computer Science"} • Section {activeStudent?.className || "A"}
-              </p>
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+              {greetingTime},{" "}
+              <span className="text-blue-600 dark:text-blue-400">
+                {activeStudent?.fullName?.split(" ")[0] || currentUser?.fullName?.split(" ")[0] || "Commuter"}
+              </span>
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {studentCampus?.name || "Campus Terminal"} • {activeStudent?.department || "Computer Science"}
+            </p>
           </div>
 
-          {/* Quick Action Badge on Right */}
-          <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             {activeBooking ? (
-              <button
-                onClick={() => setIsQRModalOpen(true)}
-                className="px-6 py-4 rounded-2xl bg-green-500 hover:bg-green-600  text-white font-black text-xs sm:text-sm shadow-xl shadow-green-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
+              <Link
+                href="/portal/pass"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
               >
-                <QrCode className="w-5 h-5" />
-                <span>Show Active Boarding Pass ({activeBooking.seatNumber || "Standby"})</span>
-              </button>
+                <QrCode className="w-4 h-4" />
+                <span>Show Boarding Pass</span>
+              </Link>
             ) : (
               <Link
                 href="/portal/booking"
-                className="px-6 py-4 rounded-2xl bg-blue-600 hover:bg-blue-700  text-white font-black text-xs sm:text-sm shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95 text-center"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
               >
-                <CalendarCheck className="w-5 h-5" />
-                <span>Reserve Today's Shift Seat →</span>
+                <CalendarCheck className="w-4 h-4" />
+                <span>Book a Seat</span>
               </Link>
             )}
-
-            <Link
-              href="/portal/tracker"
-              className="px-4 py-4 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs sm:text-sm border border-white/15 backdrop-blur-md flex items-center justify-center gap-2 transition-all active:scale-95"
-            >
-              <Navigation className="w-4 h-4 text-blue-300" />
-              <span>Live Radar</span>
-            </Link>
           </div>
         </div>
 
-        {/* Live Trip Status Strip */}
-        <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-gray-400 font-bold uppercase block">Next Shift</span>
-            <span className="text-xs sm:text-sm font-black text-white truncate block mt-0.5">
-              {nextShift?.name || "Morning Corridor"}
+        {/* Status Strip */}
+        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">Next Shift</span>
+            <span className="text-sm font-black text-gray-900 dark:text-white block mt-0.5 truncate">
+              {nextShift?.name || "Not Scheduled"}
             </span>
           </div>
-          <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-gray-400 font-bold uppercase block">Boarding Stop</span>
-            <span className="text-xs sm:text-sm font-black text-white truncate block mt-0.5">
-              {primaryStop?.name || "Kathgodam Rly"}
+          <div>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">Primary Stop</span>
+            <span className="text-sm font-black text-gray-900 dark:text-white block mt-0.5 truncate">
+              {primaryStop?.name || "Not Set"}
             </span>
           </div>
-          <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-gray-400 font-bold uppercase block">Pass Status</span>
-            <span className="text-xs sm:text-sm font-black text-green-300 truncate flex items-center gap-1 mt-0.5">
+          <div>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">Transport Access</span>
+            <span className="text-sm font-black text-green-600 dark:text-green-400 flex items-center gap-1 mt-0.5 truncate">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Active ({activeStudent?.zoneCode || "Zone B"})</span>
             </span>
           </div>
-          <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-gray-400 font-bold uppercase block">Today's Seat</span>
-            <span className="text-xs sm:text-sm font-black text-yellow-300 truncate block mt-0.5">
+          <div>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">Today's Seat</span>
+            <span className="text-sm font-black text-blue-600 dark:text-blue-400 block mt-0.5 truncate">
               {activeBooking ? (activeBooking.seatNumber ? `Seat ${activeBooking.seatNumber}` : "Standby Queue") : "Not Booked"}
             </span>
           </div>
@@ -355,132 +333,101 @@ export default function StudentPortalView({
         }}
       />
 
-      {/* 2. Responsive Bento Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
-        {/* Bento Column 1 & 2: Shift Scheduler & Seat Selection Launch */}
-        <div className="lg:col-span-2 space-y-5 sm:space-y-6">
-          {/* Active Reservation Details or Quick Booking Prompt */}
+      {/* 2. Main Dashboard Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Booking & Schedule */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Active Booking Card */}
           {activeBooking ? (
-            <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-green-100 dark:bg-green-950 text-green-600 flex items-center justify-center font-bold">
-                    <CheckCircle2 className="w-4 h-4" />
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 border border-gray-200 dark:border-gray-800 shadow-sm space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 flex items-center justify-center font-bold">
+                    <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-black text-base text-gray-900 dark:text-white">
-                      Guaranteed Seat Confirmed
-                    </h3>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                      Booking #{activeBooking.bookingCode} • Active for today
-                    </p>
+                    <h3 className="font-black text-lg text-gray-900 dark:text-white">Seat Confirmed</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Booking #{activeBooking.bookingCode}</p>
                   </div>
                 </div>
-
-                <span className="px-3 py-1 rounded-full text-xs font-black bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
-                  CONFIRMED
+                <span className="px-3 py-1.5 rounded-full text-xs font-black bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
+                  ACTIVE TODAY
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Shift</span>
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 block mt-0.5">
-                    {bookedShift?.name || "Corridor Shift"}
-                  </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">Shift</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white block mt-1">{bookedShift?.name || "Corridor Shift"}</span>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Assigned Bus</span>
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 block mt-0.5">
-                    {bookedBus?.busNumber || "Fleet Coach"}
-                  </span>
+                <div>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">Bus</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white block mt-1">{bookedBus?.busNumber || "Fleet Coach"}</span>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Seat No.</span>
-                  <span className="text-xs font-black text-blue-600 dark:text-blue-400 block mt-0.5">
-                    {activeBooking.seatNumber || "Standby (WL)"}
-                  </span>
+                <div>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">Seat No.</span>
+                  <span className="text-sm font-black text-blue-600 dark:text-blue-400 block mt-1">{activeBooking.seatNumber || "Standby"}</span>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-100 dark:border-gray-700">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Departure</span>
-                  <span className="text-xs font-mono font-bold text-gray-800 dark:text-gray-200 block mt-0.5">
-                    {bookedShift?.startTime || "07:30"} IST
-                  </span>
+                <div>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">Departure</span>
+                  <span className="text-sm font-bold font-mono text-gray-900 dark:text-white block mt-1">{bookedShift?.startTime || "07:30"} IST</span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                <button
-                  onClick={() => setIsQRModalOpen(true)}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/20 flex items-center gap-2 cursor-pointer active:scale-95"
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <Link
+                  href="/portal/pass"
+                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
                   <QrCode className="w-4 h-4" />
-                  <span>Open Encrypted QR Pass</span>
-                </button>
-
+                  <span>Open Digital Pass</span>
+                </Link>
                 <Link
                   href="/portal/booking"
-                  className="text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1"
+                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-black text-sm transition-all text-center"
                 >
-                  <span>Switch Shift or Re-select Seat</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  Modify Booking
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="bg-blue-500/10 rounded-3xl p-6 sm:p-8 border border-blue-200 dark:border-blue-800/60 shadow-sm space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/10 rounded-3xl p-6 sm:p-8 border border-blue-100 dark:border-blue-900/30 space-y-4">
               <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-[10px] font-black tracking-wide uppercase inline-block">
-                    redBus Reserved Seating
-                  </span>
-                  <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
-                    You Have No Seat Reserved for Today
-                  </h3>
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-lg leading-relaxed">
-                    Pick your favorite window or aisle seat on the visual 2x2 bus chassis layout. Secure your reservation early before departure cutoff.
+                <div className="space-y-2">
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white">No Seat Reserved Today</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 max-w-lg leading-relaxed">
+                    Reserve a seat for your upcoming commute before the departure cutoff time.
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
+                <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                   <CalendarCheck className="w-6 h-6" />
                 </div>
               </div>
-
               <div className="pt-2">
                 <Link
                   href="/portal/booking"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/25 active:scale-95 transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm shadow-md transition-all active:scale-95"
                 >
-                  <span>Choose Your Seat Now ({shifts[0]?.name || "Upcoming Shift"})</span>
+                  <span>Select a Seat Now</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>
           )}
 
-          {/* Today's Operational Corridor Shifts */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
+          {/* Today's Shifts Schedule */}
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 border border-gray-200 dark:border-gray-800 shadow-sm space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
-                  <BusFront className="w-5 h-5 text-blue-600" />
-                  Today's Active Bus Corridor Shifts
-                </h3>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Scheduled transport windows configured for your campus
-                </p>
+                <h3 className="font-black text-lg text-gray-900 dark:text-white">Today's Shift Schedule</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Available transit windows for your campus</p>
               </div>
-
-              <Link
-                href="/portal/booking"
-                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-              >
-                <span>View Full Schedule</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+              <Link href="/portal/booking" className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                View All
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {shifts.map((sh) => {
                 const status = getShiftStatus(sh);
                 const isSelected = bookedShift?.id === sh.id;
@@ -488,34 +435,30 @@ export default function StudentPortalView({
                 return (
                   <div
                     key={sh.id}
-                    className={`p-4 rounded-2xl border transition-all ${
+                    className={`p-5 rounded-2xl border transition-all ${
                       isSelected
-                        ? "border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 ring-2 ring-blue-500/20"
-                        : "border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/40 hover:border-gray-300"
+                        ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 ring-1 ring-blue-500/20"
+                        : "border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 hover:border-gray-300"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="font-extrabold text-xs text-gray-900 dark:text-white truncate">
-                        {sh.name}
-                      </span>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-bold text-sm text-gray-900 dark:text-white truncate pr-2">{sh.name}</span>
                       <span
-                        className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 ${
+                        className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 ${
                           status.isBookingOpen
-                            ? "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300"
-                            : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                            ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400"
+                            : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                         }`}
                       >
                         {status.label}
                       </span>
                     </div>
-
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 font-mono">
-                      <span>{sh.startTime} – {sh.endTime}</span>
-                      <Link
-                        href="/portal/booking"
-                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Select →
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                        {sh.startTime} – {sh.endTime}
+                      </span>
+                      <Link href="/portal/booking" className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                        Book →
                       </Link>
                     </div>
                   </div>
@@ -525,162 +468,64 @@ export default function StudentPortalView({
           </div>
         </div>
 
-        {/* Bento Column 3: Telematics, Pass Card & Quick Links */}
-        <div className="space-y-5 sm:space-y-6">
-          {/* Live Radar Mini Telematics Widget */}
-          <div className="bg-gray-900 text-white rounded-3xl p-5 sm:p-6 border border-white/10 shadow-xl space-y-4">
+        {/* Right Column: Tracking & Quick Links */}
+        <div className="space-y-6">
+          {/* Live Tracking Widget */}
+          <div className="bg-gray-900 text-white rounded-3xl p-6 sm:p-8 border border-gray-800 shadow-md space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="relative flex h-3 w-3">
+                <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
                 </span>
-                <span className="font-black text-xs uppercase tracking-wider text-gray-200">
-                  Live Telematics Radar
-                </span>
+                <span className="font-black text-sm uppercase tracking-wide">Live Tracking</span>
               </div>
-              <span className="text-[10px] font-mono text-green-400 font-bold bg-green-950/80 px-2 py-0.5 rounded-md border border-green-800/60">
-                15s Satellite
-              </span>
             </div>
 
-            <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Primary Pickup Stop</span>
-                <span className="text-xs font-bold text-white truncate max-w-[140px]">
-                  {primaryStop?.name || "Kathgodam Rly"}
-                </span>
+            <div className="bg-gray-800/50 rounded-2xl p-4 border border-gray-700/50 space-y-3">
+              <div>
+                <span className="text-xs text-gray-400 block mb-1">Pickup Stop</span>
+                <span className="text-sm font-bold text-white block truncate">{primaryStop?.name || "Kathgodam Rly"}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Estimated Bus Arrival</span>
-                <span className="text-sm font-black text-green-300 font-mono">
-                  ~ 6 mins (On Schedule)
-                </span>
+              <div className="pt-3 border-t border-gray-700/50">
+                <span className="text-xs text-gray-400 block mb-1">Status</span>
+                <span className="text-sm font-black text-green-400 font-mono">On Schedule</span>
               </div>
             </div>
 
             <Link
               href="/portal/tracker"
-              className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 transition-transform active:scale-95"
+              className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
             >
               <Navigation className="w-4 h-4" />
-              <span>Launch Metro Bus Radar Map →</span>
+              <span>Open Radar Map</span>
             </Link>
           </div>
 
-          {/* Quick Commuter Action Grid */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              Quick Commuter Actions
-            </h4>
-
-            <div className="grid grid-cols-2 gap-2">
-              <Link
-                href="/portal/pass"
-                className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-gray-200 dark:border-gray-700 transition-all flex flex-col items-center justify-center text-center gap-1.5 group"
-              >
-                <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <QrCode className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Digital Pass</span>
-                <span className="text-[10px] text-gray-400">QR Code</span>
+          {/* Quick Actions */}
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
+            <h4 className="text-sm font-bold text-gray-900 dark:text-white">Quick Actions</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <Link href="/portal/pass" className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-gray-100 dark:border-gray-700 transition-all flex flex-col items-center justify-center text-center gap-2 group">
+                <QrCode className="w-6 h-6 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-bold text-gray-900 dark:text-white">Digital Pass</span>
               </Link>
-
-              <Link
-                href="/portal/running-late"
-                className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-yellow-50 dark:hover:bg-yellow-950/40 border border-gray-200 dark:border-gray-700 transition-all flex flex-col items-center justify-center text-center gap-1.5 group"
-              >
-                <div className="w-8 h-8 rounded-xl bg-yellow-100 dark:bg-yellow-950 text-yellow-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Zap className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Running Late</span>
-                <span className="text-[10px] text-gray-400">Alert Bus</span>
+              <Link href="/portal/running-late" className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 border border-gray-100 dark:border-gray-700 transition-all flex flex-col items-center justify-center text-center gap-2 group">
+                <Zap className="w-6 h-6 text-yellow-600 dark:text-yellow-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-bold text-gray-900 dark:text-white">Running Late</span>
               </Link>
-
-              <Link
-                href="/portal/payments"
-                className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-pink-50 dark:hover:bg-pink-950/40 border border-gray-200 dark:border-gray-700 transition-all flex flex-col items-center justify-center text-center gap-1.5 group"
-              >
-                <div className="w-8 h-8 rounded-xl bg-pink-100 dark:bg-pink-950 text-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <CreditCard className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Pass & Fees</span>
-                <span className="text-[10px] text-gray-400">UPI Billing</span>
+              <Link href="/portal/payments" className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 hover:bg-pink-50 dark:hover:bg-pink-900/20 border border-gray-100 dark:border-gray-700 transition-all flex flex-col items-center justify-center text-center gap-2 group">
+                <CreditCard className="w-6 h-6 text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-bold text-gray-900 dark:text-white">Payments</span>
               </Link>
-
-              <Link
-                href="/portal/profile"
-                className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 hover:bg-green-50 dark:hover:bg-green-950/40 border border-gray-200 dark:border-gray-700 transition-all flex flex-col items-center justify-center text-center gap-1.5 group"
-              >
-                <div className="w-8 h-8 rounded-xl bg-green-100 dark:bg-green-950 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <User className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Student ID</span>
-                <span className="text-[10px] text-gray-400">Settings</span>
+              <Link href="/portal/profile" className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 hover:bg-green-50 dark:hover:bg-green-900/20 border border-gray-100 dark:border-gray-700 transition-all flex flex-col items-center justify-center text-center gap-2 group">
+                <User className="w-6 h-6 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-bold text-gray-900 dark:text-white">Profile</span>
               </Link>
             </div>
           </div>
         </div>
       </div>
-
-      {/* 3. Encrypted Boarding Pass Modal */}
-      {isQRModalOpen && activeBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="w-full max-w-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
-              <div className="flex items-center gap-2">
-                <QrCode className="w-5 h-5 text-blue-600" />
-                <h3 className="font-black text-base text-gray-900 dark:text-white">
-                  Dynamic Conductor QR
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsQRModalOpen(false)}
-                className="p-1 rounded-full text-gray-400 hover:text-gray-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl flex flex-col items-center justify-center space-y-3">
-              <div className="w-48 h-48 bg-white p-2 rounded-xl shadow-md flex items-center justify-center border border-gray-200">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                    JSON.stringify({
-                      bookingId: activeBooking.id,
-                      bookingCode: activeBooking.bookingCode,
-                      studentId: activeStudent?.id,
-                      seatNumber: activeBooking.seatNumber,
-                      tripId: activeBooking.tripId,
-                      ts: Date.now(),
-                    })
-                  )}`}
-                  alt="Dynamic Boarding Pass QR"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-
-              <div className="text-center space-y-1">
-                <div className="font-black text-sm text-gray-900 dark:text-white">
-                  Seat {activeBooking.seatNumber || "Standby"} • {activeStudent?.fullName}
-                </div>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Ready for optical scanner read by driver / conductor
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-1">
-              <Link
-                href="/portal/pass"
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-blue-500/20"
-              >
-                <span>Launch Fullscreen Pass Presentation →</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
