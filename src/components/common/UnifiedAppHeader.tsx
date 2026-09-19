@@ -378,7 +378,7 @@ export function UnifiedAppHeader({
           <div className="hidden lg:flex items-center gap-6 flex-shrink-0 z-10">
             {currentUser ? (
               <div className="flex items-center gap-4">
-                <Link href="/portal/profile" title="Open Settings" className="block w-9 h-9 rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
+                <Link href={`/${pathname.split('/')[1] === 'portal' ? 'portal' : (currentUser.role || 'portal')}/settings`} title="Open Settings" className="block w-9 h-9 rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
                   {activeStudent?.photoUrl ? (
                     <img src={activeStudent.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
