@@ -26,10 +26,26 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid session" }, { status: 401 });
     }
 
-    // 2. Delete user from Supabase Auth
-    // Due to ON DELETE CASCADE on auth.users in the database schema, 
-    // this will cascade and delete the user's records in public.profiles, 
-    // public.students, payment_submissions, etc.
+    // 2. Explicitly delete all associated user data to guarantee a clean slate
+    // Find the student record associated with this user
+    const { data: studentData } = await supabaseAdmin
+      .from("students")
+      .select("id")
+      .eq("user_id", session.userId)
+      .single();
+
+    if (studentData) {
+      // Delete bookings and payment submissions for this student
+      await supabaseAdmin.from("bookings").delete().eq("student_id", studentData.id);
+      await supabaseAdmin.from("payment_submissions").delete().eq("student_id", studentData.id);
+    }
+
+    // Delete audit logs, students, and profile records
+    await supabaseAdmin.from("audit_logs").delete().eq("user_id", session.userId);
+    await supabaseAdmin.from("students").delete().eq("user_id", session.userId);
+    await supabaseAdmin.from("profiles").delete().eq("id", session.userId);
+
+    // 3. Delete user from Supabase Auth
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(session.userId);
 
     if (deleteError) {
