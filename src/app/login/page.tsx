@@ -321,347 +321,381 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col justify-between selection:bg-blue-500 selection:text-white">
-      {/* Navbar */}
-      <header className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 overflow-x-clip">
-        <Link href="/" className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 flex-shrink-0">
-            <BusFront className="w-5 h-5" />
-          </div>
-          <span className="text-lg sm:text-xl font-black tracking-tight text-gray-900 dark:text-white whitespace-nowrap">
-            Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-          <ThemeToggle />
-          <Link
-            href="/"
-            className="text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white whitespace-nowrap"
-          >
-            ← <span className="hidden sm:inline">Back to </span>Home
-          </Link>
+    <div className="min-h-screen flex selection:bg-blue-500 selection:text-white bg-gray-50 dark:bg-gray-950">
+      
+      {/* LEFT SIDE: Brand & Imagery (PC Only) */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900 flex-col justify-between overflow-hidden">
+        {/* Dynamic Abstract Background */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-900/40 via-gray-900 to-black z-10" />
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/30 blur-[100px] rounded-full mix-blend-screen animate-pulse-subtle" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-green-600/20 blur-[100px] rounded-full mix-blend-screen animate-pulse-subtle" style={{ animationDelay: '1s' }} />
         </div>
-      </header>
 
-      {/* Main Single Login Experience */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 my-8">
-        {isLoading && (
-          <BusLoadingScreen
-            fullScreen={true}
-            message={
-              authStep === "EMAIL_OTP"
-                ? "Verifying OTP code and loading transit profile..."
-                : authStep === "ONBOARDING"
-                ? "Saving primary stop & configuring campus hub..."
-                : "Authenticating & querying institutional database..."
-            }
-            subtitle="Graphic Era Hill University Smart Fleet Gateway"
-          />
-        )}
-        <div className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          {/* Header */}
-          <div className="text-center space-y-1.5">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3 shadow-inner">
-              <ShieldCheck className="w-7 h-7" />
-            </div>
-            <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
-              Unified Campus Gateway
-            </h1>
-            <p className="text-xs text-gray-500 max-w-xs mx-auto">
-              One login for Students, Parents, Drivers, Conductors & Administrators.
-            </p>
+        {/* Content */}
+        <div className="relative z-20 p-12 flex flex-col h-full justify-between">
+          <div>
+            <Link href="/" className="inline-flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-green-500 flex items-center justify-center text-white shadow-xl shadow-blue-500/20">
+                <BusFront className="w-6 h-6" />
+              </div>
+              <span className="text-2xl font-black tracking-tight text-white">
+                Campus<span className="text-blue-400">Fleet</span>
+              </span>
+            </Link>
           </div>
 
-          {errorMessage && (
-            <div className="p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-2xl text-xs text-red-600 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{errorMessage}</span>
+          <div className="space-y-6">
+            <h1 className="text-5xl font-black text-white leading-tight tracking-tight">
+              The future of <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-400">
+                campus mobility.
+              </span>
+            </h1>
+            <p className="text-gray-400 text-lg max-w-md font-medium">
+              A unified smart transit system connecting students, parents, drivers, and administrators.
+            </p>
+            
+            <div className="flex gap-4 pt-4">
+              <div className="flex items-center gap-2 text-sm text-gray-300 bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                <ShieldCheck className="w-4 h-4 text-green-400" />
+                <span>Enterprise Grade Security</span>
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT SIDE: Auth Flow (Both PC & Mobile) */}
+      <div className="flex-1 flex flex-col relative w-full lg:w-1/2">
+        {/* Mobile Header (Hidden on PC) */}
+        <header className="lg:hidden absolute top-0 w-full px-6 h-20 flex items-center justify-between z-20">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-green-500 flex items-center justify-center text-white shadow-md">
+              <BusFront className="w-5 h-5" />
+            </div>
+            <span className="text-xl font-black tracking-tight text-gray-900 dark:text-white">
+              Campus<span className="text-blue-600 dark:text-blue-400">Fleet</span>
+            </span>
+          </Link>
+          <ThemeToggle />
+        </header>
+
+        {/* Floating Theme Toggle (PC Only) */}
+        <div className="hidden lg:block absolute top-6 right-8 z-20">
+          <ThemeToggle />
+        </div>
+
+        <main className="flex-1 flex items-center justify-center p-6 pt-24 lg:pt-6">
+          {isLoading && (
+            <BusLoadingScreen
+              fullScreen={true}
+              message={
+                authStep === "EMAIL_OTP"
+                  ? "Verifying OTP code and loading transit profile..."
+                  : authStep === "ONBOARDING"
+                  ? "Saving primary stop & configuring campus hub..."
+                  : "Authenticating & querying institutional database..."
+              }
+              subtitle="Graphic Era Hill University Smart Fleet Gateway"
+            />
           )}
 
-          {/* STEP 1: Main Login Form */}
-          {authStep === "LOGIN_FORM" && (
-            <div className="space-y-5">
-              {/* Google SSO */}
-              <button
-                onClick={handleGoogleLogin}
-                disabled={isLoading}
-                className="w-full py-3.5 px-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/80 text-gray-800 dark:text-white font-bold text-xs rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"
-                  />
-                </svg>
-                <span>{isLoading ? "Authenticating..." : "Sign In with Google Institutional SSO"}</span>
-              </button>
+          <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-8 duration-700">
+            {/* Context Header */}
+            <div className="mb-8 space-y-2">
+              <h2 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                {authStep === "LOGIN_FORM" ? "Welcome back" :
+                 authStep === "EMAIL_OTP" ? "Verify identity" :
+                 authStep === "ONBOARDING" ? "Complete profile" : "Verified!"}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                {authStep === "LOGIN_FORM" ? "Sign in to access your dashboard." :
+                 authStep === "EMAIL_OTP" ? "We sent a 6-digit code to your email." :
+                 authStep === "ONBOARDING" ? "Tell us where you commute from." : "Redirecting securely..."}
+              </p>
+            </div>
 
-              <div className="relative flex items-center justify-center my-2">
-                <div className="border-t border-gray-200 dark:border-gray-800 w-full" />
-                <span className="bg-white dark:bg-gray-900 px-3 text-[10px] uppercase font-bold text-gray-400 absolute">
-                  Or Email OTP Passcode
-                </span>
+            {errorMessage && (
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 rounded-2xl text-sm text-red-600 dark:text-red-400 flex items-start gap-3 animate-in shake">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <span className="font-medium">{errorMessage}</span>
               </div>
+            )}
 
-              {/* Email Form */}
-              <form onSubmit={handleSendOtp} className="space-y-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                    Institutional Email Address
-                  </label>
-                  <div className="relative mt-1">
-                    <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+            {/* STEP 1: Main Login Form */}
+            {authStep === "LOGIN_FORM" && (
+              <div className="space-y-6">
+                {/* Google SSO */}
+                <button
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading}
+                  className="w-full py-4 px-4 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-900 dark:text-white font-bold text-sm rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98] group"
+                >
+                  <svg className="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z" />
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24Z" />
+                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15Z" />
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z" />
+                  </svg>
+                  <span>Continue with Google</span>
+                </button>
+
+                <div className="relative flex items-center justify-center my-6">
+                  <div className="border-t border-gray-200 dark:border-gray-800 w-full" />
+                  <span className="bg-gray-50 dark:bg-gray-950 px-4 text-xs font-bold text-gray-400 absolute">
+                    or use institutional email
+                  </span>
+                </div>
+
+                {/* Email Form */}
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div>
+                    <div className="relative group">
+                      <Mail className="w-5 h-5 text-gray-400 absolute left-4 top-4 transition-colors group-focus-within:text-blue-500" />
+                      <input
+                        type="email"
+                        required
+                        placeholder="name@gehu.ac.in"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        className="w-full text-sm pl-12 pr-4 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium placeholder:font-normal"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || !email}
+                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                  >
+                    <span>Send Login Code</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* STEP 2: Email OTP Input */}
+            {authStep === "EMAIL_OTP" && (
+              <form onSubmit={handleVerifyOtp} className="space-y-6">
+                <div className="p-4 bg-gray-100 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-800 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Code sent to</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{email}</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-between gap-3">
+                  {otp.map((digit, idx) => (
                     <input
-                      type="email"
-                      required
-                      placeholder="e.g. name@gehu.ac.in or admin@campus.edu"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none"
+                      key={idx}
+                      id={`otp-input-${idx}`}
+                      type="text"
+                      maxLength={1}
+                      value={digit}
+                      onChange={e => handleOtpChange(idx, e.target.value)}
+                      className="w-12 h-16 sm:w-14 sm:h-16 text-center font-mono font-black text-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm"
                     />
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-600/25 transition-all active:scale-[0.98]"
+                  >
+                    {isLoading ? "Verifying..." : "Verify & Continue"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthStep("LOGIN_FORM")}
+                    className="w-full text-center text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white font-bold transition-colors"
+                  >
+                    Use a different email
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 3: Required Details & Nearest Stop Selection */}
+            {authStep === "ONBOARDING" && (
+              <form onSubmit={handleCompleteOnboarding} className="space-y-5">
+                {/* Full Name */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 ml-1 mb-1.5 block">
+                    Full Name
+                  </label>
+                  <div className="relative group">
+                    <User className="w-5 h-5 text-gray-400 absolute left-4 top-4 transition-colors group-focus-within:text-blue-500" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Aditya Pandey"
+                      value={onboardingName}
+                      onChange={e => setOnboardingName(e.target.value)}
+                      className="w-full text-sm pl-12 pr-4 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Campus Selection */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 ml-1 mb-1.5 block">
+                    Enrolled Campus
+                  </label>
+                  <div className="relative group">
+                    <Building className="w-5 h-5 text-gray-400 absolute left-4 top-4 transition-colors group-focus-within:text-blue-500" />
+                    <select
+                      value={onboardingCampusId}
+                      onChange={e => setOnboardingCampusId(e.target.value)}
+                      className="w-full text-sm pl-12 pr-4 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold cursor-pointer appearance-none"
+                    >
+                      {campuses.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} {c.isPrimary ? "• (Main Hub)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-4 pointer-events-none text-gray-400">
+                      ▼
+                    </div>
+                  </div>
+                </div>
+
+                {/* Home Location / Neighborhood */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 ml-1">
+                      Home Area
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleDetectGPSLocation}
+                      disabled={isLocating}
+                      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-full transition-colors"
+                    >
+                      <Navigation className="w-3 h-3" />
+                      <span>{isLocating ? "Locating..." : "Auto-Detect"}</span>
+                    </button>
+                  </div>
+
+                  <div className="relative group">
+                    <Home className="w-5 h-5 text-gray-400 absolute left-4 top-4 transition-colors group-focus-within:text-blue-500" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Laldant, Mukhani, Lalkuan..."
+                      value={homeLocation}
+                      onChange={e => {
+                        setHomeLocation(e.target.value);
+                        setDetectedDistanceText(null);
+                      }}
+                      className="w-full text-sm pl-12 pr-4 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
+                    />
+                  </div>
+                  {detectedDistanceText && (
+                    <p className="text-xs font-bold text-green-600 dark:text-green-400 mt-2 ml-1 flex items-center gap-1">
+                      <Check className="w-3 h-3" /> {detectedDistanceText}
+                    </p>
+                  )}
+                </div>
+
+                {/* Nearest Stop Selector */}
+                <div className="pt-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 ml-1 mb-2 block">
+                    Select Boarding Stop
+                  </label>
+
+                  {recommendedStops.length > 0 && (
+                    <div className="mb-3 space-y-2">
+                      <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1 ml-1">
+                        <Sparkles className="w-3 h-3" /> Smart Recommendations
+                      </span>
+                      <div className="grid grid-cols-2 gap-3">
+                        {recommendedStops.slice(0, 2).map((rec: any) => {
+                          const st = stops.find(s => s.id === rec.stopId);
+                          if (!st) return null;
+                          const isSelected = selectedStopId === st.id;
+                          return (
+                            <div
+                              key={st.id}
+                              onClick={() => setSelectedStopId(st.id)}
+                              className={`p-3 rounded-2xl border text-sm cursor-pointer transition-all ${
+                                isSelected
+                                  ? "bg-blue-50 dark:bg-blue-900/20 border-blue-500 shadow-sm shadow-blue-500/10"
+                                  : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-700"
+                              }`}
+                            >
+                              <div className="font-bold text-gray-900 dark:text-white truncate">
+                                {st.name}
+                              </div>
+                              <div className="text-[11px] text-gray-500 font-medium flex items-center justify-between mt-1.5">
+                                <span>~{rec.walkingDistanceKm}km</span>
+                                <span className="text-blue-600 dark:text-blue-400 font-bold">{rec.busCount} buses</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="relative group">
+                    <MapPin className="w-5 h-5 text-gray-400 absolute left-4 top-4 transition-colors group-focus-within:text-blue-500" />
+                    <select
+                      value={selectedStopId}
+                      onChange={e => setSelectedStopId(e.target.value)}
+                      className="w-full text-sm pl-12 pr-10 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-gray-900 dark:text-white cursor-pointer appearance-none"
+                    >
+                      {filteredNearestStops.map(st => (
+                        <option key={st.id} value={st.id}>
+                          {st.name} ({st.code}) — {st.landmark}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-4 pointer-events-none text-gray-400">
+                      ▼
+                    </div>
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isLoading || !email}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-2xl shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-transform active:scale-95"
+                  disabled={isLoading}
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition-all active:scale-[0.98] mt-4"
                 >
-                  <span>{isLoading ? "Sending Code..." : "Send 6-Digit Email Passcode"}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>{isLoading ? "Saving Profile..." : "Complete Setup"}</span>
+                  {!isLoading && <ArrowRight className="w-4 h-4" />}
                 </button>
               </form>
-            </div>
-          )}
+            )}
 
-          {/* STEP 2: Email OTP Input */}
-          {authStep === "EMAIL_OTP" && (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/40 rounded-2xl border border-blue-100 dark:border-blue-900/40 text-center space-y-1">
-                <p className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                  Verification passcode sent to:
-                </p>
-                <p className="text-xs font-mono font-bold text-blue-900 dark:text-blue-200">{email}</p>
-              </div>
-
-              <div className="flex justify-between gap-2">
-                {otp.map((digit, idx) => (
-                  <input
-                    key={idx}
-                    id={`otp-input-${idx}`}
-                    type="text"
-                    maxLength={1}
-                    value={digit}
-                    onChange={e => handleOtpChange(idx, e.target.value)}
-                    className="w-12 h-14 text-center font-mono font-black text-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                  />
-                ))}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl shadow-md shadow-blue-600/20"
-              >
-                {isLoading ? "Verifying..." : "Verify & Setup Transit Profile"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAuthStep("LOGIN_FORM")}
-                className="w-full text-center text-xs text-gray-400 hover:text-gray-600 font-bold"
-              >
-                ← Change Email or Method
-              </button>
-            </form>
-          )}
-
-          {/* STEP 3: Required Details & Nearest Stop Selection */}
-          {authStep === "ONBOARDING" && (
-            <form onSubmit={handleCompleteOnboarding} className="space-y-4 animate-in fade-in">
-              <div className="p-3 bg-gradient-to-r from-blue-600 to-blue-600 rounded-2xl text-white text-center space-y-1">
-                <h3 className="font-black text-sm">Required Details: Student Onboarding</h3>
-                <p className="text-[11px] opacity-90">
-                  Select your campus & home location to find your nearest bus stop.
+            {/* STEP 4: Success Screen */}
+            {authStep === "SUCCESS" && (
+              <div className="text-center py-12 space-y-4 animate-in zoom-in-95 duration-500">
+                <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center mx-auto shadow-xl shadow-green-500/10">
+                  <CheckCircle2 className="w-10 h-10" />
+                </div>
+                <h3 className="font-black text-2xl text-gray-900 dark:text-white">Access Granted</h3>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Securely routing you to your dashboard...
                 </p>
               </div>
-
-              {/* Full Name */}
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  Full Name
-                </label>
-                <div className="relative mt-1">
-                  <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Aditya Pandey"
-                    value={onboardingName}
-                    onChange={e => setOnboardingName(e.target.value)}
-                    className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none font-bold"
-                  />
-                </div>
-              </div>
-
-              {/* Campus Selection */}
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  Enrolled Campus
-                </label>
-                <div className="relative mt-1">
-                  <Building className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-                  <select
-                    value={onboardingCampusId}
-                    onChange={e => setOnboardingCampusId(e.target.value)}
-                    className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none font-bold cursor-pointer"
-                  >
-                    {campuses.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} {c.isPrimary ? "• (Main Hub)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Home Location / Neighborhood */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                    Home Location / Area
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleDetectGPSLocation}
-                    disabled={isLocating}
-                    className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                  >
-                    <Navigation className="w-3 h-3" />
-                    <span>{isLocating ? "Locating..." : "Auto-Detect Nearest"}</span>
-                  </button>
-                </div>
-
-                <div className="relative mt-1">
-                  <Home className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type="text"
-                    placeholder="e.g. Laldant, Mukhani, Kathgodam, Lalkuan, Nainital..."
-                    value={homeLocation}
-                    onChange={e => {
-                      setHomeLocation(e.target.value);
-                      setDetectedDistanceText(null);
-                    }}
-                    className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none"
-                  />
-                </div>
-
-                {detectedDistanceText && (
-                  <p className="text-[10px] font-bold text-green-600 dark:text-green-400 mt-1">
-                    {detectedDistanceText}
-                  </p>
-                )}
-              </div>
-
-              {/* Nearest Stop Selector Card */}
-              <div className="space-y-2 pt-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  Select Your Primary Bus Boarding Stop
-                </label>
-
-                {recommendedStops.length > 0 && (
-                  <div className="space-y-1.5 pb-1">
-                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Recommended by Bellman-Ford:
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {recommendedStops.slice(0, 2).map((rec: any) => {
-                        const st = stops.find(s => s.id === rec.stopId);
-                        if (!st) return null;
-                        const isSelected = selectedStopId === st.id;
-                        return (
-                          <div
-                            key={st.id}
-                            onClick={() => setSelectedStopId(st.id)}
-                            className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
-                              isSelected
-                                ? "bg-blue-50/80 dark:bg-blue-950/60 border-blue-600 ring-2 ring-blue-500/20"
-                                : "bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700 hover:border-blue-300"
-                            }`}
-                          >
-                            <div className="font-bold text-gray-900 dark:text-white truncate">
-                              {st.name}
-                            </div>
-                            <div className="text-[10px] text-gray-500 font-mono flex items-center justify-between mt-1">
-                              <span>~{rec.walkingDistanceKm}km walk</span>
-                              <span className="text-blue-600 dark:text-blue-400 font-bold">{rec.busCount} buses</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <div className="relative">
-                  <MapPin className="w-4 h-4 text-blue-600 absolute left-3.5 top-3.5" />
-                  <select
-                    value={selectedStopId}
-                    onChange={e => setSelectedStopId(e.target.value)}
-                    className="w-full text-xs pl-10 pr-4 py-3 bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl outline-none font-bold text-gray-900 dark:text-white cursor-pointer"
-                  >
-                    {filteredNearestStops.map(st => (
-                      <option key={st.id} value={st.id} className="text-gray-900 bg-white dark:bg-gray-900 dark:text-white">
-                        {st.name} ({st.code}) — {st.landmark}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-transform active:scale-95 mt-2"
-              >
-                <span>{isLoading ? "Saving Profile..." : "Confirm Stop & Enter Student Hub →"}</span>
-              </button>
-            </form>
-          )}
-
-          {/* STEP 4: Success Screen */}
-          {authStep === "SUCCESS" && (
-            <div className="text-center py-6 space-y-3 animate-in zoom-in-95">
-              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-950/60 text-green-600 dark:text-green-400 flex items-center justify-center mx-auto shadow-md shadow-green-500/20">
-                <CheckCircle2 className="w-9 h-9" />
-              </div>
-              <h3 className="font-black text-xl">Identity Verified!</h3>
-              <p className="text-xs text-gray-500">
-                Redirecting to your role dashboard...
-              </p>
-            </div>
-          )}
+            )}
+          </div>
+        </main>
+        
+        {/* Simple Footer */}
+        <div className="p-6 text-center">
+          <p className="text-[11px] font-medium text-gray-400 dark:text-gray-600">
+            © {new Date().getFullYear()} CampusFleet • Protected by Enterprise SSO
+          </p>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-800 py-6 text-center text-xs text-gray-500">
-        CampusFleet © 2026 Smart Transit System • Graphic Era Hill University Network
-      </footer>
+      </div>
     </div>
   );
 }
