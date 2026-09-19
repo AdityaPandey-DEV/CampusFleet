@@ -21,6 +21,30 @@ export function SettingsView() {
   const [notifGeneral, setNotifGeneral] = useState(true);
 
   // Profile form states
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [fontFamily, setFontFamily] = useState('system');
+
+  // Handle zoom
+  const handleZoom = (direction: string) => {
+    const newZoom = direction === 'in' ? Math.min(zoomLevel + 10, 150) : Math.max(zoomLevel - 10, 80);
+    setZoomLevel(newZoom);
+    document.documentElement.style.zoom = newZoom + '%';
+  };
+
+  // Handle clear cache
+  const handleClearCache = () => {
+    if (confirm("Are you sure you want to clear all local data? You will need to log in again.")) {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login';
+    }
+  };
+  
+  // Handle simple alerts
+  const handleNotImplemented = (feature: string) => {
+    alert(feature + " is not currently available for your account type.");
+  };
+
   const [isSaving, setIsSaving] = useState(false);
   const [profileForm, setProfileForm] = useState({
     fullName: "",
@@ -282,10 +306,19 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Font Family</h3>
                 <p className="text-sm text-gray-500">Choose your preferred font</p>
               </div>
-              <button className="flex items-center justify-between min-w-[180px] px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-none hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
-                System Fonts
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </button>
+              <select 
+                value={fontFamily}
+                onChange={(e) => {
+                  setFontFamily(e.target.value);
+                  document.documentElement.style.fontFamily = e.target.value === 'system' ? '' : e.target.value;
+                }}
+                className="flex items-center justify-between min-w-[180px] px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-none bg-white dark:bg-gray-950 focus:outline-none transition-colors"
+              >
+                <option value="system">System Default</option>
+                <option value="Inter, sans-serif">Inter</option>
+                <option value="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas">Monospace</option>
+                <option value="Georgia, serif">Serif</option>
+              </select>
             </div>
 
             <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
@@ -295,10 +328,11 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Zoom level</h3>
                 <p className="text-sm text-gray-500">Maximize the view (more content) or increase size for readability</p>
               </div>
-              <button className="flex items-center justify-between min-w-[180px] px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-none hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
-                Default (100%)
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </button>
+              <div className="flex items-center border border-gray-200 dark:border-gray-800 rounded-none bg-white dark:bg-gray-950">
+                <button onClick={() => handleZoom('out')} className="px-3 py-2 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900">-</button>
+                <span className="px-4 py-2 text-sm font-medium border-x border-gray-200 dark:border-gray-800">{zoomLevel}%</span>
+                <button onClick={() => handleZoom('in')} className="px-3 py-2 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900">+</button>
+              </div>
             </div>
           </div>
         </div>
@@ -364,9 +398,7 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Two-Factor Authentication</h3>
                 <p className="text-sm text-gray-500">Add an extra layer of security</p>
               </div>
-              <div className="p-2 border border-gray-200 dark:border-gray-800 rounded-none text-gray-500 cursor-not-allowed opacity-50">
-                <Shield className="w-4 h-4" />
-              </div>
+              <button onClick={() => handleNotImplemented('Advanced Security')} className="p-2 border border-gray-200 dark:border-gray-800 rounded-none text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"><Shield className="w-4 h-4" /></button>
             </div>
             
             <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
@@ -376,9 +408,7 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Data Privacy</h3>
                 <p className="text-sm text-gray-500">Manage your data privacy settings</p>
               </div>
-              <div className="p-2 border border-gray-200 dark:border-gray-800 rounded-none text-gray-500 cursor-not-allowed opacity-50">
-                <Shield className="w-4 h-4" />
-              </div>
+              <button onClick={() => handleNotImplemented('Advanced Security')} className="p-2 border border-gray-200 dark:border-gray-800 rounded-none text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"><Shield className="w-4 h-4" /></button>
             </div>
           </div>
         </div>
