@@ -127,12 +127,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         portalTitle={currentTitle}
         portalSubtitle="Fleet Command & Control"
         navLinks={currentNavLinks}
-        mobilePrimaryAction={{
-          label: "Staff Operations Panel",
-          href: "/staff",
-          subtitle: "Switch to Staff View",
-          icon: ShieldCheck,
-        }}
       />
 
       {/* Main Content Viewport */}
