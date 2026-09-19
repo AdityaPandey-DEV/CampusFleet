@@ -480,7 +480,13 @@ export default function StaffFeeApprovalsView({
                                   <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5 flex flex-wrap gap-2">
                                     <span>Amount: <strong className="text-slate-700 dark:text-slate-300">₹{Number(sub.amount).toLocaleString("en-IN")}</strong></span>
                                     <span>•</span>
-                                    <span>UTR: {sub.transaction_id}</span>
+                                    <span>{sub.transaction_id?.startsWith('pay_') ? 'RZP Txn' : 'UTR'}: {sub.transaction_id}</span>
+                                    {sub.receipt_number?.startsWith('order_') && (
+                                      <>
+                                        <span>•</span>
+                                        <span>RZP Order: {sub.receipt_number}</span>
+                                      </>
+                                    )}
                                   </div>
                                   <div className="text-[10px] text-slate-400 mt-1">
                                     {new Date(sub.created_at).toLocaleString()}

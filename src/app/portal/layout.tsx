@@ -9,7 +9,6 @@ import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { SOSModal } from "@/components/common/SOSModal";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { StudentProfileModal } from "@/components/auth/StudentProfileModal";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
 import {
   BusFront,
@@ -70,15 +69,26 @@ export default function StudentPortalLayout({
 
   const isStudent = currentUser?.role === "student";
   const isSubscriptionActive = isStudentSubscriptionActive(activeStudent) || currentUser?.role === "admin";
+  const hasCompleteProfile = Boolean(activeStudent?.phone && activeStudent.phone.trim() !== "");
+  
+  const isOnboardingPage = pathname === "/portal/onboarding";
   const isPaymentPage = pathname === "/portal/payments";
-  const isAccessBlocked = isStudent && !isSubscriptionActive && !isPaymentPage;
+  
+  const isAccessBlocked = isStudent && !isSubscriptionActive && !isPaymentPage && !isOnboardingPage;
 
-  // Auto-redirect unpaid student to payment & activation page
+  // Auto-redirect logic for onboarding and payment
   useEffect(() => {
-    if (isStudent && !isSubscriptionActive && pathname !== "/portal/payments") {
-      router.replace("/portal/payments");
+    if (isStudent) {
+      // 1. Force onboarding if profile is incomplete
+      if (!hasCompleteProfile && !isOnboardingPage) {
+        router.replace("/portal/onboarding");
+      } 
+      // 2. Force payment if profile is complete but subscription inactive
+      else if (hasCompleteProfile && !isSubscriptionActive && !isPaymentPage && !isOnboardingPage) {
+        router.replace("/portal/payments");
+      }
     }
-  }, [isStudent, isSubscriptionActive, pathname, router]);
+  }, [isStudent, hasCompleteProfile, isSubscriptionActive, pathname, router, isOnboardingPage, isPaymentPage]);
 
   if (currentUser && !isAuthorizedStudent) {
     const role = currentUser.role;
@@ -233,9 +243,6 @@ export default function StudentPortalLayout({
         onClose={() => setIsAuthOpen(false)}
         initialRole="student"
       />
-
-      {/* Incomplete Profile Completion Modal */}
-      <StudentProfileModal />
     </div>
   );
 }

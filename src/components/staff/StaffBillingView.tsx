@@ -610,7 +610,14 @@ export function StaffBillingView({
                     <td className="p-3 font-medium">{pay.studentName || pay.student_name}</td>
                     <td className="p-3 text-slate-500">{pay.planName || pay.plan_name}</td>
                     <td className="p-3 font-black font-mono">{formatCurrency(pay.amount)}</td>
-                    <td className="p-3 font-mono text-slate-400">{pay.transactionRef || pay.transaction_ref}</td>
+                    <td className="p-3 font-mono text-slate-400 text-xs">
+                      <div className="flex flex-col gap-0.5">
+                        <span>{(pay.transactionRef || pay.transaction_ref)?.startsWith("pay_") ? "RZP Txn: " : "Ref: "}{pay.transactionRef || pay.transaction_ref || "-"}</span>
+                        {(pay.receiptNumber || pay.receipt_number)?.startsWith("order_") && (
+                          <span className="text-[10px] text-slate-500">Order: {pay.receiptNumber || pay.receipt_number}</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-3 text-slate-500">{formatDate(pay.createdAt || pay.created_at)}</td>
                     <td className="p-3">
                       <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-extrabold text-[10px] uppercase">

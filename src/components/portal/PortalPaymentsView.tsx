@@ -4,10 +4,10 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import { store } from "@/lib/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { TRANSIT_ZONES, TransitZone, Student } from "@/lib/types";
-import { QRCodeSVG } from "qrcode.react";
-import { extractTransactionIdFromImage } from "@/lib/ocrService";
 import type { OcrExtractionResult } from "@/lib/ocrService";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Script from "next/script";
 import {
   CreditCard,
   CheckCircle2,
@@ -51,7 +51,8 @@ export default function PortalPaymentsView({
   initialStudents = [],
   initialPayments = [],
   initialZones = [],
-}: PortalPaymentsProps = {}) {
+}: PortalPaymentsProps) {
+  const router = useRouter();
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [students, setStudents] = useState<Student[]>(() => initialStudents.length > 0 ? initialStudents : store.getStudents());
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
@@ -94,8 +95,6 @@ export default function PortalPaymentsView({
   }, [studentCampusId]);
 
   // Payment Amount (defaults to zone fee or remaining balance, with support for custom/partial transfers)
-  const [paymentAmountInput, setPaymentAmountInput] = useState<string>("");
-
   const remainingDue = useMemo(() => {
     const total = currentZone.semesterFee;
     const paid = Number(activeStudent?.totalFeePaid || 0);
@@ -103,34 +102,13 @@ export default function PortalPaymentsView({
   }, [currentZone, activeStudent]);
 
   const amountToPay = useMemo(() => {
-    if (paymentAmountInput && !isNaN(Number(paymentAmountInput)) && Number(paymentAmountInput) > 0) {
-      return Number(paymentAmountInput);
-    }
     return remainingDue > 0 ? remainingDue : currentZone.semesterFee;
-  }, [paymentAmountInput, remainingDue, currentZone]);
+  }, [remainingDue, currentZone]);
 
-  // Upload & OCR State
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
-  const [ocrStatus, setOcrStatus] = useState<string | null>(null);
-  const [isScanningOcr, setIsScanningOcr] = useState<boolean>(false);
-  const [detectedTransactionId, setDetectedTransactionId] = useState<string | null>(null);
-  const [detectedAmount, setDetectedAmount] = useState<number | null>(null);
-  const [ocrFullText, setOcrFullText] = useState<string>("");
-  const [transactionIdInput, setTransactionIdInput] = useState<string>("");
-  const [manualInputRequired, setManualInputRequired] = useState<boolean>(false);
-  const [duplicateError, setDuplicateError] = useState<string | null>(null);
-
-  // Submission State
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([]);
-  const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
-  const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
-  const [showFinalConfirmation, setShowFinalConfirmation] = useState<boolean>(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isRazorpayLoading, setIsRazorpayLoading] = useState<boolean>(false);
 
   // Sync store
   useEffect(() => {
@@ -167,206 +145,65 @@ export default function PortalPaymentsView({
       .catch(console.error);
   }, [activeStudent?.id, activeStudent?.userId, submitSuccess]);
 
-  // Fetch staff-configured official payment QR and UPI VPA from database
-  const [staffQrConfig, setStaffQrConfig] = useState<any>({
-    upi_id: "gehubhimtal.transit@upi",
-    merchant_name: `${store.getPrimaryCampus()?.name || "Campus"} Transport Department`,
-    qr_image_url: "",
-    instructions: "Scan via Google Pay, PhonePe, Paytm, or BHIM.",
-  });
 
-  useEffect(() => {
-    fetch("/api/staff/qr-config")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.config) {
-          setStaffQrConfig(data.config);
-        }
-      })
-      .catch(console.error);
-  }, []);
 
-  // UPI Link
-  const upiId = staffQrConfig.upi_id || "gehubhimtal.transit@upi";
-  const upiPayUrl = useMemo(() => {
-    const enrollment = activeStudent?.enrollmentNo && activeStudent?.enrollmentNo !== "PENDING"
-      ? activeStudent.enrollmentNo
-      : "STUDENT";
-    return `upi://pay?pa=${upiId}&pn=${encodeURIComponent(staffQrConfig.merchant_name || `${store.getPrimaryCampus()?.name || "Campus"} Transport`)}&am=${amountToPay}&cu=INR&tn=CampusFleet%20Pass%20${enrollment}%20Zone%20${selectedZoneCode}`;
-  }, [amountToPay, selectedZoneCode, activeStudent, upiId, staffQrConfig.merchant_name]);
-
-  // Handle Receipt File Selection & Trigger OCR
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setReceiptFile(file);
-    const objectUrl = URL.createObjectURL(file);
-    setReceiptPreviewUrl(objectUrl);
-    setSubmitError(null);
-    setDuplicateError(null);
-    setDetectedTransactionId(null);
-    setDetectedAmount(null);
-    setOcrFullText("");
-    setManualInputRequired(false);
-
-    // Trigger OCR Detection (extracts both Transaction ID AND Amount)
-    setIsScanningOcr(true);
-    setOcrStatus("Analyzing receipt image with OCR...");
-
-    try {
-      const result = await extractTransactionIdFromImage(file, (msg) => setOcrStatus(msg));
-      setIsScanningOcr(false);
-      setOcrStatus(null);
-      setOcrFullText(result.fullText || "");
-
-      if (result.transactionId) {
-        setDetectedTransactionId(result.transactionId);
-        setTransactionIdInput(result.transactionId);
-        setManualInputRequired(false);
-      } else {
-        setDetectedTransactionId(null);
-        setManualInputRequired(true);
-      }
-
-      // Extract amount from receipt
-      if (result.amount && result.amount > 0) {
-        setDetectedAmount(result.amount);
-        setPaymentAmountInput(String(result.amount));
-      }
-    } catch (err) {
-      console.warn("OCR failure:", err);
-      setIsScanningOcr(false);
-      setOcrStatus(null);
-      setManualInputRequired(true);
-    }
-  };
-
-  // Submit Payment for Staff Verification
-  const handleSubmitPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Razorpay Express Checkout
+  const handleRazorpayCheckout = async () => {
     if (!currentUser) {
-      alert("Please sign in to submit fee payment.");
+      alert("Please sign in to proceed with payment.");
       return;
     }
-    if (!receiptFile) {
-      setSubmitError("Please upload your payment screenshot / receipt image.");
-      return;
-    }
-    if (!transactionIdInput.trim()) {
-      setSubmitError("Please enter your 12-digit UPI UTR or Bank Transaction Reference ID.");
-      return;
-    }
-
-    // Check if this receipt will complete the full payment — show confirmation first
-    const currentPaid = Number(activeStudent?.totalFeePaid || 0);
-    const pendingAmount = pendingSubmissions
-      .filter((s: any) => s.status === "PENDING_APPROVAL")
-      .reduce((sum: number, s: any) => sum + Number(s.amount || 0), 0);
-    const totalAfterThis = currentPaid + pendingAmount + amountToPay;
-    const totalDue = currentZone.semesterFee;
-
-    if (totalDue > 0 && totalAfterThis >= totalDue) {
-      // This receipt completes the full fee — show confirmation step
-      setShowFinalConfirmation(true);
-      return;
-    }
-
-    // Otherwise submit directly
-    await executeSubmit();
-  };
-
-  // Actual submission logic (called directly or after confirmation)
-  const executeSubmit = async () => {
-    setIsSubmitting(true);
+    
+    setIsRazorpayLoading(true);
     setSubmitError(null);
-    setDuplicateError(null);
-
+    setSubmitSuccess(null);
+    
     try {
-      // 1. Upload receipt to Vercel Blob Storage
-      const formData = new FormData();
-      formData.append("file", receiptFile as File);
-
-      const uploadRes = await fetch("/api/payments/upload-receipt", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      const uploadData = await uploadRes.json();
-
-      if (!uploadRes.ok || !uploadData.success) {
-        throw new Error(uploadData.error || "Failed to upload receipt to Vercel Blob Storage.");
-      }
-
-      const receiptBlobUrl = uploadData.url;
-
-      // 2. Submit payment record for staff approval (with uniqueness check + amount tracking)
-      const submitRes = await fetch("/api/payments/submit", {
+      const studentId = activeStudent?.id || `stud-${currentUser.id}`;
+      
+      const orderRes = await fetch("/api/payments/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          studentId: activeStudent?.id || `stud-${currentUser.id}`,
-          studentName: activeStudent?.fullName || currentUser.fullName,
-          enrollmentNo: activeStudent?.enrollmentNo || "PENDING",
-          zoneCode: currentZone.code || selectedZoneCode,
-          amount: amountToPay,
-          scannedAmount: detectedAmount,
-          installmentNo: (pendingSubmissions.filter((s: any) => s.status !== "REJECTED").length || 0) + 1,
-          totalInstallments: currentZone.installmentsAllowed || 3,
-          receiptUrl: receiptBlobUrl,
-          transactionId: transactionIdInput.trim(),
-          autoDetected: Boolean(detectedTransactionId && detectedTransactionId === transactionIdInput.trim()),
-          ocrFullText: ocrFullText.slice(0, 2000),
-        }),
+        body: JSON.stringify({ amount: amountToPay, studentId }),
       });
-      const submitData = await submitRes.json();
-
-      if (!submitRes.ok || !submitData.success) {
-        // Handle duplicate transaction ID specifically
-        if (submitData.code === "DUPLICATE_TRANSACTION_ID") {
-          setDuplicateError(submitData.error);
-          throw new Error(submitData.error);
-        }
-        throw new Error(submitData.error || "Failed to record payment submission.");
+      
+      const orderData = await orderRes.json();
+      if (!orderRes.ok || !orderData.success) {
+        throw new Error(orderData.error || "Failed to initialize payment gateway.");
       }
-
-      // 3. Update local student state
-      if (activeStudent) {
-        // Staff must still verify the receipts, so it goes to PENDING_APPROVAL
-        activeStudent.paymentStatus = "PENDING_APPROVAL";
-        activeStudent.zoneCode = currentZone.code || selectedZoneCode;
-        if (submitData.balance) {
-          activeStudent.totalFeePaid = submitData.balance.totalPaid;
-        }
-      }
-
-      const balanceMsg = submitData.balance
-        ? ` Balance: ₹${submitData.balance.amountLeft.toLocaleString()} remaining.`
-        : "";
-      setSubmitSuccess(
-        submitData.balance?.isFullyPaid
-          ? "🎉 All installments submitted! Your receipts are queued for staff verification. Access will be unlocked automatically once approved."
-          : `Payment receipt uploaded successfully!${balanceMsg} Transport staff has been notified.`
-      );
-      setReceiptFile(null);
-      setReceiptPreviewUrl(null);
-      setTransactionIdInput("");
-      setPaymentAmountInput("");
-      setDetectedTransactionId(null);
-      setDetectedAmount(null);
-      setOcrFullText("");
-      setManualInputRequired(false);
-
-      // Refresh store
-      store.syncFromSupabase();
+      
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: "CampusFleet Transit",
+        description: `Transit Pass - ${currentZone.name}`,
+        order_id: orderData.order.id,
+        handler: async function (response: any) {
+           setSubmitSuccess("🎉 Payment Successful! Your transit pass will be unlocked momentarily.");
+           setTimeout(() => {
+             window.location.reload();
+           }, 2500);
+        },
+        prefill: {
+          name: activeStudent?.fullName || currentUser.fullName || "",
+          email: activeStudent?.email || currentUser.email || "",
+          contact: activeStudent?.phone || "",
+        },
+        theme: {
+          color: "#2563eb",
+        },
+      };
+      
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", function (response: any) {
+        setSubmitError(`Payment failed: ${response.error.description}`);
+      });
+      rzp.open();
     } catch (err: any) {
-      console.error("Payment submission failed:", err);
-      if (!duplicateError) {
-        setSubmitError(err.message || "Payment submission failed. Please try again.");
-      }
+      setSubmitError(err.message);
     } finally {
-      setIsSubmitting(false);
+      setIsRazorpayLoading(false);
     }
   };
 
@@ -387,6 +224,8 @@ export default function PortalPaymentsView({
 
   return (
     <div className="space-y-8 animate-in fade-in max-w-5xl mx-auto pb-12">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+      
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -703,7 +542,7 @@ export default function PortalPaymentsView({
               </div>
               <button
                 type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent("open-student-profile"))}
+                onClick={() => router.push("/portal/onboarding")}
                 className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-blue-600 transition-colors shadow-sm"
               >
                 Change in Profile
@@ -713,339 +552,34 @@ export default function PortalPaymentsView({
 
           {/* Step 1: UPI QR Code & Vercel Blob Receipt Upload */}
           {!isFullySubmitted ? (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left Col: UPI QR Code */}
-            <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-600 flex items-center justify-center font-black text-sm">
-                    1
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                      Scan QR Code to Pay
-                    </h2>
-                    <p className="text-xs text-slate-500">Scan via Google Pay, PhonePe, Paytm, or BHIM</p>
-                  </div>
+            <div className="space-y-8">
+              
+              {/* Razorpay Express Checkout */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border-2 border-blue-500 shadow-xl flex flex-col items-center justify-center text-center space-y-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 text-[10px] font-black rounded-full uppercase tracking-widest">Recommended</span>
                 </div>
-
-                {/* QR Code Card */}
-                <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-700/60 shadow-inner">
-                  <div className="p-3 bg-white rounded-2xl shadow-md border border-slate-100 flex items-center justify-center">
-                    {staffQrConfig.qr_image_url ? (
-                      <img
-                        src={staffQrConfig.qr_image_url}
-                        alt="Official Payment QR"
-                        className="w-[190px] h-[190px] object-contain rounded-xl"
-                      />
-                    ) : (
-                      <QRCodeSVG
-                        value={upiPayUrl}
-                        size={190}
-                        level="H"
-                        includeMargin={false}
-                        imageSettings={{
-                          src: "/favicon.ico",
-                          x: undefined,
-                          y: undefined,
-                          height: 28,
-                          width: 28,
-                          excavate: true,
-                        }}
-                      />
-                    )}
-                  </div>
-
-                  <div className="text-center mt-4 space-y-1">
-                    <div className="text-2xl font-black text-slate-900 dark:text-white">
-                      {formatCurrency(amountToPay)}
-                    </div>
-                    <div className="text-xs font-bold text-teal-600 dark:text-teal-400">
-                      {amountToPay === currentZone.semesterFee ? "Semester Transit Fee" : "Custom Transfer Amount"}
-                    </div>
-                    <div className="text-[11px] text-slate-400 font-mono">
-                      Merchant: {staffQrConfig.merchant_name || "Graphic Era Hill University (Bhimtal)"}
-                    </div>
-                  </div>
-                </div>
-
-                {/* UPI ID Copy bar */}
-                <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-between gap-2 text-xs">
-                  <div className="font-mono text-slate-700 dark:text-slate-300 truncate">
-                    {upiId}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(upiId);
-                      setCopiedUpi(true);
-                      setTimeout(() => setCopiedUpi(false), 2000);
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold flex items-center gap-1 shadow-sm transition-colors text-[11px]"
-                  >
-                    {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedUpi ? "Copied!" : "Copy"}</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="text-[11px] text-slate-400 space-y-1">
-                <div>✓ Instant verification with institutional reference</div>
-                <div>✓ Supports all NPCI UPI banking applications</div>
-              </div>
-            </div>
-
-            {/* Right Col: Vercel Blob Receipt Upload + OCR + Staff Submit */}
-            <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center font-black text-sm">
-                  2
-                </div>
+                <ShieldCheck className="w-12 h-12 text-blue-500" />
                 <div>
-                  <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                    Upload Receipt & Confirm Transaction ID
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Uploaded securely to Vercel Blob storage with automatic OCR UTR detection.
-                  </p>
+                   <h2 className="text-2xl font-black text-slate-900 dark:text-white">Instant Pass Activation</h2>
+                   <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">Pay securely with UPI, Cards, or Netbanking. Your transit pass will be unlocked instantly without waiting for staff verification.</p>
                 </div>
-              </div>
-
-              <form onSubmit={handleSubmitPayment} className="space-y-5">
-                {/* Vercel Blob File Dropzone */}
-                <div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-
-                  {!receiptPreviewUrl ? (
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="p-8 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 rounded-3xl text-center cursor-pointer bg-slate-50 dark:bg-slate-800/40 transition-colors group"
-                    >
-                      <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                        <Upload className="w-6 h-6" />
-                      </div>
-                      <div className="font-bold text-sm text-slate-800 dark:text-white">
-                        Click or drag & drop payment screenshot here
-                      </div>
-                      <div className="text-xs text-slate-400 mt-1">
-                        Supports PNG, JPG, JPEG (Stored via Vercel Blob Storage)
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                          <FileText className="w-4 h-4 text-blue-600" />
-                          Uploaded Payment Receipt
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="text-xs text-blue-600 hover:underline font-bold"
-                        >
-                          Change Image
-                        </button>
-                      </div>
-
-                      <div className="relative rounded-2xl overflow-hidden max-h-48 border border-slate-200 dark:border-slate-700 bg-black/5 flex items-center justify-center">
-                        <img
-                          src={receiptPreviewUrl}
-                          alt="Payment Receipt Preview"
-                          className="max-h-48 object-contain"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setPreviewModalUrl(receiptPreviewUrl)}
-                          className="absolute bottom-2 right-2 px-2.5 py-1 bg-black/70 hover:bg-black text-white text-[11px] font-bold rounded-lg flex items-center gap-1 backdrop-blur"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> View Full
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* OCR Progress / Status */}
-                {isScanningOcr && (
-                  <div className="p-3.5 bg-blue-50 dark:bg-blue-950/60 rounded-2xl border border-blue-200 dark:border-blue-800 flex items-center gap-3 text-xs text-blue-800 dark:text-blue-300 animate-pulse">
-                    <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
-                    <span className="font-bold">{ocrStatus || "Scanning receipt for UTR number..."}</span>
-                  </div>
-                )}
-
-                {/* Auto-Detection Notification */}
-                {(detectedTransactionId || detectedAmount) && !isScanningOcr && (
-                  <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/60 rounded-2xl border border-emerald-200 dark:border-emerald-800 flex items-start gap-3 text-xs text-emerald-800 dark:text-emerald-300">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-extrabold">✓ Data Auto-Detected from Receipt!</div>
-                      <div className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                        {detectedTransactionId && <span>Found UTR: <span className="font-mono font-bold text-slate-900 dark:text-white">{detectedTransactionId}</span></span>}
-                        {detectedTransactionId && detectedAmount && <span> | </span>}
-                        {detectedAmount && <span>Amount: <span className="font-mono font-bold text-slate-900 dark:text-white">₹{detectedAmount.toLocaleString()}</span></span>}
-                        . Please verify or edit below if needed.
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Duplicate Transaction ID Error */}
-                {duplicateError && (
-                  <div className="p-3.5 bg-rose-50 dark:bg-rose-950/60 rounded-2xl border border-rose-200 dark:border-rose-800 flex items-start gap-3 text-xs text-rose-800 dark:text-rose-300">
-                    <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-extrabold">⚠ Duplicate Transaction ID Detected</div>
-                      <div className="text-[11px] text-rose-700 dark:text-rose-400 mt-0.5">
-                        {duplicateError}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Fallback Notification if Transaction ID not detected */}
-                {receiptFile && !isScanningOcr && !detectedTransactionId && (
-                  <div className="p-3.5 bg-amber-50 dark:bg-amber-950/60 rounded-2xl border border-amber-200 dark:border-amber-800 flex items-start gap-3 text-xs text-amber-800 dark:text-amber-300">
-                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-extrabold">Could Not Auto-Detect Transaction ID</div>
-                      <div className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
-                        Please write or copy your 12-digit UPI UTR number / Bank Reference ID manually below.
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Fallback Notification if Amount not detected */}
-                {receiptFile && !isScanningOcr && !detectedAmount && (
-                  <div className="p-3.5 bg-amber-50 dark:bg-amber-950/60 rounded-2xl border border-amber-200 dark:border-amber-800 flex items-start gap-3 text-xs text-amber-800 dark:text-amber-300">
-                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-extrabold">Could Not Auto-Detect Amount (Rs)</div>
-                      <div className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
-                        Please verify and enter the Paid Amount (Rs) manually below.
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Running Balance Progress Bar */}
-                {currentZone.semesterFee > 0 && (
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-700 dark:text-slate-300">Payment Progress</span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white">
-                        {formatCurrency(Number(activeStudent?.totalFeePaid || 0))} / {formatCurrency(currentZone.semesterFee)}
-                      </span>
-                    </div>
-                    <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ease-out ${
-                          remainingDue <= 0
-                            ? "bg-gradient-to-r from-emerald-500 to-teal-500"
-                            : "bg-gradient-to-r from-blue-500 to-indigo-500"
-                        }`}
-                        style={{ width: `${Math.min(100, ((Number(activeStudent?.totalFeePaid || 0)) / currentZone.semesterFee) * 100)}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] text-slate-400">
-                      <span>Approved: {formatCurrency(Number(activeStudent?.totalFeePaid || 0))}</span>
-                      <span className={remainingDue <= 0 ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
-                        {remainingDue <= 0 ? "✓ Fully Paid" : `₹${remainingDue.toLocaleString()} remaining`}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Amount Paid Input */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                    <span>Amount Paid in this Receipt (₹) *</span>
-                    <span className="text-[10px] text-slate-400">
-                      Total Semester Fee: {formatCurrency(currentZone.semesterFee)}
-                    </span>
-                  </label>
-                  <input
-                    type="number"
-                    value={paymentAmountInput}
-                    onChange={(e) => setPaymentAmountInput(e.target.value)}
-                    placeholder={String(amountToPay)}
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500"
-                  />
-                  <p className="text-[10px] text-slate-400">
-                    You can upload multiple receipts & transaction IDs if paying across multiple transfers.
-                  </p>
-                </div>
-
-                {/* Transaction ID Input */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                    <span>Transaction ID / UPI UTR Number *</span>
-                    {detectedTransactionId && (
-                      <span className="text-[10px] text-emerald-600 font-extrabold uppercase">
-                        Auto-Filled from Receipt
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. 428194829104 (12-digit UPI UTR)"
-                    value={transactionIdInput}
-                    onChange={(e) => setTransactionIdInput(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-2xl border text-sm font-mono font-bold outline-none transition-colors ${
-                      detectedTransactionId
-                        ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-950/20 text-slate-900 dark:text-white"
-                        : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-blue-500"
-                    }`}
-                  />
-                  <p className="text-[10px] text-slate-400">
-                    Available in your UPI app under Transaction Details (Google Pay, PhonePe, Paytm, or BHIM).
-                  </p>
-                </div>
-
-                {/* Error Message */}
-                {submitError && (
-                  <div className="p-3.5 bg-rose-50 dark:bg-rose-950/60 rounded-2xl border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
-                    <span>{submitError}</span>
-                  </div>
-                )}
-
-                {/* Success Message */}
-                {submitSuccess && (
-                  <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/60 rounded-2xl border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
-                    <span>{submitSuccess}</span>
-                  </div>
-                )}
-
-                {/* Submit Button */}
                 <button
-                  type="submit"
-                  disabled={isSubmitting || isScanningOcr}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
+                  type="button"
+                  onClick={handleRazorpayCheckout}
+                  disabled={isRazorpayLoading}
+                  className="w-full max-w-sm py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-lg flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50 mt-4"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Uploading to Vercel Blob & Submitting...</span>
-                    </>
+                  {isRazorpayLoading ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
                   ) : (
-                    <>
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Submit Payment Receipt</span>
-                    </>
+                    <CreditCard className="w-5 h-5" />
                   )}
+                  {isRazorpayLoading ? "Connecting to Secure Gateway..." : `Pay ${formatCurrency(amountToPay)} Securely`}
                 </button>
-              </form>
+              </div>
+
             </div>
-          </div>
           ) : (
             <div className="bg-amber-50 dark:bg-amber-950/20 rounded-3xl p-10 border border-amber-200 dark:border-amber-800 shadow-sm flex flex-col items-center justify-center text-center space-y-4 mt-6">
               <div className="w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2">
@@ -1131,26 +665,7 @@ export default function PortalPaymentsView({
         </div>
       )}
 
-      {/* Full-size Image Preview Modal */}
-      {previewModalUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative max-w-2xl w-full bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-2xl border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <span className="font-bold text-sm text-slate-800 dark:text-white">Receipt Screenshot Preview</span>
-              <button
-                type="button"
-                onClick={() => setPreviewModalUrl(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 flex items-center justify-center"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="mt-3 flex items-center justify-center max-h-[75vh] overflow-auto">
-              <img src={previewModalUrl} alt="Receipt Screenshot" className="rounded-xl object-contain max-h-[70vh]" />
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

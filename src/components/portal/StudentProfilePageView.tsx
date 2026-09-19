@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
 import {
@@ -59,6 +60,7 @@ export default function StudentProfilePageView({
   initialBookings = [],
   initialStaff = [],
 }: StudentProfilePageViewProps) {
+  const router = useRouter();
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [students, setStudents] = useState<Student[]>(() =>
     initialStudents.length > 0 ? initialStudents : store.getStudents()
@@ -200,7 +202,7 @@ export default function StudentProfilePageView({
   const isPaymentApproved = activeStudent?.paymentStatus === "APPROVED";
 
   const handleEditProfile = () => {
-    window.dispatchEvent(new CustomEvent("open-student-profile"));
+    router.push("/portal/onboarding");
   };
 
   const handleDeleteAccount = async () => {
