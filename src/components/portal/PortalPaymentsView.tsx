@@ -109,7 +109,50 @@ export default function PortalPaymentsView({
       .catch(console.error);
   }, [activeStudent?.id, activeStudent?.userId, submitSuccess]);
 
-  // Razorpay Checkout
+  // Check for Razorpay Payment Link return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentId = params.get("razorpay_payment_id");
+    const linkId = params.get("razorpay_payment_link_id");
+    const refId = params.get("razorpay_payment_link_reference_id");
+    const status = params.get("razorpay_payment_link_status");
+    const sig = params.get("razorpay_signature");
+
+    if (paymentId && linkId && sig) {
+      setSubmitError(null);
+      setSubmitSuccess(null);
+      setIsRazorpayLoading(true);
+
+      fetch("/api/payments/razorpay/verify-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          razorpay_payment_id: paymentId,
+          razorpay_payment_link_id: linkId,
+          razorpay_payment_link_reference_id: refId,
+          razorpay_payment_link_status: status,
+          razorpay_signature: sig,
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        setIsRazorpayLoading(false);
+        if (data.success) {
+          setSubmitSuccess("🎉 Payment Successful! Your transit pass is unlocked.");
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setTimeout(() => window.location.reload(), 2000);
+        } else {
+          setSubmitError(data.error || "Failed to verify payment.");
+        }
+      })
+      .catch(err => {
+        setIsRazorpayLoading(false);
+        setSubmitError(err.message || "Network error verifying payment.");
+      });
+    }
+  }, []);
+
+  // Razorpay Hosted Checkout (Payment Links)
   const handleRazorpayCheckout = async () => {
     if (!currentUser) {
       alert("Please sign in to proceed with payment.");
@@ -119,78 +162,26 @@ export default function PortalPaymentsView({
     setIsRazorpayLoading(true);
     setSubmitError(null);
     setSubmitSuccess(null);
-
-    if (!(window as any).Razorpay) {
-      setSubmitError("Failed to load Razorpay SDK. Please check your internet connection or network firewall.");
-      setIsRazorpayLoading(false);
-      return;
-    }
     
     try {
       const studentId = activeStudent?.id || `stud-${currentUser.id}`;
       
-      const orderRes = await fetch("/api/payments/razorpay/create-order", {
+      const linkRes = await fetch("/api/payments/razorpay/create-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: amountToPay, studentId }),
       });
       
-      const orderData = await orderRes.json();
-      if (!orderRes.ok || !orderData.success) {
-        throw new Error(orderData.error || "Failed to initialize payment gateway.");
+      const linkData = await linkRes.json();
+      if (!linkRes.ok || !linkData.success) {
+        throw new Error(linkData.error || "Failed to generate payment link.");
       }
       
-      const options = {
-        key: orderData.key_id,
-        amount: orderData.order.amount,
-        currency: orderData.order.currency,
-        name: "CampusFleet Transit",
-        description: `Transit Pass - ${currentZone.name}`,
-        order_id: orderData.order.id,
-        handler: async function (response: any) {
-           try {
-             const verifyRes = await fetch("/api/payments/razorpay/verify", {
-               method: "POST",
-               headers: { "Content-Type": "application/json" },
-               body: JSON.stringify({
-                 razorpay_order_id: response.razorpay_order_id,
-                 razorpay_payment_id: response.razorpay_payment_id,
-                 razorpay_signature: response.razorpay_signature,
-               }),
-             });
-             
-             const verifyData = await verifyRes.json();
-             
-             if (verifyRes.ok && verifyData.success) {
-               setSubmitSuccess("🎉 Payment Successful! Your transit pass is unlocked.");
-               setTimeout(() => {
-                 window.location.reload();
-               }, 2000);
-             } else {
-               setSubmitError(`Payment verification failed: ${verifyData.error || "Unknown error"}`);
-             }
-           } catch (err: any) {
-             setSubmitError(`Verification error: ${err.message}`);
-           }
-        },
-        prefill: {
-          name: activeStudent?.fullName || currentUser.fullName || "",
-          email: activeStudent?.email || currentUser.email || "",
-          contact: activeStudent?.phone || "",
-        },
-        theme: {
-          color: "#2563eb",
-        },
-      };
+      // Redirect seamlessly to Razorpay hosted checkout
+      window.location.href = linkData.short_url;
       
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on("payment.failed", function (response: any) {
-        setSubmitError(`Payment failed: ${response.error.description}`);
-      });
-      rzp.open();
     } catch (err: any) {
       setSubmitError(err.message);
-    } finally {
       setIsRazorpayLoading(false);
     }
   };
