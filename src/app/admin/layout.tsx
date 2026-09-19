@@ -190,7 +190,7 @@ export default function AdminLayout({
 
       {/* Mobile Vertical Slide-Down Navigation Sheet (Zero Overflow, Top-to-Bottom Flow) */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed top-14 inset-x-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border-b border-gray-200 dark:border-gray-800 shadow-2xl p-4 animate-in slide-in-bg-top-4 duration-300 max-h-[calc(100vh-3.5rem)] overflow-y-auto space-y-4">
+        <div className="md:hidden fixed top-14 inset-x-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border-b border-gray-200 dark:border-gray-800 shadow-2xl p-4 animate-in slide-in-from-top-4 duration-300 max-h-[calc(100vh-3.5rem)] overflow-y-auto space-y-4">
           <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div>
               <div className="text-xs font-black text-gray-900 dark:text-white">
@@ -421,7 +421,7 @@ export default function AdminLayout({
 
               {/* Vertical Slide-Down Menu */}
               {isProfileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-3 shadow-2xl z-50 animate-in slide-in-bg-top-2 duration-200 space-y-3">
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-3 shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200 space-y-3">
                   <div className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700 space-y-1">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                       Super Administrator

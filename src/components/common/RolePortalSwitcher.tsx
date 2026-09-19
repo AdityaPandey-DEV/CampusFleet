@@ -167,7 +167,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
     <div className="relative inline-block" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gray-100 dark:bg-gray-800 dark: hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300/80 dark:border-gray-700/80 text-xs font-bold text-gray-800 dark:text-gray-200 shadow-sm transition-all active:scale-95 group"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gray-100 dark:bg-gray-800  hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300/80 dark:border-gray-700/80 text-xs font-bold text-gray-800 dark:text-gray-200 shadow-sm transition-all active:scale-95 group"
         title="Switch Portal & Active Role"
       >
         <div className="w-5 h-5 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
@@ -180,7 +180,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
       </button>
 
       {isOpen && (
-        <div className={`absolute ${getDropdownAlignmentClass()} mt-2 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-2.5 shadow-2xl z-50 animate-in slide-in-bg-top-2 fade-in duration-200 space-y-1 text-gray-900 dark:text-white`}>
+        <div className={`absolute ${getDropdownAlignmentClass()} mt-2 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-2.5 shadow-2xl z-50 animate-in slide-in-from-top-2 fade-in duration-200 space-y-1 text-gray-900 dark:text-white`}>
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <div>
               <div className="text-[10px] uppercase font-bold tracking-wider text-gray-400">

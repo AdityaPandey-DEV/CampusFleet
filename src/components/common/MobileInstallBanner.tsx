@@ -48,7 +48,7 @@ export function MobileInstallBanner({
   return (
     <aside
       aria-label="App Installation"
-      className="fixed bottom-3 inset-x-3 sm:hidden z-40 animate-in slide-in-bg-bottom-3 duration-300 pointer-events-auto"
+      className="fixed bottom-3 inset-x-3 sm:hidden z-40 animate-in slide-in-from-bottom-3 duration-300 pointer-events-auto"
     >
       <div className="bg-gray-900/95 dark:bg-gray-900/95 text-white p-3 rounded-2xl border border-blue-500/40 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">

@@ -195,7 +195,7 @@ export default function StaffFlowchartView({
     <div className="space-y-6 animate-in fade-in">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-bg-bottom-3">
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-bottom-3">
           <CheckCircle2 className="w-4 h-4 text-green-400 dark:text-green-600" />
           <span>{toastMessage}</span>
         </div>
@@ -313,7 +313,7 @@ export default function StaffFlowchartView({
                 <div key={st.stopId} className="relative group">
                   {/* Connecting Line */}
                   {!isLast && (
-                    <div className="absolute left-6 top-10 bottom-0 w-0.5 bg-blue-500 dark: z-0 group-hover:bg-blue-600 transition-colors" />
+                    <div className="absolute left-6 top-10 bottom-0 w-0.5 bg-blue-500  z-0 group-hover:bg-blue-600 transition-colors" />
                   )}
 
                   <div className="flex items-start gap-4 pb-8 relative z-10">

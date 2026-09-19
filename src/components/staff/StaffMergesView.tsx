@@ -538,7 +538,7 @@ export default function StaffMergesView({
             pendingSuggestions.map((item) => (
               <div
                 key={item.id}
-                className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/40 dark: border border-gray-200 dark:border-pink-900/40 space-y-4"
+                className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/40  border border-gray-200 dark:border-pink-900/40 space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-3">

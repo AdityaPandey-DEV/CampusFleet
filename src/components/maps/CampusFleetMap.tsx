@@ -1190,7 +1190,7 @@ export default function CampusFleetMap({
 
       {/* Floating GPS Location Status Toast */}
       {locationNotice && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1.5 rounded-full bg-gray-900/90 text-white text-xs font-bold shadow-2xl border border-gray-700/80 backdrop-blur-md flex items-center gap-1.5 animate-in fade-in slide-in-bg-top-2">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1.5 rounded-full bg-gray-900/90 text-white text-xs font-bold shadow-2xl border border-gray-700/80 backdrop-blur-md flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2">
           <Navigation className="w-3.5 h-3.5 text-blue-400" />
           <span>{locationNotice}</span>
         </div>

@@ -369,7 +369,7 @@ export default function StaffTripsView({
     <div className="space-y-6 animate-in fade-in pb-12">
       {/* Toast Notification */}
       {feedbackToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-gray-700 flex items-center gap-2.5 text-xs font-bold animate-in slide-in-bg-bottom-3">
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-gray-700 flex items-center gap-2.5 text-xs font-bold animate-in slide-in-from-bottom-3">
           <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
           <span>{feedbackToast}</span>
         </div>

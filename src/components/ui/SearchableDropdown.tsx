@@ -176,7 +176,7 @@ export default function SearchableDropdown({
 
       {/* Popover */}
       {isOpen && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl shadow-black/20 overflow-hidden animate-in fade-in slide-in-bg-top-1 duration-150">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl shadow-black/20 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
           {/* Search Bar */}
           <div className="p-2 border-b border-gray-100 dark:border-gray-800">
             <div className="relative">

@@ -945,7 +945,7 @@ export default function ShiftBookingView({
               )}
 
               {/* Selected Seat Callout Card */}
-              <div className="p-4 rounded-2xl bg-blue-50 dark:bg-gray-800 dark: border border-blue-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="p-4 rounded-2xl bg-blue-50 dark:bg-gray-800  border border-blue-200 dark:border-gray-700 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-2xl ${isFull ? "bg-red-500 text-white" : "bg-green-500 text-gray-950"} font-black font-mono text-base flex items-center justify-center shadow-md`}>
                     {isFull ? "FULL" : selectedSeatNumber || "1A"}

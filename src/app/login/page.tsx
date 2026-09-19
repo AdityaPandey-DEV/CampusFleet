@@ -397,7 +397,7 @@ export default function LoginPage() {
             />
           )}
 
-          <div className="w-full max-w-md animate-in fade-in slide-in-bg-bottom-8 duration-700">
+          <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-8 duration-700">
             {/* Context Header */}
             <div className="mb-8 space-y-2">
               <h2 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">

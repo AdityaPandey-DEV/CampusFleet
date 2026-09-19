@@ -672,7 +672,7 @@ export function QRPassScanner({
             <canvas ref={canvasRef} className="hidden" />
 
             {/* Glowing Laser Scan Beam */}
-            <div className="absolute inset-x-0 h-1  from-transparent  to-transparent shadow-[0_0_20px_#2dd4bf] animate-bounce z-20 pointer-events-none" />
+            <div className="absolute inset-x-0 h-1     shadow-[0_0_20px_#2dd4bf] animate-bounce z-20 pointer-events-none" />
 
             {/* Viewfinder Overlay with Precision Reticle */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">

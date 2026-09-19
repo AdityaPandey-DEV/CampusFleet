@@ -428,7 +428,7 @@ export function UnifiedAppHeader({
           />
           
           {/* Menu Panel */}
-          <div className="relative bg-white dark:bg-gray-950 shadow-2xl overflow-y-auto animate-in slide-in-bg-top-4 duration-300 max-h-[85vh] rounded-b-2xl pb-4">
+          <div className="relative bg-white dark:bg-gray-950 shadow-2xl overflow-y-auto animate-in slide-in-from-top-4 duration-300 max-h-[85vh] rounded-b-2xl pb-4">
 
           {/* Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">

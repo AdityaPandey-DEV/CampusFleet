@@ -39,7 +39,7 @@ export default function BusLoadingScreen({
   const content = (
     <div className={`relative flex flex-col items-center justify-center select-none text-center ${compact ? "p-6" : "p-8 max-w-lg w-full"}`}>
       {/* Background Ambient Glow (Warm Golden Yellow) */}
-      <div className="absolute -top-12 -bottom-12 -left-12 -right-12 bg-yellow-500/15 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-12 -bottom-12 -left-12 -right-12 bg-yellow-500/15  rounded-full blur-3xl pointer-events-none" />
 
       {/* Animation Stage */}
       <div className="relative w-full flex flex-col items-center justify-center overflow-hidden mb-6 py-4">
@@ -49,19 +49,19 @@ export default function BusLoadingScreen({
             initial={{ x: "100%" }}
             animate={{ x: "-100%" }}
             transition={{ repeat: Infinity, duration: 1.1, ease: "linear" }}
-            className="w-24 h-0.5  from-transparent  to-transparent rounded-full"
+            className="w-24 h-0.5     rounded-full"
           />
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: "-100%" }}
             transition={{ repeat: Infinity, duration: 0.85, ease: "linear", delay: 0.25 }}
-            className="w-40 h-0.5  from-transparent  to-transparent rounded-full"
+            className="w-40 h-0.5     rounded-full"
           />
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: "-100%" }}
             transition={{ repeat: Infinity, duration: 1.3, ease: "linear", delay: 0.55 }}
-            className="w-32 h-0.5  from-transparent  to-transparent rounded-full"
+            className="w-32 h-0.5     rounded-full"
           />
         </div>
 

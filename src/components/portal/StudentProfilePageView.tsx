@@ -382,7 +382,7 @@ export default function StudentProfilePageView({
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-gray-900 rounded-3xl p-6 text-white border border-gray-700 shadow-xl space-y-5 relative overflow-hidden">
             {/* Holographic Watermark effect */}
-            <div className="absolute top-0 right-0 w-48 h-48 bg-blue-400/10 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute top-0 right-0 w-48 h-48 bg-blue-400/10 via-transparent  pointer-events-none" />
             
             {/* University Card Header */}
             <div className="border-b border-white/10 pb-4 text-center space-y-1">

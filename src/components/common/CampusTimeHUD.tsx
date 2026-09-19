@@ -116,7 +116,7 @@ export function CampusTimeHUD({
 
       {/* Dropdown Operations Popover */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-4 shadow-2xl z-50 animate-in slide-in-bg-top-2 duration-200 space-y-4">
+        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-4 shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
             <div>

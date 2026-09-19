@@ -781,7 +781,7 @@ export default function StaffRoutesView({
   return (
     <div className="space-y-6 animate-in fade-in pb-12">
       {/* Top Banner & Two Primary Creation Options */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-blue-900/10 to-transparent p-6 rounded-3xl border border-blue-200/60 dark:border-blue-900/40">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-blue-900/10  p-6 rounded-3xl border border-blue-200/60 dark:border-blue-900/40">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
             <Sparkles className="w-4 h-4" />

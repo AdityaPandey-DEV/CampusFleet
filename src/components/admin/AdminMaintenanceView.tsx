@@ -331,7 +331,7 @@ export default function AdminMaintenanceView({
     <div className="space-y-6 pb-12 animate-in fade-in">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border border-gray-700 dark:border-gray-300 animate-in slide-in-bg-bottom-5">
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border border-gray-700 dark:border-gray-300 animate-in slide-in-from-bottom-5">
           <Sparkles className="w-4 h-4 text-yellow-400 dark:text-yellow-600" />
           <span>{toastMessage}</span>
         </div>
