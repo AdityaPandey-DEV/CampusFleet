@@ -98,12 +98,12 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
   // 2. Define top-level Hub links (shown when exactly at /staff)
   const topLevelLinks = [
-    { href: "/staff/billing", label: "Finance", icon: CreditCard },
-    { href: "/staff/fleet", label: "Fleet", icon: BusFront },
-    { href: "/staff/dispatch", label: "Dispatch", icon: Navigation },
-    { href: "/staff/academics", label: "Commuters", icon: GraduationCap },
+    { href: "/staff/billing/approvals", label: "Finance", icon: CreditCard },
+    { href: "/staff/fleet/buses", label: "Fleet", icon: BusFront },
+    { href: "/staff/dispatch/trips", label: "Dispatch", icon: Navigation },
+    { href: "/staff/academics/students", label: "Commuters", icon: GraduationCap },
     { href: "/staff/maintenance", label: "Workshop", icon: Wrench },
-    { href: "/staff/system", label: "System", icon: Shield },
+    { href: "/staff/system/reports", label: "System", icon: Shield },
   ];
 
   // 3. Determine current context based on URL
