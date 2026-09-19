@@ -442,53 +442,9 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       }));
     }
 
-    // Auto-register every real authenticated Google student if not yet in directory
-    for (const u of this.users) {
-      if (u.role && u.role !== "student") continue; // Never register conductors, drivers, staff, teachers, or admins as students!
-      const alreadyExists = mappedStudents.some(s => s.email?.toLowerCase() === u.email?.toLowerCase());
-      if (!alreadyExists) {
-        const newStudent: Student = {
-          id: `stud-${u.id}`,
-          userId: u.id,
-          fullName: u.fullName || "Student Commuter",
-          email: u.email,
-          phone: u.phone || null,
-          department: "B.Tech CSE",
-          semester: "1st",
-          campusId: u.campusId || u.campus || "",
-          campus: u.campusId || u.campus || "",
-          primaryStopId: this.stops[0]?.id || "",
-          primaryRouteId: this.routes[0]?.id || "",
-          emergencyContact: { name: null, relationship: null, phone: null },
-          transportAccessSuspended: false,
-          hasActiveSubscription: false,
-          subscriptionExpiryDate: "2026-12-31",
-          zoneCode: "ZONE_B",
-          paymentStatus: "UNPAID",
-          totalFeeDue: 12000,
-          totalFeePaid: 0,
-          photoUrl: "",
-          photoLocked: false,
-        };
-        mappedStudents.push(newStudent);
-        supabase.from("students").upsert({
-          id: newStudent.id,
-          user_id: u.id,
-          full_name: newStudent.fullName,
-          email: newStudent.email,
-          phone: null, // never overwrite a real phone with placeholder
-          department: newStudent.department,
-          semester: newStudent.semester,
-          campus_id: newStudent.campusId || newStudent.campus || "",
-          primary_stop_id: newStudent.primaryStopId || null,
-          primary_route_id: newStudent.primaryRouteId || null,
-          has_active_subscription: false,
-          payment_status: "UNPAID",
-          total_fee_due: 99999999,
-          total_fee_paid: 0,
-        }, { ignoreDuplicates: true }).then(() => { }); // ignoreDuplicates: never overwrite existing student rows
-      }
-    }
+    // NOTE: Auto-registration logic has been removed from sync loop.
+    // Client-side auto-registration causes infinite loops when RLS filters the `students_full` view,
+    // as it triggers an upsert -> postgres_changes -> sync -> upsert cycle.
 
     // PREVENT DATA LOSS ON REFRESH FOR STUDENTS:
     // If the current user is a student, their detailed profile is securely fetched via /api/students/me 
