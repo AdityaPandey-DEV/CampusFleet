@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     const { data: studentRecord, error: fetchError } = await supabaseAdmin
       .from("students")
-      .select("total_fee_paid")
+      .select("total_fee_paid, full_name, zone_code")
       .eq("id", studentId)
       .maybeSingle();
 
@@ -61,22 +61,46 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Student record not found." }, { status: 404 });
     }
 
-    // Default fee to add (could be dynamically fetched or passed, but for now we'll just activate the pass)
-    // Actually, we should ideally fetch the payment link amount from Razorpay using API, but to keep it simple, we just set a large expiry
-    const expiryDate = new Date();
-    expiryDate.setMonth(expiryDate.getMonth() + 6); // 6 months validity
+    // Check if we already processed this payment
+    const { data: existingTxn } = await supabaseAdmin
+      .from("payment_submissions")
+      .select("id")
+      .eq("transaction_id", razorpay_payment_id)
+      .maybeSingle();
 
-    const { error: updateError } = await supabaseAdmin
-      .from("students")
-      .update({
-        subscription_expiry_date: expiryDate.toISOString(),
-        total_fee_paid: (Number(studentRecord.total_fee_paid) || 0) + 8545, // Adding a flat amount for now
-      })
-      .eq("id", studentId);
+    if (!existingTxn) {
+      // Default fee to add (could be dynamically fetched or passed, but for now we'll just activate the pass)
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 6); // 6 months validity
 
-    if (updateError) {
-      console.error("Database update error:", updateError);
-      return NextResponse.json({ success: false, error: "Failed to update student record." }, { status: 500 });
+      // Update student table
+      const { error: updateError } = await supabaseAdmin
+        .from("students")
+        .update({
+          subscription_expiry_date: expiryDate.toISOString(),
+          total_fee_paid: (Number(studentRecord.total_fee_paid) || 0) + 8545,
+          payment_status: "APPROVED"
+        })
+        .eq("id", studentId);
+
+      if (updateError) {
+        console.error("Database update error:", updateError);
+        return NextResponse.json({ success: false, error: "Failed to update student record." }, { status: 500 });
+      }
+
+      // Insert into payment_submissions so it shows in the app history
+      const receiptNumber = `RZP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+      await supabaseAdmin.from("payment_submissions").insert({
+        student_id: studentId,
+        student_name: studentRecord.full_name || "Student",
+        zone_code: studentRecord.zone_code || "ZONE_B",
+        amount: 8545,
+        receipt_url: `https://dashboard.razorpay.com/app/payments/${razorpay_payment_id}`,
+        transaction_id: razorpay_payment_id,
+        auto_detected: true,
+        status: "APPROVED",
+        receipt_number: receiptNumber
+      });
     }
 
     return NextResponse.json({ success: true, message: "Payment verified successfully." });
