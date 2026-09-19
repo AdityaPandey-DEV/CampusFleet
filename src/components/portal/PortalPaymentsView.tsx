@@ -198,6 +198,15 @@ export default function PortalPaymentsView({
   const remainingDays = getSubscriptionRemainingDays(activeStudent);
   const currentPaid = Number(activeStudent?.totalFeePaid || 0);
 
+  // Diagnostic prints as requested by user
+  useEffect(() => {
+    console.log("=== PortalPaymentsView Diagnostic ===");
+    console.log("Active Student:", activeStudent);
+    console.log("isPassApproved:", isPassApproved);
+    console.log("currentPaid:", currentPaid);
+    console.log("=====================================");
+  }, [activeStudent, isPassApproved, currentPaid]);
+
   return (
     <div className="space-y-8 animate-in fade-in max-w-5xl mx-auto pb-12">
       
