@@ -29,8 +29,8 @@ export default function StudentOnboardingPage() {
   const [transitZones, setTransitZones] = useState<TransitZone[]>(() => store.getTransitZones(store.getPrimaryCampus()?.id));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [studentsLoaded, setStudentsLoaded] = useState(() => store.getStudents().length > 0 || store.isReady());
   const [serverStudent, setServerStudent] = useState<Student | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const activeStudent: Student | undefined =
     serverStudent ||
@@ -189,7 +189,7 @@ export default function StudentOnboardingPage() {
       setCurrentUser(store.getCurrentUser());
       const s = store.getStudents();
       setStudents(s);
-      if (s.length > 0 || store.isReady()) setStudentsLoaded(true);
+      if (s.length > 0 || store.isReady()) setDataLoaded(true);
       setCampuses(store.getCampuses());
       setStops(store.getStops());
       setTransitZones(store.getTransitZones(campusId));
@@ -233,38 +233,49 @@ export default function StudentOnboardingPage() {
         if (data && data.student) {
           const s = data.student;
           setServerStudent(s);
-          setStudents(prev => [s, ...prev.filter(p => p.id !== s.id && p.email?.toLowerCase() !== s.email?.toLowerCase())]);
-          setStudentsLoaded(true);
-        } else {
-          setStudentsLoaded(true);
+          setStudents(prev => {
+            const exists = prev.find(p => p.id === s.id);
+            if (exists) return prev;
+            return [s, ...prev];
+          });
         }
       })
-      .catch(() => {
-        setStudentsLoaded(true);
+      .catch(console.error)
+      .finally(() => {
+        setDataLoaded(true);
       });
   }, []);
 
+  // Initialize form state ONLY ONCE when data is loaded
   useEffect(() => {
-    if (!studentsLoaded) return;
+    if (!dataLoaded) return;
     
     // Auto-populate data
-    setFullName(activeStudent?.fullName || currentUser?.fullName || "");
-    setPhone(activeStudent?.phone || "");
-    setCampusId(activeStudent?.campusId || store.getPrimaryCampus()?.id || "");
-    setCampus(activeStudent?.campus || store.getPrimaryCampus()?.name || "Main Campus");
-    setDepartment(activeStudent?.department || "");
-    setSemester(activeStudent?.semester || "");
-    setSelectedClassId(activeStudent?.classId || "");
-    const ec2 = classesList.find(c => c.id === activeStudent?.classId);
-    if (ec2) { setSelectedCourse(ec2.course || ""); setSelectedYear(ec2.semester || ""); setSelectedSection(ec2.section || ""); }
-    setSelectedZoneCode(activeStudent?.zoneCode || "ZONE_B");
-    setPrimaryStopId(activeStudent?.primaryStopId || stops[0]?.id || "");
-    setEmergencyName(activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : "");
-    setEmergencyPhone(activeStudent?.emergencyContact?.phone || "");
-    setEmergencyRel(activeStudent?.emergencyContact?.relationship || "Parent / Guardian");
-    setPhotoUrl(activeStudent?.photoUrl || "");
+    setFullName(prev => prev || activeStudent?.fullName || currentUser?.fullName || "");
+    setPhone(prev => prev || activeStudent?.phone || "");
+    setCampusId(prev => prev || activeStudent?.campusId || store.getPrimaryCampus()?.id || "");
+    setCampus(prev => prev || activeStudent?.campus || store.getPrimaryCampus()?.name || "Main Campus");
+    setDepartment(prev => prev || activeStudent?.department || "");
+    setSemester(prev => prev || activeStudent?.semester || "");
+    setSelectedClassId(prev => prev || activeStudent?.classId || "");
+    
+    if (activeStudent?.classId && classesList.length > 0) {
+      const ec2 = classesList.find(c => c.id === activeStudent.classId);
+      if (ec2) { 
+        setSelectedCourse(prev => prev || ec2.course || ""); 
+        setSelectedYear(prev => prev || ec2.semester || ""); 
+        setSelectedSection(prev => prev || ec2.section || ""); 
+      }
+    }
+    
+    setSelectedZoneCode(prev => prev || activeStudent?.zoneCode || "ZONE_B");
+    setPrimaryStopId(prev => prev || activeStudent?.primaryStopId || stops[0]?.id || "");
+    setEmergencyName(prev => prev || (activeStudent?.emergencyContact?.name !== "Campus Desk" ? (activeStudent?.emergencyContact?.name || "") : ""));
+    setEmergencyPhone(prev => prev || activeStudent?.emergencyContact?.phone || "");
+    setEmergencyRel(prev => prev || activeStudent?.emergencyContact?.relationship || "Parent / Guardian");
+    setPhotoUrl(prev => prev || activeStudent?.photoUrl || "");
 
-  }, [currentUser, activeStudent, stops, studentsLoaded, classesList]);
+  }, [dataLoaded, activeStudent, currentUser, classesList, stops]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -321,31 +332,39 @@ export default function StudentOnboardingPage() {
     }
   };
 
+  if (!dataLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Flat Header */}
       <div className="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+            <div className="p-2 bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400">
               <GraduationCap className="w-5 h-5" />
             </div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Setup</h1>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Profile Setup</h1>
           </div>
-          <div className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5" /> Secure Onboarding
+          <div className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 flex items-center gap-1.5 uppercase tracking-wider border border-gray-200 dark:border-gray-700">
+            <Lock className="w-3 h-3" /> Secure
           </div>
         </div>
       </div>
 
       <div className="flex-1 w-full max-w-3xl mx-auto p-4 sm:p-6 lg:py-10">
         {toast && (
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm rounded-xl flex items-center gap-2">
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm font-bold flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5" /> {toast}
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-none">
           {/* Form Body */}
           <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">
             <div className="border-b border-gray-100 dark:border-gray-800 pb-6">
@@ -428,20 +447,20 @@ export default function StudentOnboardingPage() {
               </div>
             </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-            {/* Full Name */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={e => setFullName(e.target.value)}
-                placeholder="Student Name"
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-colors"
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+              {/* Full Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  placeholder="Student Name"
+                  className="w-full text-sm p-3.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-600 transition-colors"
+                />
+              </div>
 
             {/* University Campus */}
             <div className="space-y-1.5">
@@ -473,20 +492,20 @@ export default function StudentOnboardingPage() {
               </select>
             </div>
 
-            {/* Contact Mobile Phone */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                Student Mobile Phone *
-              </label>
-              <input
-                type="tel"
-                required
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="+91 98765 43210"
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-colors"
-              />
-            </div>
+              {/* Contact Mobile Phone */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                  Student Mobile Phone *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  className="w-full text-sm p-3.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-600 transition-colors"
+                />
+              </div>
 
             {/* ── CASCADED ACADEMIC PICKER: Course/Dept → Year/Sem → Section ── */}
             {/* Step 1: Department / Program */}
