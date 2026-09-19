@@ -46,8 +46,8 @@ export function SettingsView() {
 
       setProfileForm({
         fullName: activeStudent?.fullName || activeStaff?.fullName || user.fullName || "",
-        phone: activeStudent?.phone || activeStaff?.phone || user.phone || "",
-        photoUrl: activeStudent?.photoUrl || activeStaff?.photoUrl || user.avatarUrl || "",
+        phone: activeStudent?.phone || activeStaff?.phone || (user as any).phone || "",
+        photoUrl: activeStudent?.photoUrl || (activeStaff as any)?.photoUrl || user.avatarUrl || "",
         department: activeStudent?.department || "",
         semester: activeStudent?.semester || "",
         emergencyContactName: activeStudent?.emergencyContact?.name || "",
@@ -156,7 +156,7 @@ export function SettingsView() {
             </div>
 
             {/* Role Specific Fields */}
-            {(currentUser?.role === "student" || currentUser?.role === "portal") && (
+            {currentUser?.role === "student" && (
               <>
                 <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">Student Details</h3>

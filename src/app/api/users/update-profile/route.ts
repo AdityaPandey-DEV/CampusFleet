@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
     const {
       fullName,
       phone,
-      photoUrl,
       // Student specific
       department,
       semester,
@@ -40,7 +39,6 @@ export async function POST(request: NextRequest) {
           full_name: fullName,
           name: fullName, // keeping name synced for backwards compat
           phone: phone || null,
-          photo_url: photoUrl || null,
           department: department || null,
           semester: semester ? Number(semester) : null,
           emergency_contact_name: emergencyContactName || null,
@@ -60,7 +58,6 @@ export async function POST(request: NextRequest) {
           full_name: fullName,
           name: fullName,
           phone: phone || null,
-          photo_url: photoUrl || null,
           employee_code: employeeCode || null,
           category: category || null,
           license_no: licenseNo || null

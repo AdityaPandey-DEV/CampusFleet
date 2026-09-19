@@ -521,12 +521,7 @@ export default function StudentProfilePageView({
                   </p>
                 </div>
               </div>
-              <button
-                onClick={handleEditProfile}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 cursor-pointer"
-              >
-                Edit →
-              </button>
+              
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -572,14 +567,7 @@ export default function StudentProfilePageView({
                   Primary Mobile Phone
                 </div>
                 <div className="font-medium text-gray-700 dark:text-gray-200">
-                  {activeStudent?.phone || currentUser?.phone || (
-                    <button
-                      onClick={handleEditProfile}
-                      className="text-blue-600 dark:text-blue-400 font-bold hover:underline"
-                    >
-                      + Add Phone Number
-                    </button>
-                  )}
+                  {activeStudent?.phone || currentUser?.phone || "Not Provided"}
                 </div>
               </div>
             </div>
@@ -601,12 +589,7 @@ export default function StudentProfilePageView({
                   </p>
                 </div>
               </div>
-              <button
-                onClick={handleEditProfile}
-                className="text-xs font-bold text-green-600 hover:text-green-700 dark:text-green-400 cursor-pointer"
-              >
-                Change Stop →
-              </button>
+              
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -673,12 +656,7 @@ export default function StudentProfilePageView({
                   </p>
                 </div>
               </div>
-              <button
-                onClick={handleEditProfile}
-                className="text-xs font-bold text-red-600 hover:text-red-700 dark:text-red-400 cursor-pointer"
-              >
-                Update →
-              </button>
+              
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -707,14 +685,7 @@ export default function StudentProfilePageView({
                       <Phone className="w-3.5 h-3.5" />
                       <span>{activeStudent.emergencyContact.phone}</span>
                     </a>
-                  ) : (
-                    <button
-                      onClick={handleEditProfile}
-                      className="text-red-600 dark:text-red-400 font-bold hover:underline"
-                    >
-                      + Add Emergency Phone
-                    </button>
-                  )}
+                  ) : "Not Provided"}
                 </div>
                 <div className="text-[11px] text-gray-500">
                   Automated SMS on SOS or Bus Route changes
