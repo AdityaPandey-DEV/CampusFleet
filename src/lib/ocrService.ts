@@ -71,7 +71,7 @@ function extractTransactionId(text: string): string | null {
   }
 
   // 3. Exact 12 digit match (Standard UPI UTR)
-  const utr12Match = cleanText.match(/\b([0-9]{12})\b/);
+  const utr12Match = cleanText.match(/([0-9]{12})/);
   if (utr12Match?.[1]) {
     return utr12Match[1].trim();
   }
@@ -132,7 +132,7 @@ function extractAmount(text: string): number | null {
   }
 
   // Strategy 3: Standalone large numbers (Fallback)
-  const standaloneMatch = cleanText.match(/\b([0-9]{2,6}(?:\.[0-9]{1,2})?)\b/);
+  const standaloneMatch = cleanText.match(/([0-9]{2,6}(?:\.[0-9]{1,2})?)/);
   if (standaloneMatch?.[1]) {
     const parsed = parseIndianAmount(standaloneMatch[1]);
     // For standalone numbers, we are slightly more conservative to avoid small IDs, but allow >= 100
