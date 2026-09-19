@@ -86,13 +86,15 @@ export default function StudentPortalLayout({
     if (isStudent) {
       // 1. Force onboarding if profile is incomplete
       if (!hasCompleteProfile && !isOnboardingPage) {
-        console.warn("[PortalLayout Redirect] Profile Incomplete -> Redirecting to /portal/onboarding", { hasCompleteProfile, isOnboardingPage });
+        console.warn("[BEFORE REDIRECT] Profile Incomplete -> Redirecting to /portal/onboarding", { hasCompleteProfile, isOnboardingPage });
         router.replace("/portal/onboarding");
+        console.warn("[AFTER REDIRECT CALL] Profile Incomplete -> /portal/onboarding was called");
       } 
       // 2. Return to portal if they try to access onboarding when already complete
       else if (hasCompleteProfile && isOnboardingPage) {
-        console.warn("[PortalLayout Redirect] Profile Complete -> Redirecting away from onboarding to /portal", { hasCompleteProfile, isOnboardingPage });
+        console.warn("[BEFORE REDIRECT] Profile Complete -> Redirecting away from onboarding to /portal", { hasCompleteProfile, isOnboardingPage });
         router.replace("/portal");
+        console.warn("[AFTER REDIRECT CALL] Profile Complete -> /portal was called");
       }
     }
   }, [isStudent, hasCompleteProfile, pathname, router, isOnboardingPage, isStoreReady]);
