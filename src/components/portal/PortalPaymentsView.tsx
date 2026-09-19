@@ -258,15 +258,6 @@ export default function PortalPaymentsView({
       return;
     }
 
-    // Client-side duplicate check against already uploaded receipts
-    const isLocalDuplicate = pendingSubmissions.some(
-      (s: any) => s.transaction_id === transactionIdInput.trim()
-    );
-    if (isLocalDuplicate) {
-      setSubmitError("You have already submitted this transaction ID. Please use a new receipt for your next installment.");
-      return;
-    }
-
     // Check if this receipt will complete the full payment — show confirmation first
     const currentPaid = Number(activeStudent?.totalFeePaid || 0);
     const pendingAmount = pendingSubmissions

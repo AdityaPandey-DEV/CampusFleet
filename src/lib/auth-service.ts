@@ -86,8 +86,7 @@ class AuthService {
   private clearLocalSession() {
     if (typeof window === "undefined") return;
     try {
-      localStorage.removeItem("campusfleet_auth_user");
-      localStorage.removeItem("campusride_auth_user");
+      localStorage.clear();
     } catch (e) {
       console.warn("Failed to clear session", e);
     }

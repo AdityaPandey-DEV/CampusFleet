@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, COOKIE_NAME } from "@/lib/jwt";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { del } from "@vercel/blob";
+import { invalidateCachedUserRole } from "@/lib/redis";
 
 export async function DELETE(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -35,6 +37,26 @@ export async function DELETE(req: NextRequest) {
       .single();
 
     if (studentData) {
+      // Fetch all payment submissions to delete their receipt blobs
+      const { data: submissions } = await supabaseAdmin
+        .from("payment_submissions")
+        .select("receipt_url")
+        .eq("student_id", studentData.id);
+
+      if (submissions && submissions.length > 0) {
+        const urlsToDelete = submissions
+          .map((sub: any) => sub.receipt_url)
+          .filter(Boolean);
+        
+        if (urlsToDelete.length > 0) {
+          try {
+            await del(urlsToDelete, { token: process.env.BLOB_READ_WRITE_TOKEN });
+          } catch (blobErr) {
+            console.error("Failed to delete blob receipts:", blobErr);
+          }
+        }
+      }
+
       // Delete bookings and payment submissions for this student
       await supabaseAdmin.from("bookings").delete().eq("student_id", studentData.id);
       await supabaseAdmin.from("payment_submissions").delete().eq("student_id", studentData.id);
@@ -53,7 +75,14 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Failed to delete account data" }, { status: 500 });
     }
 
-    // 3. Clear JWT session cookie
+    // 4. Invalidate Redis cache for user role
+    try {
+      await invalidateCachedUserRole(session.userId);
+    } catch (redisErr) {
+      console.warn("Failed to invalidate Redis cache on account deletion:", redisErr);
+    }
+
+    // 5. Clear JWT session cookie
     cookies().delete(COOKIE_NAME);
 
     return NextResponse.json({ success: true });
