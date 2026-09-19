@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const keyId = process.env.RAZORPAY_KEY_ID.trim().replace(/['"]/g, "");
-    const keySecret = process.env.RAZORPAY_KEY_SECRET.trim().replace(/['"]/g, "");
+    const keyId = process.env.RAZORPAY_KEY_ID.trim().replace(/['"]/g, "").replace(/\\n/g, "").replace(/\\r/g, "");
+    const keySecret = process.env.RAZORPAY_KEY_SECRET.trim().replace(/['"]/g, "").replace(/\\n/g, "").replace(/\\r/g, "");
 
     const host = request.headers.get("host") || "campusfleet.vercel.app";
     const protocol = host.includes("localhost") ? "http" : "https";

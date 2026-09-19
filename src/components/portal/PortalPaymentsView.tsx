@@ -86,9 +86,14 @@ export default function PortalPaymentsView({
   useEffect(() => {
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
-      setStudents(store.getStudents());
+      
+      const newStudents = store.getStudents();
+      setStudents(prev => newStudents.length > 0 ? newStudents : prev);
+      
       setActiveChildId(store.getActiveChildId());
-      setTransitZones(store.getTransitZones(studentCampusId));
+      
+      const newZones = store.getTransitZones(studentCampusId);
+      setTransitZones(prev => newZones.length > 0 ? newZones : prev);
     });
     return unsub;
   }, [studentCampusId]);
