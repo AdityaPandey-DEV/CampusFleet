@@ -200,10 +200,7 @@ export default function StudentProfilePageView({
   const isSubscriptionActive = activeStudent?.hasActiveSubscription ?? false;
   const isPaymentApproved = activeStudent?.paymentStatus === "APPROVED";
 
-  const handleEditProfile = () => {
-    router.push("/portal/onboarding");
-  };
-
+  
   const handleDeleteAccount = async () => {
     if (deleteConfirmName !== (activeStudent?.fullName || currentUser?.fullName)) {
       return;
@@ -233,14 +230,14 @@ export default function StudentProfilePageView({
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-300 pb-12">
       {/* 1. Academic & Identity Hero Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-gray-900 text-white p-6 sm:p-8 shadow-2xl border border-white/10">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+      <div className="relative overflow-hidden rounded-none bg-gray-900 text-white p-6 sm:p-8 shadow-none-none border border-white/10">
+        
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             {/* Student Photo / Avatar with Edit Overlay */}
             <div className="relative group shrink-0">
-              <div className="w-20 h-24 sm:w-24 sm:h-28 rounded-2xl bg-white/10 backdrop-blur-md border-2 border-white/20 shadow-xl overflow-hidden flex flex-col items-center justify-center text-blue-200">
+              <div className="w-20 h-24 sm:w-24 sm:h-28 rounded-none bg-gray-800  border-2 border-white/20 shadow-none-none overflow-hidden flex flex-col items-center justify-center text-blue-200">
                 {activeStudent?.photoUrl ? (
                   <img
                     src={activeStudent.photoUrl}
@@ -256,20 +253,14 @@ export default function StudentProfilePageView({
                   </div>
                 )}
               </div>
-              <button
-                onClick={handleEditProfile}
-                className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-                title="Update Profile Photo & Details"
-              >
-                <Camera className="w-3.5 h-3.5" />
-              </button>
+              
             </div>
 
             {/* Core Info */}
             <div className="space-y-1.5 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/20 border border-green-400/30 text-green-300 text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-green-500/20 border border-green-400/30 text-green-300 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-none bg-green-400 animate-pulse" />
                   Verified Student Commuter
                 </span>
                 <span className="text-xs text-blue-200/70 font-mono">
@@ -286,7 +277,7 @@ export default function StudentProfilePageView({
                   {activeStudent?.department || "B.Tech Computer Science & Engineering"}
                 </span>
                 <span>•</span>
-                <span className="px-2 py-0.5 rounded-md bg-white/10 text-gray-200 text-xs font-bold">
+                <span className="px-2 py-0.5 rounded-none bg-gray-800 text-gray-200 text-xs font-bold">
                   Zone {activeStudent?.zoneCode || "ZONE_B"}
                 </span>
               </div>
@@ -295,18 +286,12 @@ export default function StudentProfilePageView({
 
           {/* Quick Actions */}
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={handleEditProfile}
-              className="px-5 py-3 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-black text-xs backdrop-blur-md border border-white/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 shadow-lg"
-            >
-              <ShieldCheck className="w-4 h-4 text-green-400" />
-              <span>Edit Profile Details</span>
-            </button>
+            
 
             {activeBooking ? (
               <Link
                 href="/portal/pass"
-                className="px-5 py-3 rounded-2xl bg-green-500 hover:bg-green-600  text-white font-black text-xs shadow-lg shadow-green-500/25 transition-all flex items-center gap-2 active:scale-95"
+                className="px-5 py-3 rounded-none bg-green-500 hover:bg-green-600  text-white font-black text-xs shadow-none-none shadow-none-none transition-all flex items-center gap-2 active:scale-95"
               >
                 <QrCode className="w-4 h-4" />
                 <span>View Digital Pass</span>
@@ -314,7 +299,7 @@ export default function StudentProfilePageView({
             ) : (
               <Link
                 href="/portal/booking"
-                className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700  text-white font-black text-xs shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2 active:scale-95"
+                className="px-5 py-3 rounded-none bg-blue-600 hover:bg-blue-700  text-white font-black text-xs shadow-none-none shadow-none-none transition-all flex items-center gap-2 active:scale-95"
               >
                 <CalendarCheck className="w-4 h-4" />
                 <span>Book Seat Now</span>
@@ -325,10 +310,10 @@ export default function StudentProfilePageView({
       </div>
 
       {/* 2. Seat Booking / Active Pass Status Banner */}
-      <div className="rounded-3xl p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="rounded-none p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-none-none flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+            className={`w-12 h-12 rounded-none flex items-center justify-center shrink-0 ${
               activeBooking
                 ? "bg-green-100 dark:bg-green-950 text-green-600 dark:text-green-400"
                 : "bg-yellow-100 dark:bg-yellow-950 text-yellow-600 dark:text-yellow-400"
@@ -357,7 +342,7 @@ export default function StudentProfilePageView({
           {activeBooking ? (
             <Link
               href="/portal/pass"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-black text-xs shadow-md shadow-green-600/20 transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-none bg-green-600 hover:bg-green-700 text-white font-black text-xs shadow-none-none shadow-none-none transition-all active:scale-95"
             >
               <QrCode className="w-4 h-4" />
               <span>Open Digital Pass</span>
@@ -366,7 +351,7 @@ export default function StudentProfilePageView({
           ) : (
             <Link
               href="/portal/booking"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md shadow-blue-600/20 transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-none bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-none-none shadow-none-none transition-all active:scale-95"
             >
               <CalendarCheck className="w-4 h-4" />
               <span>Reserve Seat</span>
@@ -380,9 +365,9 @@ export default function StudentProfilePageView({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Official Digital ID Card Replica (1 Col) */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-gray-900 rounded-3xl p-6 text-white border border-gray-700 shadow-xl space-y-5 relative overflow-hidden">
+          <div className="bg-gray-900 rounded-none p-6 text-white border border-gray-700 shadow-none-none space-y-5 relative overflow-hidden">
             {/* Holographic Watermark effect */}
-            <div className="absolute top-0 right-0 w-48 h-48 bg-blue-400/10 via-transparent  pointer-events-none" />
+            
             
             {/* University Card Header */}
             <div className="border-b border-white/10 pb-4 text-center space-y-1">
@@ -396,7 +381,7 @@ export default function StudentProfilePageView({
 
             {/* Photo & Key ID */}
             <div className="flex items-center gap-4">
-              <div className="w-20 h-24 rounded-xl bg-white/10 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center">
+              <div className="w-20 h-24 rounded-none bg-gray-800 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center">
                 {activeStudent?.photoUrl ? (
                   <img
                     src={activeStudent.photoUrl}
@@ -469,14 +454,14 @@ export default function StudentProfilePageView({
           </div>
 
           {/* Quick Links Navigation */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
+          <div className="bg-white dark:bg-gray-900 rounded-none p-5 border border-gray-200 dark:border-gray-800 shadow-none-none space-y-3">
             <div className="text-xs font-black uppercase tracking-wider text-gray-400 px-1">
               Commuter Shortcuts
             </div>
             <div className="space-y-1.5">
               <Link
                 href="/portal/booking"
-                className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors text-xs font-bold text-gray-700 dark:text-gray-200"
+                className="flex items-center justify-between p-3 rounded-none hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors text-xs font-bold text-gray-700 dark:text-gray-200"
               >
                 <div className="flex items-center gap-3">
                   <CalendarCheck className="w-4 h-4 text-blue-600" />
@@ -486,7 +471,7 @@ export default function StudentProfilePageView({
               </Link>
               <Link
                 href="/portal/pass"
-                className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors text-xs font-bold text-gray-700 dark:text-gray-200"
+                className="flex items-center justify-between p-3 rounded-none hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors text-xs font-bold text-gray-700 dark:text-gray-200"
               >
                 <div className="flex items-center gap-3">
                   <QrCode className="w-4 h-4 text-green-600" />
@@ -496,7 +481,7 @@ export default function StudentProfilePageView({
               </Link>
               <Link
                 href="/portal/tracker"
-                className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors text-xs font-bold text-gray-700 dark:text-gray-200"
+                className="flex items-center justify-between p-3 rounded-none hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors text-xs font-bold text-gray-700 dark:text-gray-200"
               >
                 <div className="flex items-center gap-3">
                   <Compass className="w-4 h-4 text-green-600" />
@@ -506,7 +491,7 @@ export default function StudentProfilePageView({
               </Link>
               <Link
                 href="/portal/payments"
-                className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors text-xs font-bold text-gray-700 dark:text-gray-200"
+                className="flex items-center justify-between p-3 rounded-none hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors text-xs font-bold text-gray-700 dark:text-gray-200"
               >
                 <div className="flex items-center gap-3">
                   <CreditCard className="w-4 h-4 text-pink-600" />
@@ -521,10 +506,10 @@ export default function StudentProfilePageView({
         {/* Right Column: Detailed Sections (2 Cols) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Section A: Academic Credentials */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-gray-900 rounded-none p-6 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-none-none space-y-5">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600">
+                <div className="p-2 rounded-none bg-blue-100 dark:bg-blue-950 text-blue-600">
                   <GraduationCap className="w-5 h-5" />
                 </div>
                 <div>
@@ -545,7 +530,7 @@ export default function StudentProfilePageView({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Course & Degree
                 </div>
@@ -554,7 +539,7 @@ export default function StudentProfilePageView({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Semester & Section
                 </div>
@@ -564,7 +549,7 @@ export default function StudentProfilePageView({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Institutional Campus
                 </div>
@@ -573,7 +558,7 @@ export default function StudentProfilePageView({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Registered Email
                 </div>
@@ -582,7 +567,7 @@ export default function StudentProfilePageView({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Primary Mobile Phone
                 </div>
@@ -601,10 +586,10 @@ export default function StudentProfilePageView({
           </div>
 
           {/* Section B: Daily Commute & Transit Corridor */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-gray-900 rounded-none p-6 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-none-none space-y-5">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-green-100 dark:bg-green-950 text-green-600">
+                <div className="p-2 rounded-none bg-green-100 dark:bg-green-950 text-green-600">
                   <BusFront className="w-5 h-5" />
                 </div>
                 <div>
@@ -625,7 +610,7 @@ export default function StudentProfilePageView({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Primary Boarding Stop
                 </div>
@@ -637,7 +622,7 @@ export default function StudentProfilePageView({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Assigned Vehicle & Corridor
                 </div>
@@ -649,7 +634,7 @@ export default function StudentProfilePageView({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Transit Zone Code
                 </div>
@@ -661,7 +646,7 @@ export default function StudentProfilePageView({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Academic Shifts
                 </div>
@@ -673,10 +658,10 @@ export default function StudentProfilePageView({
           </div>
 
           {/* Section C: Emergency Contact & Sentinel */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-gray-900 rounded-none p-6 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-none-none space-y-5">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-red-100 dark:bg-red-950 text-red-600">
+                <div className="p-2 rounded-none bg-red-100 dark:bg-red-950 text-red-600">
                   <HeartHandshake className="w-5 h-5" />
                 </div>
                 <div>
@@ -697,7 +682,7 @@ export default function StudentProfilePageView({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Guardian / Contact Person
                 </div>
@@ -709,7 +694,7 @@ export default function StudentProfilePageView({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Emergency Phone Number
                 </div>
@@ -739,10 +724,10 @@ export default function StudentProfilePageView({
           </div>
 
           {/* Section D: Pass & Fee Clearance Status */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-gray-900 rounded-none p-6 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-none-none space-y-5">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-pink-100 dark:bg-pink-950 text-pink-600">
+                <div className="p-2 rounded-none bg-pink-100 dark:bg-pink-950 text-pink-600">
                   <CreditCard className="w-5 h-5" />
                 </div>
                 <div>
@@ -763,12 +748,12 @@ export default function StudentProfilePageView({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Pass Validity
                 </div>
                 <div className="font-black text-green-600 dark:text-green-400 text-sm flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="w-2 h-2 rounded-none bg-green-500" />
                   {isSubscriptionActive ? "Active Semester Pass" : "Payment Required"}
                 </div>
                 <div className="text-[10px] text-gray-400 font-mono">
@@ -776,7 +761,7 @@ export default function StudentProfilePageView({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Fee Clearance
                 </div>
@@ -788,7 +773,7 @@ export default function StudentProfilePageView({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
+              <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">
                   Optical QR Token
                 </div>
@@ -803,10 +788,10 @@ export default function StudentProfilePageView({
           </div>
 
           {/* Section E: Interface Appearance & Vernacular Regional Language */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-sm space-y-6">
+          <div className="bg-white dark:bg-gray-900 rounded-none p-6 sm:p-7 border border-gray-200 dark:border-gray-800 shadow-none-none space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400">
+                <div className="p-2.5 rounded-none bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400">
                   <Settings className="w-5 h-5" />
                 </div>
                 <div>
@@ -818,7 +803,7 @@ export default function StudentProfilePageView({
                   </p>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-none text-xs font-mono font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                 <Globe className="w-3.5 h-3.5" />
                 10 Indian Languages
               </span>
@@ -834,9 +819,9 @@ export default function StudentProfilePageView({
                   <button
                     type="button"
                     onClick={() => setTheme("light")}
-                    className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${
+                    className={`p-3 rounded-none border flex flex-col items-center gap-2 transition-all ${
                       theme === "light"
-                        ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-black shadow-sm ring-2 ring-blue-500/20"
+                        ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-black shadow-none-none ring-2 ring-blue-500/20"
                         : "border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 text-gray-600 dark:text-gray-400 font-semibold"
                     }`}
                   >
@@ -847,9 +832,9 @@ export default function StudentProfilePageView({
                   <button
                     type="button"
                     onClick={() => setTheme("dark")}
-                    className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${
+                    className={`p-3 rounded-none border flex flex-col items-center gap-2 transition-all ${
                       theme === "dark"
-                        ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-black shadow-sm ring-2 ring-blue-500/20"
+                        ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-black shadow-none-none ring-2 ring-blue-500/20"
                         : "border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 text-gray-600 dark:text-gray-400 font-semibold"
                     }`}
                   >
@@ -860,9 +845,9 @@ export default function StudentProfilePageView({
                   <button
                     type="button"
                     onClick={() => setTheme("system")}
-                    className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${
+                    className={`p-3 rounded-none border flex flex-col items-center gap-2 transition-all ${
                       theme === "system"
-                        ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-black shadow-sm ring-2 ring-blue-500/20"
+                        ? "border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-black shadow-none-none ring-2 ring-blue-500/20"
                         : "border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 text-gray-600 dark:text-gray-400 font-semibold"
                     }`}
                   >
@@ -884,7 +869,7 @@ export default function StudentProfilePageView({
                   <select
                     value={primaryLanguage}
                     onChange={(e) => setPrimaryLanguage(e.target.value as SupportedLanguage)}
-                    className="w-full px-3.5 py-2.5 text-xs font-bold rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs font-bold rounded-none bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   >
                     {languageOptions.map((opt) => (
                       <option key={opt.code} value={opt.code}>
@@ -905,7 +890,7 @@ export default function StudentProfilePageView({
                         e.target.value ? (e.target.value as SupportedLanguage) : null
                       )
                     }
-                    className="w-full px-3.5 py-2.5 text-xs font-bold rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs font-bold rounded-none bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   >
                     <option value="">None (Primary only)</option>
                     {languageOptions.map((opt) => (
@@ -919,22 +904,22 @@ export default function StudentProfilePageView({
             </div>
 
             {/* Live Translation Preview Chip Box */}
-            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/60 space-y-2">
+            <div className="p-4 rounded-none bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/60 space-y-2">
               <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-blue-500" />
                 <span>Live Translation Preview ({languageOptions.find((l) => l.code === primaryLanguage)?.name})</span>
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
-                <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-medium">
+                <span className="px-2.5 py-1 rounded-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-medium">
                   {t("bus_number")}: <strong className="font-bold text-blue-600 dark:text-blue-400">{assignedBus?.busNumber || "Bus 1"}</strong>
                 </span>
-                <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-medium">
+                <span className="px-2.5 py-1 rounded-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-medium">
                   {t("route")}: <strong className="font-bold text-blue-600 dark:text-blue-400">{assignedRoute?.name || "Corridor A"}</strong>
                 </span>
-                <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-medium">
+                <span className="px-2.5 py-1 rounded-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-medium">
                   {t("campus")}: <strong className="font-bold text-blue-600 dark:text-blue-400">{activeStudent?.campus || "Main Campus"}</strong>
                 </span>
-                <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-medium">
+                <span className="px-2.5 py-1 rounded-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-medium">
                   {t("status")}: <strong className="font-bold text-green-600">{t("active")}</strong>
                 </span>
               </div>
@@ -944,7 +929,7 @@ export default function StudentProfilePageView({
       </div>
 
       {/* 5. Danger Zone */}
-      <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-red-200 dark:border-red-900/30 ring-1 ring-red-50 dark:ring-red-900/10 transition-all duration-300">
+      <div className="bg-white dark:bg-gray-900 rounded-none p-6 sm:p-8 shadow-none-none border border-red-200 dark:border-red-900/30 ring-1 ring-red-50 dark:ring-red-900/10 transition-all duration-300">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <h2 className="text-base sm:text-lg font-black text-red-600 flex items-center gap-2">
@@ -956,7 +941,7 @@ export default function StudentProfilePageView({
           </div>
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="shrink-0 px-5 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-600 font-bold text-sm rounded-xl border border-red-200 dark:border-red-800 transition-colors flex items-center gap-2"
+            className="shrink-0 px-5 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-600 font-bold text-sm rounded-none border border-red-200 dark:border-red-800 transition-colors flex items-center gap-2"
           >
             <Trash2 className="w-4 h-4" /> Delete Account
           </button>
@@ -965,16 +950,16 @@ export default function StudentProfilePageView({
 
       {/* Delete Account Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80  animate-in fade-in">
+          <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-none p-6 sm:p-8 shadow-none-none space-y-5">
             <div className="text-center space-y-3">
-              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto shadow-md">
+              <div className="w-16 h-16 rounded-none bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto shadow-none-none">
                 <AlertTriangle className="w-8 h-8" />
               </div>
               <h2 className="text-xl font-black tracking-tight text-gray-900 dark:text-white">
                 Delete Account?
               </h2>
-              <p className="text-xs text-red-600 dark:text-red-400 font-semibold bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-100 dark:border-red-900/50 leading-relaxed">
+              <p className="text-xs text-red-600 dark:text-red-400 font-semibold bg-red-50 dark:bg-red-950/30 p-3 rounded-none border border-red-100 dark:border-red-900/50 leading-relaxed">
                 Warning: Your active transport subscription, payment receipts, and booking history will be permanently lost!
               </p>
             </div>
@@ -988,7 +973,7 @@ export default function StudentProfilePageView({
                 value={deleteConfirmName}
                 onChange={(e) => setDeleteConfirmName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold outline-none focus:border-red-500"
+                className="w-full px-4 py-3 rounded-none border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold outline-none focus:border-red-500"
               />
             </div>
 
@@ -999,7 +984,7 @@ export default function StudentProfilePageView({
                   setShowDeleteModal(false);
                   setDeleteConfirmName("");
                 }}
-                className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300 transition-colors"
+                className="flex-1 py-3 rounded-none border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300 transition-colors"
               >
                 Cancel
               </button>
@@ -1007,7 +992,7 @@ export default function StudentProfilePageView({
                 type="button"
                 disabled={isDeleting || deleteConfirmName !== (activeStudent?.fullName || currentUser?.fullName)}
                 onClick={handleDeleteAccount}
-                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 rounded-none bg-red-600 hover:bg-red-700 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isDeleting ? "Deleting..." : "Permanently Delete"}
               </button>

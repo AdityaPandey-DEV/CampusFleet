@@ -20,10 +20,49 @@ export function SettingsView() {
   const [notifBilling, setNotifBilling] = useState(true);
   const [notifGeneral, setNotifGeneral] = useState(true);
 
+  // Profile form states
+  const [isSaving, setIsSaving] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    fullName: "",
+    phone: "",
+    photoUrl: "",
+    department: "",
+    semester: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    employeeCode: "",
+    category: "",
+    licenseNo: ""
+  });
+
   useEffect(() => {
+    const initializeForm = () => {
+      const user = store.getCurrentUser();
+      if (!user) return;
+      setCurrentUser(user);
+
+      const activeStudent = store.getStudents().find(s => s.userId === user.id || s.id === user.id);
+      const activeStaff = store.getStaff().find(s => s.userId === user.id || s.id === user.id);
+
+      setProfileForm({
+        fullName: activeStudent?.fullName || activeStaff?.fullName || user.fullName || "",
+        phone: activeStudent?.phone || activeStaff?.phone || user.phone || "",
+        photoUrl: activeStudent?.photoUrl || activeStaff?.photoUrl || user.avatarUrl || "",
+        department: activeStudent?.department || "",
+        semester: activeStudent?.semester || "",
+        emergencyContactName: activeStudent?.emergencyContact?.name || "",
+        emergencyContactPhone: activeStudent?.emergencyContact?.phone || "",
+        employeeCode: activeStaff?.employeeCode || "",
+        category: activeStaff?.category || "",
+        licenseNo: activeStaff?.licenseNo || ""
+      });
+    };
+
     setMounted(true);
+    initializeForm();
+    
     const unsub = store.subscribe(() => {
-      setCurrentUser(store.getCurrentUser());
+      initializeForm();
     });
     return unsub;
   }, []);
@@ -39,6 +78,26 @@ export function SettingsView() {
   const email = currentUser?.email || "student@example.com";
 
   if (!mounted) return null;
+
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/users/update-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileForm)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update profile");
+      alert("Profile updated successfully!");
+      // Optionally trigger a store refresh here if you have one
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "An error occurred");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Toggle Switch Component (Flat UI)
   const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
@@ -67,12 +126,136 @@ export function SettingsView() {
       </div>
 
       <div className="space-y-8">
+
+        {/* Profile Details Card */}
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-none overflow-hidden">
+          <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Profile Details</h2>
+          </div>
+          
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+                <input 
+                  type="text" 
+                  value={profileForm.fullName} 
+                  onChange={e => setProfileForm({...profileForm, fullName: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
+                <input 
+                  type="text" 
+                  value={profileForm.phone} 
+                  onChange={e => setProfileForm({...profileForm, phone: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                />
+              </div>
+            </div>
+
+            {/* Role Specific Fields */}
+            {(currentUser?.role === "student" || currentUser?.role === "portal") && (
+              <>
+                <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">Student Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Department</label>
+                    <input 
+                      type="text" 
+                      value={profileForm.department} 
+                      onChange={e => setProfileForm({...profileForm, department: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Semester</label>
+                    <input 
+                      type="text" 
+                      value={profileForm.semester} 
+                      onChange={e => setProfileForm({...profileForm, semester: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Emergency Contact Name</label>
+                    <input 
+                      type="text" 
+                      value={profileForm.emergencyContactName} 
+                      onChange={e => setProfileForm({...profileForm, emergencyContactName: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Emergency Contact Phone</label>
+                    <input 
+                      type="text" 
+                      value={profileForm.emergencyContactPhone} 
+                      onChange={e => setProfileForm({...profileForm, emergencyContactPhone: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {(["admin", "staff", "driver", "conductor", "teacher"].includes(currentUser?.role || "")) && (
+              <>
+                <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">Staff Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Employee Code</label>
+                    <input 
+                      type="text" 
+                      value={profileForm.employeeCode} 
+                      onChange={e => setProfileForm({...profileForm, employeeCode: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Category / Rank</label>
+                    <input 
+                      type="text" 
+                      value={profileForm.category} 
+                      onChange={e => setProfileForm({...profileForm, category: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                    />
+                  </div>
+                  {currentUser?.role === "driver" && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">License Number</label>
+                      <input 
+                        type="text" 
+                        value={profileForm.licenseNo} 
+                        onChange={e => setProfileForm({...profileForm, licenseNo: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            <div className="pt-4 flex justify-end">
+              <button
+                onClick={handleSaveProfile}
+                disabled={isSaving}
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-none transition-colors"
+              >
+                {isSaving ? "Saving..." : "Save Profile"}
+              </button>
+            </div>
+          </div>
+        </div>
         
         {/* Appearance Card */}
-        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">Appearance</h2>
-            <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-lg text-gray-500">
+            <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
               <Sun className="w-5 h-5" />
             </div>
           </div>
@@ -85,7 +268,7 @@ export function SettingsView() {
               </div>
               <button 
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-none hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
               >
                 {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
@@ -99,7 +282,7 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Font Family</h3>
                 <p className="text-sm text-gray-500">Choose your preferred font</p>
               </div>
-              <button className="flex items-center justify-between min-w-[180px] px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+              <button className="flex items-center justify-between min-w-[180px] px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-none hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
                 System Fonts
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </button>
@@ -112,7 +295,7 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Zoom level</h3>
                 <p className="text-sm text-gray-500">Maximize the view (more content) or increase size for readability</p>
               </div>
-              <button className="flex items-center justify-between min-w-[180px] px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+              <button className="flex items-center justify-between min-w-[180px] px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-none hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
                 Default (100%)
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </button>
@@ -121,10 +304,10 @@ export function SettingsView() {
         </div>
 
         {/* Notifications Card */}
-        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">Notifications</h2>
-            <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-lg text-gray-500">
+            <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
               <Bell className="w-5 h-5" />
             </div>
           </div>
@@ -167,10 +350,10 @@ export function SettingsView() {
         </div>
 
         {/* Privacy & Security Card */}
-        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">Privacy & Security</h2>
-            <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-lg text-gray-500">
+            <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
               <Shield className="w-5 h-5" />
             </div>
           </div>
@@ -181,7 +364,7 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Two-Factor Authentication</h3>
                 <p className="text-sm text-gray-500">Add an extra layer of security</p>
               </div>
-              <div className="p-2 border border-gray-200 dark:border-gray-800 rounded-lg text-gray-500 cursor-not-allowed opacity-50">
+              <div className="p-2 border border-gray-200 dark:border-gray-800 rounded-none text-gray-500 cursor-not-allowed opacity-50">
                 <Shield className="w-4 h-4" />
               </div>
             </div>
@@ -193,7 +376,7 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Data Privacy</h3>
                 <p className="text-sm text-gray-500">Manage your data privacy settings</p>
               </div>
-              <div className="p-2 border border-gray-200 dark:border-gray-800 rounded-lg text-gray-500 cursor-not-allowed opacity-50">
+              <div className="p-2 border border-gray-200 dark:border-gray-800 rounded-none text-gray-500 cursor-not-allowed opacity-50">
                 <Shield className="w-4 h-4" />
               </div>
             </div>
@@ -201,10 +384,10 @@ export function SettingsView() {
         </div>
 
         {/* Data & Storage Card */}
-        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden mb-12">
+        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none overflow-hidden mb-12">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">Data & Storage</h2>
-            <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-lg text-gray-500">
+            <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
               <Database className="w-5 h-5" />
             </div>
           </div>
