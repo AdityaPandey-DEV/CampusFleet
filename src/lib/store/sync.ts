@@ -490,6 +490,27 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       }
     }
 
+    // PREVENT DATA LOSS ON REFRESH FOR STUDENTS:
+    // If the current user is a student, their detailed profile is securely fetched via /api/students/me 
+    // and stored in this.students by `syncStudentStatus()`. We must NOT overwrite it with an empty
+    // stub if the public Supabase query `students_full` blocked their row due to RLS!
+    const activeStudentUser = this.currentUser;
+    if (activeStudentUser && activeStudentUser.role === "student") {
+      const existingProfile = this.students.find(
+        s => s.userId === activeStudentUser.id || s.email?.toLowerCase() === activeStudentUser.email?.toLowerCase()
+      );
+      if (existingProfile && existingProfile.campusId) { // Check if it has real data
+        const mappedIdx = mappedStudents.findIndex(
+          s => s.userId === activeStudentUser.id || s.email?.toLowerCase() === activeStudentUser.email?.toLowerCase()
+        );
+        if (mappedIdx >= 0) {
+          mappedStudents[mappedIdx] = existingProfile; // Restore the real data over the blank stub
+        } else {
+          mappedStudents.push(existingProfile);
+        }
+      }
+    }
+
     this.students = mappedStudents;
 
     // 8. Fetch Staff via normalized VIEW (profiles JOIN → single source of truth for name/email/phone)

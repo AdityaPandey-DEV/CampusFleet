@@ -96,23 +96,84 @@ export default function StudentOnboardingPage() {
     }
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Photo file size must be under 2MB.");
-      return;
-    }
     
     setIsUploadingPhoto(true);
-    const formData = new FormData();
-    formData.append("file", file);
     
     try {
+      // 1. Client-side image compression (drastically speeds up upload for large phone photos)
+      const compressedFile = await new Promise<File>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target?.result as string;
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const MAX_WIDTH = 600;
+            const MAX_HEIGHT = 600;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx?.drawImage(img, 0, 0, width, height);
+            
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  // Replace extension with .jpeg
+                  const fileName = file.name.replace(/\.[^/.]+$/, "") + ".jpeg";
+                  resolve(new File([blob], fileName, { type: "image/jpeg" }));
+                } else {
+                  reject(new Error("Compression failed"));
+                }
+              },
+              "image/jpeg",
+              0.8 // 80% quality
+            );
+          };
+          img.onerror = () => reject(new Error("Failed to load image for compression"));
+        };
+        reader.onerror = () => reject(new Error("Failed to read file"));
+      });
+
+      // 2. Upload compressed image
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+      
       const res = await fetch("/api/payments/upload-receipt", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
+      
       if (res.ok && data.success) {
         setPhotoUrl(data.url);
+        
+        // 3. Auto-save photo URL directly to DB so it's not lost if they refresh without submitting
+        const targetStudentId = activeStudent?.id || `stud-${currentUser?.id || Date.now()}`;
+        if (targetStudentId && !targetStudentId.startsWith('stud-')) {
+          try {
+             await store.updateStudentProfile(targetStudentId, { photoUrl: data.url });
+             setToast("Photo uploaded and saved! Keep completing your profile.");
+             setTimeout(() => setToast(null), 4000);
+          } catch(e) { /* ignore auto-save fail, they can still hit Submit */ }
+        } else {
+          setToast("Photo uploaded successfully! Remember to click Save Profile at the bottom.");
+          setTimeout(() => setToast(null), 5000);
+        }
       } else {
         alert(data.error || "Failed to upload photo. Please try again.");
       }
