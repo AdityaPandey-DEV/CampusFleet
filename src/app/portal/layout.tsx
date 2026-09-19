@@ -79,31 +79,35 @@ export default function StudentPortalLayout({
   
   const isAccessBlocked = isStudent && !isSubscriptionActive && !isPaymentPage && !isOnboardingPage;
 
+  // Debounce redirect decisions: wait for store sync to stabilize after initial load
+  const [isRedirectReady, setIsRedirectReady] = useState(false);
+  useEffect(() => {
+    if (!isStoreReady) return;
+    const timer = setTimeout(() => setIsRedirectReady(true), 2000);
+    return () => clearTimeout(timer);
+  }, [isStoreReady]);
+
   // Auto-redirect logic for onboarding and payments
   useEffect(() => {
-    if (!isStoreReady) return; // Wait until store is populated before forcing redirects
+    if (!isRedirectReady) return; // Wait until store is populated AND stabilized before forcing redirects
     
     if (isStudent) {
       // 1. Force onboarding if profile is incomplete
       if (!hasCompleteProfile && !isOnboardingPage) {
-        console.warn("[BEFORE REDIRECT] Profile Incomplete -> Redirecting to /portal/onboarding", { hasCompleteProfile, isOnboardingPage });
+        console.warn("[REDIRECT] Profile Incomplete -> /portal/onboarding", { hasCompleteProfile, phone: activeStudent?.phone });
         router.replace("/portal/onboarding");
-        console.warn("[AFTER REDIRECT CALL] Profile Incomplete -> /portal/onboarding was called");
       } 
       // 2. Return to portal if they try to access onboarding when already complete
       else if (hasCompleteProfile && isOnboardingPage) {
-        console.warn("[BEFORE REDIRECT] Profile Complete -> Redirecting away from onboarding to /portal", { hasCompleteProfile, isOnboardingPage });
         router.replace("/portal");
-        console.warn("[AFTER REDIRECT CALL] Profile Complete -> /portal was called");
       }
-      // 3. Force payment if profile is complete but subscription inactive (RESTORED WITH LOGS)
+      // 3. Force payment if profile is complete but subscription inactive
       else if (hasCompleteProfile && !isSubscriptionActive && !isPaymentPage && !isOnboardingPage) {
-        console.warn("[BEFORE REDIRECT] Subscription Inactive -> Redirecting to /portal/payments", { hasCompleteProfile, isSubscriptionActive, isPaymentPage, isOnboardingPage });
+        console.warn("[REDIRECT] Subscription Inactive -> /portal/payments", { isSubscriptionActive });
         router.replace("/portal/payments");
-        console.warn("[AFTER REDIRECT CALL] Subscription Inactive -> /portal/payments was called");
       }
     }
-  }, [isStudent, hasCompleteProfile, isSubscriptionActive, pathname, router, isOnboardingPage, isPaymentPage, isStoreReady]);
+  }, [isStudent, hasCompleteProfile, isSubscriptionActive, pathname, router, isOnboardingPage, isPaymentPage, isRedirectReady]);
 
   if (currentUser && !isAuthorizedStudent) {
     const role = currentUser.role;

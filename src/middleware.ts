@@ -105,6 +105,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── Auth callback routes must COMPLETELY bypass middleware ──────────
+  // NextResponse.next({ request: { headers } }) can strip Set-Cookie headers
+  // from route handler responses in Next.js 14, breaking OAuth login flows.
+  if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
   // ── CSRF & Origin Verification on State-Changing API Routes ─────────
   if (pathname.startsWith("/api") && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
     const origin = req.headers.get("origin");
