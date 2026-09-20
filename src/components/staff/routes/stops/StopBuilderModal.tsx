@@ -1,58 +1,486 @@
 // @ts-nocheck
-
-import React, { useState, useMemo } from 'react';
-import { GitBranch, MapPin, Building2, Search, ArrowUp, ArrowDown, X, RotateCcw, Route as RouteIcon, Info, ChevronRight, BusFront, Calendar as CalendarIcon, Hash, Map as MapIcon, Users, Sliders, Check } from 'lucide-react';
-import { Route, Stop, Campus } from '@/lib/types';
+import React from 'react';
+import { MapPin, Search, Plus, X, GitMerge } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const CampusFleetMap = dynamic(() => import('@/components/maps/CampusFleetMap'), {
   ssr: false,
-  loading: () => (
-    <div className="w-full h-80 rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse flex items-center justify-center text-xs text-gray-400 font-bold">
-      Loading Corridor GIS Map...
-    </div>
-  ),
 });
 
-export function RouteBuilderModal({ 
-  isRouteBuilderOpen, 
-  setIsRouteBuilderOpen, 
-  editingRouteId, 
-  routeBuilderData, 
-  setRouteBuilderData, 
-  insertingAtGapIndex, 
-  setInsertingAtGapIndex, 
-  stopPickerSearch, 
-  setStopPickerSearch, 
-  activePickerTarget, 
-  setActivePickerTarget, 
-  stops, 
-  campuses, 
-  handleReverseRoute, 
-  handleInsertIntermediateStop, 
-  handleShiftIntermediateUp, 
-  handleShiftIntermediateDown, 
-  handleRemoveIntermediateStop, 
-  handleSaveRoute,
-  builderStops,
-  builderOrderedStopIds,
-  builderMetrics
+export function StopBuilderModal({
+  isAddStopModalOpen,
+  setIsAddStopModalOpen,
+  editingStop,
+  stopFormData,
+  setStopFormData,
+  stopInputMode,
+  setStopInputMode,
+  handleSaveStop,
+  isSavingStop,
+  designatedCampusId,
+  setDesignatedCampusId,
+  campuses
 }: any) {
-  const filteredAvailableStops = stops.filter(
-    (s: any) =>
-      !routeBuilderData.intermediateStopIds.includes(s.id) &&
-      s.id !== routeBuilderData.startStopId &&
-      s.id !== routeBuilderData.endStopId &&
-      s.name.toLowerCase().includes(stopPickerSearch.toLowerCase())
-  );
-
   return (
     <>
+{isAddStopModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl max-h-[95vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-green-100 dark:bg-green-950/60 text-green-600 flex items-center justify-center">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base">
+                    {editingStop ? `Edit Stop: ${editingStop.name}` : "Create Campus Bus Stop"}
+                  </h3>
+                  <p className="text-[11px] text-gray-400">
+                    Add coordinates via interactive map pin-dropping or direct manual input
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsAddStopModalOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Input Mode Switcher */}
+            <div className="grid grid-cols-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setStopInputMode("MAP_PIN")}
+                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  stopInputMode === "MAP_PIN"
+                    ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Mark on Interactive Map</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStopInputMode("MANUAL")}
+                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  stopInputMode === "MANUAL"
+                    ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>⌨️ Enter GPS Coordinates</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStop} className="space-y-4 text-xs">
+              {/* If in MAP PIN MODE: Embedded Map with Pin Dropper */}
+              {stopInputMode === "MAP_PIN" && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-gray-500 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      Click on the map to place station pin
+                    </span>
+                    <span className="font-mono text-gray-400 font-bold">
+                      {stopFormData.latitude.toFixed(5)}, {stopFormData.longitude.toFixed(5)}
+                    </span>
+                  </div>
+
+                  <CampusFleetMap
+                    stops={stops}
+                    height="240px"
+                    interactiveMode="PIN_DROP"
+                    draftPinLocation={[stopFormData.latitude, stopFormData.longitude]}
+                    draftGeofenceRadius={stopFormData.geofenceRadiusMeters}
+                    onMapClick={(lat, lng) => {
+                      setStopFormData(prev => ({
+                        ...prev,
+                        latitude: lat,
+                        longitude: lng,
+                      }));
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Stop Name & Code */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Stop Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Subhash Chowk Terminal"
+                    value={stopFormData.name}
+                    onChange={e => setStopFormData({ ...stopFormData, name: e.target.value })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Station Code</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ST-07"
+                    value={stopFormData.code}
+                    onChange={e => setStopFormData({ ...stopFormData, code: e.target.value })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Manual Coordinate Inputs (or editable in either mode) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Latitude (°N)</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    required
+                    value={stopFormData.latitude}
+                    onChange={e => setStopFormData({ ...stopFormData, latitude: parseFloat(e.target.value) || 0 })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-gray-400">Longitude (°E)</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    required
+                    value={stopFormData.longitude}
+                    onChange={e => setStopFormData({ ...stopFormData, longitude: parseFloat(e.target.value) || 0 })}
+                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Geofence Radius Slider */}
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold uppercase tracking-wider text-gray-400">
+                    Geofence Arrival Detection Radius
+                  </label>
+                  <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+                    {stopFormData.geofenceRadiusMeters} meters
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={30}
+                  max={300}
+                  step={5}
+                  value={stopFormData.geofenceRadiusMeters}
+                  onChange={e => setStopFormData({ ...stopFormData, geofenceRadiusMeters: parseInt(e.target.value) || 80 })}
+                  className="w-full accent-blue-600 cursor-pointer"
+                />
+                <span className="text-[10px] text-gray-400 block">
+                  Telematics auto-detects arrival when bus enters this perimeter
+                </span>
+              </div>
+
+              {/* Landmark description */}
+              <div>
+                <label className="font-bold uppercase tracking-wider text-gray-400">
+                  Landmark & Surrounding Description
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Opposite Main Gate #2, Near Post Office"
+                  value={stopFormData.landmark}
+                  onChange={e => setStopFormData({ ...stopFormData, landmark: e.target.value })}
+                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none"
+                />
+              </div>
+
+              {/* Bus Merge Stop Toggle Switch */}
+              <div className="p-3.5 bg-pink-50/80 dark:bg-pink-950/40 rounded-2xl border border-pink-200 dark:border-pink-800/60 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-xs text-pink-900 dark:text-pink-300 flex items-center gap-1.5">
+                    <GitMerge className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                    <span>Is Bus Merge Stop (Consolidation Junction)</span>
+                  </div>
+                  <p className="text-[10px] text-pink-700/80 dark:text-pink-400 mt-0.5">
+                    Turn ON to authorize bus consolidation, transfers, and standing passenger seat transitions at this junction.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer ml-3 flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={stopFormData.isBusMergeStop || false}
+                    onChange={e => setStopFormData({ ...stopFormData, isBusMergeStop: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddStopModalOpen(false)}
+                  className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20"
+                >
+                  {editingStop ? "Save Station Changes" : "Confirm & Create Stop"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* MODAL 1B: EDIT CENTRAL CAMPUS TERMINAL & FLEET DEPOT          */}
+      {/* ============================================================= */}
+      {isEditCampusModalOpen && campusFormData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl max-h-[95vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                  🏛️
+                </div>
+                <div>
+                  <h3 className="font-black text-base">
+                    Edit University Campus Terminal & Depot
+                  </h3>
+                  <p className="text-[11px] text-gray-400">
+                    Sourced dynamically from PostgreSQL database. Zero hardcoded constants.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsEditCampusModalOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Input Mode Switcher */}
+            <div className="grid grid-cols-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setCampusInputMode("MAP_PIN")}
+                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  campusInputMode === "MAP_PIN"
+                    ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Mark on Interactive Map</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCampusInputMode("MANUAL")}
+                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  campusInputMode === "MANUAL"
+                    ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>⌨️ Enter GPS Coordinates</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCampus} className="space-y-4 text-xs">
+              {/* If in MAP PIN MODE: Embedded Map with Pin Dropper */}
+              {campusInputMode === "MAP_PIN" && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-gray-500 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                      Click on the map to anchor campus terminal pin
+                    </span>
+                    <span className="font-mono text-gray-400 font-bold">
+                      {campusFormData.latitude.toFixed(5)}, {campusFormData.longitude.toFixed(5)}
+                    </span>
+                  </div>
+
+                  <CampusFleetMap
+                    stops={stops}
+                    height="240px"
+                    interactiveMode="PIN_DROP"
+                    draftPinLocation={[campusFormData.latitude, campusFormData.longitude]}
+                    draftGeofenceRadius={campusFormData.geofenceRadiusMeters}
+                    onMapClick={(lat, lng) => {
+                      setCampusFormData(prev => prev ? ({
+                        ...prev,
+                        latitude: Number(lat.toFixed(6)),
+                        longitude: Number(lng.toFixed(6)),
+                      }) : null);
+                    }}
+                  />
+                  <p className="text-[10px] text-gray-400 italic">
+                    💡 Click anywhere on the map to drop the anchor coordinates for the campus terminal and depot slots.
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
+                    Campus Terminal Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={campusFormData.name}
+                    onChange={e => setCampusFormData({ ...campusFormData, name: e.target.value })}
+                    placeholder="e.g. University Main Campus Terminal"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
+                    Terminal Station Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={campusFormData.code}
+                    onChange={e => setCampusFormData({ ...campusFormData, code: e.target.value.toUpperCase() })}
+                    placeholder="e.g. CAMPUS-01"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-mono uppercase focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
+                    Geofence Radius (Meters)
+                  </label>
+                  <input
+                    type="number"
+                    min="20"
+                    max="500"
+                    step="5"
+                    value={campusFormData.geofenceRadiusMeters}
+                    onChange={e =>
+                      setCampusFormData({
+                        ...campusFormData,
+                        geofenceRadiusMeters: parseInt(e.target.value) || 80,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
+                    Latitude Coordinates *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    required
+                    value={campusFormData.latitude}
+                    onChange={e =>
+                      setCampusFormData({
+                        ...campusFormData,
+                        latitude: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
+                    Longitude Coordinates *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    required
+                    value={campusFormData.longitude}
+                    onChange={e =>
+                      setCampusFormData({
+                        ...campusFormData,
+                        longitude: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
+                    Campus Landmark / Gate Info
+                  </label>
+                  <input
+                    type="text"
+                    value={campusFormData.landmark || ""}
+                    onChange={e => setCampusFormData({ ...campusFormData, landmark: e.target.value })}
+                    placeholder="e.g. University Main Gate 1 & Fleet Depot"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-gray-500 mb-1">
+                    Campus Affiliation
+                  </label>
+                  <input
+                    type="text"
+                    value={campusFormData.campus || ""}
+                    onChange={e => setCampusFormData({ ...campusFormData, campus: e.target.value })}
+                    placeholder="e.g. Main Campus"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setIsEditCampusModalOpen(false)}
+                  disabled={isSavingCampus}
+                  className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCampus}
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20 flex items-center justify-center gap-1.5"
+                >
+                  {isSavingCampus ? (
+                    <span>Persisting to Database...</span>
+                  ) : (
+                    <span>Save Campus Terminal</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ============================================================= */}
       {/* MODAL 2: INTERACTIVE FLOWCHART ROUTE BUILDER                 */}
       {/* ============================================================= */}
       {isRouteBuilderOpen && (
-        <div className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-5 sm:p-6 flex flex-col justify-between text-gray-900 dark:text-white shadow-sm overflow-hidden animate-in fade-in" style={{ height: "calc(100vh - 120px)" }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in">
+          <div className="w-full max-w-6xl h-[92vh] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-5 sm:p-6 flex flex-col justify-between text-gray-900 dark:text-white shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
               <div className="flex items-center gap-3">
@@ -125,8 +553,8 @@ export function RouteBuilderModal({
                       value={routeBuilderData.direction}
                       onChange={e => {
                         const newDir = e.target.value as any;
-                        setRouteBuilderData((prev: any) => {
-                          const primary = campuses.find((c: any) => c.isPrimary) || campuses[0];
+                        setRouteBuilderData(prev => {
+                          const primary = campuses.find(c => c.isPrimary) || campuses[0] || store.getPrimaryCampus();
                           const nonCampusStops = stops;
                           let startId = prev.startStopId;
                           let endId = prev.endStopId;
@@ -606,10 +1034,68 @@ export function RouteBuilderModal({
                 </button>
               </div>
             </div>
+          </div>
         </div>
       )}
 
+      {/* ============================================================= */}
+      {/* MODAL 3: ALLOCATE BUS TO CORRIDOR ROUTE                       */}
+      {/* ============================================================= */}
+      {isAllocateBusModalOpen && activeRoute && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <form
+            onSubmit={handleAllocateBus}
+            className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
+                <BusFront className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-black text-base">Allocate Vehicle to {activeRoute.name}</h3>
+                <p className="text-xs text-gray-400">Assign a physical fleet bus to service this transit corridor</p>
+              </div>
+            </div>
 
-    </>
+            <div className="space-y-2 text-xs">
+              <label className="font-bold uppercase tracking-wider text-gray-400">Choose Fleet Bus</label>
+              <select
+                required
+                value={selectedBusToAllocate}
+                onChange={e => setSelectedBusToAllocate(e.target.value)}
+                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
+              >
+                <option value="">-- Select Available Vehicle --</option>
+                {buses.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.busNumber} ({b.registrationNo}) • {b.capacity} Seats ({b.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsAllocateBusModalOpen(false)}
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!selectedBusToAllocate}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl"
+              >
+                Confirm Bus Assignment
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {/* ============================================================= */}
+      {/* MODAL: CREATE / EDIT CAMPUS LOCATION                          */}
+      {/* ============================================================= */}
+          </>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import { RouteBuilderModal } from './RouteBuilderModal';
+import { ArrowRight } from 'lucide-react';
 import { AllocateBusModal } from './AllocateBusModal';
+import Link from "next/link";
 import React, { useEffect, useState, useMemo } from "react";
 import { store } from "@/lib/store";
 import dynamic from "next/dynamic";
@@ -66,7 +68,7 @@ import type { Trip } from "@/lib/types";
 
 import { useRoutesContext } from "@/components/staff/routes/RoutesContext";
 
-export default function CorridorsManager() {
+export default function CorridorsManager({ mode = "view" }: { mode?: "view" | "create" }) {
   const { routes, stops, buses, trips, campuses, selectedRouteId, setSelectedRouteId, showToast } = useRoutesContext();
 
   // Campus Location Modal States
@@ -767,27 +769,25 @@ export default function CorridorsManager() {
 
         {/* 2 PRIMARY CREATION OPTIONS */}
         <div className="flex items-center gap-3 flex-wrap">
-          <button
-            id="btn-create-stop"
-            onClick={handleOpenCreateStop}
+          <Link
+            href="/staff/fleet/routes/stops/create"
             className="px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-bold text-xs rounded-2xl flex items-center gap-2 border border-gray-200 dark:border-gray-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
           >
             <div className="w-6 h-6 rounded-lg bg-green-100 dark:bg-green-950/60 text-green-600 flex items-center justify-center font-bold">
               <MapPin className="w-3.5 h-3.5" />
             </div>
             <span>+ Create Stop</span>
-          </button>
+          </Link>
 
-          <button
-            id="btn-create-route"
-            onClick={handleOpenCreateRoute}
+          <Link
+            href="/staff/fleet/routes/corridors/create"
             className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-2xl flex items-center gap-2.5 shadow-lg shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-95"
           >
             <div className="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center font-bold">
               <GitBranch className="w-3.5 h-3.5" />
             </div>
             <span>+ Create Route (Flowchart Builder)</span>
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -851,358 +851,108 @@ export default function CorridorsManager() {
       </div>
 
       {/* ============================================================= */}
-      {/* TAB 1: ROUTES & CORRIDORS                                     */}
+      {/* CORRIDORS GRID OR CREATE VIEW                                 */}
       {/* ============================================================= */}
-      {true && (
-        <div className="space-y-6">
-          {/* Route Selector Pills */}
-          {routes.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {routes.map(r => {
-                const isSelected = r.id === selectedRouteId;
-                return (
-                  <button
-                    key={r.id}
-                    onClick={() => {
-                      setSelectedRouteId(r.id);
-                      setSelectedStopId(undefined);
-                    }}
-                    className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all flex-shrink-0 ${
-                      isSelected
-                        ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                        : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50"
-                    }`}
-                  >
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: r.color }} />
-                    <span>{r.name}</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 font-mono">
-                      {r.stops.length} stops
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {activeRoute ? (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left 7 Cols: Live Road-Snapped Map & Quick Actions */}
-              <div className="lg:col-span-7 space-y-4">
-                <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: activeRoute.color }} />
-                        <h3 className="font-bold text-base text-gray-900 dark:text-white">
-                          {activeRoute.name}
-                        </h3>
-                        <span className="font-mono text-xs text-blue-600 font-bold bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-md">
-                          {activeRoute.code}
-                        </span>
-                      </div>
-                      <span className="text-xs font-mono text-gray-500 mt-0.5 block">
-                        {activeRoute.totalDistanceKm} km • ~{activeRoute.estimatedDurationMins || Math.round(activeRoute.totalDistanceKm * 2.8)} mins • Direction: {activeRoute.direction}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenEditRoute(activeRoute)}
-                        className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
-                        title="Edit corridor in visual flowchart builder"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Edit Flowchart</span>
-                      </button>
-
-                      <button
-                        onClick={() => setIsAllocateBusModalOpen(true)}
-                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold rounded-xl flex items-center gap-1.5"
-                      >
-                        <BusFront className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Allocate Bus</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteRoute(activeRoute.id, activeRoute.name)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl"
-                        title="Delete Route"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* View Mode Toggle: Flowchart Timeline vs Map */}
-                  <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setRouteViewMode("FLOWCHART")}
-                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                          routeViewMode === "FLOWCHART"
-                            ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                            : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
-                        }`}
-                      >
-                        <Layers className="w-3.5 h-3.5" />
-                        <span>Station Progression Flowchart</span>
-                      </button>
-                      <button
-                        onClick={() => setRouteViewMode("MAP")}
-                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                          routeViewMode === "MAP"
-                            ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                            : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
-                        }`}
-                      >
-                        <Navigation className="w-3.5 h-3.5" />
-                        <span>Corridor GIS Map</span>
-                      </button>
-                    </div>
-
-                    <span className="text-[11px] font-mono text-gray-400 pr-2 hidden sm:inline">
-                      {routeViewMode === "FLOWCHART" ? "Where Is My Train Linear Sequence" : "Road Network Polylines"}
-                    </span>
-                  </div>
-
-                  {/* Primary Corridor Display */}
-                  {routeViewMode === "FLOWCHART" ? (
-                    <WhereIsMyBusFlowchart
-                      route={activeRoute}
-                      bus={assignedBuses[0] || null}
-                      busLocation={null}
-                      trip={assignedTrips[0] || null}
-                      selectedStopId={selectedStopId}
-                      onSelectStop={stop => setSelectedStopId(stop.id)}
-                      onToggleMapView={() => setRouteViewMode("MAP")}
-                      isMapViewActive={false}
-                      baseDepartureTime="07:15"
-                    />
-                  ) : (
-                    <CampusFleetMap
-                      stops={activeRoute.stops.map(rs => rs.stop)}
-                      routeCoordinates={activeRouteCoordinates}
-                      campuses={campuses}
-                      height="420px"
-                      selectedStopId={selectedStopId}
-                      onStopClick={stop => setSelectedStopId(stop.id)}
-                    />
-                  )}
-
-                  {/* Allocated Fleet Buses Strip */}
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl flex items-center justify-between">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <BusFront className="w-4 h-4 text-blue-600" />
-                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                        Allocated Fleet Buses:
-                      </span>
-                      {assignedBuses.length > 0 ? (
-                        <div className="flex gap-1.5 flex-wrap">
-                          {assignedBuses.map(b => (
-                            <span
-                              key={b.id}
-                              className="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold text-[10px] rounded-lg"
-                            >
-                              {b.busNumber} ({b.capacity} seats)
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">None allocated yet</span>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => setIsAllocateBusModalOpen(true)}
-                      className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline"
-                    >
-                      + Assign Vehicle
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right 5 Cols: Ordered Stops Sequence with Flowchart Timeline & Shift Controls */}
-              <div className="lg:col-span-5 bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                      <GitCommit className="w-4 h-4 text-blue-600" />
-                      Corridor Stops Flowchart
-                    </h3>
-                    <p className="text-[11px] text-gray-400">Sequential stop schedule with live shift controls</p>
-                  </div>
-                  <button
-                    onClick={() => handleOpenEditRoute(activeRoute)}
-                    className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Insert Stops
-                  </button>
-                </div>
-
-                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                  {activeRoute.stops.map((rs, idx) => {
-                    const isFirst = idx === 0;
-                    const isLast = idx === activeRoute.stops.length - 1;
-                    const isSelected = selectedStopId === rs.stopId;
-
-                    return (
-                      <div key={rs.stopId} className="relative">
-                        {/* Connecting Line Between Stops */}
-                        {!isLast && (
-                          <div className="absolute left-6 top-10 bottom-0 w-0.5 bg-blue-500 z-0" />
-                        )}
-
-                        <div
-                          onClick={() => setSelectedStopId(rs.stopId)}
-                          className={`relative z-10 p-3 rounded-2xl border transition-all cursor-pointer ${
-                            isSelected
-                              ? "bg-green-50 dark:bg-green-950/40 border-green-500 ring-2 ring-green-500/20 shadow-md"
-                              : "bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700/60 hover:bg-gray-100"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {/* Station Sequence Badge */}
-                              <div
-                                className={`w-7 h-7 rounded-full text-white font-mono font-bold text-xs flex items-center justify-center shadow-sm ${
-                                  isFirst
-                                    ? "bg-green-600 ring-2 ring-green-400/40"
-                                    : isLast
-                                    ? "bg-blue-600 ring-2 ring-blue-400/40"
-                                    : "bg-blue-600"
-                                }`}
-                              >
-                                {isFirst ? (
-                                  <MapPin className="w-3.5 h-3.5" />
-                                ) : isLast ? (
-                                  <Building2 className="w-3.5 h-3.5" />
-                                ) : (
-                                  idx + 1
-                                )}
-                              </div>
-
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-xs text-gray-900 dark:text-white">
-                                    {rs.stop?.name || "Bus Stop"}
-                                  </span>
-                                  {isFirst && (
-                                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-green-100 dark:bg-green-950 text-green-700 font-bold">
-                                      Origin
-                                    </span>
-                                  )}
-                                  {isLast && (
-                                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 font-bold">
-                                      Destination
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-[10px] text-gray-400 font-mono">
-                                  {rs.stop?.code} • {rs.stop?.landmark || "Campus Stop"}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Shift Up/Down & Offset Controls */}
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
-                                +{rs.arrivalOffsetMinutes}m
-                              </span>
-
-                              {/* Shift Buttons */}
-                              <div className="flex items-center gap-0.5 ml-2">
-                                <button
-                                  type="button"
-                                  disabled={isFirst}
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    handleShiftActiveRouteStop(idx, "UP");
-                                  }}
-                                  className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-20 text-gray-600 dark:text-gray-300"
-                                  title="Shift Stop Earlier"
-                                >
-                                  <ArrowUp className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={isLast}
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    handleShiftActiveRouteStop(idx, "DOWN");
-                                  }}
-                                  className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-20 text-gray-600 dark:text-gray-300"
-                                  title="Shift Stop Later"
-                                >
-                                  <ArrowDown className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between text-[10px] text-gray-400 mt-2 pt-1.5 border-t border-gray-200/60 dark:border-gray-700/40">
-                            <span>Geofence: {rs.stop?.geofenceRadiusMeters || 80}m</span>
-                            <span>Buffer Dwell: {rs.bufferTimeMinutes} mins</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Edit in Visual Builder Banner */}
-                <button
-                  onClick={() => handleOpenEditRoute(activeRoute)}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700  text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition-all hover:scale-[1.01]"
+      {mode === "create" ? (
+        <RouteBuilderModal
+          isRouteBuilderOpen={true}
+          setIsRouteBuilderOpen={setIsRouteBuilderOpen}
+          editingRouteId={editingRouteId}
+          routeBuilderData={routeBuilderData}
+          setRouteBuilderData={setRouteBuilderData}
+          insertingAtGapIndex={insertingAtGapIndex}
+          setInsertingAtGapIndex={setInsertingAtGapIndex}
+          stopPickerSearch={stopPickerSearch}
+          setStopPickerSearch={setStopPickerSearch}
+          activePickerTarget={activePickerTarget}
+          setActivePickerTarget={setActivePickerTarget}
+          stops={stops}
+          campuses={campuses}
+          handleReverseRoute={handleReverseRoute}
+          handleInsertIntermediateStop={handleInsertIntermediateStop}
+          handleShiftIntermediateUp={handleShiftIntermediateUp}
+          handleShiftIntermediateDown={handleShiftIntermediateDown}
+          handleRemoveIntermediateStop={handleRemoveIntermediate}
+          handleSaveRouteFromBuilder={handleSaveRouteFromBuilder}
+          builderStops={builderStops}
+          builderOrderedStopIds={builderOrderedStopIds}
+          builderMetrics={builderMetrics}
+        />
+      ) : (
+        <div className="space-y-6 pt-2">
+          {routes.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {routes.map(r => (
+                <Link 
+                  href={`/staff/fleet/routes/corridors/${r.id}`} 
+                  key={r.id}
+                  className="group"
                 >
-                  <GitBranch className="w-4 h-4" />
-                  <span>Open Interactive Flowchart Builder</span>
-                </button>
-              </div>
+                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden flex flex-col h-full hover:border-blue-300 dark:hover:border-blue-700/50">
+                    
+                    {/* Decorative Top Gradient Line based on Route Color */}
+                    <div 
+                      className="absolute top-0 left-0 right-0 h-1.5 w-full opacity-80 group-hover:opacity-100 transition-opacity" 
+                      style={{ backgroundColor: r.color }} 
+                    />
+                    
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-4">
+                       <div>
+                         <span className="font-mono text-[10px] uppercase font-bold text-gray-400 block mb-1">
+                           {r.code} • {r.direction === "HOME_TO_CAMPUS" ? "Inbound" : "Outbound"}
+                         </span>
+                         <h3 className="font-black text-gray-900 dark:text-white text-lg leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                           {r.name}
+                         </h3>
+                       </div>
+                       <div 
+                         className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm shrink-0"
+                         style={{ color: r.color }}
+                       >
+                         <RouteIcon className="w-4 h-4" />
+                       </div>
+                    </div>
+                    
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-3 mb-6 mt-auto">
+                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-3 border border-gray-100 dark:border-gray-800">
+                         <span className="text-[10px] text-gray-500 font-bold uppercase block mb-0.5">Distance</span>
+                         <span className="font-black text-gray-900 dark:text-white text-sm">{r.totalDistanceKm} <span className="text-gray-400 font-normal">km</span></span>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-3 border border-gray-100 dark:border-gray-800">
+                         <span className="text-[10px] text-gray-500 font-bold uppercase block mb-0.5">Duration</span>
+                         <span className="font-black text-gray-900 dark:text-white text-sm">~{r.estimatedDurationMins || Math.round(r.totalDistanceKm * 2.8)} <span className="text-gray-400 font-normal">min</span></span>
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
+                       <div className="flex items-center gap-1.5">
+                          <span className="flex h-5 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 font-mono border border-blue-100 dark:border-blue-800/50">
+                            {r.stops.length} Stops
+                          </span>
+                       </div>
+                       <div className="text-[11px] font-bold text-blue-600 flex items-center gap-1 group-hover:gap-2 transition-all">
+                          View Map & Flowchart <ArrowRight className="w-3.5 h-3.5" />
+                       </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           ) : (
             <div className="p-12 text-center bg-white dark:bg-gray-900 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-800 space-y-3">
-              <RouteIcon className="w-10 h-10 text-blue-600 mx-auto" />
-              <h3 className="font-bold text-base">No Routes Configured Yet</h3>
-              <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                Create institutional bus corridors connecting residential areas and university hubs.
-              </p>
-              <button
-                onClick={handleOpenCreateRoute}
-                className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl"
-              >
-                + Create First Route
-              </button>
+               <RouteIcon className="w-10 h-10 text-gray-300 mx-auto" />
+               <h3 className="font-bold text-gray-900 dark:text-white">No Transit Corridors Defined</h3>
+               <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                 Click the "Create Route" button in the header to start building your first transit network corridor.
+               </p>
             </div>
           )}
         </div>
       )}
 
-      <RouteBuilderModal
-        isRouteBuilderOpen={isRouteBuilderOpen}
-        setIsRouteBuilderOpen={setIsRouteBuilderOpen}
-        editingRouteId={editingRouteId}
-        routeBuilderData={routeBuilderData}
-        setRouteBuilderData={setRouteBuilderData}
-        insertingAtGapIndex={insertingAtGapIndex}
-        setInsertingAtGapIndex={setInsertingAtGapIndex}
-        stopPickerSearch={stopPickerSearch}
-        setStopPickerSearch={setStopPickerSearch}
-        activePickerTarget={activePickerTarget}
-        setActivePickerTarget={setActivePickerTarget}
-        stops={stops}
-        campuses={campuses}
-        handleReverseRoute={handleReverseRoute}
-        handleInsertIntermediateStop={handleInsertIntermediateStop}
-        handleShiftIntermediateUp={handleShiftIntermediateUp}
-        handleShiftIntermediateDown={handleShiftIntermediateDown}
-        handleRemoveIntermediateStop={handleRemoveIntermediate}
-        handleSaveRoute={handleSaveRouteFromBuilder}
-        builderStops={builderStops}
-        builderOrderedStopIds={builderOrderedStopIds}
-        builderMetrics={builderMetrics}
-      />
       <AllocateBusModal
         isAllocateBusModalOpen={isAllocateBusModalOpen}
         setIsAllocateBusModalOpen={setIsAllocateBusModalOpen}

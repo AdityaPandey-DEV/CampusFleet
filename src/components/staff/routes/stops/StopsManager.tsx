@@ -65,7 +65,9 @@ import type { Trip } from "@/lib/types";
 
 import { useRoutesContext } from "@/components/staff/routes/RoutesContext";
 
-export default function StopsManager() {
+import { StopBuilderModal } from "./StopBuilderModal";
+
+export default function StopsManager({ mode = "view" }: { mode?: "view" | "create" }) {
   const { 
     routes, stops, buses, trips, campuses, 
     selectedRouteId, setSelectedRouteId, showToast
@@ -293,7 +295,24 @@ export default function StopsManager() {
   const [routeViewMode, setRouteViewMode] = useState<"FLOWCHART" | "MAP">("FLOWCHART");
 
   return (
-    <div className="space-y-6 animate-in fade-in pb-12">
+    <div className="space-y-6 animate-in fade-in pb-12 h-full">
+      {mode === "create" ? (
+        <StopBuilderModal
+          isAddStopModalOpen={true}
+          setIsAddStopModalOpen={setIsAddStopModalOpen}
+          editingStop={editingStop}
+          stopFormData={stopFormData}
+          setStopFormData={setStopFormData}
+          stopInputMode={stopInputMode}
+          setStopInputMode={setStopInputMode}
+          handleSaveStop={handleSaveStop}
+          isSavingStop={isSavingStop}
+          designatedCampusId={designatedCampusId}
+          setDesignatedCampusId={setDesignatedCampusId}
+          campuses={campuses}
+        />
+      ) : (
+        <>
       {/* Main Header */}
       <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -465,6 +484,8 @@ export default function StopsManager() {
         </div>
       )}
 
+        </>
+      )}
     </div>
   );
 }
