@@ -4,8 +4,10 @@ import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const isCron = url.searchParams.get("cron") === "true" || request.headers.get("user-agent")?.toLowerCase().includes("cron");
     // 1. Fetch Routes (cached)
     let routes = await cacheGet("campusfleet:state:routes");
     if (!routes) {
@@ -52,6 +54,11 @@ export async function GET() {
       const { data } = await supabaseAdmin.from("buses").select("*");
       buses = data || [];
       await cacheSet("campusfleet:state:buses", buses, CACHE_TTL.MASTER_DATA_PERMANENT);
+    }
+
+    // If it's a cron job, just return a small payload to avoid response size limits
+    if (isCron) {
+      return NextResponse.json({ success: true, message: "Cache warmed successfully by cron" });
     }
 
     // Aggregate everything into a single payload

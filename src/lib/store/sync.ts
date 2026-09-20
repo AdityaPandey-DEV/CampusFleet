@@ -225,7 +225,7 @@ async function getCachedState() {
   ongoingFetchPromise = (async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
       const res = await fetch("/api/sync/state", { signal: controller.signal });
       clearTimeout(timeoutId);
       
@@ -749,9 +749,9 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       this.syncUserData()
     ]);
     const timeoutPromise = new Promise((resolve) => setTimeout(() => {
-      console.warn("Supabase initial sync timed out after 8 seconds - forcing UI to load");
+      console.warn("Supabase initial sync timed out after 15 seconds - forcing UI to load");
       resolve(null);
-    }, 8000));
+    }, 15000));
     
     await Promise.race([syncPromises, timeoutPromise]);
 
