@@ -1,0 +1,5 @@
+- `[/]` Create `/portal/scan/page.tsx` with professional QR scanner UI
+- `[ ]` Update `MobileBottomNav.tsx` to add "Scan QR" center floating button
+- `[ ]` Update `UnifiedCommuteHub.tsx` to read `?busId=` from URL and auto-open `ShiftBookingView`
+- `[ ]` Update `/api/students/board-self-service/route.ts` to handle `SEAT_QR` logic
+- `[ ]` Add QR code download feature in Staff Panel for Bus & Seats

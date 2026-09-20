@@ -7,6 +7,7 @@ import {
   CreditCard,
   Settings,
   BusFront,
+  QrCode,
 } from "lucide-react";
 
 interface MobileBottomNavItem {
@@ -28,6 +29,7 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
   const defaultNavItems = isPaymentApproved
     ? [
         { href: "/portal", label: "My Commute", icon: BusFront, highlight: true },
+        { href: "/portal/scan", label: "Scan QR", icon: QrCode },
         { href: "/portal/settings", label: "Settings", icon: Settings },
       ]
     : [
@@ -45,7 +47,7 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
         <div className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-2xl border border-white/60 dark:border-gray-800/80 rounded-3xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
           <div
             className={`grid gap-1 items-center ${
-              isPaymentApproved ? "grid-cols-2" : "grid-cols-1"
+              isPaymentApproved ? "grid-cols-3" : "grid-cols-1"
             }`}
           >
             {itemsToRender.map((item) => {

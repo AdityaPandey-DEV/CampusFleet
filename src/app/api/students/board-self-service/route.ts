@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Unauthorized." }, { status: 401 });
     }
 
-    const { busId, latitude, longitude, busLatitude, busLongitude } = await req.json();
+    const { busId, seatId, latitude, longitude, busLatitude, busLongitude } = await req.json();
 
     if (!busId || !latitude || !longitude) {
       return NextResponse.json({ success: false, message: "Missing busId or geolocation." }, { status: 400 });
@@ -91,12 +91,31 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
+    if (seatId) {
+      // Check if seatId is already booked by someone else on this trip
+      const { data: seatCheck } = await supabaseAdmin
+        .from("bookings")
+        .select("id, student_id")
+        .eq("trip_id", activeTrip.id)
+        .eq("seat_number", seatId)
+        .neq("status", "CANCELLED");
+
+      const isOccupiedByOther = seatCheck && seatCheck.some((b: any) => b.student_id !== studentId);
+
+      if (isOccupiedByOther) {
+        return NextResponse.json({ success: false, message: `Seat ${seatId} is already booked by another student.` }, { status: 400 });
+      }
+
+      targetBooking.seat_number = seatId;
+    }
+
     // 3. Mark Attendance
     const { error: updateErr } = await supabaseAdmin
       .from("bookings")
       .update({
         status: "BOARDED",
-        boarded_at: new Date().toISOString()
+        boarded_at: new Date().toISOString(),
+        seat_number: targetBooking.seat_number
       })
       .eq("id", targetBooking.id);
 

@@ -63,8 +63,20 @@ export function StudentSelfScanner({ onSuccess }: { onSuccess: () => void }) {
     
     try {
       const payload = JSON.parse(rawCode);
-      if (payload.type !== "BUS_QR" || !payload.busId) {
-        throw new Error("Invalid Bus QR format.");
+      
+      // Flow 1: Scanned a BUS_QR -> Redirect to Seat Selection Map for this bus
+      if (payload.type === "BUS_QR" && payload.busId) {
+        setSuccessMsg("Bus identified! Opening seat selection map...");
+        setTimeout(() => {
+          // If we are in the dedicated scan page, or anywhere else, just redirect.
+          window.location.href = `/portal?busId=${payload.busId}`;
+        }, 1200);
+        return;
+      }
+      
+      // Flow 2: Scanned a SEAT_QR -> Directly board into that specific seat
+      if (payload.type !== "SEAT_QR" || !payload.busId || !payload.seatId) {
+        throw new Error("Invalid QR format. Please scan a valid Bus or Seat QR.");
       }
 
       // 1. Get Geolocation
@@ -88,12 +100,13 @@ export function StudentSelfScanner({ onSuccess }: { onSuccess: () => void }) {
       const busLat = liveBusLoc.busId === payload.busId ? liveBusLoc.latitude : undefined;
       const busLng = liveBusLoc.busId === payload.busId ? liveBusLoc.longitude : undefined;
 
-      // 3. Call our API
+      // 3. Call our API with seatId attached
       const res = await fetch("/api/students/board-self-service", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           busId: payload.busId,
+          seatId: payload.seatId,
           latitude: lat,
           longitude: lng,
           busLatitude: busLat,
@@ -107,10 +120,10 @@ export function StudentSelfScanner({ onSuccess }: { onSuccess: () => void }) {
         throw new Error(data.message || "Failed to board.");
       }
 
-      setSuccessMsg(data.message);
+      setSuccessMsg(`Success! You have boarded Seat ${payload.seatId}.`);
       setTimeout(() => {
         onSuccess();
-      }, 3000);
+      }, 2000);
 
     } catch (err: any) {
       setErrorMsg(err.message || "Invalid QR Code or Geolocation failed.");

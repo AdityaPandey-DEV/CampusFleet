@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
 import { Bus, VehicleStatus, Route, Trip } from "@/lib/types";
 import { BusFront, Plus, Edit2, Trash2, ShieldAlert, CheckCircle2, Wrench, Search, MapPin, Sparkles, RefreshCw, QrCode, X } from "lucide-react";
+import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 
 export interface StaffBusesProps {
@@ -543,19 +544,27 @@ export default function StaffBusesView({
                 </p>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setViewingQrBus(null)}
-                  className="flex-1 py-3 text-sm font-bold bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl transition-all"
+              <div className="flex flex-col gap-3 pt-2">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setViewingQrBus(null)}
+                    className="flex-1 py-3 text-sm font-bold bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl transition-all"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="flex-1 py-3 text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-2xl transition-all shadow-md shadow-blue-600/20"
+                  >
+                    Print Bus QR
+                  </button>
+                </div>
+                <Link
+                  href={`/staff/fleet/buses/${viewingQrBus.id}/seat-qrs`}
+                  className="w-full py-3 text-sm font-bold bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-2xl transition-all shadow-sm text-center"
                 >
-                  Close
-                </button>
-                <button
-                  onClick={() => window.print()}
-                  className="flex-1 py-3 text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-2xl transition-all shadow-md shadow-blue-600/20"
-                >
-                  Print QR
-                </button>
+                  Print Seat QRs ({viewingQrBus.capacity} Seats)
+                </Link>
               </div>
             </div>
           </div>

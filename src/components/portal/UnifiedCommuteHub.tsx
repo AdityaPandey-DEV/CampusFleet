@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { store } from "@/lib/store";
 import ShiftBookingView from "./ShiftBookingView";
 import CommuteBusSelector from "./CommuteBusSelector";
@@ -39,7 +40,11 @@ export default function UnifiedCommuteHub({
 
   const isDesktop = useMediaQuery({ minWidth: 1024 });
   const [activeTab, setActiveTab] = useState<"BOOKING" | "PASS" | "TRACKER">("BOOKING");
-  const [hubState, setHubState] = useState<{ shiftId: string; stopId: string; busId: string } | null>(null);
+  const searchParams = useSearchParams();
+  const urlBusId = searchParams.get("busId");
+  const [hubState, setHubState] = useState<{ shiftId: string; stopId: string; busId: string } | null>(
+    urlBusId ? { shiftId: "", stopId: "", busId: urlBusId } : null
+  );
 
   useEffect(() => {
     setIsClient(true);

@@ -31,49 +31,35 @@ CampusFleet fully supports both **Light Mode** (default) and **Dark Mode**. We a
 
 ## 4. UI Components & Layouts
 
-### The Standard CampusFleet Card
-To simplify our UI and maintain a consistent look and feel across all pages (Settings, Commute Hub, Onboarding, Payments, etc.), **all** surfaces and modules must use this exact standard card pattern.
+### Cards & Containers
+- **Corner Radius:** Use highly rounded corners (`rounded-2xl` or `rounded-3xl`) to create a friendly, modern feel.
+- **Borders & Shadows:** Use subtle borders (`border-gray-200 dark:border-gray-800`) combined with soft drop shadows (`shadow-xl`) to lift cards off the background.
+- **Glassmorphism:** For overlays, sticky headers, or bottom navigation, use backdrop blur (`backdrop-blur-xl bg-white/80 dark:bg-gray-950/80`) to provide context behind floating elements.
 
-**Standard Card Classes:**
-`bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden`
+#### Standard Card Design Snippet
+Use this foundational structure for cards across all pages to ensure UI consistency:
 
-**Code Example:**
 ```tsx
-{/* The Standard Card Container */}
-<div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
-  
-  {/* Card Header (Optional) */}
-  <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800/60 bg-gray-50/50 dark:bg-gray-900/20">
+<div className="bg-white dark:bg-gray-800/60 backdrop-blur-xl border border-gray-200 dark:border-gray-800/60 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all">
+  <div className="flex items-center justify-between mb-4">
     <div className="flex items-center gap-3">
-      {/* Icon with soft background */}
-      <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
-        <IconName className="w-5 h-5" />
+      <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl">
+        <Icon className="w-5 h-5" />
       </div>
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Card Title</h2>
+      <div>
+        <h3 className="font-bold text-gray-900 dark:text-white">Card Title</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Card Subtitle</p>
+      </div>
     </div>
-    
-    {/* Optional Top Right Action */}
-    <button className="text-sm font-medium text-blue-600 hover:text-blue-700">Action</button>
+    <Badge className="bg-green-100 text-green-700">Status</Badge>
   </div>
-  
-  {/* Card Body */}
-  <div className="p-5 space-y-6">
-    {/* Content goes here */}
-    <p className="text-sm text-gray-500 dark:text-gray-400">
-      This is the standard card content area. It has generous padding and spacing.
-    </p>
+  <div className="space-y-3">
+    {/* Card Content Here */}
   </div>
-  
 </div>
 ```
 
-**Card Rules:**
-- **No pure black:** Do not use `bg-black` for cards. Always use `bg-white dark:bg-gray-950`.
-- **Corners:** Stick to `rounded-2xl` for large containing cards, and `rounded-xl` for inner interactive elements.
-- **Dividers:** Use `<div className="h-px bg-gray-100 dark:bg-gray-800/60" />` to separate lists or rows inside the card body.
-- **Interactive Cards:** If the *entire* card is clickable, add `cursor-pointer hover:scale-[1.01] hover:shadow-md transition-all duration-200`.
-
-### Glassmorphism
+### Buttons & Interactive Elements
 - Use solid, vibrant backgrounds for primary actions with hover and active states (`hover:bg-blue-700 active:scale-95`).
 - Ensure generous padding (`px-6 py-3`) so buttons are easy to tap on mobile devices.
 - Include Lucide React icons alongside text for better visual scanning.
