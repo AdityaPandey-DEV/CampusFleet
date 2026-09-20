@@ -23,6 +23,7 @@ declare module "./_base" {
     
     initCrossTabSync(): void;
     initSupabaseRealtime(): void;
+    _studentPollingInterval?: ReturnType<typeof setInterval>;
     initStudentPaymentSync(): void;
     initTelematicsSync(): void;
 
@@ -85,9 +86,35 @@ CampusFleetStore.prototype.initCrossTabSync = function (this: CampusFleetStore) 
 
 CampusFleetStore.prototype.initSupabaseRealtime = function (this: CampusFleetStore) {
   try {
-    supabase
-      .channel("campusfleet-realtime-global-sync")
-      // User Data changes (Bookings, Students, Staff, special allocations)
+    // Clear any existing polling intervals to prevent leaks
+    if (this._studentPollingInterval) {
+      clearInterval(this._studentPollingInterval);
+      this._studentPollingInterval = undefined;
+    }
+
+    const role = this.currentUser?.role;
+
+    // PHASE 2 OPTIMIZATION:
+    // If the user is a student, do NOT open a Supabase Realtime WebSocket.
+    // Standard Supabase plans have a strict ~200-500 concurrent connection limit.
+    // 10,000 students opening the app will crash the realtime broker.
+    // Instead, we use a 15-second polling interval for live transit data.
+    if (role === "student") {
+      console.log("Supabase Realtime bypassed for student. Initiating 15s polling.");
+      this._studentPollingInterval = setInterval(() => {
+        this.debouncedSyncLiveTransit();
+      }, 15000);
+      return; // Exit before establishing a WebSocket connection
+    }
+
+    // Only Staff, Admins, and Conductors get Realtime WebSockets
+    console.log(`Initializing Supabase Realtime for role: ${role || "unknown"}`);
+    
+    // Clean up any existing channels before opening a new one to prevent dupes on role switch
+    supabase.removeAllChannels().then(() => {
+      supabase
+        .channel("campusfleet-realtime-global-sync")
+        // User Data changes (Bookings, Students, Staff, special allocations)
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
         this.debouncedSyncUserData();
       })
@@ -115,6 +142,7 @@ CampusFleetStore.prototype.initSupabaseRealtime = function (this: CampusFleetSto
         this.debouncedSyncMasterData();
       })
       .subscribe();
+    });
   } catch (err) {
     console.warn("Supabase realtime sync warning:", err);
   }

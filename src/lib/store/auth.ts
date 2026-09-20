@@ -45,6 +45,9 @@ CampusFleetStore.prototype.initAuthSync = function (this: CampusFleetStore) {
     }
     this.saveToLocalStorage();
     this.notify();
+    
+    // PHASE 2 OPTIMIZATION: Re-evaluate whether to use WebSockets or Polling based on the new role
+    this.initSupabaseRealtime();
   });
 };
 
@@ -95,5 +98,9 @@ CampusFleetStore.prototype.switchRole = function (this: CampusFleetStore, newRol
   }
   this.saveToLocalStorage();
   this.notify();
+  
+  // PHASE 2 OPTIMIZATION: Re-evaluate WebSockets vs Polling on role switch
+  this.initSupabaseRealtime();
+  
   return this.currentUser;
 };
