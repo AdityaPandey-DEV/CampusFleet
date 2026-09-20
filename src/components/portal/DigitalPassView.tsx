@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { store } from "@/lib/store";
+import { supabase } from "@/lib/supabaseClient";
 import { StudentSelfScanner } from "@/components/scanner/StudentSelfScanner";
 import { formatTime, formatDate } from "@/lib/utils";
 import {
@@ -110,6 +111,34 @@ export default function DigitalPassView({
     }, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // Isolated 5s Polling for "Boarded" status so we don't spam Supabase globally
+  useEffect(() => {
+    const student = currentUser?.role === "student" ? currentUser : null;
+    if (!student) return;
+
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("attendance_records")
+        .select("status")
+        .eq("student_id", student.id)
+        .order("timestamp", { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0 && data[0].status === "BOARDED") {
+        // Find the active booking in the store and forcefully update its status to BOARDED
+        const existingIdx = store.bookings.findIndex(
+          b => b.studentId === student.id && (b.status === "CONFIRMED" || b.status === "WAITLISTED")
+        );
+        if (existingIdx >= 0) {
+          store.bookings[existingIdx].status = "BOARDED";
+          store.notify();
+        }
+      }
+    }, 5000); // Only runs when pass is on screen, 0% background load
+
+    return () => clearInterval(interval);
+  }, [currentUser]);
 
   const activeStudent = currentUser
     ? students.find(
