@@ -51,7 +51,7 @@ export default function UnifiedCommuteHub({
     return unsub;
   }, []);
 
-  if (!isClient) return null;
+
 
   const activeStudent = currentUser
     ? students.find(
@@ -75,6 +75,8 @@ export default function UnifiedCommuteHub({
   }, [activeBooking]);
 
   const resolvedBusId = activeBooking ? activeBooking.busId : hubState?.busId;
+
+  if (!isClient) return null;
 
   if (!resolvedBusId) {
     return (
