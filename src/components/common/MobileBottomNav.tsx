@@ -29,7 +29,7 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
   const defaultNavItems = isPaymentApproved
     ? [
       { href: "/portal", label: "My Commute", icon: BusFront, highlight: true },
-      { href: "/portal/Qr", label: "Scan QR", icon: QrCode },
+      { href: "/portal/qr", label: "QR Connect", icon: QrCode },
       { href: "/portal/settings", label: "Settings", icon: Settings },
     ]
     : [
