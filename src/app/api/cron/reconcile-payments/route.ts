@@ -88,17 +88,35 @@ export async function GET(request: NextRequest) {
            if (insertErr.code === '23505') continue;
 
            // If it's a permanent DB constraint failure (e.g. student account deleted, invalid zone),
-           // the student paid money but we couldn't credit them! Log a critical anomaly!
-           console.error(`[CRITICAL] Razorpay Payment Captured but DB Insert Failed! Payment: ${paymentId}`, insertErr);
+           // the student paid money but we couldn't credit them! 
+           // PERMANENT SOLUTION: Instantly reverse the transaction via Razorpay Refund API
+           console.error(`[CRITICAL] Razorpay Payment Captured but DB Insert Failed! Refunding Payment: ${paymentId}`, insertErr);
            
            try {
+             // 1. Issue automated refund (amount is in paise)
+             await razorpay.payments.refund(paymentId, {
+               amount: amountPaid * 100,
+               notes: {
+                 reason: "Automated refund: Database constraint rejected the receipt.",
+               }
+             });
+
+             // 2. Log successful automated refund
              await supabaseAdmin.from("audit_logs").insert({
-               action: "ANOMALY_ORPHANED_PAYMENT",
+               action: "AUTOMATED_REFUND_ISSUED",
                user_role: "system",
-               reason: "CRITICAL: Student paid via Razorpay, but the database rejected the receipt. Manual reconciliation required to prevent financial loss to student.",
+               reason: "CRITICAL: Database rejected receipt. Automated refund issued to protect student's funds.",
                details: { paymentId, orderId, amountPaid, studentId, error: insertErr },
              });
-           } catch (e) {} // best effort
+           } catch (refundErr) {
+             // If the refund ALSO fails, log a critical escalation alert
+             await supabaseAdmin.from("audit_logs").insert({
+               action: "ANOMALY_REFUND_FAILED",
+               user_role: "system",
+               reason: "URGENT ESCALATION: DB rejected receipt AND automated refund failed! Manual intervention required.",
+               details: { paymentId, amountPaid, studentId, error: insertErr, refundErr },
+             });
+           }
 
            continue; 
         }
