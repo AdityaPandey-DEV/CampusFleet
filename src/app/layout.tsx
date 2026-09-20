@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/common/ThemeProvider";
 import { CampusTimeProvider } from "@/components/common/CampusTimeProvider";
 import { LanguageProvider } from "@/components/common/LanguageProvider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,6 +39,7 @@ export default function RootLayout({
           <LanguageProvider>
             <CampusTimeProvider>
               {children}
+              <SpeedInsights />
             </CampusTimeProvider>
           </LanguageProvider>
         </ThemeProvider>
