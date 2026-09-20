@@ -1,13 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
+import { getSessionFromRequest } from "@/lib/jwt";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const isCron = url.searchParams.get("cron") === "true" || request.headers.get("user-agent")?.toLowerCase().includes("cron");
+
+    if (!isCron) {
+      const session = await getSessionFromRequest(request);
+      if (!session) {
+        return NextResponse.json({ success: false, error: "Unauthorized access to master data." }, { status: 401 });
+      }
+    }
     // 1. Fetch Routes (cached)
     let routes = await cacheGet("campusfleet:state:routes");
     if (!routes) {
