@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { redis } from "@/lib/redis";
 
 // GET /api/dispatch - Get progressive dispatch rules and evaluated bus queue
 export async function GET() {
@@ -19,19 +20,33 @@ export async function GET() {
       progressive_dispatch_enabled: true,
     };
 
-    // 2. Fetch active buses
+    // 2. Fetch active buses and their current IN_PROGRESS trips
     const { data: buses, error: busErr } = await supabaseAdmin
       .from("buses")
-      .select("*, routes(id, name, code)")
+      .select("*, routes(id, name, code), trips!left(id, status)")
       .not("status", "in", '("MAINTENANCE","OUT_OF_SERVICE")')
       .order("occupancy", { ascending: false });
 
     if (busErr) throw busErr;
 
     // 3. Evaluate each bus against progressive dispatch threshold
-    const evaluatedBuses = (buses || []).map((b) => {
+    const evaluatedPromises = (buses || []).map(async (b) => {
       const cap = b.capacity || 50;
-      const occ = b.occupancy || 0;
+      
+      // Determine active trip if exists
+      const activeTrips = (b.trips as any[]) || [];
+      const activeTrip = activeTrips.find(t => t.status === "IN_PROGRESS" || t.status === "SCHEDULED");
+      
+      let occ = b.occupancy || 0;
+      
+      // Fetch Real-time Occupancy from Redis if active trip exists
+      if (activeTrip && redis) {
+         const val = await redis.get(`occupancy:${activeTrip.id}`);
+         if (val) {
+            occ = parseInt(String(val), 10);
+         }
+      }
+
       const percent = Math.round((occ / cap) * 100);
 
       // Check if qualifies for progressive dispatch
@@ -58,6 +73,11 @@ export async function GET() {
           : "BOARDING",
       };
     });
+    
+    const evaluatedBuses = await Promise.all(evaluatedPromises);
+
+    // Re-sort evaluated buses by true real-time occupancy
+    evaluatedBuses.sort((a, b) => b.occupancy - a.occupancy);
 
     return NextResponse.json({
       success: true,
@@ -139,6 +159,14 @@ export async function POST(req: NextRequest) {
 
       if (busErr || !bus) {
         return NextResponse.json({ success: false, message: "Bus not found." }, { status: 404 });
+      }
+
+      // STRICT STATE MACHINE GUARD to prevent "State Rewinds"
+      if (bus.status !== "BOARDING" && bus.status !== "READY_TO_DISPATCH") {
+        return NextResponse.json(
+          { success: false, message: `Bus cannot be dispatched because it is currently ${bus.status}.` },
+          { status: 400 }
+        );
       }
 
       // Update bus status to DISPATCHED
