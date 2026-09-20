@@ -171,9 +171,7 @@ export default function StudentPortalLayout({
   const navLinks = isSubscriptionActive
     ? [
         { href: "/portal", label: "Overview", icon: LayoutDashboard, requiresPayment: false },
-        { href: "/portal/booking", label: "Seat Booking", icon: CalendarCheck, requiresPayment: false },
-        { href: "/portal/pass", label: "Digital Pass", icon: QrCode, requiresPayment: false },
-        { href: "/portal/tracker", label: "Live Radar", icon: Navigation, requiresPayment: false },
+        { href: "/portal/commute", label: "My Commute", icon: Navigation, requiresPayment: false },
         { href: "/portal/running-late", label: "Running Late", icon: Zap, requiresPayment: false },
         { href: "/portal/profile", label: "Profile", icon: User, requiresPayment: false },
       ]

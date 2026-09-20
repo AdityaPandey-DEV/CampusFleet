@@ -205,18 +205,43 @@ CampusFleetStore.prototype.initTelematicsSync = function (this: CampusFleetStore
 
 // ── Cache Fetching Utility ──
 
+let lastCachedState: any = null;
+let lastCacheTime = 0;
+let ongoingFetchPromise: Promise<any> | null = null;
+const CACHE_TTL_MS = 60000; // 60 seconds
+
 async function getCachedState() {
   if (typeof window === "undefined") return null;
-  try {
-    const res = await fetch("/api/sync/state");
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success) return json.data;
-    }
-  } catch (e) {
-    console.warn("Cache fetch failed:", e);
+  
+  const now = Date.now();
+  if (lastCachedState && (now - lastCacheTime < CACHE_TTL_MS)) {
+    return lastCachedState;
   }
-  return null;
+  
+  if (ongoingFetchPromise) {
+    return ongoingFetchPromise;
+  }
+
+  ongoingFetchPromise = (async () => {
+    try {
+      const res = await fetch("/api/sync/state");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          lastCachedState = json.data;
+          lastCacheTime = Date.now();
+          return json.data;
+        }
+      }
+    } catch (e) {
+      console.warn("Cache fetch failed:", e);
+    } finally {
+      ongoingFetchPromise = null;
+    }
+    return null;
+  })();
+
+  return ongoingFetchPromise;
 }
 
 // ── Modular Sync Functions ──
@@ -634,6 +659,8 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
     }
 
     // PREVENT DATA LOSS ON REFRESH FOR STUDENTS
+    // But ONLY merge fields that the server might not provide (e.g. temporary local state)
+    // NEVER overwrite paymentStatus, hasActiveSubscription, or expiry dates from the server!
     const activeStudentUser = this.currentUser;
     if (activeStudentUser && activeStudentUser.role === "student") {
       const existingProfile = this.students.find(
@@ -644,8 +671,17 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
           s => s.userId === activeStudentUser.id || s.email?.toLowerCase() === activeStudentUser.email?.toLowerCase()
         );
         if (mappedIdx >= 0) {
-          mappedStudents[mappedIdx] = existingProfile;
+          // Merge safely: Server data is the source of truth for payment/access control
+          mappedStudents[mappedIdx] = {
+            ...existingProfile,
+            ...mappedStudents[mappedIdx],
+            // Explicitly force the server values for critical payment fields just to be 100% sure
+            hasActiveSubscription: mappedStudents[mappedIdx].hasActiveSubscription,
+            paymentStatus: mappedStudents[mappedIdx].paymentStatus,
+            subscriptionExpiryDate: mappedStudents[mappedIdx].subscriptionExpiryDate,
+          };
         } else {
+          // Server returned nothing (maybe still processing), so keep the local profile alive
           mappedStudents.push(existingProfile);
         }
       }

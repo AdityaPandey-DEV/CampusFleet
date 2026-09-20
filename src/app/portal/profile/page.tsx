@@ -28,7 +28,7 @@ export default async function StudentProfilePage() {
     { data: dbBookings },
     { data: dbStaff },
   ] = await Promise.all([
-    supabaseAdmin.from("students").select("*"),
+    supabaseAdmin.from("students_full").select("*"),
     supabaseAdmin.from("buses").select("*"),
     supabaseAdmin.from("routes").select("*"),
     supabaseAdmin.from("stops").select("*"),

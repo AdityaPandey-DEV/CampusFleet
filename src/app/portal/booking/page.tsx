@@ -40,7 +40,7 @@ export default async function ShiftBookingPage() {
       .order("trip_date", { ascending: true })
       .order("trip_code"),
     supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
-    supabaseAdmin.from("students").select("*"),
+    supabaseAdmin.from("students_full").select("*"),
   ]);
 
   let dbTrips = rawDbTrips;

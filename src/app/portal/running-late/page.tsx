@@ -24,7 +24,7 @@ export default async function RunningLatePage() {
     { data: dbStudents },
   ] = await Promise.all([
     supabaseAdmin.from("stops").select("*").order("name"),
-    supabaseAdmin.from("students").select("*"),
+    supabaseAdmin.from("students_full").select("*"),
   ]);
 
   const stops: Stop[] = (dbStops || []).map((s: any) => ({

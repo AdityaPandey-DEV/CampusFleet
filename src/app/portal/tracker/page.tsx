@@ -33,7 +33,7 @@ export default async function LiveTrackerPage() {
     supabaseAdmin.from("stops").select("*"),
     supabaseAdmin.from("trips").select("*").order("trip_code"),
     supabaseAdmin.from("staff").select("*"),
-    supabaseAdmin.from("students").select("*"),
+    supabaseAdmin.from("students_full").select("*"),
     supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
   ]);
 
