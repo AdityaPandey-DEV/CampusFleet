@@ -8,7 +8,7 @@ declare module "./_base" {
   interface CampusFleetStore {
     recordAttendance(studentId: string, tripId: string, method: "QR_SCAN" | "BIOMETRIC_DEVICE" | "MANUAL_OVERRIDE", status?: "BOARDED" | "ABSENT" | "NO_SHOW", notes?: string): Promise<any>;
     assignWaitlistSeat(bookingId: string, seatCode: string): Promise<any>;
-    bookShift(studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string): Promise<any>;
+    bookShift(studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string, instantBoard?: boolean): Promise<any>;
     cancelBooking(bookingId: string): Promise<any>;
   }
 }
@@ -168,7 +168,7 @@ CampusFleetStore.prototype.assignWaitlistSeat = async function (this: CampusFlee
 
 // ── Shift Booking ───────────────────────────────────────────────────────────
 
-CampusFleetStore.prototype.bookShift = async function (this: CampusFleetStore, studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string) {
+CampusFleetStore.prototype.bookShift = async function (this: CampusFleetStore, studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string, instantBoard?: boolean) {
   const trip = this.trips.find(t => t.id === tripId);
   const bus = this.buses.find(b => b.id === trip?.busId);
   const student = this.students.find(s => s.id === studentId) || {
@@ -202,6 +202,7 @@ CampusFleetStore.prototype.bookShift = async function (this: CampusFleetStore, s
           tripId,
           boardingStopId: stopId,
           requestedSeatNumber,
+          instantBoard,
         }),
       });
 

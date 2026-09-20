@@ -38,6 +38,7 @@ import {
   Lock,
   GraduationCap,
   FileText,
+  Scan,
 } from "lucide-react";
 
 // Dynamic import for Leaflet map with no SSR
@@ -108,6 +109,7 @@ export default function ShiftBookingView({
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isBookingLoading, setIsBookingLoading] = useState(false);
   const [showMissedBusRadar, setShowMissedBusRadar] = useState(false);
+  const [isScanningBus, setIsScanningBus] = useState(false);
 
   // Class Shift Eligibility & Emergency Departure Gate-Pass state
   const [shiftEligibility, setShiftEligibility] = useState<{
@@ -422,12 +424,13 @@ export default function ShiftBookingView({
         activeStudent.id,
         targetTrip.id,
         selectedStopId,
-        !isFull ? (selectedSeatNumber || undefined) : undefined
+        !isFull ? (selectedSeatNumber || undefined) : undefined,
+        true // instantBoard
       );
       if (res.success) {
         setBookingMessage({
           type: "success",
-          text: res.message || `✓ Seat ${selectedSeatNumber || "1A"} Confirmed on ${bus.busNumber}! Present your QR code to the bus conductor upon boarding.`,
+          text: res.message || `✓ Attendance Marked! Seat ${selectedSeatNumber || "1A"} on ${bus.busNumber} claimed.`,
         });
         setIsQRModalOpen(true);
         return true;
@@ -492,19 +495,14 @@ export default function ShiftBookingView({
                     <div className="text-2xl font-black text-blue-700 dark:text-blue-400">{selectedSeatNumber}</div>
                   </div>
                   <button 
-                    onClick={async () => { 
-                      setIsBookingLoading(true);
-                      const ok = await handleBook(); 
-                      setIsBookingLoading(false);
-                      if (ok) {
-                        setActiveStep("SUCCESS"); 
-                      }
+                    onClick={() => {
+                      setIsScanningBus(true);
                     }} 
                     disabled={isBookingLoading}
                     className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 text-white text-sm font-black rounded-2xl hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2"
                   >
-                    {isBookingLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                    Confirm Booking
+                    <QrCode className="w-4 h-4" />
+                    Claim Seat & Scan Bus QR
                   </button>
                </div>
              )}
@@ -537,10 +535,68 @@ export default function ShiftBookingView({
 
            <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1.5 font-medium mt-4">
              <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-500" />
-             Redirecting to your Digital QR Pass in a moment...
+             Redirecting to your Active Trip Ticket...
            </p>
         </div>
       )}
+
+      {/* Simulated Scanner Modal */}
+      {isScanningBus && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-full max-w-sm bg-gray-900 rounded-[2rem] overflow-hidden relative shadow-2xl border border-gray-800">
+            
+            <div className="p-4 flex items-center justify-between bg-gray-900/90 absolute top-0 w-full z-10 border-b border-gray-800">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                <QrCode className="w-4 h-4 text-blue-400" /> Scan Bus QR
+              </h3>
+              <button 
+                onClick={() => setIsScanningBus(false)}
+                className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="aspect-[3/4] bg-black relative flex items-center justify-center">
+              {/* Mock Camera View */}
+              <div className="absolute inset-4 border-2 border-blue-500/50 rounded-3xl" />
+              <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-blue-400 shadow-[0_0_10px_2px_rgba(59,130,246,0.5)] animate-scan" />
+              
+              {!isBookingLoading ? (
+                <div className="text-center z-10 p-6 bg-black/40 rounded-2xl backdrop-blur-md">
+                  <Scan className="w-12 h-12 text-white/50 mx-auto mb-4" />
+                  <p className="text-white/80 text-sm font-medium mb-6">Point camera at the QR code posted inside the bus to claim your seat.</p>
+                  
+                  <button
+                    onClick={async () => {
+                      setIsBookingLoading(true);
+                      // Simulate scanning delay
+                      await new Promise(r => setTimeout(r, 1500));
+                      const ok = await handleBook();
+                      setIsBookingLoading(false);
+                      setIsScanningBus(false);
+                      if (ok) setActiveStep("SUCCESS");
+                    }}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold w-full"
+                  >
+                    Simulate Scan Detection
+                  </button>
+                </div>
+              ) : (
+                <div className="z-10 flex flex-col items-center">
+                  <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mb-4" />
+                  <p className="text-blue-400 font-bold text-sm animate-pulse">Verifying Bus QR...</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 bg-gray-900 text-center border-t border-gray-800">
+              <p className="text-xs text-gray-500">Alternatively, you can present your ID to the conductor to scan.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
 
     </div>
   );

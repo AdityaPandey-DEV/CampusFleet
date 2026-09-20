@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { studentId, tripId, boardingStopId, requestedSeatNumber } = body;
+    const { studentId, tripId, boardingStopId, requestedSeatNumber, instantBoard } = body;
 
     if (!studentId || !tripId || !boardingStopId) {
       return NextResponse.json(
@@ -314,11 +314,12 @@ export async function POST(req: NextRequest) {
         trip_id: tripId,
         bus_id: bus.id,
         boarding_stop_id: boardingStopId,
-        status: "CONFIRMED",
+        status: instantBoard ? "BOARDED" : "CONFIRMED",
         seat_number: allocatedSeat,
         passenger_type: "SEATED",
         booking_date: todayDate,
         created_at: now,
+        boarded_at: instantBoard ? now : null,
       })
       .select()
       .single();

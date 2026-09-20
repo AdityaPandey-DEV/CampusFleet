@@ -340,45 +340,65 @@ export default function DigitalPassView({
               </div>
             </div>
 
-            {/* QR Core Scanner Box */}
+            {/* QR Core Scanner Box OR Verified Boarding Pass */}
             <div className="p-6 bg-gray-50/50 dark:bg-gray-950/40 text-center space-y-4">
-              <div className="inline-block p-4 bg-white rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800">
-                <QRCodeSVG
-                  value={qrPayload}
-                  size={200}
-                  level="H"
-                  includeMargin={false}
-                  imageSettings={{
-                    src: "/favicon.ico",
-                    x: undefined,
-                    y: undefined,
-                    height: 32,
-                    width: 32,
-                    excavate: true,
-                  }}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <div className="text-xs font-mono font-bold text-gray-700 dark:text-gray-300 tracking-wider">
-                  {activeBooking.bookingCode || "GEHU-PASS-01"}
+              {isBoarded ? (
+                <div className="py-4 space-y-6">
+                  <div className="w-28 h-28 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center mx-auto ring-[12px] ring-green-50 dark:ring-green-900/10">
+                    <CheckCircle2 className="w-14 h-14 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-2xl font-black text-green-600 dark:text-green-400 uppercase tracking-widest">Boarded</h3>
+                    <p className="text-xs text-gray-500 font-bold">Show this screen to the conductor</p>
+                  </div>
+                  <div className="inline-block px-4 py-2 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Pass Code</div>
+                    <div className="text-sm font-mono font-bold text-gray-900 dark:text-white">
+                      {activeBooking.bookingCode || "GEHU-PASS-01"}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-[10px] text-gray-400 flex items-center justify-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
-                  <span>Dynamic Cryptographic Token • Verified Conductor Scan</span>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="inline-block p-4 bg-white rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800">
+                    <QRCodeSVG
+                      value={qrPayload}
+                      size={200}
+                      level="H"
+                      includeMargin={false}
+                      imageSettings={{
+                        src: "/favicon.ico",
+                        x: undefined,
+                        y: undefined,
+                        height: 32,
+                        width: 32,
+                        excavate: true,
+                      }}
+                    />
+                  </div>
 
-              {/* Fullscreen Button */}
-              <div className="pt-1">
-                <button
-                  onClick={() => setIsFullScreen(true)}
-                  className="px-5 py-2.5 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-950 text-xs font-extrabold shadow-md flex items-center gap-2 mx-auto transition-transform active:scale-95 cursor-pointer"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span>Enlarge for Conductor Scanner</span>
-                </button>
-              </div>
+                  <div className="space-y-1">
+                    <div className="text-xs font-mono font-bold text-gray-700 dark:text-gray-300 tracking-wider">
+                      {activeBooking.bookingCode || "GEHU-PASS-01"}
+                    </div>
+                    <div className="text-[10px] text-gray-400 flex items-center justify-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
+                      <span>Dynamic Cryptographic Token • Verified Conductor Scan</span>
+                    </div>
+                  </div>
+
+                  {/* Fullscreen Button */}
+                  <div className="pt-1">
+                    <button
+                      onClick={() => setIsFullScreen(true)}
+                      className="px-5 py-2.5 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-950 text-xs font-extrabold shadow-md flex items-center gap-2 mx-auto transition-transform active:scale-95 cursor-pointer"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span>Enlarge for Conductor Scanner</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Perforated Divider Strip with Side Cutout Circles */}
