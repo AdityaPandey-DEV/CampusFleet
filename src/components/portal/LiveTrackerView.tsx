@@ -268,7 +268,7 @@ export default function LiveTrackerView({
   }
 
   return (
-    <div className={`${isEmbedded ? "h-full flex flex-col" : "space-y-6"} animate-in fade-in`}>
+    <div className={`${isEmbedded ? "h-full flex flex-col space-y-4" : "space-y-6"} animate-in fade-in`}>
       {!isEmbedded && (
         <Link
           href="/portal"
@@ -279,7 +279,8 @@ export default function LiveTrackerView({
       )}
 
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {!isEmbedded && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-2.5">
             <Compass className="w-6 h-6 text-blue-600" />
@@ -315,7 +316,8 @@ export default function LiveTrackerView({
             <span>{isTripInProgress ? "GPS Beacon Active" : "Stationary at Starting Terminal"}</span>
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Roaming Fullness Radar & Alert Notification */}
       {roamingData?.fullness && (
@@ -342,9 +344,30 @@ export default function LiveTrackerView({
         }}
       />
 
+      {isEmbedded && (
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <Compass className="w-5 h-5 text-blue-600" />
+            <h2 className="text-lg font-black tracking-tight text-gray-900 dark:text-white">Live Radar</h2>
+          </div>
+          <select
+            value={selectedRouteId || assignedRoute?.id || ""}
+            onChange={e => {
+              setSelectedRouteId(e.target.value);
+              setInspectedStopId("");
+            }}
+            className="text-xs font-bold bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 outline-none shadow-sm cursor-pointer text-gray-900 dark:text-white"
+          >
+            {routes.map(r => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* View Mode Switcher Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-gray-900 p-3 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="flex items-center gap-1.5 p-1 bg-gray-100 dark:bg-gray-800/80 rounded-xl">
+      <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${isEmbedded ? "px-1" : "bg-white dark:bg-gray-900 p-3 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm"}`}>
+        <div className={`flex items-center gap-1.5 p-1 ${isEmbedded ? "bg-gray-100 dark:bg-gray-800" : "bg-gray-100 dark:bg-gray-800/80"} rounded-xl w-full sm:w-auto`}>
           <button
             onClick={() => setTrackingMode("FLOWCHART")}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -369,16 +392,18 @@ export default function LiveTrackerView({
           </button>
         </div>
 
-        <div className="text-[11px] font-mono text-gray-400 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          <span>{trackingMode === "FLOWCHART" ? "High-Speed Topological Sequence" : "Spatial Terrain Radar"}</span>
-        </div>
+        {!isEmbedded && (
+          <div className="text-[11px] font-mono text-gray-400 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span>{trackingMode === "FLOWCHART" ? "High-Speed Topological Sequence" : "Spatial Terrain Radar"}</span>
+          </div>
+        )}
       </div>
 
       {/* Split View: Live Corridor Flowchart OR Satellite Map */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className={`grid gap-6 items-start ${isEmbedded ? "grid-cols-1 flex-1 min-h-0" : "grid-cols-1 lg:grid-cols-12"}`}>
         {/* Left 7-8 Cols: Primary Hero Tracker (Flowchart or Map) */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className={`${isEmbedded ? "h-full relative min-h-[400px]" : "lg:col-span-8"} space-y-4`}>
           {trackingMode === "FLOWCHART" ? (
             <WhereIsMyBusFlowchart
               route={assignedRoute}
@@ -512,36 +537,38 @@ export default function LiveTrackerView({
         </div>
 
         {/* Right 4-5 Cols: Station Line Progression Timeline */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className={`relative ${isEmbedded ? "flex-1 min-h-0 rounded-2xl" : "h-[calc(100vh-250px)] min-h-[500px] rounded-3xl"} bg-white dark:bg-gray-900 p-5 overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xl space-y-3`}>
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
-              <div>
-                <h3 className="font-bold text-sm text-gray-900 dark:text-white">
-                  Route Progression Radar
-                </h3>
-                <span className="text-[10px] text-gray-400">
-                  Click any stop to inspect live ETA
+        {!isEmbedded && (
+          <div className="lg:col-span-4 space-y-4">
+            <div className={`relative ${isEmbedded ? "flex-1 min-h-0 rounded-2xl" : "h-[calc(100vh-250px)] min-h-[500px] rounded-3xl"} bg-white dark:bg-gray-900 p-5 overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xl space-y-3`}>
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+                <div>
+                  <h3 className="font-bold text-sm text-gray-900 dark:text-white">
+                    Route Progression Radar
+                  </h3>
+                  <span className="text-[10px] text-gray-400">
+                    Click any stop to inspect live ETA
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300">
+                  {assignedRoute?.code}
                 </span>
               </div>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300">
-                {assignedRoute?.code}
-              </span>
-            </div>
 
-            {assignedRoute ? (
-              <StationLineProgress
-                route={assignedRoute}
-                currentStopIndex={activeTrip?.currentStopIndex || 0}
-                selectedStopId={pickupStop?.id}
-                onSelectStop={st => setInspectedStopId(st.id)}
-              />
-            ) : (
-              <div className="p-6 text-center text-xs text-gray-400 font-mono">
-                No route sequence available.
-              </div>
-            )}
+              {assignedRoute ? (
+                <StationLineProgress
+                  route={assignedRoute}
+                  currentStopIndex={activeTrip?.currentStopIndex || 0}
+                  selectedStopId={pickupStop?.id}
+                  onSelectStop={st => setInspectedStopId(st.id)}
+                />
+              ) : (
+                <div className="p-6 text-center text-xs text-gray-400 font-mono">
+                  No route sequence available.
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
