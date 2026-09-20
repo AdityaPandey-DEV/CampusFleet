@@ -30,6 +30,7 @@ interface QRPassScannerProps {
   bookings: Booking[];
   students: Student[];
   onAttendanceSuccess: (studentName: string, method: string) => void;
+  fullScreenMode?: boolean;
 }
 
 // Synthesize audio confirmation chimes using Web Audio API
@@ -96,6 +97,7 @@ export function QRPassScanner({
   bookings,
   students,
   onAttendanceSuccess,
+  fullScreenMode = false,
 }: QRPassScannerProps) {
   const [activeTab, setActiveTab] = useState<"CAMERA" | "MANUAL">("CAMERA");
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -607,9 +609,12 @@ export function QRPassScanner({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-md dark:shadow-2xl space-y-5 text-gray-900 dark:text-white transition-colors">
+    <div className={fullScreenMode 
+      ? "fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center text-white"
+      : "bg-white dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-md dark:shadow-2xl space-y-5 text-gray-900 dark:text-white transition-colors"
+    }>
       {/* Scanner Mode Tabs & Sound Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className={`flex flex-col sm:flex-row items-center justify-between gap-3 ${fullScreenMode ? 'absolute top-20 inset-x-6 z-[110]' : ''}`}>
         <div className="flex items-center gap-1.5 p-1 bg-gray-100 dark:bg-gray-950/80 rounded-2xl w-full sm:w-auto border border-gray-200 dark:border-gray-800">
           <button
             onClick={() => {
@@ -659,9 +664,12 @@ export function QRPassScanner({
 
       {/* Optical Camera Scanner Viewfinder */}
       {activeTab === "CAMERA" && (
-        <div className="space-y-4">
+        <div className={fullScreenMode ? "absolute inset-0 z-0 h-full w-full" : "space-y-4"}>
           {/* Active Live Camera Stream (Always in DOM so videoRef is never null) */}
-          <div className={`relative aspect-[4/3] sm:aspect-video min-h-[300px] sm:min-h-[360px] w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-gray-800 shadow-2xl text-white ${isCameraActive ? "block" : "hidden"}`}>
+          <div className={fullScreenMode
+            ? `relative h-full w-full bg-black flex flex-col items-center justify-center overflow-hidden text-white ${isCameraActive ? "block" : "hidden"}`
+            : `relative aspect-[4/3] sm:aspect-video min-h-[300px] sm:min-h-[360px] w-full rounded-3xl bg-black flex flex-col items-center justify-center overflow-hidden border border-gray-800 shadow-2xl text-white ${isCameraActive ? "block" : "hidden"}`
+          }>
             <video
               ref={videoRef}
               className="w-full h-full object-cover"
@@ -746,43 +754,49 @@ export function QRPassScanner({
             </div>
           )}
 
+          {/* Error Message for Camera Access */}
           {cameraError && (
-            <div className="p-3.5 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-300 dark:border-yellow-500/30 rounded-2xl text-xs text-yellow-800 dark:text-yellow-400 font-semibold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
-              <span>{cameraError}</span>
+            <div className={fullScreenMode ? "absolute inset-0 z-50 flex items-center justify-center p-6" : "mt-2"}>
+              <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold text-center flex flex-col items-center gap-2">
+                <AlertTriangle className="w-6 h-6" />
+                <span>{cameraError}</span>
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Manual Code Entry Form */}
+      {/* Manual Mode View */}
+      {/* Manual Mode View */}
       {activeTab === "MANUAL" && (
-        <form onSubmit={handleManualSubmit} className="space-y-3">
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              Enter Pass Booking Code / Roll No / Name
-            </label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="text"
-                  value={manualInput}
-                  onChange={e => setManualInput(e.target.value)}
-                  placeholder="e.g. GEHU-PASS-01, GEHU/2023/1045, or student name"
-                  className="w-full text-xs pl-10 pr-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white outline-none focus:border-green-500 font-mono shadow-inner"
-                />
+        <div className={fullScreenMode ? "w-full max-w-md px-6 z-10" : ""}>
+          <form onSubmit={handleManualSubmit} className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Enter Pass Booking Code / Roll No / Name
+              </label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="text"
+                    value={manualInput}
+                    onChange={e => setManualInput(e.target.value)}
+                    placeholder="e.g. GEHU-PASS-01, GEHU/2023/1045, or student name"
+                    className="w-full text-xs pl-10 pr-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white outline-none focus:border-green-500 font-mono shadow-inner"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-5 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-2xl shadow-md shadow-blue-600/20 flex items-center gap-1.5"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>Verify</span>
+                </button>
               </div>
-              <button
-                type="submit"
-                className="px-5 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-2xl shadow-md shadow-blue-600/20 flex items-center gap-1.5"
-              >
-                <UserCheck className="w-4 h-4" />
-                <span>Verify</span>
-              </button>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       )}
 
       {/* Conductor Visual Identity Confirmation Card */}

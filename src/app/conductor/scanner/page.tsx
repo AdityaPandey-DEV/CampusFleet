@@ -2,7 +2,9 @@
 
 import React from "react";
 import { useConductorContext } from "@/components/conductor/ConductorContext";
-import { ScannerTab } from "@/components/conductor/tabs/ScannerTab";
+import { QRPassScanner } from "@/components/scanner/QRPassScanner";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function ScannerPage() {
@@ -27,23 +29,22 @@ export default function ScannerPage() {
   };
 
   return (
-    <ScannerTab
-      activeTrip={activeTrip}
-      bus={bus}
-      route={route}
-      shift={shift}
-      bookings={bookings}
-      students={students}
-      boardedCount={boardedCount}
-      totalConfirmed={totalConfirmed}
-      roamingCount={roamingCount}
-      isTriggeringAlert={false}
-      onTriggerDepartureAlert={handleTriggerDepartureAlert}
-      onSetTab={(tab) => {
-        if (tab === "MANIFEST") router.push("/conductor/manifest");
-        else if (tab === "SEAT_MAP") router.push("/conductor/seat-map");
-      }}
-      onToast={showToast}
-    />
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-in fade-in zoom-in-95">
+      <Link 
+        href="/conductor"
+        className="absolute top-6 left-6 z-[110] p-3.5 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-xl border border-white/10 shadow-xl transition-colors cursor-pointer"
+      >
+        <ArrowLeft className="w-6 h-6" />
+      </Link>
+      <QRPassScanner
+        trip={activeTrip}
+        bookings={bookings}
+        students={students}
+        fullScreenMode={true}
+        onAttendanceSuccess={(name, method) => {
+          showToast(`✓ Verified & Marked Present: ${name} via ${method}!`);
+        }}
+      />
+    </div>
   );
 }
