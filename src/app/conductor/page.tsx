@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import ConductorCockpitView from "@/components/conductor/ConductorCockpitView";
+import ConductorDashboard from "@/components/conductor/ConductorDashboard";
 import type { Trip, Bus, Route, Booking, Stop, Shift } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -130,7 +130,7 @@ export default async function ConductorPage() {
 
   // 5. Render the interactive client cockpit island with pre-baked server data
   return (
-    <ConductorCockpitView
+    <ConductorDashboard
       initialUser={session}
       initialTrips={trips}
       initialBuses={buses}
