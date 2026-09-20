@@ -83,9 +83,6 @@ export default function StudentProfilePageView({
     initialStaff.length > 0 ? initialStaff : store.getStaff()
   );
 
-    const [deleteConfirmName, setDeleteConfirmName] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-
   useEffect(() => {
     if (initialStudents.length > 0 && students.length === 0) setStudents(initialStudents);
     if (initialBuses.length > 0 && buses.length === 0) setBuses(initialBuses);
@@ -187,32 +184,6 @@ export default function StudentProfilePageView({
   const isSubscriptionActive = activeStudent?.hasActiveSubscription ?? false;
   const isPaymentApproved = activeStudent?.paymentStatus === "APPROVED";
 
-  
-  const handleDeleteAccount = async () => {
-    if (deleteConfirmName !== (activeStudent?.fullName || currentUser?.fullName)) {
-      return;
-    }
-    
-    setIsDeleting(true);
-    try {
-      const res = await fetch("/api/auth/delete-account", {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete account");
-      
-      // Also wipe local state so they don't see deleted data if they reload
-      store.wipeAllData();
-      localStorage.removeItem("campusfleet_store");
-      
-      // Redirect to login page on success
-      window.location.href = "/login?message=Account%20deleted%20successfully";
-    } catch (err) {
-      console.error(err);
-      alert("An error occurred while deleting your account.");
-      setIsDeleting(false);
-    }
-  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-300 pb-12">

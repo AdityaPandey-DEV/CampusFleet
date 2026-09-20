@@ -7,11 +7,52 @@ import {
   Sun, Moon, Bell, Shield, Database, Download, RefreshCw, MessageSquare, Trash, 
   ChevronDown
 } from "lucide-react";
+import { usePWAInstall } from "@/lib/usePWAInstall";
+import { InstallAppModal } from "@/components/common/InstallAppModal";
 
 export function SettingsView() {
   const { theme, setTheme } = useTheme();
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [mounted, setMounted] = useState(false);
+
+  // App Install state
+  const { promptInstall } = usePWAInstall();
+  const [showInstallModal, setShowInstallModal] = useState(false);
+
+  const handleInstallClick = async () => {
+    const res = await promptInstall();
+    if (res === "modal_needed") {
+      setShowInstallModal(true);
+    }
+  };
+
+  // Delete Account state
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmName !== currentUser?.fullName) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete account");
+      
+      store.wipeAllData();
+      localStorage.removeItem("campusfleet_store");
+      
+      window.location.href = "/login?message=Account%20deleted%20successfully";
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while deleting your account.");
+      setIsDeleting(false);
+    }
+  };
 
   // States for toggles
   const [allEmails, setAllEmails] = useState(true);
@@ -453,7 +494,7 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Install App</h3>
                 <p className="text-sm text-gray-500">Add this app to your home screen or desktop for quicker access</p>
               </div>
-              <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+              <button onClick={handleInstallClick} className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
                 <Download className="w-4 h-4" />
                 Install app
               </button>
@@ -506,6 +547,54 @@ export function SettingsView() {
               >
                 <Trash className="w-4 h-4" />
               </button>
+            </div>
+          </div>
+        </div>
+
+        <InstallAppModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
+
+        {/* Danger Zone Card */}
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-none overflow-hidden mb-12">
+          <div className="flex items-center justify-between p-6 border-b border-red-200 dark:border-red-900/50">
+            <h2 className="text-lg font-medium text-red-700 dark:text-red-400">Danger Zone</h2>
+            <div className="p-2 border border-red-200 dark:border-red-900/50 rounded-none text-red-500">
+              <Trash className="w-5 h-5" />
+            </div>
+          </div>
+          
+          <div className="p-6 space-y-6">
+            <div>
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-300 mb-1">Delete Account</h3>
+              <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-4">
+                Once you delete your account, there is no going back. Please be certain.
+              </p>
+              
+              <div className="space-y-4 max-w-md">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase text-red-700 dark:text-red-400">
+                    Type your full name to confirm: <span className="font-black">"{currentUser?.fullName}"</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={deleteConfirmName}
+                    onChange={e => setDeleteConfirmName(e.target.value)}
+                    className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-red-200 dark:border-red-800 rounded-none focus:outline-none focus:border-red-500 text-sm"
+                    placeholder={currentUser?.fullName || "Your name"}
+                  />
+                </div>
+                
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting || deleteConfirmName !== currentUser?.fullName}
+                  className={`px-6 py-2 rounded-none text-sm font-bold shadow-none-none transition-all ${
+                    isDeleting || deleteConfirmName !== currentUser?.fullName
+                      ? "bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700 text-white"
+                  }`}
+                >
+                  {isDeleting ? "Deleting..." : "Permanently Delete Account"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
