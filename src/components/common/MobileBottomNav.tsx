@@ -11,7 +11,9 @@ import {
 } from "lucide-react";
 
 interface MobileBottomNavItem {
-  href: string;
+  href?: string;
+  onClick?: () => void;
+  active?: boolean;
   label: string;
   icon: any;
   highlight?: boolean;
@@ -26,7 +28,7 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
   const pathname = usePathname();
 
   // If no dynamic items provided, default to the student navigation logic
-  const defaultNavItems = isPaymentApproved
+  const defaultNavItems: MobileBottomNavItem[] = isPaymentApproved
     ? [
       { href: "/portal", label: "My Commute", icon: BusFront, highlight: true },
       { href: "/portal/qr", label: "QR Connect", icon: QrCode },
@@ -46,12 +48,25 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
       <div className="max-w-md mx-auto pointer-events-auto">
         <div className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-2xl border border-white/60 dark:border-gray-800/80 rounded-3xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
           <div
-            className={`grid gap-1 items-center ${isPaymentApproved ? "grid-cols-3" : "grid-cols-1"
-              }`}
+            className={`grid gap-1 items-center ${
+              !isPaymentApproved && itemsToRender.length === 1
+                ? "grid-cols-1"
+                : itemsToRender.length === 1
+                ? "grid-cols-1"
+                : itemsToRender.length === 2
+                ? "grid-cols-2"
+                : itemsToRender.length === 4
+                ? "grid-cols-4"
+                : itemsToRender.length === 5
+                ? "grid-cols-5"
+                : "grid-cols-3"
+            }`}
           >
-            {itemsToRender.map((item) => {
+            {itemsToRender.map((item, idx) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href) && item.href !== "/portal");
+              const isActive = item.active !== undefined 
+                ? item.active 
+                : (item.href ? (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href) && item.href !== "/portal")) : false);
 
               if (!isPaymentApproved && item.href === "/portal/payments") {
                 return (
@@ -66,17 +81,8 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
                 );
               }
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 group active:scale-95 ${isActive
-                      ? item.highlight
-                        ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 -translate-y-1"
-                        : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                    }`}
-                >
+              const innerContent = (
+                <>
                   <div className="relative">
                     <Icon
                       className={`w-5 h-5 transition-transform duration-200 ${isActive
@@ -99,6 +105,31 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
                   >
                     {item.label}
                   </span>
+                </>
+              );
+
+              const classNameStr = `relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 group active:scale-95 ${isActive
+                      ? item.highlight
+                        ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 -translate-y-1"
+                        : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    }`;
+
+              if (item.onClick) {
+                return (
+                  <button key={idx} onClick={item.onClick} className={classNameStr}>
+                    {innerContent}
+                  </button>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.href || idx}
+                  href={item.href || "#"}
+                  className={classNameStr}
+                >
+                  {innerContent}
                 </Link>
               );
             })}

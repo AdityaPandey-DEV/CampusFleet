@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { QRCodeSVG } from "qrcode.react";
-import { QrCode } from "lucide-react";
+import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
+import { QrCode, Download } from "lucide-react";
 import { Bus, Trip } from "@/lib/types";
 
 interface BusQrTabProps {
@@ -12,6 +12,21 @@ interface BusQrTabProps {
 
 export function BusQrTab({ activeTrip, bus }: BusQrTabProps) {
   if (!bus) return null;
+
+  const handleDownload = () => {
+    const canvas = document.getElementById("main-bus-qr") as HTMLCanvasElement;
+    if (canvas) {
+      const pngUrl = canvas
+        .toDataURL("image/png")
+        .replace("image/png", "image/octet-stream");
+      const downloadLink = document.createElement("a");
+      downloadLink.href = pngUrl;
+      downloadLink.download = `Bus_${bus.busNumber}_QR.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 animate-in fade-in zoom-in duration-300">
@@ -30,14 +45,22 @@ export function BusQrTab({ activeTrip, bus }: BusQrTabProps) {
           Display this to students if the physical QR sticker on the bus door is damaged. Students can scan it to securely check-in.
         </p>
         
-        <div className="bg-white p-5 rounded-3xl inline-block shadow-xl border border-gray-100 mx-auto transition-transform hover:scale-105 cursor-pointer relative z-10">
-          <QRCodeSVG
+        <div className="bg-white p-5 rounded-3xl inline-block shadow-xl border border-gray-100 mx-auto transition-transform hover:scale-105 cursor-pointer relative z-10 group">
+          <QRCodeCanvas
+            id="main-bus-qr"
             value={JSON.stringify({ type: "BUS_QR", busId: bus.id })}
             size={240}
             bgColor="#ffffff"
             fgColor="#000000"
             level="H"
           />
+          <button
+            onClick={handleDownload}
+            className="absolute -bottom-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-full shadow-lg flex items-center gap-2 pointer-events-auto"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download</span>
+          </button>
         </div>
 
         <div className="mt-10 mb-12 relative z-10">
