@@ -50,6 +50,7 @@ interface UnifiedAppHeaderProps {
   navLinks?: NavLinkItem[];
   showSOS?: boolean;
   onOpenSOS?: () => void;
+  userPhotoUrl?: string | null;
   showInstall?: boolean;
   onOpenInstall?: () => void;
   customActions?: React.ReactNode;
@@ -146,6 +147,7 @@ export function UnifiedAppHeader({
   onOpenInstall,
   customActions,
   mobilePrimaryAction,
+  userPhotoUrl,
 }: UnifiedAppHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -379,8 +381,8 @@ export function UnifiedAppHeader({
             {currentUser ? (
               <div className="flex items-center gap-4">
                 <Link href={`/${pathname.split('/')[1] === 'portal' ? 'portal' : (currentUser.role || 'portal')}/settings`} title="Open Settings" className="block w-9 h-9 rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
-                  {activeStudent?.photoUrl ? (
-                    <img src={activeStudent.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  {(userPhotoUrl || activeStudent?.photoUrl) ? (
+                    <img src={userPhotoUrl || activeStudent?.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-yellow-100 text-yellow-600 flex items-center justify-center font-bold text-sm">
                       {initials}
@@ -467,8 +469,8 @@ export function UnifiedAppHeader({
             {currentUser && (
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                  {activeStudent?.photoUrl ? (
-                    <img src={activeStudent.photoUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+                  {(userPhotoUrl || activeStudent?.photoUrl) ? (
+                    <img src={userPhotoUrl || activeStudent?.photoUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
                   ) : (
                     <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-200 text-yellow-600 flex items-center justify-center font-bold text-sm">
                       {initials}

@@ -29,9 +29,11 @@ import {
 export default function ClientPortalLayout({
   children,
   initialIsSubscribed,
+  initialPhotoUrl,
 }: {
   children: React.ReactNode;
   initialIsSubscribed: boolean;
+  initialPhotoUrl?: string | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -191,6 +193,7 @@ export default function ClientPortalLayout({
         portalTitle="CampusFleet"
         portalSubtitle={activeStudent ? (activeStudent.campus || store.getStudentPrimaryCampus(activeStudent).name) : "Student & Mobility Portal"}
         navLinks={processedNavLinks}
+        userPhotoUrl={initialPhotoUrl}
         showSOS={true}
         onOpenSOS={() => setIsSOSOpen(true)}
         mobilePrimaryAction={
