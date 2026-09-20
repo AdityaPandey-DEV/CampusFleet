@@ -84,7 +84,22 @@ export async function GET(request: NextRequest) {
         // STRICT FINANCIAL COMPLIANCE GUARD:
         // Do NOT credit the student's balance if the receipt insertion failed!
         if (insertErr) {
-           console.error(`[Reconcile] Failed to insert receipt for payment ${paymentId}:`, insertErr);
+           // If it's a duplicate (23505), another cron run already handled it safely.
+           if (insertErr.code === '23505') continue;
+
+           // If it's a permanent DB constraint failure (e.g. student account deleted, invalid zone),
+           // the student paid money but we couldn't credit them! Log a critical anomaly!
+           console.error(`[CRITICAL] Razorpay Payment Captured but DB Insert Failed! Payment: ${paymentId}`, insertErr);
+           
+           try {
+             await supabaseAdmin.from("audit_logs").insert({
+               action: "ANOMALY_ORPHANED_PAYMENT",
+               user_role: "system",
+               reason: "CRITICAL: Student paid via Razorpay, but the database rejected the receipt. Manual reconciliation required to prevent financial loss to student.",
+               details: { paymentId, orderId, amountPaid, studentId, error: insertErr },
+             });
+           } catch (e) {} // best effort
+
            continue; 
         }
 
