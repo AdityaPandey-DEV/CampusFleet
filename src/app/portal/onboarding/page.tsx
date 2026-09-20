@@ -227,7 +227,7 @@ export default function StudentOnboardingPage() {
       })
       .catch(console.error);
 
-    fetch("/api/students/me")
+    fetch(`/api/students/me?_t=${Date.now()}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (data && data.student) {

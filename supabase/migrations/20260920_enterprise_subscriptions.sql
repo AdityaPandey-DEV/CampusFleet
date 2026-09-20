@@ -10,7 +10,7 @@ VALUES (
     uuid_generate_v4(),
     'Default Semester Pass',
     'Standard 6-month transportation pass',
-    8545.00,
+    12000,
     180,
     TRUE
 ) ON CONFLICT DO NOTHING;

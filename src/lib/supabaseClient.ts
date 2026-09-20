@@ -12,6 +12,11 @@ export const supabase = createClient(
       persistSession: false,
       autoRefreshToken: false,
     },
+    global: {
+      fetch: (url, options) => {
+        return fetch(url, { ...options, cache: 'no-store' });
+      },
+    },
   }
 );
 
@@ -21,6 +26,11 @@ export const supabaseAdmin = serviceRoleKey
       auth: {
         persistSession: false,
         autoRefreshToken: false,
+      },
+      global: {
+        fetch: (url, options) => {
+          return fetch(url, { ...options, cache: 'no-store' });
+        },
       },
     })
   : supabase;

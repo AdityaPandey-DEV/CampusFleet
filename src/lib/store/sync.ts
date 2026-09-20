@@ -130,7 +130,7 @@ CampusFleetStore.prototype.initStudentPaymentSync = function (this: CampusFleetS
     if (!user || user.role !== "student") return;
 
     try {
-      const res = await fetch("/api/students/me", { credentials: "include" });
+      const res = await fetch(`/api/students/me?_t=${Date.now()}`, { credentials: "include", cache: "no-store" });
       if (!res.ok) return;
       const { student } = await res.json();
       if (!student) return;
