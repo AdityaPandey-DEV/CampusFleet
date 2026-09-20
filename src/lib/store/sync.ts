@@ -224,7 +224,11 @@ async function getCachedState() {
 
   ongoingFetchPromise = (async () => {
     try {
-      const res = await fetch("/api/sync/state");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch("/api/sync/state", { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
@@ -234,7 +238,7 @@ async function getCachedState() {
         }
       }
     } catch (e) {
-      console.warn("Cache fetch failed:", e);
+      console.warn("Cache fetch failed or timed out:", e);
     } finally {
       ongoingFetchPromise = null;
     }
@@ -738,11 +742,18 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
 CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetStore) {
   try {
     // Run all sync routines in parallel to minimize load time
-    await Promise.all([
+    // Wrap in Promise.race with an 8-second timeout to prevent the app from hanging forever
+    const syncPromises = Promise.all([
       this.syncMasterData(),
       this.syncLiveTransit(),
       this.syncUserData()
     ]);
+    const timeoutPromise = new Promise((resolve) => setTimeout(() => {
+      console.warn("Supabase initial sync timed out after 8 seconds - forcing UI to load");
+      resolve(null);
+    }, 8000));
+    
+    await Promise.race([syncPromises, timeoutPromise]);
 
     // Self-Healing Daily Rollover check decoupled from core sync latency
     setTimeout(() => {

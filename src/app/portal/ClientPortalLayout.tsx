@@ -154,6 +154,14 @@ export default function ClientPortalLayout({
     );
   }
 
+  if (!isStoreReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center">
+        <BusLoadingScreen compact={false} fullScreen={false} message="Authenticating portal..." />
+      </div>
+    );
+  }
+
   // Removed blocking loading screen to reveal the underlying UI instantly!
 
   // Dynamic Navigation Links:
