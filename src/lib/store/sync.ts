@@ -254,126 +254,23 @@ CampusFleetStore.prototype.syncMasterData = async function(this: CampusFleetStor
   try {
     const cachedState = await getCachedState();
 
-    // 0. Fetch Transit Zones
-    const { data: dbZones } = await supabase.from("transit_zones").select("*").order("created_at", { ascending: true });
-    if (dbZones && dbZones.length > 0) {
-      this.transitZones = dbZones.map(z => ({
-        id: z.id || `zone-${z.code}`,
-        code: z.code,
-        name: z.name,
-        corridorDescription: z.corridor_description || "",
-        semesterFee: Number(z.semester_fee) || 0,
-        installmentsAllowed: Number(z.installments_allowed) || 3,
-        campusId: z.campus_id || "",
-        isActive: z.is_active ?? true,
-        createdAt: z.created_at,
-        updatedAt: z.updated_at,
-      }));
-    }
-
-    // 0.1 Fetch Campus Locations
-    const { data: dbCampuses } = await supabase
-      .from("campuses")
-      .select("*")
-      .order("is_primary", { ascending: false })
-      .order("name", { ascending: true });
-    if (dbCampuses && dbCampuses.length > 0) {
-      this.campuses = dbCampuses.map(c => ({
-        id: c.id,
-        name: c.name,
-        code: c.code,
-        address: c.address || "",
-        landmark: c.landmark || "",
-        latitude: Number(c.latitude),
-        longitude: Number(c.longitude),
-        geofenceRadiusMeters: Number(c.geofence_radius ?? 100),
-        fleetCapacity: Number(c.fleet_capacity ?? 50),
-        parkingBays: Number(c.parking_bays ?? 20),
-        contactPhone: c.contact_phone || "",
-        contactEmail: c.contact_email || "",
-        isPrimary: Boolean(c.is_primary),
-        isActive: Boolean(c.is_active ?? true),
-        createdAt: c.created_at,
-        updatedAt: c.updated_at,
-      }));
-    }
-
-    // 1. Fetch Stops
-    const dbStops: any[] = cachedState?.stops || (await supabase.from("stops").select("*")).data || [];
-    if (dbStops && dbStops.length > 0) {
-      this.stops = dbStops.map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        code: s.code,
-        latitude: s.latitude,
-        longitude: s.longitude,
-        landmark: s.landmark,
-        geofenceRadiusMeters: s.geofence_radius || 80,
-        campusId: s.campus_id || s.campus || "",
-        isBusMergeStop: Boolean(s.is_bus_merge_stop),
-        zoneCode: s.zone_code || "ZONE_B",
-      }));
-
-      if (this.stops.length > 0 && (!this.liveLocation.busId || this.liveLocation.latitude === 29.2889)) {
-        this.liveLocation = {
-          ...this.liveLocation,
-          latitude: this.stops[0].latitude,
-          longitude: this.stops[0].longitude,
-        };
-      }
-    }
-
-    // 10. Fetch Subscription Plans
-    const { data: dbPlans } = await supabase.from("subscription_plans").select("*");
-    if (dbPlans && dbPlans.length > 0) {
-      this.plans = dbPlans.map(p => ({
-        id: p.id,
-        name: p.name,
-        durationMonths: p.duration_months || 6,
-        price: p.price,
-        description: p.description || "Official Semester Bus Pass (6 Months)",
-        corridorTier: p.corridor_tier,
-        stoppages: p.stoppages || [],
-        features: [
-          "Unlimited Morning & Evening Shifts",
-          "Reserved Bus Seat Allocation",
-          "Digital Dynamic QR Pass",
-          "Real-Time GPS Telematics & Delay Alerts",
-        ],
-      }));
-    }
-
-    // 11. Fetch Stop-Route mappings
-    const dbStopRoutes: any[] = cachedState?.stopRoutes || (await supabase.from("route_stops").select("*")).data || [];
-    if (dbStopRoutes && dbStopRoutes.length > 0) {
-      this.stopRoutes = dbStopRoutes.map((sr: any) => ({
-        stopId: sr.stop_id,
-        routeId: sr.route_id,
-        busId: sr.bus_id || "",
-        stopOrder: sr.stop_order || 0,
-      }));
-    }
-
-    // 3. Fetch Routes
-    const dbRoutes: any[] = cachedState?.routes || (await supabase.from("routes").select("*")).data || [];
-    if (dbRoutes && dbRoutes.length > 0) {
-      this.routes = dbRoutes.map((r: any) => {
-        let stopsList = [];
-        if (r.stops_data && Array.isArray(r.stops_data) && r.stops_data.length > 0) {
-          stopsList = r.stops_data
-            .map((rs: any, idx: number) => {
-              const stopObj = this.stops.find(s => s.id === rs.stopId || s.id === rs.stop?.id) || rs.stop;
-              return {
-                stopId: rs.stopId || rs.stop?.id || "",
-                stopOrder: rs.stopOrder || idx + 1,
-                arrivalOffsetMinutes: rs.arrivalOffsetMinutes ?? idx * 8,
-                bufferTimeMinutes: rs.bufferTimeMinutes ?? 2,
-                stop: stopObj,
-              };
-            })
-            .filter((rs: any) => rs.stop);
-        }
-        if (stopsList.length === 0) {
+    // In Phase 1 of optimization, we offload all master data querying to our cached Edge API.
+    // This uses ISR caching (1-hour revalidation) so 10,000 DAUs don't crash Supabase pool.
+    const res = await fetch("/api/sync/master");
+    if (!res.ok) throw new Error("Failed to fetch master data API");
+    
+    const { data, success } = await res.json();
+    
+    if (success && data) {
+      this.transitZones = data.zones || [];
+      this.campuses = data.campuses || [];
+      this.stops = data.stops || [];
+      this.plans = data.plans || [];
+      this.stopRoutes = data.stopRoutes || [];
+      
+      // Routes require nested mapping for backward compatibility in the client store
+      if (data.routes && data.routes.length > 0) {
+        this.routes = data.routes.map((r: any) => {
           const relational = this.stopRoutes
             .filter(sr => sr.routeId === r.id)
             .sort((a, b) => a.stopOrder - b.stopOrder)
@@ -388,48 +285,28 @@ CampusFleetStore.prototype.syncMasterData = async function(this: CampusFleetStor
               } : null;
             })
             .filter(Boolean);
-          stopsList = (relational.length > 0 ? relational : []) as any[];
-        }
-        return {
-          id: r.id,
-          code: r.code,
-          name: r.name,
-          description: r.description,
-          direction: r.direction || "HOME_TO_CAMPUS",
-          color: r.color || "#2563EB",
-          totalDistanceKm: r.total_distance_km || 28.0,
-          estimatedDurationMins: r.estimated_duration_mins || 55,
-          isActive: r.is_active ?? true,
-          stops: stopsList,
+          
+          return {
+            ...r,
+            stops: relational,
+          };
+        });
+      }
+      
+      this.shifts = data.shifts || [];
+      
+      if (this.stops.length > 0 && (!this.liveLocation.busId || this.liveLocation.latitude === 29.2889)) {
+        this.liveLocation = {
+          ...this.liveLocation,
+          latitude: this.stops[0].latitude,
+          longitude: this.stops[0].longitude,
         };
-      });
-    }
-
-    // 4. Fetch Shifts
-    const dbShifts: any[] = cachedState?.shifts || (await supabase.from("shifts").select("*")).data || [];
-    if (dbShifts && dbShifts.length > 0) {
-      this.shifts = dbShifts.map((sh: any) => ({
-        id: sh.id,
-        name: sh.name,
-        shiftType: sh.type || "MORNING",
-        direction: sh.direction || "HOME_TO_CAMPUS",
-        startTime: (sh.start_time || "07:30").substring(0, 5),
-        endTime: (sh.end_time || "08:45").substring(0, 5),
-        bookingCutoffMins: sh.booking_cutoff_minutes || 30,
-        isSpecial: Boolean(
-          sh.is_special ||
-          sh.type === "CUSTOM" ||
-          sh.name?.toLowerCase().includes("placement") ||
-          sh.name?.toLowerCase().includes("conclave") ||
-          sh.name?.toLowerCase().includes("special")
-        ),
-        isPlacement: Boolean(sh.name?.toLowerCase().includes("placement")),
-      }));
+      }
     }
 
     this.notify();
   } catch (e) {
-    console.warn("syncMasterData failed:", e);
+    console.warn("syncMasterData failed via API, falling back to local storage if available:", e);
   }
 };
 
