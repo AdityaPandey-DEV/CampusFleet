@@ -85,7 +85,53 @@ export function ConductorProvider({
   const bus = buses.find(b => b.id === activeTrip?.busId);
   const route = routes.find(r => r.id === activeTrip?.routeId);
   const shift = shifts.find(sh => sh.id === activeTrip?.shiftId);
-  const tripBookings = activeTrip ? bookings.filter(b => b.tripId === activeTrip.id) : [];
+    const tripBookings = React.useMemo(() => {
+    if (!activeTrip) return [];
+    
+    // 1. Get all attendance records for this trip
+    const tripAttendance = attendanceRecords.filter(a => a.tripId === activeTrip.id);
+    
+    // 2. Get all expected students for this route
+    const expectedStudents = students.filter(s => s.primaryRouteId === activeTrip.routeId);
+    
+    // 3. Synthesize the manifest list (pseudo-bookings)
+    const roster: Booking[] = [];
+    
+    // Add expected students
+    expectedStudents.forEach(s => {
+      const attendance = tripAttendance.find(a => a.studentId === s.id);
+      roster.push({
+        id: attendance?.id || `roster-${s.id}`,
+        bookingCode: `ATD-${s.id.substring(0,6)}`,
+        studentId: s.id,
+        tripId: activeTrip.id,
+        busId: activeTrip.busId,
+        boardingStopId: s.primaryStopId,
+        status: attendance ? (attendance.status as any) : "CONFIRMED", // "CONFIRMED" means expected/pending
+        roamingStatus: "REGULAR"
+      } as any);
+    });
+    
+    // Add unexpected students who boarded (Roamers)
+    tripAttendance.forEach(a => {
+      if (!expectedStudents.some(s => s.id === a.studentId)) {
+        const roamer = students.find(s => s.id === a.studentId);
+        if (roamer) {
+          roster.push({
+            id: a.id,
+            bookingCode: `ATD-ROAM-${a.studentId.substring(0,4)}`,
+            studentId: a.studentId,
+            tripId: activeTrip.id,
+            boardingStopId: roamer.primaryStopId,
+            status: a.status as any,
+            roamingStatus: "ROAMING"
+          } as any);
+        }
+      }
+    });
+    
+    return roster;
+  }, [activeTrip, attendanceRecords, students]);
 
   const totalConfirmed = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
   const boardedCount = tripBookings.filter(b => b.status === "BOARDED").length;

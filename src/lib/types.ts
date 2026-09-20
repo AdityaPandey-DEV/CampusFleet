@@ -310,7 +310,7 @@ export interface AttendanceRecord {
   id: string;
   studentId: string;
   tripId: string;
-  bookingId: string;
+  bookingId?: string;
   method: AttendanceMethod;
   verifiedBy: string;
   signatureToken?: string;
