@@ -5,7 +5,7 @@ import jsQR from "jsqr";
 import { Camera, CameraOff, QrCode, MapPin, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { store } from "@/lib/store";
 
-export function StudentSelfScanner({ onSuccess }: { onSuccess: () => void }) {
+export function StudentSelfScanner({ onSuccess, fullScreenMode = false }: { onSuccess: () => void, fullScreenMode?: boolean }) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -161,23 +161,31 @@ export function StudentSelfScanner({ onSuccess }: { onSuccess: () => void }) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden flex flex-col items-center text-center space-y-4 w-full">
-      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-black text-lg">
-        <QrCode className="w-6 h-6" />
-        Self-Boarding Scanner
-      </div>
-      
-      <p className="text-xs text-gray-500 max-w-sm">
-        Scan the QR code pasted on the bus door to instantly verify your boarding pass. GPS must be enabled to verify you are at the authorized stop.
-      </p>
+    <div className={
+      fullScreenMode 
+        ? "relative w-full h-full bg-black flex flex-col items-center justify-center text-center overflow-hidden" 
+        : "bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden flex flex-col items-center text-center space-y-4 w-full"
+    }>
+      {!fullScreenMode && (
+        <>
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-black text-lg">
+            <QrCode className="w-6 h-6" />
+            Self-Boarding Scanner
+          </div>
+          
+          <p className="text-xs text-gray-500 max-w-sm">
+            Scan the QR code pasted on the bus door to instantly verify your boarding pass. GPS must be enabled to verify you are at the authorized stop.
+          </p>
+        </>
+      )}
 
       {successMsg ? (
-        <div className="p-6 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-3xl text-green-600 dark:text-green-400 flex flex-col items-center gap-3 w-full">
+        <div className={`p-6 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-3xl text-green-600 dark:text-green-400 flex flex-col items-center gap-3 w-full ${fullScreenMode ? 'absolute z-10 mx-6 w-auto' : ''}`}>
           <CheckCircle2 className="w-12 h-12" />
           <div className="font-bold">{successMsg}</div>
         </div>
       ) : errorMsg ? (
-        <div className="p-6 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-3xl text-red-600 dark:text-red-400 flex flex-col items-center gap-3 w-full">
+        <div className={`p-6 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-3xl text-red-600 dark:text-red-400 flex flex-col items-center gap-3 w-full ${fullScreenMode ? 'absolute z-10 mx-6 w-auto' : ''}`}>
           <XCircle className="w-12 h-12" />
           <div className="font-bold text-sm">{errorMsg}</div>
           <button 
@@ -188,17 +196,17 @@ export function StudentSelfScanner({ onSuccess }: { onSuccess: () => void }) {
           </button>
         </div>
       ) : isProcessing ? (
-        <div className="p-10 flex flex-col items-center gap-4 text-blue-500">
+        <div className={`p-10 flex flex-col items-center gap-4 text-blue-500 ${fullScreenMode ? 'absolute z-10 bg-black/50 rounded-3xl backdrop-blur-md' : ''}`}>
           <RefreshCw className="w-10 h-10 animate-spin" />
           <div className="text-sm font-bold animate-pulse">Verifying Location & Pass...</div>
         </div>
       ) : (
-        <div className="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 shadow-inner">
+        <div className={fullScreenMode ? "absolute inset-0 w-full h-full bg-black z-0" : "relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 shadow-inner"}>
           <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
           <canvas ref={canvasRef} className="hidden" />
           
           {!isActive && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 p-6">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 p-6 z-10">
               <CameraOff className="w-10 h-10 text-gray-400 mb-4" />
               <button 
                 onClick={startCamera}
@@ -211,20 +219,40 @@ export function StudentSelfScanner({ onSuccess }: { onSuccess: () => void }) {
           )}
 
           {isActive && (
-            <div className="absolute inset-0 pointer-events-none border-[3px] border-blue-500/50 m-6 rounded-3xl">
+            <div className={`absolute pointer-events-none border-[3px] border-blue-500/50 rounded-3xl z-10 ${fullScreenMode ? 'inset-10' : 'inset-0 m-6'}`}>
               <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-2xl -m-[3px]" />
               <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-2xl -m-[3px]" />
               <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-2xl -m-[3px]" />
               <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-2xl -m-[3px]" />
             </div>
           )}
+          
+          {fullScreenMode && (
+            <div className="absolute top-6 left-0 w-full flex justify-center z-20 px-6">
+               <div className="flex items-center gap-2 text-white bg-black/50 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg font-black text-sm">
+                 <QrCode className="w-5 h-5 text-blue-400" />
+                 Scan to Board
+               </div>
+            </div>
+          )}
         </div>
       )}
 
-      <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg w-full justify-center">
-        <MapPin className="w-3 h-3" />
-        Geolocation required for scan
-      </div>
+      {!fullScreenMode && (
+        <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg w-full justify-center">
+          <MapPin className="w-3 h-3" />
+          Geolocation required for scan
+        </div>
+      )}
+      
+      {fullScreenMode && (
+        <div className="absolute bottom-6 left-0 w-full flex justify-center z-20 px-6">
+          <div className="flex items-center gap-2 text-[10px] font-mono text-gray-300 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl">
+            <MapPin className="w-3 h-3" />
+            Geolocation required for check-in
+          </div>
+        </div>
+      )}
     </div>
   );
 }
