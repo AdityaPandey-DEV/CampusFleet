@@ -43,7 +43,6 @@ import {
   GitBranch,
   GitMerge,
   Layers,
-  Sliders,
   ChevronRight,
   Info,
   Building2,
