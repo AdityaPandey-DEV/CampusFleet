@@ -3,7 +3,7 @@
 import { HubDashboardView, HubModule } from "@/components/common/HubDashboardView";
 import { QrCode, FileText, LayoutGrid, ShieldCheck } from "lucide-react";
 import { useConductorContext } from "@/components/conductor/ConductorContext";
-import { ConductorMetrics } from "@/components/conductor/tabs/ConductorMetrics";
+
 
 export default function ConductorHubPage() {
   const { 
@@ -46,19 +46,6 @@ export default function ConductorHubPage() {
 
   return (
     <div className="space-y-6">
-      {activeTrip && bus && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <ConductorMetrics
-            totalConfirmed={totalConfirmed}
-            boardedCount={boardedCount}
-            pendingCount={pendingCount}
-            waitlistCount={waitlistCount}
-            absentCount={absentCount}
-            busCapacity={bus.capacity}
-          />
-        </div>
-      )}
-
       <HubDashboardView 
         title="Conductor Hub" 
         subtitle={activeTrip ? `Active Trip: ${activeTrip.tripCode}` : "Select a trip from the top right menu to begin."}
