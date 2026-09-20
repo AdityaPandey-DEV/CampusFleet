@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { calculateDistanceKm } from "@/lib/utils";
+import { redis } from "@/lib/redis";
 
 /**
  * Student Self-Service QR Boarding
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     // Since we need to know the active trip for the bus, we look at the trips table
     const { data: activeTrips } = await supabaseAdmin
       .from("trips")
-      .select("*")
+      .select("*, buses(capacity)")
       .eq("bus_id", busId)
       .eq("status", "IN_PROGRESS");
 
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       // Allow boarding if trip is SCHEDULED and boarding is open
       const { data: scheduledTrips } = await supabaseAdmin
         .from("trips")
-        .select("*")
+        .select("*, buses(capacity)")
         .eq("bus_id", busId)
         .eq("status", "SCHEDULED");
         
@@ -109,6 +110,47 @@ export async function POST(req: NextRequest) {
       targetBooking.seat_number = seatId;
     }
 
+    // 2b. CAPACITY & OCCUPANCY CHECK (Must match conductor API)
+    let currentBoardedCount = 0;
+    const occupancyKey = `occupancy:${activeTrip.id}`;
+    
+    if (redis) {
+      // 1. Hydrate from Postgres if Redis just rebooted or key expired
+      const exists = await redis.exists(occupancyKey);
+      if (!exists) {
+        const { count } = await supabaseAdmin
+          .from("attendance_records")
+          .select("*", { count: "exact", head: true })
+          .eq("trip_id", activeTrip.id)
+          .eq("status", "BOARDED");
+        // Initialize to prevent "Empty Bus" illusion
+        await redis.set(occupancyKey, count || 0, { nx: true, ex: 28800 });
+      }
+
+      // Temporarily increment to test capacity (we decrement if validation fails later)
+      currentBoardedCount = await redis.incr(occupancyKey);
+      await redis.expire(occupancyKey, 28800);
+    } else {
+      // Fallback if Redis is down
+      const { count } = await supabaseAdmin
+        .from("attendance_records")
+        .select("*", { count: "exact", head: true })
+        .eq("trip_id", activeTrip.id)
+        .eq("status", "BOARDED");
+      currentBoardedCount = count || 0;
+    }
+
+    const capacity = activeTrip.buses?.capacity || 32;
+    if (currentBoardedCount > capacity) {
+      if (redis) {
+         await redis.decr(occupancyKey); // Revert the test increment
+      }
+      return NextResponse.json(
+        { success: false, message: `SEAT CAPACITY REACHED: Bus is full (${capacity}/${capacity}).` },
+        { status: 400 }
+      );
+    }
+
     // 3. Mark Attendance
     const { error: updateErr } = await supabaseAdmin
       .from("bookings")
@@ -120,11 +162,12 @@ export async function POST(req: NextRequest) {
       .eq("id", targetBooking.id);
 
     if (updateErr) {
+      if (redis) await redis.decr(occupancyKey);
       throw updateErr;
     }
 
     // Add attendance record
-    await supabaseAdmin.from("attendance_records").insert({
+    const { error: attError } = await supabaseAdmin.from("attendance_records").insert({
       student_id: studentId,
       trip_id: activeTrip.id,
       method: "QR_SCAN", 
@@ -133,6 +176,13 @@ export async function POST(req: NextRequest) {
       notes: `Geofenced boarding verified near ${nearestStopName}`,
       signature_token: `GEOFENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
     });
+
+    if (attError) {
+       // Rollback bookings status (best effort)
+       supabaseAdmin.from("bookings").update({ status: "CONFIRMED" }).eq("id", targetBooking.id).then();
+       if (redis) await redis.decr(occupancyKey);
+       throw attError;
+    }
 
     return NextResponse.json({ 
       success: true, 

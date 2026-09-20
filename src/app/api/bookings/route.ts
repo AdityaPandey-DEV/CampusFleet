@@ -4,6 +4,7 @@ import { getSessionFromRequest } from "@/lib/jwt";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
 import { isTripCutoffPassed, getTodayIST } from "@/lib/time-manager";
 import { generateSeatLayout } from "@/lib/utils";
+import { redis } from "@/lib/redis";
 
 // GET /api/bookings?tripId=...&shiftId=...&studentId=...&date=...
 export async function GET(req: NextRequest) {
@@ -285,19 +286,60 @@ export async function POST(req: NextRequest) {
     }
 
     let allocatedSeat = availableSeats[0];
-    if (requestedSeatNumber) {
-      if (occupiedSeatSet.has(requestedSeatNumber)) {
-        return NextResponse.json(
-          {
-            success: false,
-            code: "SEAT_ALREADY_TAKEN",
-            message: `Seat ${requestedSeatNumber} was just reserved by another commuter. Please pick another seat.`,
-            availableSeats,
-          },
-          { status: 409 }
-        );
+    let redisSeatLockAcquired = false;
+
+    if (redis) {
+      if (requestedSeatNumber) {
+        if (occupiedSeatSet.has(requestedSeatNumber)) {
+          return NextResponse.json(
+            { success: false, code: "SEAT_ALREADY_TAKEN", message: `Seat ${requestedSeatNumber} was already reserved.`, availableSeats },
+            { status: 409 }
+          );
+        }
+        const seatLockKey = `seat_lock:${tripId}:${requestedSeatNumber}`;
+        const locked = await redis.set(seatLockKey, student.id, { nx: true, ex: 60 });
+        if (!locked) {
+          return NextResponse.json(
+            { success: false, code: "SEAT_ALREADY_TAKEN", message: `Seat ${requestedSeatNumber} was just claimed by another commuter just now. Please pick another seat.`, availableSeats },
+            { status: 409 }
+          );
+        }
+        allocatedSeat = requestedSeatNumber;
+        redisSeatLockAcquired = true;
+      } else {
+        // Auto-assign retry loop (Stampede protection)
+        for (const seat of availableSeats) {
+          const seatLockKey = `seat_lock:${tripId}:${seat}`;
+          const locked = await redis.set(seatLockKey, student.id, { nx: true, ex: 60 });
+          if (locked) {
+            allocatedSeat = seat;
+            redisSeatLockAcquired = true;
+            break;
+          }
+        }
+        if (!redisSeatLockAcquired) {
+          return NextResponse.json(
+            { success: false, message: "High traffic: All available seats are currently being booked. Please refresh and try again." },
+            { status: 409 }
+          );
+        }
       }
-      allocatedSeat = requestedSeatNumber;
+    } else {
+      // Fallback if Redis is down
+      if (requestedSeatNumber) {
+        if (occupiedSeatSet.has(requestedSeatNumber)) {
+          return NextResponse.json(
+            {
+              success: false,
+              code: "SEAT_ALREADY_TAKEN",
+              message: `Seat ${requestedSeatNumber} was just reserved by another commuter. Please pick another seat.`,
+              availableSeats,
+            },
+            { status: 409 }
+          );
+        }
+        allocatedSeat = requestedSeatNumber;
+      }
     }
 
     // 7. Atomic Insert into public.bookings
@@ -326,6 +368,10 @@ export async function POST(req: NextRequest) {
 
     if (insertError) {
       console.error("Booking insert error:", insertError);
+      if (redis && redisSeatLockAcquired) {
+        await redis.del(`seat_lock:${tripId}:${allocatedSeat}`);
+      }
+
       // Catch trigger or unique constraint violations
       if (insertError.message?.includes("uq_active_trip_seat") || insertError.code === "23505") {
         return NextResponse.json(
