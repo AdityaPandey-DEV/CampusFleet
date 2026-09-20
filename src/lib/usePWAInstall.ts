@@ -7,13 +7,22 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
+let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    globalDeferredPrompt = e as BeforeInstallPromptEvent;
+  });
+}
+
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(globalDeferredPrompt);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [canInstallNative, setCanInstallNative] = useState(false);
+  const [canInstallNative, setCanInstallNative] = useState(!!globalDeferredPrompt);
 
   useEffect(() => {
     // Check if already running in standalone PWA mode
@@ -33,13 +42,15 @@ export function usePWAInstall() {
     // Handle BeforeInstallPrompt for Android / Desktop Chrome / Edge
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      globalDeferredPrompt = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(globalDeferredPrompt);
       setCanInstallNative(true);
     };
 
     // Handle App Installed event
     const handleAppInstalled = () => {
       setIsInstalled(true);
+      globalDeferredPrompt = null;
       setDeferredPrompt(null);
       setCanInstallNative(false);
     };

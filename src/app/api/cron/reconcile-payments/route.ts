@@ -121,12 +121,22 @@ export async function GET(request: NextRequest) {
            continue; 
         }
 
-        // Update student running balance and activate pass
-        const newTotalPaid = Number(student?.total_fee_paid || 0) + amountPaid;
-        const amountLeft = Math.max(0, Number(student?.total_fee_due || 0) - newTotalPaid);
+        // Update student running balance dynamically to prevent race conditions
+        const { data: approvedSubmissions } = await supabaseAdmin
+          .from("payment_submissions")
+          .select("amount, verified_amount")
+          .eq("student_id", studentId)
+          .eq("status", "APPROVED");
+
+        const dynamicTotalPaid = (approvedSubmissions || []).reduce(
+          (sum: number, s: any) => sum + Number(s.verified_amount || s.amount || 0),
+          0
+        );
+
+        const amountLeft = Math.max(0, Number(student?.total_fee_due || 0) - dynamicTotalPaid);
         
         const updateData: any = {
-          total_fee_paid: newTotalPaid,
+          total_fee_paid: dynamicTotalPaid,
         };
 
         if (amountLeft <= 0) {

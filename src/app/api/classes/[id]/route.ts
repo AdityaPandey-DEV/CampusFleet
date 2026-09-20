@@ -17,24 +17,26 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ success: false, message: "Class not found." }, { status: 404 });
     }
 
-    // 2. Enrolled students
-    const { data: students } = await supabaseAdmin
-      .from("students")
-      .select("id, full_name, email, phone, semester, transport_access_suspended")
-      .eq("class_id", classId);
-
-    // 3. Assigned teachers
-    const { data: classTeachers } = await supabaseAdmin
-      .from("class_teachers")
-      .select("id, is_primary, users(id, full_name, email, phone)")
-      .eq("class_id", classId);
-
-    // 4. Timetable slots
-    const { data: timetable } = await supabaseAdmin
-      .from("class_timetables")
-      .select("*, users(full_name)")
-      .eq("class_id", classId)
-      .order("start_time", { ascending: true });
+    // Parallelize dependent queries for maximum performance
+    const [
+      { data: students },
+      { data: classTeachers },
+      { data: timetable }
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("students")
+        .select("id, full_name, email, phone, semester, transport_access_suspended")
+        .eq("class_id", classId),
+      supabaseAdmin
+        .from("class_teachers")
+        .select("id, is_primary, users(id, full_name, email, phone)")
+        .eq("class_id", classId),
+      supabaseAdmin
+        .from("class_timetables")
+        .select("*, users(full_name)")
+        .eq("class_id", classId)
+        .order("start_time", { ascending: true })
+    ]);
 
     return NextResponse.json({
       success: true,

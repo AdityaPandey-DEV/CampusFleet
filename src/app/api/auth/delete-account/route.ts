@@ -62,10 +62,10 @@ export async function DELETE(req: NextRequest) {
       await supabaseAdmin.from("payment_submissions").delete().eq("student_id", studentData.id);
     }
 
-    // Delete audit logs, students, and profile records
+    // Delete audit logs, students, and users records
     await supabaseAdmin.from("audit_logs").delete().eq("user_id", session.userId);
     await supabaseAdmin.from("students").delete().eq("user_id", session.userId);
-    await supabaseAdmin.from("profiles").delete().eq("id", session.userId);
+    await supabaseAdmin.from("users").delete().eq("id", session.userId);
 
     // 3. Delete user from Supabase Auth
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(session.userId);

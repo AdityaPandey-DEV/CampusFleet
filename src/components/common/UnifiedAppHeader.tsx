@@ -479,7 +479,7 @@ export function UnifiedAppHeader({
                   <div className="flex flex-col">
                     <span className="text-base font-semibold text-gray-900 dark:text-white">{currentUser.fullName}</span>
                     <Link
-                      href="/portal/profile"
+                      href={`/${pathname.split('/')[1] === 'portal' ? 'portal' : (currentUser.role || 'portal')}/settings`}
                       onClick={() => setIsMobileSheetOpen(false)}
                       className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
                     >

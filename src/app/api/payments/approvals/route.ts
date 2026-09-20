@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSessionFromRequest } from "@/lib/jwt";
+import { redis } from "@/lib/redis";
 
 /**
  * GET /api/payments/approvals
@@ -113,7 +114,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Fetch Submission ────────────────────────────────────────────────
+    let lockAcquired = false;
+    const lockKey = `payment_approval_lock:${submissionId}`;
+    
+    if (redis) {
+      const locked = await redis.set(lockKey, session.userId, { nx: true, ex: 15 });
+      if (!locked) {
+        return NextResponse.json(
+          { success: false, error: "This payment is currently being reviewed by another staff member. Please wait." },
+          { status: 409 }
+        );
+      }
+      lockAcquired = true;
+    }
+
+    try {
+      // ── Fetch Submission ────────────────────────────────────────────────
     const { data: submission, error: fetchErr } = await supabaseAdmin
       .from("payment_submissions")
       .select("*")
@@ -200,42 +216,30 @@ export async function POST(request: NextRequest) {
         .update(studentUpdate)
         .eq("id", submission.student_id);
 
-      // ── Create Financial Ledger Entry ─────────────────────────────────
-      try {
-        await supabaseAdmin.from("payment_transactions").insert({
+      // ── Create Financial Ledger Entry, Send Notification & Audit Log ─────────────────────────────────
+      const amountLeft = Math.max(0, totalFeeDue - totalApproved);
+      const notificationMessage = isFullyPaid
+        ? `Your transport fee is fully paid (₹${totalApproved.toLocaleString()}). Digital pass and full portal access are now active!`
+        : `Payment of ₹${approvedAmount.toLocaleString()} (Txn: ${submission.transaction_id}) approved. ₹${amountLeft.toLocaleString()} remaining.`;
+
+      await Promise.allSettled([
+        supabaseAdmin.from("payment_transactions").insert({
           receipt_number: submission.receipt_number || `RCP-${Date.now().toString().slice(-6)}`,
           student_id: submission.student_id,
           amount: approvedAmount,
           status: "PAID",
           payment_method: "UPI",
           transaction_ref: submission.transaction_id,
-        });
-      } catch (txnErr) {
-        console.warn("Ledger insert notice:", txnErr);
-      }
-
-      // ── Send Notification ─────────────────────────────────────────────
-      try {
-        const amountLeft = Math.max(0, totalFeeDue - totalApproved);
-        const notificationMessage = isFullyPaid
-          ? `Your transport fee is fully paid (₹${totalApproved.toLocaleString()}). Digital pass and full portal access are now active!`
-          : `Payment of ₹${approvedAmount.toLocaleString()} (Txn: ${submission.transaction_id}) approved. ₹${amountLeft.toLocaleString()} remaining.`;
-
-        await supabaseAdmin.from("notifications").insert({
+        }),
+        supabaseAdmin.from("notifications").insert({
           user_id: submission.student_id,
           title: isFullyPaid
             ? "Payment Complete ✓ Pass Activated!"
             : "Payment Installment Approved ✓",
           message: notificationMessage,
           type: "BILLING",
-        });
-      } catch {
-        // Non-fatal
-      }
-
-      // ── Audit Log ─────────────────────────────────────────────────────
-      try {
-        await supabaseAdmin.from("audit_logs").insert({
+        }),
+        supabaseAdmin.from("audit_logs").insert({
           action: "PAYMENT_APPROVED",
           user_id: session.userId,
           details: {
@@ -247,10 +251,8 @@ export async function POST(request: NextRequest) {
             isFullyPaid,
             reviewedBy: reviewerName,
           },
-        });
-      } catch {
-        // Non-fatal
-      }
+        })
+      ]);
 
       return NextResponse.json({
         success: true,
@@ -297,21 +299,15 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", submission.student_id);
 
-      // ── Send Rejection Notification ───────────────────────────────────
-      try {
-        await supabaseAdmin.from("notifications").insert({
+      // ── Send Rejection Notification & Audit Log ───────────────────────────────────
+      await Promise.allSettled([
+        supabaseAdmin.from("notifications").insert({
           user_id: submission.student_id,
           title: "Payment Verification Rejected ❌",
           message: `Payment of ₹${submission.amount.toLocaleString()} rejected: ${rejectionReason || "Invalid transaction details"}. Please re-upload a valid receipt.`,
           type: "ALERT",
-        });
-      } catch {
-        // Non-fatal
-      }
-
-      // ── Audit Log ─────────────────────────────────────────────────────
-      try {
-        await supabaseAdmin.from("audit_logs").insert({
+        }),
+        supabaseAdmin.from("audit_logs").insert({
           action: "PAYMENT_REJECTED",
           user_id: session.userId,
           details: {
@@ -321,10 +317,8 @@ export async function POST(request: NextRequest) {
             rejectionReason,
             reviewedBy: reviewerName,
           },
-        });
-      } catch {
-        // Non-fatal
-      }
+        })
+      ]);
 
       return NextResponse.json({
         success: true,
@@ -336,6 +330,11 @@ export async function POST(request: NextRequest) {
       { success: false, error: "Invalid action" },
       { status: 400 }
     );
+    } finally {
+      if (redis && lockAcquired) {
+        await redis.del(lockKey);
+      }
+    }
   } catch (err: any) {
     console.error("Payment approvals API error:", err);
     return NextResponse.json(

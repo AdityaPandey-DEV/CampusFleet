@@ -133,30 +133,31 @@ export async function POST(req: NextRequest) {
       studentData.payment_status = "UNPAID";
     }
 
-    const { data: savedStudent, error: studentErr } = await supabaseAdmin
-      .from("students")
-      .upsert(studentData)
-      .select()
-      .single();
+    // Parallelize upserts to students and users tables
+    const [{ data: savedStudent, error: studentErr }] = await Promise.all([
+      supabaseAdmin
+        .from("students")
+        .upsert(studentData)
+        .select()
+        .single(),
+      supabaseAdmin
+        .from("users")
+        .upsert({
+          id: userId,
+          email: cleanEmail,
+          full_name: studentData.full_name,
+          phone: studentData.phone,
+          campus_id: studentData.campus_id,
+          campus: studentData.campus,
+          role: "student",
+          provider: "Institutional SSO",
+        }, { onConflict: "id" })
+    ]);
 
     if (studentErr) {
       console.error("Supabase student profile upsert error:", studentErr);
       return NextResponse.json({ success: false, error: studentErr.message }, { status: 500 });
     }
-
-    // 4. Guarantee users table entry exists and is synchronized
-    await supabaseAdmin
-      .from("users")
-      .upsert({
-        id: userId,
-        email: cleanEmail,
-        full_name: studentData.full_name,
-        phone: studentData.phone,
-        campus_id: studentData.campus_id,
-        campus: studentData.campus,
-        role: "student",
-        provider: "Institutional SSO",
-      }, { onConflict: "id" });
 
     return NextResponse.json({
       success: true,
