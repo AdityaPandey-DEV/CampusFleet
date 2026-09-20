@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
           .eq("id", studentId)
           .maybeSingle();
 
-        await supabaseAdmin.from("payment_submissions").insert({
+        const { error: insertErr } = await supabaseAdmin.from("payment_submissions").insert({
           student_id: studentId,
           student_name: student?.full_name || "Student Commuter",
           zone_code: student?.zone_code || "ZONE_B",
@@ -80,6 +80,13 @@ export async function GET(request: NextRequest) {
           auto_detected: true,
           ocr_full_text: "RAZORPAY_CRON_RECONCILED",
         });
+
+        // STRICT FINANCIAL COMPLIANCE GUARD:
+        // Do NOT credit the student's balance if the receipt insertion failed!
+        if (insertErr) {
+           console.error(`[Reconcile] Failed to insert receipt for payment ${paymentId}:`, insertErr);
+           continue; 
+        }
 
         // Update student running balance and activate pass
         const newTotalPaid = Number(student?.total_fee_paid || 0) + amountPaid;
