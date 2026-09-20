@@ -26,10 +26,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (body.campusId !== undefined) dbUpdates.campus_id = body.campusId;
     if (body.isActive !== undefined) dbUpdates.is_active = Boolean(body.isActive);
 
+    // PostgREST Injection Fix: Sanitize id against commas/quotes
+    const safeId = String(id).replace(/[,"]/g, '');
+
     const { data, error } = await supabaseAdmin
       .from("transit_zones")
       .update(dbUpdates)
-      .or(`id.eq.${id},code.eq.${id}`)
+      .or(`id.eq.${safeId},code.eq.${safeId}`)
       .select("*, campuses(name, code)")
       .single();
 
@@ -98,10 +101,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     const { id } = params;
 
+    // PostgREST Injection Fix: Sanitize id against commas/quotes
+    const safeId = String(id).replace(/[,"]/g, '');
+
     const { error } = await supabaseAdmin
       .from("transit_zones")
       .delete()
-      .or(`id.eq.${id},code.eq.${id}`);
+      .or(`id.eq.${safeId},code.eq.${safeId}`);
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });

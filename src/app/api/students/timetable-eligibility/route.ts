@@ -25,10 +25,13 @@ export async function GET(req: NextRequest) {
     const shiftId = searchParams.get("shiftId");
 
     // 1. Fetch student record with class_id
+    // PostgREST Injection Fix: Sanitize targetStudentId against commas/quotes
+    const safeTargetStudentId = String(targetStudentId).replace(/[,"]/g, '');
+
     const { data: student, error: studentError } = await supabaseAdmin
       .from("students")
       .select("id, full_name, class_id, class_name")
-      .or(`id.eq.${targetStudentId},user_id.eq.${targetStudentId}`)
+      .or(`id.eq.${safeTargetStudentId},user_id.eq.${safeTargetStudentId}`)
       .limit(1)
       .maybeSingle();
 

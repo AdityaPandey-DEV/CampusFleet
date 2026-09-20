@@ -180,10 +180,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Fetch student
+    // PostgREST Injection Fix: Sanitize studentId against commas/quotes
+    const safeStudentId = String(studentId).replace(/[,"]/g, '');
+
     const { data: student } = await supabaseAdmin
       .from("students")
-      .select("*")
-      .or(`id.eq.${studentId},user_id.eq.${studentId}`)
+      .select("id, payment_status, has_active_subscription, transport_access_suspended, email")
+      .or(`id.eq.${safeStudentId},user_id.eq.${safeStudentId}`)
       .single();
 
     if (!student) {

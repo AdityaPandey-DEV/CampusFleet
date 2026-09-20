@@ -41,11 +41,22 @@ export async function GET(req: NextRequest) {
       const shiftTripIds = (shiftTrips || []).map((t) => t.id);
 
       if (shiftTripIds.length > 0) {
+        // PostgREST Injection Fix: Sanitize studentId against commas/quotes
+        const safeStudentId = String(studentId).replace(/[,"]/g, '');
+
+        // Also cancel pending/confirmed bookings for this user for this trip
+        const { error: cancelErr } = await supabaseAdmin
+          .from("bookings")
+          .update({ status: "CANCELLED" })
+          .eq("trip_id", tripId)
+          .in("status", ["CONFIRMED", "WAITLISTED"])
+          .or(`student_id.eq.${safeStudentId},student_id.eq.stud-${safeStudentId}`);
+
         const { data: activeBookings } = await supabaseAdmin
           .from("bookings_full")
           .select("*")
           .in("trip_id", shiftTripIds)
-          .or(`student_id.eq.${studentId},student_id.eq.stud-${studentId}`)
+          .or(`student_id.eq.${safeStudentId},student_id.eq.stud-${safeStudentId}`)
           .in("status", ["CONFIRMED", "BOARDED", "WAITLISTED"])
           .limit(1);
 
@@ -98,11 +109,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // PostgREST Injection Fix: Sanitize studentId against commas/quotes
+    const safeStudentId = String(studentId).replace(/[,"]/g, '');
+
     // 1. Fetch Student from Database
     const { data: studentsList, error: studErr } = await supabaseAdmin
       .from("students")
       .select("*")
-      .or(`id.eq.${studentId},user_id.eq.${studentId}`)
+      .or(`id.eq.${safeStudentId},user_id.eq.${safeStudentId}`)
       .limit(1);
 
     const student = studentsList?.[0];

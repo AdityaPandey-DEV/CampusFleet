@@ -25,10 +25,13 @@ export async function GET(req: NextRequest) {
     // If only studentId provided, find active booking and trip for student
     let studentBooking: any = null;
     if (studentId) {
+        // PostgREST Injection Fix: Sanitize studentId against commas/quotes
+        const safeStudentId = String(studentId).replace(/[,"]/g, '');
+
       const { data: bData } = await supabaseAdmin
         .from("bookings")
         .select("*")
-        .or(`student_id.eq.${studentId}`)
+        .or(`student_id.eq.${safeStudentId}`)
         .in("status", ["CONFIRMED", "BOARDED"])
         .order("created_at", { ascending: false })
         .limit(1);
@@ -384,6 +387,9 @@ export async function POST(req: NextRequest) {
       });
 
       // Disseminate to all booked students for this trip
+      // PostgREST Injection Fix: Sanitize studentId against commas/quotes
+      const safeStudentId = String(studentId || '').replace(/[,"]/g, '');
+
       const { data: tripBookings } = await supabaseAdmin
         .from("bookings")
         .select("student_id")

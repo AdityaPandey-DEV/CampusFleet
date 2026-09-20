@@ -64,10 +64,14 @@ export async function GET(req: NextRequest) {
     }
 
     if (currentRole === "student") {
+      // PostgREST Injection Fix
+      const safeUserId = String(session.userId).replace(/[,"]/g, '');
+      const safeEmail = String(session.email || '').replace(/[,"]/g, '');
+
       const { data: studentsList } = await supabaseAdmin
         .from("students")
-        .select("id, campus_id, campus, full_name, primary_stop_id, has_active_subscription, payment_status")
-        .or(`user_id.eq.${session.userId},email.ilike.${session.email || ""}`)
+        .select("id, campus_id, campus, full_name, class_id, class_name, primary_stop_id, primary_route_id, payment_status, has_active_subscription, transport_access_suspended")
+        .or(`user_id.eq.${safeUserId},email.ilike.${safeEmail}`)
         .order("created_at", { ascending: false })
         .limit(1);
 

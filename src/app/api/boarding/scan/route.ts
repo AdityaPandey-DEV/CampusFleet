@@ -54,10 +54,13 @@ export async function POST(req: NextRequest) {
     let studentErr = null;
 
     if (!student) {
+      // PostgREST Injection Fix: Sanitize searchId against commas/quotes
+      const safeSearchId = String(searchId).replace(/[,"]/g, '');
+
       const { data: studentsFound, error: err } = await supabaseAdmin
         .from("students")
         .select("id, full_name, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status, primary_route_id, primary_stop_id")
-        .or(`id.eq.${searchId},user_id.eq.${searchId}`)
+        .or(`id.eq.${safeSearchId},user_id.eq.${safeSearchId}`)
         .limit(1);
 
       student = studentsFound?.[0];

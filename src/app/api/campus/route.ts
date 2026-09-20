@@ -211,6 +211,9 @@ export async function PATCH(req: NextRequest) {
 
     // Synchronize matching terminal stop in stops table if updated
     if (updatedRow.is_primary || updatedRow.code === "GEHU-BHT") {
+      // PostgREST Injection Fix
+      const safeCode = String(updatedRow.code).replace(/[,"]/g, '');
+
       await supabaseAdmin
         .from("stops")
         .update({
@@ -221,7 +224,7 @@ export async function PATCH(req: NextRequest) {
           geofence_radius: updatedRow.geofence_radius,
           campus: updatedRow.name,
         })
-        .or(`id.eq.stop-bhimtal-campus,code.eq.${updatedRow.code}`);
+        .or(`id.eq.stop-bhimtal-campus,code.eq.${safeCode}`);
     }
 
     // Insert audit log record

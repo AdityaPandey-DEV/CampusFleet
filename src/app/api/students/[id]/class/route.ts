@@ -30,10 +30,13 @@ export async function PATCH(
     }
 
     // 2. Fetch current student
+    // PostgREST Injection Fix: Sanitize studentId against commas/quotes
+    const safeStudentId = String(studentId).replace(/[,"]/g, '');
+
     const { data: studentsFound, error: stuErr } = await supabaseAdmin
       .from("students")
       .select("id, full_name, class_id, class_name")
-      .or(`id.eq.${studentId},user_id.eq.${studentId}`)
+      .or(`id.eq.${safeStudentId},user_id.eq.${safeStudentId}`)
       .limit(1);
 
     const student = studentsFound?.[0];

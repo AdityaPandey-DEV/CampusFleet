@@ -43,10 +43,14 @@ export async function POST(req: NextRequest) {
     let existingCampusId: string | null = null;
     let existingCampus: string | null = null;
 
+    // PostgREST Injection Fix: Sanitize userId and cleanEmail against commas/quotes
+    const safeUserId = String(userId).replace(/[,"]/g, '');
+    const safeCleanEmail = cleanEmail.replace(/[,"]/g, '');
+
     const { data: existingStudents } = await supabaseAdmin
       .from("students")
       .select("id, photo_url, photo_locked, campus_id, campus")
-      .or(`user_id.eq.${userId},email.ilike.${cleanEmail}`)
+      .or(`user_id.eq.${safeUserId},email.ilike.${safeCleanEmail}`)
       .order("created_at", { ascending: false })
       .limit(1);
 

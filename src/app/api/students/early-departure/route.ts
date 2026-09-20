@@ -31,10 +31,13 @@ export async function POST(req: NextRequest) {
       : (studentId || session.studentId || session.userId);
 
     // Fetch student's class_id
+    // PostgREST Injection Fix: Sanitize targetStudentId against commas/quotes
+    const safeTargetStudentId = String(targetStudentId).replace(/[,"]/g, '');
+
     const { data: student } = await supabaseAdmin
       .from("students")
-      .select("id, full_name, class_id, class_name")
-      .or(`id.eq.${targetStudentId},user_id.eq.${targetStudentId}`)
+      .select("id, full_name, class_id")
+      .or(`id.eq.${safeTargetStudentId},user_id.eq.${safeTargetStudentId}`)
       .limit(1)
       .maybeSingle();
 
