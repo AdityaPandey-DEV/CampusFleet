@@ -1,36 +1,50 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
-import { IncomingShuttleRadar } from "@/components/booking/IncomingShuttleRadar";
-import type { Student, Stop } from "@/lib/types";
+import type { Student, Stop, Trip, Shift, Bus, Route } from "@/lib/types";
+import { WhereIsMyBusFlowchart } from "@/components/transit/WhereIsMyBusFlowchart";
 import {
   Zap,
   ArrowLeft,
-  CalendarCheck,
-  QrCode,
-  ShieldCheck,
   MapPin,
   Clock,
-  Bus,
-  CheckCircle2,
-  Navigation,
+  Compass,
+  ListTree,
+  AlertCircle
 } from "lucide-react";
+
+// Dynamic import for Leaflet GIS Map with no SSR to fix Next.js server-side errors
+const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[500px] rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse flex items-center justify-center text-sm text-gray-400 font-bold">
+      Loading Live Telematics GIS Radar...
+    </div>
+  ),
+});
 
 interface RunningLateRecoveryViewProps {
   initialUser?: any;
   initialStudents?: Student[];
   initialStops?: Stop[];
+  initialTrips?: Trip[];
+  initialShifts?: Shift[];
+  initialBuses?: Bus[];
+  initialRoutes?: Route[];
 }
 
 export default function RunningLateRecoveryView({
   initialUser,
   initialStudents = [],
   initialStops = [],
+  initialTrips = [],
+  initialShifts = [],
+  initialBuses = [],
+  initialRoutes = [],
 }: RunningLateRecoveryViewProps) {
-  const router = useRouter();
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [students, setStudents] = useState<Student[]>(() =>
     initialStudents.length > 0 ? initialStudents : store.getStudents()
@@ -38,23 +52,35 @@ export default function RunningLateRecoveryView({
   const [stops, setStops] = useState<Stop[]>(() =>
     initialStops.length > 0 ? initialStops : store.getStops()
   );
-  const [claimedNotice, setClaimedNotice] = useState<{
-    success: boolean;
-    message: string;
-    booking?: any;
-  } | null>(null);
+  const [trips, setTrips] = useState<Trip[]>(() =>
+    initialTrips.length > 0 ? initialTrips : store.getTrips()
+  );
+  const [shifts, setShifts] = useState<Shift[]>(() =>
+    initialShifts.length > 0 ? initialShifts : store.getShifts()
+  );
+  const [buses, setBuses] = useState<Bus[]>(() =>
+    initialBuses.length > 0 ? initialBuses : store.getBuses()
+  );
+  const [routes, setRoutes] = useState<Route[]>(() =>
+    initialRoutes.length > 0 ? initialRoutes : store.getRoutes()
+  );
+
+  const [trackingMode, setTrackingMode] = useState<"MAP" | "FLOWCHART">("MAP");
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (initialStudents.length > 0 && students.length === 0) setStudents(initialStudents);
-    if (initialStops.length > 0 && stops.length === 0) setStops(initialStops);
-
+    setIsClient(true);
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
       setStudents(store.getStudents());
       setStops(store.getStops());
+      setTrips(store.getTrips());
+      setShifts(store.getShifts());
+      setBuses(store.getBuses());
+      setRoutes(store.getRoutes());
     });
     return unsub;
-  }, [initialStudents, initialStops, students.length, stops.length]);
+  }, []);
 
   const activeStudent = currentUser
     ? students.find(
@@ -66,90 +92,137 @@ export default function RunningLateRecoveryView({
       ) || null
     : null;
 
-  const defaultStopId = activeStudent?.primaryStopId || stops[0]?.id || "";
+  // Resolve assigned shift and stop
+  const activeShift = useMemo(() => {
+    return shifts.find(s => s.shiftType === "MORNING") || shifts[0]; // Simplification for active shift
+  }, [shifts]);
+
+  const pickupStop = useMemo(() => {
+    if (activeStudent?.primaryStopId) {
+      return stops.find(s => s.id === activeStudent.primaryStopId);
+    }
+    return stops[0];
+  }, [stops, activeStudent]);
+
+  const activeTrip = trips.find(t => t.shiftId === activeShift.id) || trips[0];
+  const assignedBus = buses.find(b => b.id === activeTrip?.busId) || buses[0];
+  const assignedRoute = routes.find(r => r.id === activeTrip?.routeId) || routes[0];
+
+  if (!isClient) return null;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* 1. Header Navigation Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-yellow-600 text-white p-6 rounded-3xl shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center shrink-0 shadow-lg text-yellow-300">
-            <Zap className="w-7 h-7 fill-yellow-300" />
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-yellow-400/20 border border-yellow-300/30 text-yellow-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
-                Live Rapid Transit Recovery
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-              Running Late / Missed Bus Radar
-            </h1>
-            <p className="text-xs sm:text-sm text-pink-100 max-w-xl">
-              Reached your stop late? Approaching shuttles on your corridor allow instant seat claiming. If seats are full, claim an authorized Standing Pass valid till the next Bus Merge Stop.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/portal"
-            className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white font-bold text-xs rounded-2xl backdrop-blur transition-all flex items-center gap-2 cursor-pointer active:scale-95 shadow-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Regular Commute</span>
-          </Link>
-          <Link
-            href="/portal/pass"
-            className="px-4 py-2.5 bg-white text-pink-900 hover:bg-pink-50 font-black text-xs rounded-2xl transition-all flex items-center gap-2 cursor-pointer active:scale-95 shadow-lg"
-          >
-            <QrCode className="w-4 h-4" />
-            <span>Active Digital Pass</span>
-          </Link>
-        </div>
+    <div className="space-y-6 animate-in fade-in duration-300 max-w-5xl mx-auto pb-12">
+      {/* 1. Header Navigation & Back Button */}
+      <div className="flex items-center justify-between mb-4">
+        <Link
+          href="/portal"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Commute Hub
+        </Link>
       </div>
 
-      {/* 2. Success Banner After Claiming */}
-      {claimedNotice && (
-        <div className="p-5 rounded-3xl bg-green-500/10 border-2 border-green-500/30 dark:bg-green-950/40 text-green-900 dark:text-green-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in zoom-in-95">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-green-500 text-white flex items-center justify-center shrink-0 shadow-md">
-              <CheckCircle2 className="w-6 h-6" />
+      {/* 2. Clean Shift -> Stop Card (Glassmorphism/Professional Design) */}
+      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-gray-900 to-black p-6 sm:p-8 shadow-2xl border border-gray-800">
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <Zap className="w-48 h-48 text-white" />
+        </div>
+        
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 w-fit mb-3">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              Live Radar
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Active Commute</h1>
+            <p className="text-sm text-gray-400 font-medium max-w-md">
+              Track all buses approaching your stop in real-time. Wait for a bus to arrive, scan the QR, and board instantly.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Shift</div>
+                <div className="text-sm font-bold text-white">{activeShift?.name || "Morning Inbound"}</div>
+              </div>
             </div>
-            <div>
-              <div className="text-sm font-black">{claimedNotice.message}</div>
-              <div className="text-xs text-green-700 dark:text-green-400">
-                Your dynamic cryptographic boarding pass is generated. Board the approaching shuttle immediately.
+            <div className="w-full h-px bg-white/10 my-1" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Your Stop</div>
+                <div className="text-sm font-bold text-white">{pickupStop?.name || "Pending Assignment"}</div>
               </div>
             </div>
           </div>
-          <Link
-            href="/portal/pass"
-            className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-xs font-black rounded-xl shadow-md shrink-0 flex items-center gap-2"
-          >
-            <QrCode className="w-4 h-4" />
-            <span>Open Dynamic Pass →</span>
-          </Link>
         </div>
-      )}
+      </div>
 
-      {/* 3. Core Incoming Shuttle Radar Component */}
-      <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 border border-gray-200 dark:border-gray-800 shadow-sm space-y-6">
-        <IncomingShuttleRadar
-          studentId={activeStudent?.id || currentUser?.id || ""}
-          currentStopId={defaultStopId}
-          stops={stops}
-          onClaimSuccess={(result) => {
-            setClaimedNotice({
-              success: true,
-              message: result.message || "Shuttle seat / standing pass claimed successfully!",
-              booking: result.booking,
-            });
-            store.reloadFromDatabase();
-          }}
-        />
+      {/* 3. Tracking Mode Toggle */}
+      <div className="flex items-center justify-center">
+        <div className="bg-gray-100 dark:bg-gray-900 p-1.5 rounded-2xl flex items-center gap-1 shadow-inner border border-gray-200 dark:border-gray-800">
+          <button
+            onClick={() => setTrackingMode("MAP")}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+              trackingMode === "MAP"
+                ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            <Compass className="w-4 h-4" /> Live Map
+          </button>
+          <button
+            onClick={() => setTrackingMode("FLOWCHART")}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+              trackingMode === "FLOWCHART"
+                ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            <ListTree className="w-4 h-4" /> Flowchart
+          </button>
+        </div>
+      </div>
+
+      {/* 4. Active Tracking View */}
+      <div className="bg-white dark:bg-gray-900 rounded-[2rem] border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
+        {trackingMode === "MAP" ? (
+          <div className="h-[500px] w-full relative">
+            <div className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-gray-700 shadow-md flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              Displaying all active fleet buses
+            </div>
+            <CampusFleetMap
+              stops={stops}
+              interactiveMode="VIEW"
+              showUserLocation={true}
+              selectedStopId={pickupStop?.id}
+            />
+          </div>
+        ) : (
+          <div className="p-6 sm:p-10">
+            <WhereIsMyBusFlowchart
+              trip={activeTrip}
+              route={assignedRoute}
+              bus={assignedBus}
+              selectedStopId={pickupStop?.id}
+            />
+          </div>
+        )}
+      </div>
+      
+      {/* 5. Warning Notice */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-100 dark:border-blue-900/50 flex gap-3 text-sm text-blue-800 dark:text-blue-200">
+        <AlertCircle className="w-5 h-5 shrink-0 text-blue-600 dark:text-blue-400" />
+        <p>
+          <strong>Seat Availability:</strong> Buses are displayed regardless of fullness. You may board any approaching bus that stops at your location, subject to standing capacity limits.
+        </p>
       </div>
     </div>
   );
