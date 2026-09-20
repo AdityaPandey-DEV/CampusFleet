@@ -597,7 +597,7 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
               paymentStatus: s.payment_status || (s.has_active_subscription ? "APPROVED" : "UNPAID"),
               totalFeeDue: s.total_fee_due || (s.zone_semester_fee ? Number(s.zone_semester_fee) : 12000),
               totalFeePaid: s.total_fee_paid || 0,
-              photoUrl: s.photo_url || s.avatar_url || "",
+              photoUrl: s.photo_url || "",
               photoLocked: Boolean(s.photo_url && s.photo_url.trim() !== "") || Boolean(s.photo_locked),
             };
           }
@@ -657,7 +657,7 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
         paymentStatus: s.payment_status || (s.has_active_subscription ? "APPROVED" : "UNPAID"),
         totalFeeDue: s.total_fee_due || (s.zone_semester_fee ? Number(s.zone_semester_fee) : 12000),
         totalFeePaid: s.total_fee_paid || 0,
-        photoUrl: s.photo_url || s.avatar_url || "",
+        photoUrl: s.photo_url || "",
         photoLocked: Boolean(s.photo_url && s.photo_url.trim() !== "") || Boolean(s.photo_locked),
       }));
     }

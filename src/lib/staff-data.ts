@@ -158,7 +158,7 @@ export async function getStaffServerData(redirectPath: string = "/staff") {
     paymentStatus: s.payment_status || "PENDING",
     totalFeeDue: Number(s.total_fee_due) || 0,
     totalFeePaid: Number(s.total_fee_paid) || 0,
-    photoUrl: s.photo_url  || "",
+    photoUrl: s.photo_url || "",
     photoLocked: s.photo_locked || false,
   }));
 
