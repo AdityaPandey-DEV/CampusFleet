@@ -38,6 +38,9 @@ export default function StudentOnboardingPage() {
       s => s.email?.toLowerCase() === currentUser?.email?.toLowerCase() || (currentUser?.id && s.userId === currentUser.id)
     );
 
+  // Multi-step Form State
+  const [step, setStep] = useState<1 | 2>(1);
+
   // Form State
   const [fullName, setFullName] = useState("");
   const [campusId, setCampusId] = useState(() => store.getPrimaryCampus()?.id || "");
@@ -76,6 +79,7 @@ export default function StudentOnboardingPage() {
   }, [classesList, selectedCourse, department, selectedYear]);
 
   const [selectedZoneCode, setSelectedZoneCode] = useState("ZONE_B");
+  const [zoneToConfirm, setZoneToConfirm] = useState<TransitZone | null>(null);
   const [phone, setPhone] = useState("");
   const [primaryStopId, setPrimaryStopId] = useState("");
   const [emergencyName, setEmergencyName] = useState("");
@@ -284,10 +288,27 @@ export default function StudentOnboardingPage() {
       return;
     }
 
+    if (step === 1) {
+      // Validate step 1 fields if necessary
+      if (!selectedClassId && !department) {
+        alert("Please select your course and class details.");
+        return;
+      }
+      setStep(2);
+      return;
+    }
+
+  const confirmAndSubmitProfile = async () => {
+    if (!zoneToConfirm) return;
+    
     setIsSubmitting(true);
     const targetStudentId = activeStudent?.id || `stud-${currentUser?.id || Date.now()}`;
     const chosenClass = classesList.find(c => c.id === selectedClassId);
     const chosenCampus = campuses.find(c => c.id === campusId);
+
+    // Auto-select the first stop in the confirmed zone
+    const zoneStops = stops.filter(st => (st.zoneCode || "ZONE_B") === zoneToConfirm.code);
+    const chosenStopId = zoneStops.length > 0 ? zoneStops[0].id : (primaryStopId || stops[0]?.id || "");
 
     const res = await store.updateStudentProfile(targetStudentId, {
       fullName: fullName.trim() || currentUser?.fullName || "Student",
@@ -297,9 +318,9 @@ export default function StudentOnboardingPage() {
       semester,
       classId: chosenClass?.id,
       className: chosenClass?.name,
-      zoneCode: selectedZoneCode,
+      zoneCode: zoneToConfirm.code,
       phone: phone.trim(),
-      primaryStopId: primaryStopId || stops[0]?.id || "",
+      primaryStopId: chosenStopId,
       photoUrl: photoUrl.trim() || undefined,
       emergencyContact: {
         name: emergencyName.trim() || "Parent / Guardian",
@@ -325,11 +346,33 @@ export default function StudentOnboardingPage() {
       setToast("✓ Student Profile Saved & Verified in Institutional Database!");
       setTimeout(() => {
         setToast(null);
-        router.push("/portal");
+        setZoneToConfirm(null);
+        router.push("/portal/payments");
       }, 1200);
     } else {
       alert(res.message);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phone.trim()) {
+      alert("Please fill in your Contact Phone Number.");
+      return;
+    }
+
+    if (step === 1) {
+      // Validate step 1 fields if necessary
+      if (!selectedClassId && !department) {
+        alert("Please select your course and class details.");
+        return;
+      }
+      setStep(2);
+      return;
+    }
+
+    // If step 2 submit button is clicked, we just prompt the user if they haven't selected a zone
+    alert("Please select a transit zone from the options above.");
   };
 
   if (!dataLoaded) {
@@ -598,92 +641,181 @@ export default function StudentOnboardingPage() {
             </div>
           </div>
 
-          {/* Residential Transit Zone */}
-          <div className="space-y-1.5 mt-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Compass className="w-4 h-4 text-green-600" />
-                Residential Transit Zone *
-              </span>
-              {isZoneLocked ? (
-                <span className="flex items-center gap-1 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-800">
-                  <Lock className="w-3 h-3" /> Locked
-                </span>
-              ) : null}
-            </label>
-            {isZoneLocked ? (
-              <div className="p-4 rounded-xl bg-green-50/80 dark:bg-green-950/40 border border-green-200 dark:border-green-800/80 text-xs text-green-900 dark:text-green-200">
-                <div className="font-bold flex items-center gap-2 mb-1.5">
-                  <ShieldCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  Zone {selectedZoneCode} — Locked after Fee Clearance
-                </div>
-                <p className="text-xs opacity-80 leading-relaxed">
-                  Transit zone is locked once semester fee is paid. Only campus transport admin can modify zone allocation after payment.
-                </p>
+          {/* Conditional Rendering based on Step */}
+          <div className={step === 1 ? "block" : "hidden"}>
+            {/* ── PROFILE FIELDS (Step 1) ── */}
+            {/* Emergency Guardian Section */}
+            <div className="p-5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-200">
+                <HeartHandshake className="w-5 h-5 text-red-500" />
+                Emergency & Guardian Contact
               </div>
-            ) : (
-              <select
-                required
-                value={selectedZoneCode}
-                onChange={e => {
-                  const newZone = e.target.value;
-                  setSelectedZoneCode(newZone);
-                  const filteredStops = stops.filter(st => (st.zoneCode || "ZONE_B") === newZone);
-                  if (filteredStops.length > 0) {
-                    setPrimaryStopId(filteredStops[0].id);
-                  }
-                }}
-                className="w-full text-sm p-3.5 rounded-xl border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/30 text-gray-900 dark:text-white outline-none focus:border-green-500 font-bold transition-colors"
-              >
-                {transitZones.map(z => (
-                  <option key={z.id || `${z.campusId || ""}-${z.code}`} value={z.code}>
-                    {z.name} — ₹{z.semesterFee.toLocaleString()} / Semester
-                  </option>
-                ))}
-              </select>
-            )}
-            <p className="text-xs text-gray-500 dark:text-gray-400 pl-1">
-              Covers: {transitZones.find(z => z.code === selectedZoneCode)?.corridorDescription}
-            </p>
-          </div>
-
-
-          {/* Emergency Guardian Section */}
-          <div className="p-5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-200">
-              <HeartHandshake className="w-5 h-5 text-red-500" />
-              Emergency & Guardian Contact
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input
-                type="text"
-                value={emergencyName}
-                onChange={e => setEmergencyName(e.target.value)}
-                placeholder="Parent / Guardian Name"
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:border-red-500 transition-colors"
-              />
-              <input
-                type="tel"
-                value={emergencyPhone}
-                onChange={e => setEmergencyPhone(e.target.value)}
-                placeholder="Guardian Phone (+91 ...)"
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:border-red-500 transition-colors"
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  value={emergencyName}
+                  onChange={e => setEmergencyName(e.target.value)}
+                  placeholder="Parent / Guardian Name"
+                  className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:border-red-500 transition-colors"
+                />
+                <input
+                  type="tel"
+                  value={emergencyPhone}
+                  onChange={e => setEmergencyPhone(e.target.value)}
+                  placeholder="Guardian Phone (+91 ...)"
+                  className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:border-red-500 transition-colors"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="pt-4">
+          <div className={step === 2 ? "block" : "hidden"}>
+            {/* ── ZONE SELECTION (Step 2) ── */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Select Residential Transit Zone</h3>
+              
+              {isZoneLocked ? (
+                <div className="p-4 rounded-xl bg-green-50/80 dark:bg-green-950/40 border border-green-200 dark:border-green-800/80 text-xs text-green-900 dark:text-green-200">
+                  <div className="font-bold flex items-center gap-2 mb-1.5">
+                    <ShieldCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    Zone {selectedZoneCode} — Locked after Fee Clearance
+                  </div>
+                  <p className="text-xs opacity-80 leading-relaxed">
+                    Transit zone is locked once semester fee is paid. Only campus transport admin can modify zone allocation after payment.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {transitZones.map(z => {
+                    const isSelected = selectedZoneCode === z.code;
+                    const zoneStops = stops.filter(st => (st.zoneCode || "ZONE_B") === z.code);
+                    
+                    return (
+                      <div
+                        key={z.id || `${z.campusId || ""}-${z.code}`}
+                        onClick={() => setZoneToConfirm(z)}
+                        className={`cursor-pointer relative overflow-hidden p-5 rounded-2xl border-2 transition-all duration-200 ${
+                          isSelected 
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
+                            : "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700"
+                        }`}
+                      >
+                        {/* Selected Indicator Ribbon */}
+                        {isSelected && (
+                          <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-black uppercase px-3 py-1 rounded-bl-lg">
+                            Selected
+                          </div>
+                        )}
+                        
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-0.5">
+                              {z.code.replace("_", " ")}
+                            </div>
+                            <h4 className={`text-lg font-black ${isSelected ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>
+                              {z.name}
+                            </h4>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-black text-green-600 dark:text-green-400">
+                              ₹{z.semesterFee.toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-gray-500">Per Semester</div>
+                          </div>
+                        </div>
+                        
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-4 h-10 overflow-hidden line-clamp-2">
+                          {z.corridorDescription}
+                        </div>
+                        
+                        {/* Stops Pill Tags */}
+                        {zoneStops.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-auto">
+                            {zoneStops.slice(0, 4).map(st => (
+                              <span key={st.id} className={`text-[10px] px-2 py-0.5 rounded-md border ${
+                                isSelected 
+                                  ? "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800" 
+                                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                              }`}>
+                                {st.name}
+                              </span>
+                            ))}
+                            {zoneStops.length > 4 && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-md text-gray-500">
+                                +{zoneStops.length - 4} more
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-8">
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              disabled={isSubmitting || step === 2}
+              className={`w-full py-4 text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 ${step === 2 ? 'hidden' : 'bg-blue-600 hover:bg-blue-700'}`}
             >
               <CheckCircle2 className="w-5 h-5" />
-              {isSubmitting ? "Saving to Database..." : "Save Profile & Verify Transit Account"}
+              {isSubmitting ? "Saving..." : "Continue to Zone Selection →"}
             </button>
+            
+            {step === 2 && (
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="w-full mt-3 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                ← Back to Profile
+              </button>
+            )}
           </div>
         </form>
       </div>
+
+      {/* Confirmation Modal */}
+      {zoneToConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isSubmitting && setZoneToConfirm(null)} />
+          <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-200 dark:border-gray-800 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400 flex items-center justify-center mb-2">
+                <ShieldCheck className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white">Confirm Selection</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                You have selected <strong className="text-gray-900 dark:text-white">{zoneToConfirm.name}</strong>. 
+                Are you sure? <br/><br/>
+                <span className="text-red-500 font-bold">Important:</span> You cannot change your zone after confirming. You will be redirected to the payment gateway.
+              </p>
+              
+              <div className="w-full pt-4 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => setZoneToConfirm(null)}
+                  className="py-3 text-sm font-bold rounded-xl text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={confirmAndSubmitProfile}
+                  className="py-3 text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {isSubmitting ? "Processing..." : "Confirm & Pay"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </div>
   );
