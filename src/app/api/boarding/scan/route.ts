@@ -9,9 +9,16 @@ import { cacheGet, cacheSet, redis } from "@/lib/redis";
  * boarding MUST be rejected immediately with explicit lecture details.
  */
 export async function POST(req: NextRequest) {
+  // State trackers for emergency rollback in global catch block
+  let lockAcquired = false;
+  let occupancyIncremented = false;
+  let emergencyTripId = "";
+  let emergencyStudentId = "";
+
   try {
     const body = await req.json();
     const { rawCode, qrData, tripId, busId, conductorName = "Conductor Command Terminal", action = "CONFIRM_BOARDING" } = body;
+    emergencyTripId = tripId;
     const scanPayload = rawCode || qrData;
 
     if (!scanPayload) {
@@ -79,6 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedStudentId = student.id;
+    emergencyStudentId = resolvedStudentId;
 
     // 3. Query Trip and Bus Capacity (Cached)
     if (!tripId) {
@@ -117,6 +125,8 @@ export async function POST(req: NextRequest) {
        const setnxResult = await redis.set(duplicateCheckKey, true, { nx: true, ex: 43200 }); // 12 hours
        if (!setnxResult) {
          isDuplicate = true;
+       } else {
+         lockAcquired = true;
        }
     } else {
        // Fallback to DB check if Redis is down
@@ -154,7 +164,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (student.transport_access_suspended) {
-      if (redis) await redis.del(duplicateCheckKey);
+      if (redis && lockAcquired) {
+         await redis.del(duplicateCheckKey);
+         lockAcquired = false;
+      }
       return NextResponse.json(
         { success: false, status: "REJECTED", message: `ACCESS SUSPENDED: Transport access for ${student.full_name} is suspended.` },
         { status: 403 }
@@ -162,7 +175,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (bus && (bus.status === "MAINTENANCE" || bus.status === "INACTIVE")) {
-      if (redis) await redis.del(duplicateCheckKey);
+      if (redis && lockAcquired) {
+         await redis.del(duplicateCheckKey);
+         lockAcquired = false;
+      }
       return NextResponse.json(
         { success: false, status: "VEHICLE_UNAVAILABLE", message: `VEHICLE UNDER MAINTENANCE: Bus ${bus.bus_number} is currently marked ${bus.status}.` },
         { status: 400 }
@@ -174,8 +190,21 @@ export async function POST(req: NextRequest) {
     let currentBoardedCount = 0;
     
     if (redis) {
+      // 1. Hydrate from Postgres if Redis just rebooted or key expired
+      const exists = await redis.exists(occupancyKey);
+      if (!exists) {
+        const { count } = await supabaseAdmin
+          .from("attendance_records")
+          .select("*", { count: "exact", head: true })
+          .eq("trip_id", tripId)
+          .eq("status", "BOARDED");
+        // Initialize to prevent "Empty Bus" illusion
+        await redis.set(occupancyKey, count || 0, { nx: true, ex: 28800 });
+      }
+
       // Temporarily increment to test capacity (we decrement if validation fails later)
       currentBoardedCount = await redis.incr(occupancyKey);
+      occupancyIncremented = true;
       // Set an expiry of 8 hours so it auto-heals if something crashes and leaks seats
       await redis.expire(occupancyKey, 28800);
     } else {
@@ -191,7 +220,9 @@ export async function POST(req: NextRequest) {
     if (bus && currentBoardedCount > bus.capacity) {
       if (redis) {
          await redis.decr(occupancyKey); // Revert the test increment
+         occupancyIncremented = false;
          await redis.del(duplicateCheckKey); // Release the boarding lock
+         lockAcquired = false;
       }
       return NextResponse.json(
         { success: false, status: "CAPACITY_FULL", message: `SEAT CAPACITY REACHED: Bus ${bus.bus_number} is full (${bus.capacity}/${bus.capacity}).` },
@@ -227,31 +258,38 @@ export async function POST(req: NextRequest) {
           const slotEnd = slot.end_time;
 
           if (currentTimeStr >= slotStart && currentTimeStr <= slotEnd) {
-            if (redis) await redis.decr(occupancyKey); // Revert occupancy test
+            if (redis) {
+               await redis.decr(occupancyKey); // Revert occupancy test
+               occupancyIncremented = false;
+            }
             
-            // Audit logging (Awaited to prevent Vercel dropping the promise)
-            await supabaseAdmin.from("audit_logs").insert({
-              user_id: student.id,
-              user_email: student.email,
-              user_role: "student",
-              action: "BOARDING_DENIED_SCHEDULED_CLASS",
-              entity: "BoardingScan",
-              entity_id: tripId,
-              reason: `Student has active lecture '${slot.subject}' scheduled from ${slotStart} to ${slotEnd}.`,
-              previous_value: { status: "PENDING" },
-              new_value: { status: "DENIED", class: student.class_name, subject: slot.subject },
-            });
-
-            await supabaseAdmin.from("notifications").insert({
-              user_id: student.id,
-              title: "❌ Bus Boarding Denied",
-              message: `You cannot board the campus bus right now because you have an ongoing scheduled class: ${slot.subject} (${slotStart.substring(0, 5)} - ${slotEnd.substring(0, 5)}).`,
-              type: "BOARDING",
-              is_read: false,
-            });
+            // Audit logging and Notifications (Concurrent execution for speed)
+            await Promise.all([
+               supabaseAdmin.from("audit_logs").insert({
+                 user_id: student.id,
+                 user_email: student.email,
+                 user_role: "student",
+                 action: "BOARDING_DENIED_SCHEDULED_CLASS",
+                 entity: "BoardingScan",
+                 entity_id: tripId,
+                 reason: `Student has active lecture '${slot.subject}' scheduled from ${slotStart} to ${slotEnd}.`,
+                 previous_value: { status: "PENDING" },
+                 new_value: { status: "DENIED", class: student.class_name, subject: slot.subject },
+               }),
+               supabaseAdmin.from("notifications").insert({
+                 user_id: student.id,
+                 title: "❌ Bus Boarding Denied",
+                 message: `You cannot board the campus bus right now because you have an ongoing scheduled class: ${slot.subject} (${slotStart.substring(0, 5)} - ${slotEnd.substring(0, 5)}).`,
+                 type: "BOARDING",
+                 is_read: false,
+               })
+            ]);
 
             // Revert duplicate lock since we blocked them
-            if (redis) await redis.del(duplicateCheckKey);
+            if (redis) {
+               await redis.del(duplicateCheckKey);
+               lockAcquired = false;
+            }
 
             return NextResponse.json(
               {
@@ -279,7 +317,9 @@ export async function POST(req: NextRequest) {
     if (action === "PREVIEW_VERIFY") {
       if (redis) {
          await redis.decr(occupancyKey); // Not actually boarding, so revert test
+         occupancyIncremented = false;
          await redis.del(duplicateCheckKey); // Remove the boarding lock since they didn't board
+         lockAcquired = false;
       }
       return NextResponse.json({
         success: true,
@@ -336,8 +376,8 @@ export async function POST(req: NextRequest) {
       console.error("Database write failed for attendance:", insertErr);
       // Revert Redis state if DB fails so they can scan again
       if (redis) {
-        await redis.decr(occupancyKey);
-        await redis.del(duplicateCheckKey);
+        if (occupancyIncremented) { await redis.decr(occupancyKey); occupancyIncremented = false; }
+        if (lockAcquired) { await redis.del(duplicateCheckKey); lockAcquired = false; }
       }
       return NextResponse.json(
         { success: false, status: "DATABASE_ERROR", message: "Failed to record attendance check-in." },
@@ -345,29 +385,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 7b. Record Audit Log
-    await supabaseAdmin.from("audit_logs").insert({
-      user_id: student.id,
-      user_email: student.email,
-      user_role: "student",
-      action: "PASSENGER_BOARDED_SUCCESS",
-      entity: "AttendanceRecord",
-      entity_id: attendanceId,
-      reason: `QR scan verified by conductor ${conductorName}.`,
-      previous_value: { status: "PENDING" },
-      new_value: { status: "BOARDED", tripId: tripId, isRoaming },
-    });
+    // 7b & 7c. Record Audit Log and Push Notification concurrently
+    await Promise.all([
+      supabaseAdmin.from("audit_logs").insert({
+        user_id: student.id,
+        user_email: student.email,
+        user_role: "student",
+        action: "PASSENGER_BOARDED_SUCCESS",
+        entity: "AttendanceRecord",
+        entity_id: attendanceId,
+        reason: `QR scan verified by conductor ${conductorName}.`,
+        previous_value: { status: "PENDING" },
+        new_value: { status: "BOARDED", tripId: tripId, isRoaming },
+      }),
+      supabaseAdmin.from("notifications").insert({
+        user_id: student.id,
+        title: "Boarding Verified ✓",
+        message: `Your bus pass was scanned. Welcome aboard ${bus?.bus_number || "Campus Shuttle"}!`,
+        type: "BOARDING",
+        is_read: false,
+      })
+    ]);
 
-    // 7c. Push notification to student
-    await supabaseAdmin.from("notifications").insert({
-      user_id: student.id,
-      title: "Boarding Verified ✓",
-      message: `Your bus pass was scanned. Welcome aboard ${bus?.bus_number || "Campus Shuttle"}!`,
-      type: "BOARDING",
-      is_read: false,
-    });
-
-    const newOccupancy = (currentBoardedCount || 0) + 1;
+    const newOccupancy = (currentBoardedCount || 0); // No +1 here since it was correctly initialized in currentBoardedCount
 
     return NextResponse.json({
       success: true,
@@ -394,6 +434,21 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("Boarding Scan API Exception:", error);
+    
+    // Emergency Rollback in case of severe runtime failure
+    if (redis) {
+       try {
+          if (occupancyIncremented && emergencyTripId) {
+             await redis.decr(`occupancy:${emergencyTripId}`);
+          }
+          if (lockAcquired && emergencyTripId && emergencyStudentId) {
+             await redis.del(`checkin:${emergencyTripId}:${emergencyStudentId}`);
+          }
+       } catch (rollbackErr) {
+          console.error("Emergency rollback failed:", rollbackErr);
+       }
+    }
+
     return NextResponse.json(
       { success: false, status: "SERVER_ERROR", message: error.message || "Internal server error." },
       { status: 500 }
