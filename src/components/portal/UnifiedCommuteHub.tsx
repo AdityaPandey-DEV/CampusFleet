@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { store } from "@/lib/store";
 import ShiftBookingView from "./ShiftBookingView";
+import CommuteBusSelector from "./CommuteBusSelector";
 import DigitalPassView from "./DigitalPassView";
 import LiveTrackerView from "./LiveTrackerView";
 import { useMediaQuery } from "react-responsive";
@@ -38,6 +39,7 @@ export default function UnifiedCommuteHub({
 
   const isDesktop = useMediaQuery({ minWidth: 1024 });
   const [activeTab, setActiveTab] = useState<"BOOKING" | "PASS" | "TRACKER">("BOOKING");
+  const [hubState, setHubState] = useState<{ shiftId: string; stopId: string; busId: string } | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -72,6 +74,26 @@ export default function UnifiedCommuteHub({
     }
   }, [activeBooking]);
 
+  const resolvedBusId = activeBooking ? activeBooking.busId : hubState?.busId;
+
+  if (!resolvedBusId) {
+    return (
+      <CommuteBusSelector
+        initialUser={currentUser}
+        initialStudent={activeStudent}
+        initialStudents={initialStudents}
+        initialBuses={initialBuses}
+        initialTrips={initialTrips}
+        initialShifts={initialShifts}
+        initialStops={initialStops}
+        initialBookings={initialBookings}
+        onBusSelected={(shiftId, stopId, busId) => {
+          setHubState({ shiftId, stopId, busId });
+        }}
+      />
+    );
+  }
+
   const renderBooking = () => (
     <ShiftBookingView
       initialUser={currentUser}
@@ -82,7 +104,11 @@ export default function UnifiedCommuteHub({
       initialShifts={initialShifts}
       initialStops={initialStops}
       initialBookings={initialBookings}
+      preselectedShiftId={hubState?.shiftId}
+      preselectedStopId={hubState?.stopId}
+      preselectedBusId={resolvedBusId}
       isEmbedded={true}
+      onBackToBusSelection={!activeBooking ? () => setHubState(null) : undefined}
     />
   );
 

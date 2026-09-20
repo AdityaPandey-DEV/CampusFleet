@@ -61,7 +61,11 @@ export interface ShiftBookingProps {
   initialBuses?: Bus[];
   initialTrips?: Trip[];
   initialBookings?: Booking[];
+  preselectedShiftId?: string;
+  preselectedStopId?: string;
+  preselectedBusId?: string;
   isEmbedded?: boolean;
+  onBackToBusSelection?: () => void;
 }
 
 export default function ShiftBookingView({
@@ -73,7 +77,11 @@ export default function ShiftBookingView({
   initialBuses = [],
   initialTrips = [],
   initialBookings = [],
+  preselectedShiftId = "",
+  preselectedStopId = "",
+  preselectedBusId = "",
   isEmbedded = false,
+  onBackToBusSelection,
 }: ShiftBookingProps = {}) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
@@ -91,10 +99,10 @@ export default function ShiftBookingView({
   const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
   const [bookings, setBookings] = useState<Booking[]>(() => initialBookings.length > 0 ? initialBookings : store.getBookings());
 
-  const [activeStep, setActiveStep] = useState<"SHIFT" | "STOP" | "BUS" | "SEAT" | "SUCCESS">("SHIFT");
-  const [selectedShiftId, setSelectedShiftId] = useState(shifts[0]?.id || "shift-1");
-  const [selectedBusId, setSelectedBusId] = useState("");
-  const [selectedStopId, setSelectedStopId] = useState("");
+  const [activeStep, setActiveStep] = useState<"SEAT" | "SUCCESS">("SEAT");
+  const [selectedShiftId, setSelectedShiftId] = useState(preselectedShiftId || shifts[0]?.id || "");
+  const [selectedBusId, setSelectedBusId] = useState(preselectedBusId || "");
+  const [selectedStopId, setSelectedStopId] = useState(preselectedStopId || "");
   const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>("1A");
   const [bookingMessage, setBookingMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
@@ -459,85 +467,11 @@ export default function ShiftBookingView({
         </Link>
       )}
 
-      {activeStep === "SHIFT" && (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">1. Select Your Shift</h2>
-            <p className="text-sm text-gray-500">Choose your required commute shift for today.</p>
-          </div>
-          <div className={`grid gap-6 ${isEmbedded ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"}`}>
-             {shifts.map(shift => (
-               <div key={shift.id} onClick={() => { setSelectedShiftId(shift.id); setActiveStep("STOP"); }} className="p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-blue-500 transition-all duration-300">
-                 <div className="flex items-center justify-between mb-4">
-                   <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                     <Clock className="w-6 h-6" />
-                   </div>
-                   <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full">{shift.shiftType}</span>
-                 </div>
-                 <h3 className="text-xl font-black text-gray-900 dark:text-white">{shift.name}</h3>
-                 <p className="text-xs text-gray-500 mt-2 flex items-center gap-1.5 font-semibold">
-                   <Clock className="w-3.5 h-3.5" /> {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
-                 </p>
-               </div>
-             ))}
-          </div>
-        </div>
-      )}
-
-      {activeStep === "STOP" && (
-        <div className="space-y-6 animate-in slide-in-from-right-4">
-          <button onClick={() => setActiveStep("SHIFT")} className="text-xs text-blue-600 flex items-center gap-1 font-bold py-2"><ChevronRight className="w-4 h-4 rotate-180" /> Back to Shifts</button>
-          
-          <div className="space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">2. Route & Path (Dijkstra)</h2>
-            <p className="text-sm text-gray-500">Stops dynamically sorted by proximity to your zone.</p>
-          </div>
-          
-          <div className={`grid gap-6 ${isEmbedded ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"}`}>
-             {stops.filter(s => s.zoneCode === activeStudent?.zoneCode).sort((a,b) => a.name.localeCompare(b.name)).map((stop, i) => (
-               <div key={stop.id} onClick={() => { setSelectedStopId(stop.id); setActiveStep("BUS"); }} className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-green-500 transition-all duration-300">
-                 <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-bl-[100px] -z-10" />
-                 <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-900/50 flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
-                   <MapPin className="w-6 h-6" />
-                 </div>
-                 <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight">{stop.name}</h3>
-                 <p className="text-xs text-gray-500 mt-3 flex items-center gap-1.5">
-                   <RouteIcon className="w-3.5 h-3.5" /> Dijkstra Dist: {((i * 1.5) + 0.8).toFixed(1)} km
-                 </p>
-               </div>
-             ))}
-          </div>
-        </div>
-      )}
-
-      {activeStep === "BUS" && (
-        <div className="space-y-6 animate-in slide-in-from-right-4">
-          <button onClick={() => setActiveStep("STOP")} className="text-xs text-blue-600 flex items-center gap-1 font-bold py-2"><ChevronRight className="w-4 h-4 rotate-180" /> Back to Stops</button>
-          <div className="space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">3. Select Fleet Bus</h2>
-            <p className="text-sm text-gray-500">Choose a bus passing through your selected stop.</p>
-          </div>
-          <div className={`grid gap-6 ${isEmbedded ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"}`}>
-             {buses.map(bus => (
-               <div key={bus.id} onClick={() => { setSelectedBusId(bus.id); setActiveStep("SEAT"); }} className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-purple-500 transition-all duration-300">
-                 <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4">
-                   <BusFront className="w-6 h-6" />
-                 </div>
-                 <h3 className="text-2xl font-black text-gray-900 dark:text-white">{bus.busNumber}</h3>
-                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Standard Bus</p>
-                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                    <span className="text-xs text-gray-500 font-bold">Total Capacity</span>
-                    <span className="text-sm font-black text-gray-900 dark:text-white">{bus.capacity} Seats</span>
-                 </div>
-               </div>
-             ))}
-          </div>
-        </div>
-      )}
-
       {activeStep === "SEAT" && (
         <div className="space-y-6 animate-in slide-in-from-right-4">
-          <button onClick={() => setActiveStep("BUS")} className="text-xs text-blue-600 flex items-center gap-1 font-bold py-2"><ChevronRight className="w-4 h-4 rotate-180" /> Back to Buses</button>
+          {onBackToBusSelection && (
+            <button onClick={onBackToBusSelection} className="text-xs text-blue-600 flex items-center gap-1 font-bold py-2"><ChevronRight className="w-4 h-4 rotate-180" /> Back to Buses</button>
+          )}
           <div className="space-y-2">
             <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">4. Finalize Seat Layout</h2>
             <p className="text-sm text-gray-500">Select your preferred seat on {buses.find(b => b.id === selectedBusId)?.busNumber || "the bus"}.</p>
