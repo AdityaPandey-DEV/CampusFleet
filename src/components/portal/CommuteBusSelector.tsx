@@ -38,11 +38,12 @@ export default function CommuteBusSelector({
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
   const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
 
-  const [activeStep, setActiveStep] = useState<"SHIFT" | "STOP" | "BUS">("SHIFT");
+  const [activeStep, setActiveStep] = useState<"SHIFT" | "STOP" | "BUS" | "MESSAGE">("SHIFT");
   const [selectedShiftId, setSelectedShiftId] = useState(shifts[0]?.id || "");
   const [selectedStopId, setSelectedStopId] = useState("");
+  const [shiftMessage, setShiftMessage] = useState<{ title: string; message: string; type: "UPCOMING" | "PASSED" } | null>(null);
 
-  const { nextShift, currentDate } = useCampusTime();
+  const { nextShift, currentDate, getShiftStatus } = useCampusTime();
   const todayStr = currentDate;
 
   useEffect(() => {
@@ -110,6 +111,22 @@ export default function CommuteBusSelector({
     onBusSelected(selectedShiftId, selectedStopId, busId);
   };
 
+  const handleShiftClick = (shift: Shift) => {
+    const statusInfo = getShiftStatus(shift);
+    if (statusInfo.status === "COMPLETED") {
+      setShiftMessage({ title: "Shift Ended", message: "Sorry for today, let's come tomorrow.", type: "PASSED" });
+      setSelectedShiftId(shift.id);
+      setActiveStep("MESSAGE");
+    } else if (statusInfo.status === "UPCOMING") {
+      setShiftMessage({ title: "Shift Not Started", message: "Come back in time.", type: "UPCOMING" });
+      setSelectedShiftId(shift.id);
+      setActiveStep("MESSAGE");
+    } else {
+      setSelectedShiftId(shift.id);
+      setActiveStep("STOP");
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-12">
       {activeStep === "SHIFT" && (
@@ -120,7 +137,7 @@ export default function CommuteBusSelector({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {shifts.map(shift => (
-               <div key={shift.id} onClick={() => { setSelectedShiftId(shift.id); setActiveStep("STOP"); }} className="p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-blue-500 transition-all duration-300">
+               <div key={shift.id} onClick={() => handleShiftClick(shift)} className="p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-blue-500 transition-all duration-300">
                  <div className="flex items-center justify-between mb-4">
                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
                      <Clock className="w-6 h-6" />
@@ -194,6 +211,32 @@ export default function CommuteBusSelector({
                  No buses are scheduled for this shift today.
                </div>
              )}
+          </div>
+        </div>
+      )}
+
+      {activeStep === "MESSAGE" && shiftMessage && (
+        <div className="space-y-6 animate-in slide-in-from-right-4">
+          <button onClick={() => setActiveStep("SHIFT")} className="text-xs text-blue-600 flex items-center gap-1 font-bold py-2">
+            <ChevronRight className="w-4 h-4 rotate-180" /> Back to Shifts
+          </button>
+          
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-xl ${shiftMessage.type === "PASSED" ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-500"}`}>
+              <Clock className="w-10 h-10" />
+            </div>
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3">
+              {shiftMessage.title}
+            </h2>
+            <p className="text-lg text-gray-500 max-w-md">
+              {shiftMessage.message}
+            </p>
+            <button
+              onClick={() => setActiveStep("SHIFT")}
+              className="mt-8 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-2xl shadow-lg hover:scale-105 transition-transform"
+            >
+              View Other Shifts
+            </button>
           </div>
         </div>
       )}
