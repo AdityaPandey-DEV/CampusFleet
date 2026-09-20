@@ -47,6 +47,7 @@ export interface LiveTrackerProps {
   initialTrips?: Trip[];
   initialStaff?: Staff[];
   initialStudents?: Student[];
+  isEmbedded?: boolean;
 }
 
 export default function LiveTrackerView({
@@ -57,6 +58,7 @@ export default function LiveTrackerView({
   initialTrips = [],
   initialStaff = [],
   initialStudents = [],
+  isEmbedded = false,
 }: LiveTrackerProps = {}) {
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
@@ -266,13 +268,15 @@ export default function LiveTrackerView({
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in">
-      <Link
-        href="/portal"
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100"
-      >
-        ← Back to My Commute Cockpit
-      </Link>
+    <div className={`${isEmbedded ? "h-full flex flex-col" : "space-y-6"} animate-in fade-in`}>
+      {!isEmbedded && (
+        <Link
+          href="/portal"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100"
+        >
+          ← Back to My Commute Cockpit
+        </Link>
+      )}
 
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -509,7 +513,7 @@ export default function LiveTrackerView({
 
         {/* Right 4-5 Cols: Station Line Progression Timeline */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
+          <div className={`relative ${isEmbedded ? "flex-1 min-h-0 rounded-2xl" : "h-[calc(100vh-250px)] min-h-[500px] rounded-3xl"} bg-white dark:bg-gray-900 p-5 overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xl space-y-3`}>
             <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
               <div>
                 <h3 className="font-bold text-sm text-gray-900 dark:text-white">

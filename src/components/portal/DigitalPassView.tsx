@@ -41,6 +41,7 @@ export interface DigitalPassProps {
   initialStops?: Stop[];
   initialBookings?: Booking[];
   initialStaff?: Staff[];
+  isEmbedded?: boolean;
 }
 
 export default function DigitalPassView({
@@ -53,6 +54,7 @@ export default function DigitalPassView({
   initialStops = [],
   initialBookings = [],
   initialStaff = [],
+  isEmbedded = false,
 }: DigitalPassProps = {}) {
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [students, setStudents] = useState<Student[]>(() => {
@@ -228,20 +230,17 @@ export default function DigitalPassView({
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-6 animate-in fade-in pb-12">
-      {/* Top Navigation & Fast Switch */}
-      <div className="flex items-center justify-between">
-        <Link
-          href="/portal"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to My Commute
-        </Link>
-        <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 flex items-center gap-1.5 shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          Official Academic Transit Pass
-        </span>
-      </div>
+    <div className={`${isEmbedded ? "space-y-4" : "max-w-4xl mx-auto space-y-6 pb-12"} animate-in fade-in`}>
+      {!isEmbedded && (
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            href="/portal"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to My Commute Cockpit
+          </Link>
+        </div>
+      )}
 
       {/* When Signed Out */}
       {!currentUser ? (

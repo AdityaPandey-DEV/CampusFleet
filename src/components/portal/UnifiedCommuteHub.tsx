@@ -82,6 +82,7 @@ export default function UnifiedCommuteHub({
       initialShifts={initialShifts}
       initialStops={initialStops}
       initialBookings={initialBookings}
+      isEmbedded={true}
     />
   );
 
@@ -98,6 +99,7 @@ export default function UnifiedCommuteHub({
         initialStops={initialStops}
         initialBookings={initialBookings}
         initialStaff={initialStaff}
+        isEmbedded={true}
       />
     );
   };
@@ -111,6 +113,7 @@ export default function UnifiedCommuteHub({
       initialTrips={initialTrips}
       initialStaff={initialStaff}
       initialStudents={initialStudents}
+      isEmbedded={true}
     />
   );
 

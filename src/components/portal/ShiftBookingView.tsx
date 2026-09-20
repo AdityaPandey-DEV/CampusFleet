@@ -61,6 +61,7 @@ export interface ShiftBookingProps {
   initialBuses?: Bus[];
   initialTrips?: Trip[];
   initialBookings?: Booking[];
+  isEmbedded?: boolean;
 }
 
 export default function ShiftBookingView({
@@ -72,6 +73,7 @@ export default function ShiftBookingView({
   initialBuses = [],
   initialTrips = [],
   initialBookings = [],
+  isEmbedded = false,
 }: ShiftBookingProps = {}) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
@@ -447,13 +449,15 @@ export default function ShiftBookingView({
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in">
-      <Link
-        href="/portal"
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
-      >
-        <ChevronRight className="w-4 h-4 rotate-180" /> Back to My Commute Cockpit
-      </Link>
+    <div className={`${isEmbedded ? "space-y-4" : "max-w-6xl mx-auto space-y-6"} animate-in fade-in`}>
+      {!isEmbedded && (
+        <Link
+          href="/portal"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
+        >
+          <ChevronRight className="w-4 h-4 rotate-180" /> Back to My Commute Cockpit
+        </Link>
+      )}
 
       {activeStep === "SHIFT" && (
         <div className="space-y-6">
@@ -461,7 +465,7 @@ export default function ShiftBookingView({
             <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">1. Select Your Shift</h2>
             <p className="text-sm text-gray-500">Choose your required commute shift for today.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={`grid gap-6 ${isEmbedded ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"}`}>
              {shifts.map(shift => (
                <div key={shift.id} onClick={() => { setSelectedShiftId(shift.id); setActiveStep("STOP"); }} className="p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-blue-500 transition-all duration-300">
                  <div className="flex items-center justify-between mb-4">
@@ -489,7 +493,7 @@ export default function ShiftBookingView({
             <p className="text-sm text-gray-500">Stops dynamically sorted by proximity to your zone.</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={`grid gap-6 ${isEmbedded ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"}`}>
              {stops.filter(s => s.zoneCode === activeStudent?.zoneCode).sort((a,b) => a.name.localeCompare(b.name)).map((stop, i) => (
                <div key={stop.id} onClick={() => { setSelectedStopId(stop.id); setActiveStep("BUS"); }} className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-green-500 transition-all duration-300">
                  <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-bl-[100px] -z-10" />
@@ -513,7 +517,7 @@ export default function ShiftBookingView({
             <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">3. Select Fleet Bus</h2>
             <p className="text-sm text-gray-500">Choose a bus passing through your selected stop.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={`grid gap-6 ${isEmbedded ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"}`}>
              {buses.map(bus => (
                <div key={bus.id} onClick={() => { setSelectedBusId(bus.id); setActiveStep("SEAT"); }} className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-purple-500 transition-all duration-300">
                  <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4">
@@ -539,7 +543,7 @@ export default function ShiftBookingView({
             <p className="text-sm text-gray-500">Select your preferred seat on {buses.find(b => b.id === selectedBusId)?.busNumber || "the bus"}.</p>
           </div>
           
-          <div className="bg-white dark:bg-gray-900 rounded-[2rem] p-4 sm:p-8 border border-gray-200 dark:border-gray-800 shadow-2xl">
+          <div className={`bg-white dark:bg-gray-900 rounded-[2rem] border border-gray-200 dark:border-gray-800 ${isEmbedded ? "p-4 shadow-sm" : "p-4 sm:p-8 shadow-2xl"}`}>
              <InteractiveBusSeatGrid 
                bus={buses.find(b => b.id === selectedBusId) || buses[0]}
                activeBookings={bookings.filter(b => b.busId === selectedBusId)}
