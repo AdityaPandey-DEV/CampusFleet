@@ -45,14 +45,14 @@ export default function StaffFlowchartView({
   const [staff] = useState<Staff[]>(() => (initialStaff.length > 0 ? initialStaff : store.getStaff()));
   const [users] = useState<UserAccount[]>(() => (initialUsers.length > 0 ? initialUsers : store.getUsers()));
 
-  const [flowchartRouteId, setFlowchartRouteId] = useState<string>(() => initialRoutes[0]?.id || routes[0]?.id || "");
+  const [flowchartRouteId, setFlowchartRouteId] = useState<string>("");
   const [flowchartSearchQuery, setFlowchartSearchQuery] = useState("");
 
   // Keep state in sync with server-fetched routes
   React.useEffect(() => {
     if (initialRoutes.length > 0) {
       setRoutes(initialRoutes);
-      setFlowchartRouteId((prev) => (initialRoutes.some((r) => r.id === prev) ? prev : initialRoutes[0]?.id || ""));
+      
     }
   }, [initialRoutes]);
 
@@ -193,6 +193,55 @@ export default function StaffFlowchartView({
 
   return (
     <div className="space-y-6 animate-in fade-in">
+      {!flowchartRouteId ? (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+                <GitBranch className="w-6 h-6 text-blue-600" />
+                Select a Corridor
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Choose a transit corridor to view its live operational flowchart and dispatch buses.
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {routes.map(route => (
+              <button
+                key={route.id}
+                onClick={() => setFlowchartRouteId(route.id)}
+                className="text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-5 hover:border-blue-500 hover:shadow-lg transition-all space-y-4 group"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+                      {route.code} • {route.direction.replace(/_/g, ' ')}
+                    </div>
+                    <h3 className="font-black text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                      {route.name}
+                    </h3>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <GitBranch className="w-4 h-4" />
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
+                  <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-xl text-blue-600 dark:text-blue-400">
+                    {route.stops?.length || 0} Stops
+                  </div>
+                  <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-xl">
+                    {route.totalDistanceKm || 28} km
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-bottom-3">
@@ -213,20 +262,12 @@ export default function StaffFlowchartView({
               Interactive visual flowchart of transit stops. Click the <strong>+ Deploy Bus</strong> button at any stop to allocate an operational bus starting from that exact origin point.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Active Corridor:</span>
-            <select
-              value={flowchartRouteId || (routes[0]?.id ?? "")}
-              onChange={(e) => setFlowchartRouteId(e.target.value)}
-              className="text-xs font-black px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none focus:border-blue-500 max-w-[320px]"
-            >
-              {routes.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <button
+            onClick={() => setFlowchartRouteId("")}
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all"
+          >
+            ← Back to Corridors
+          </button>
         </div>
 
         {/* Corridor Overview Banner */}
@@ -494,6 +535,8 @@ export default function StaffFlowchartView({
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
