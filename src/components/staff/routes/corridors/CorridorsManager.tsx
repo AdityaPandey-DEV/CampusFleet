@@ -848,6 +848,7 @@ export default function CorridorsManager({ mode = "view" }: { mode?: "view" | "c
             {isOverrideActive ? "Override Active" : "Emergency Override"}
           </button>
         )}
+        </div>
       </div>
 
       {/* ============================================================= */}
@@ -964,6 +965,5 @@ export default function CorridorsManager({ mode = "view" }: { mode?: "view" | "c
         handleAllocateBus={handleAllocateBus}
       />
     </div>
-  </div>
-);
+  );
 }
