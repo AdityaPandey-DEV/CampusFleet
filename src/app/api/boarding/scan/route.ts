@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getDayOfWeekIST, getCurrentTimeIST } from "@/lib/time-manager";
+import { cacheGet, cacheSet, redis } from "@/lib/redis";
 
 /**
  * QR-Based Bus Boarding (Attendance Architecture)
@@ -40,46 +41,63 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Query Student from Database
-    const { data: studentsFound, error: studentErr } = await supabaseAdmin
-      .from("students")
-      .select("id, full_name, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status, primary_route_id, primary_stop_id")
-      .or(`id.eq.${searchId},user_id.eq.${searchId}`)
-      .limit(1);
+    // 2. Query Student from Cache or Database
+    const cacheKeyStudent = `student:profile:${searchId}`;
+    let student: any = await cacheGet(cacheKeyStudent);
+    let studentErr = null;
 
-    const student = studentsFound?.[0];
+    if (!student) {
+      const { data: studentsFound, error: err } = await supabaseAdmin
+        .from("students")
+        .select("id, full_name, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status, primary_route_id, primary_stop_id")
+        .or(`id.eq.${searchId},user_id.eq.${searchId}`)
+        .limit(1);
 
-    if (studentErr || !student) {
-      // Maybe the searchId was an old booking code? Let's check bookings just in case for backward compatibility
-      const { data: oldBooking } = await supabaseAdmin.from("bookings").select("student_id").eq("booking_code", searchId).limit(1);
-      if (oldBooking && oldBooking.length > 0) {
-          const { data: st } = await supabaseAdmin.from("students").select("id, full_name, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status, primary_route_id, primary_stop_id").eq("id", oldBooking[0].student_id).limit(1);
-          if (st && st[0]) {
-              // Proceed with st[0]
-              Object.assign(student || {}, st[0]); // Need to hack this for TypeScript logic in a script, let's just write cleaner logic
-          }
+      student = studentsFound?.[0];
+      studentErr = err;
+
+      if (studentErr || !student) {
+        // Fallback for old bookings
+        const { data: oldBooking } = await supabaseAdmin.from("bookings").select("student_id").eq("booking_code", searchId).limit(1);
+        if (oldBooking && oldBooking.length > 0) {
+            const { data: st } = await supabaseAdmin.from("students").select("id, full_name, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status, primary_route_id, primary_stop_id").eq("id", oldBooking[0].student_id).limit(1);
+            if (st && st[0]) {
+                student = Object.assign(student || {}, st[0]);
+            }
+        }
+        
+        if (!student || !student.id) {
+            return NextResponse.json(
+              { success: false, status: "REJECTED", message: `UNVERIFIED PASS: No active student found for "${searchId}".` },
+              { status: 404 }
+            );
+        }
       }
       
-      if (!student || !student.id) {
-          return NextResponse.json(
-            { success: false, status: "REJECTED", message: `UNVERIFIED PASS: No active student found for "${searchId}".` },
-            { status: 404 }
-          );
-      }
+      // Cache the resolved student profile for 15 minutes to survive rapid multi-scans
+      await cacheSet(cacheKeyStudent, student, 900);
     }
 
     const resolvedStudentId = student.id;
 
-    // 3. Query Trip and Bus Capacity
+    // 3. Query Trip and Bus Capacity (Cached)
     if (!tripId) {
         return NextResponse.json({ success: false, status: "INVALID_INPUT", message: "tripId is required for attendance." }, { status: 400 });
     }
 
-    const { data: trip } = await supabaseAdmin
-      .from("trips")
-      .select("*, buses(*), routes(id, name, direction)")
-      .eq("id", tripId)
-      .single();
+    const cacheKeyTrip = `trip:details:${tripId}`;
+    let trip: any = await cacheGet(cacheKeyTrip);
+    
+    if (!trip) {
+      const { data: dbTrip } = await supabaseAdmin
+        .from("trips")
+        .select("*, buses(*), routes(id, name, direction)")
+        .eq("id", tripId)
+        .single();
+      trip = dbTrip;
+      // Cache trip for 1 hour since they don't change during the shift
+      if (trip) await cacheSet(cacheKeyTrip, trip, 3600);
+    }
       
     const bus = trip?.buses;
     const resolvedBusId = bus?.id || busId || null;
@@ -88,22 +106,17 @@ export async function POST(req: NextRequest) {
     // Check roaming
     const isRoaming = student.primary_route_id !== trip?.route_id;
 
-    // 4. Prevent duplicate check-in (Single-Use Attendance Per Shift)
-    const { data: existingAttendance } = await supabaseAdmin
-        .from("attendance_records")
-        .select("id, status, timestamp, method")
-        .eq("student_id", resolvedStudentId)
-        .eq("trip_id", tripId)
-        .limit(1);
-
-    if (existingAttendance && existingAttendance.length > 0 && existingAttendance[0].status === "BOARDED") {
-      const boardedTime = existingAttendance[0].timestamp ? new Date(existingAttendance[0].timestamp).toLocaleTimeString() : "earlier today";
+    // 4. Prevent duplicate check-in (Fast Redis Validation)
+    const duplicateCheckKey = `checkin:${tripId}:${resolvedStudentId}`;
+    const alreadyBoarded = await cacheGet(duplicateCheckKey);
+    
+    if (alreadyBoarded) {
       return NextResponse.json(
         {
           success: false,
           status: "DUPLICATE",
           code: "ALREADY_BOARDED",
-          message: `DUPLICATE REPLAY: Pass belongs to ${student.full_name}, who was ALREADY checked in at ${boardedTime}. Duplicate scan blocked.`,
+          message: `DUPLICATE REPLAY: Pass belongs to ${student.full_name}, who ALREADY checked in. Duplicate scan blocked.`,
           student: {
             id: student.id,
             fullName: student.full_name,
@@ -114,7 +127,6 @@ export async function POST(req: NextRequest) {
           },
           studentName: student.full_name,
           photoUrl: student.photo_url,
-          boardedAt: existingAttendance[0].timestamp,
         },
         { status: 409 }
       );
@@ -134,15 +146,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check bus occupancy vs capacity
-    const { count: currentBoardedCount } = await supabaseAdmin
-      .from("attendance_records")
-      .select("*", { count: "exact", head: true })
-      .eq("trip_id", tripId)
-      .eq("status", "BOARDED");
+    // Check bus occupancy vs capacity (Atomic Redis Increment)
+    const occupancyKey = `occupancy:${tripId}`;
+    let currentBoardedCount = 0;
+    
+    if (redis) {
+      // Temporarily increment to test capacity (we decrement if validation fails later)
+      currentBoardedCount = await redis.incr(occupancyKey);
+    } else {
+      // Fallback if Redis is down
+      const { count } = await supabaseAdmin
+        .from("attendance_records")
+        .select("*", { count: "exact", head: true })
+        .eq("trip_id", tripId)
+        .eq("status", "BOARDED");
+      currentBoardedCount = count || 0;
+    }
 
-    if (bus && (currentBoardedCount || 0) >= bus.capacity) {
-      // In the future, we could prompt the conductor to override and issue a standing pass.
+    if (bus && currentBoardedCount > bus.capacity) {
+      if (redis) await redis.decr(occupancyKey); // Revert the test increment
       return NextResponse.json(
         { success: false, status: "CAPACITY_FULL", message: `SEAT CAPACITY REACHED: Bus ${bus.bus_number} is full (${bus.capacity}/${bus.capacity}).` },
         { status: 400 }
@@ -158,11 +180,18 @@ export async function POST(req: NextRequest) {
       const currentDay = getDayOfWeekIST();
       const currentTimeStr = getCurrentTimeIST(true);
 
-      const { data: timetableSlots } = await supabaseAdmin
-        .from("class_timetables")
-        .select("*")
-        .eq("class_id", student.class_id)
-        .eq("day_of_week", currentDay);
+      const cacheKeyTimetable = `timetable:${student.class_id}:${currentDay}`;
+      let timetableSlots: any = await cacheGet(cacheKeyTimetable);
+      
+      if (!timetableSlots) {
+        const { data } = await supabaseAdmin
+          .from("class_timetables")
+          .select("*")
+          .eq("class_id", student.class_id)
+          .eq("day_of_week", currentDay);
+        timetableSlots = data || [];
+        await cacheSet(cacheKeyTimetable, timetableSlots, 3600); // cache for 1 hour
+      }
 
       if (timetableSlots && timetableSlots.length > 0) {
         for (const slot of timetableSlots) {
@@ -170,7 +199,10 @@ export async function POST(req: NextRequest) {
           const slotEnd = slot.end_time;
 
           if (currentTimeStr >= slotStart && currentTimeStr <= slotEnd) {
-            await supabaseAdmin.from("audit_logs").insert({
+            if (redis) await redis.decr(occupancyKey); // Revert occupancy test
+            
+            // Asynchronous audit logging (don't await to speed up API response)
+            supabaseAdmin.from("audit_logs").insert({
               user_id: student.id,
               user_email: student.email,
               user_role: "student",
@@ -180,15 +212,15 @@ export async function POST(req: NextRequest) {
               reason: `Student has active lecture '${slot.subject}' scheduled from ${slotStart} to ${slotEnd}.`,
               previous_value: { status: "PENDING" },
               new_value: { status: "DENIED", class: student.class_name, subject: slot.subject },
-            });
+            }).then();
 
-            await supabaseAdmin.from("notifications").insert({
+            supabaseAdmin.from("notifications").insert({
               user_id: student.id,
               title: "❌ Bus Boarding Denied",
               message: `You cannot board the campus bus right now because you have an ongoing scheduled class: ${slot.subject} (${slotStart.substring(0, 5)} - ${slotEnd.substring(0, 5)}).`,
               type: "BOARDING",
               is_read: false,
-            });
+            }).then();
 
             return NextResponse.json(
               {
@@ -214,6 +246,7 @@ export async function POST(req: NextRequest) {
     // 6. PREVIEW VERIFY vs CONFIRM BOARDING
     // ─────────────────────────────────────────────────────────────
     if (action === "PREVIEW_VERIFY") {
+      if (redis) await redis.decr(occupancyKey); // Not actually boarding, so revert test
       return NextResponse.json({
         success: true,
         status: "READY_FOR_CONFIRMATION",
@@ -234,7 +267,7 @@ export async function POST(req: NextRequest) {
         bus: {
           busNumber: bus?.bus_number || "Campus Shuttle",
           capacity: bus?.capacity || 32,
-          currentOccupancy: currentBoardedCount || 0,
+          currentOccupancy: currentBoardedCount - 1 || 0, // -1 since we temporarily incremented it
         },
       });
     }
@@ -243,7 +276,10 @@ export async function POST(req: NextRequest) {
 
     // 7a. Create verified attendance record
     const attendanceId = `att-${Date.now()}`;
-    await supabaseAdmin.from("attendance_records").insert({
+    
+    // We do NOT await the insert to Postgres. Let it run asynchronously in the background.
+    // The Redis state represents the source of truth for immediate subsequent scans.
+    const pgPromise = supabaseAdmin.from("attendance_records").insert({
       id: attendanceId,
       student_id: student.id,
       trip_id: tripId,
@@ -256,6 +292,17 @@ export async function POST(req: NextRequest) {
       timestamp,
       // HACK: for backwards compatibility if booking_id was required in DB schema
       booking_id: `att-${Date.now()}` 
+    });
+
+    // Mark as checked-in in Redis instantly
+    await cacheSet(duplicateCheckKey, true, 43200); // 12 hours TTL
+
+    // Fire and forget Postgres DB insert (Vercel will wait for it to resolve before killing edge function)
+    pgPromise.then(({ error: insertErr }) => {
+       if (insertErr) {
+          console.error("Async DB write failed for attendance:", insertErr);
+          // If we had a message queue we'd retry here.
+       }
     });
 
     // 7b. Record Audit Log
