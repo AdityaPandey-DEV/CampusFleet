@@ -42,6 +42,7 @@ export default function CommuteBusSelector({
   const [selectedShiftId, setSelectedShiftId] = useState(shifts[0]?.id || "");
   const [selectedStopId, setSelectedStopId] = useState("");
   const [shiftMessage, setShiftMessage] = useState<{ title: string; message: string; type: "UPCOMING" | "PASSED" } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
 
   const { nextShift, currentDate, getShiftStatus } = useCampusTime();
   const todayStr = currentDate;
@@ -56,6 +57,17 @@ export default function CommuteBusSelector({
       setBuses(store.getBuses());
       setTrips(store.getTrips());
     });
+    
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+        },
+        (error) => console.warn("Geolocation error:", error),
+        { enableHighAccuracy: true }
+      );
+    }
+
     return unsub;
   }, []);
 
@@ -109,6 +121,18 @@ export default function CommuteBusSelector({
 
   const handleBusSelected = (busId: string) => {
     onBusSelected(selectedShiftId, selectedStopId, busId);
+  };
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+      Math.sin(dLon / 2) * Math.sin(dLon / 2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+    return R * c;
   };
 
   const handleShiftClick = (shift: Shift) => {
@@ -166,7 +190,19 @@ export default function CommuteBusSelector({
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {stops.filter(s => s.zoneCode === activeStudent?.zoneCode).sort((a,b) => a.name.localeCompare(b.name)).map((stop, i) => (
+             {stops
+               .filter(s => s.zoneCode === activeStudent?.zoneCode)
+               .map(stop => {
+                 const dist = userLocation 
+                   ? calculateDistance(userLocation.lat, userLocation.lng, Number(stop.latitude), Number(stop.longitude))
+                   : null;
+                 return { ...stop, dist };
+               })
+               .sort((a,b) => {
+                 if (a.dist !== null && b.dist !== null) return a.dist - b.dist;
+                 return a.name.localeCompare(b.name);
+               })
+               .map((stop) => (
                <div key={stop.id} onClick={() => { setSelectedStopId(stop.id); setActiveStep("BUS"); }} className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-green-500 transition-all duration-300">
                  <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-bl-[100px] -z-10" />
                  <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-900/50 flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
@@ -174,7 +210,7 @@ export default function CommuteBusSelector({
                  </div>
                  <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight">{stop.name}</h3>
                  <p className="text-xs text-gray-500 mt-3 flex items-center gap-1.5">
-                   <RouteIcon className="w-3.5 h-3.5" /> Dijkstra Dist: {((i * 1.5) + 0.8).toFixed(1)} km
+                   <RouteIcon className="w-3.5 h-3.5" /> {stop.dist !== null ? `${stop.dist.toFixed(1)} km away` : 'Calculating distance...'}
                  </p>
                </div>
              ))}

@@ -24,6 +24,7 @@ import {
   Zap,
   User,
   LayoutDashboard,
+  Clock,
 } from "lucide-react";
 
 export default function ClientPortalLayout({
@@ -172,6 +173,7 @@ export default function ClientPortalLayout({
   const navLinks = isSubscriptionActive
     ? [
         { href: "/portal", label: "My Commute", icon: Navigation, requiresPayment: false },
+        { href: "/portal/late", label: "Running Late", icon: Clock, requiresPayment: false },
         { href: "/portal/settings", label: "Settings", icon: User, requiresPayment: false },
       ]
     : [
