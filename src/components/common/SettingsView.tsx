@@ -288,15 +288,40 @@ export function SettingsView() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Theme</h3>
-                <p className="text-sm text-gray-500">Switch between light and dark mode</p>
+                <p className="text-sm text-gray-500">Switch between light, dark, or system mode</p>
               </div>
-              <button 
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-none hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-              >
-                {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-              </button>
+              <div className="flex items-center border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900">
+                <button 
+                  onClick={() => setTheme('light')}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+                    theme === 'light' 
+                      ? 'bg-white dark:bg-gray-800 text-blue-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <Sun className="w-4 h-4" /> Light
+                </button>
+                <button 
+                  onClick={() => setTheme('dark')}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+                    theme === 'dark' 
+                      ? 'bg-white dark:bg-gray-800 text-blue-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <Moon className="w-4 h-4" /> Dark
+                </button>
+                <button 
+                  onClick={() => setTheme('system')}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+                    theme === 'system' 
+                      ? 'bg-white dark:bg-gray-800 text-blue-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  System
+                </button>
+              </div>
             </div>
             
             <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
