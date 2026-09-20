@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { sendOtpEmail } from "@/lib/email";
+import { redis } from "@/lib/redis";
 
 // In-memory rate limiting fallback (per-instance, cleared on restart)
 // Production should use Redis via @upstash/redis
@@ -30,7 +31,23 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Rate Limiting ─────────────────────────────────────────────────
-    const rateLimitResult = checkRateLimit(cleanEmail);
+    let rateLimitResult: { allowed: boolean; retryAfterMins?: number; retryAfterSecs?: number } = { allowed: true };
+    if (redis) {
+      const redisRateKey = `rate:otp:${cleanEmail}`;
+      const count = await redis.incr(redisRateKey);
+      if (count === 1) {
+        await redis.expire(redisRateKey, OTP_RATE_WINDOW_MS / 1000);
+      } else if (count > OTP_RATE_LIMIT) {
+        const ttl = await redis.ttl(redisRateKey);
+        rateLimitResult = {
+          allowed: false,
+          retryAfterMins: Math.ceil(ttl / 60),
+          retryAfterSecs: ttl,
+        };
+      }
+    } else {
+      rateLimitResult = checkRateLimit(cleanEmail);
+    }
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { redis } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -234,7 +235,36 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const combined = (sourceBus.occupancy || 0) + (targetBus.occupancy || 0);
+      let sourceOcc = sourceBus.occupancy || 0;
+      let targetOcc = targetBus.occupancy || 0;
+      let sourceTripId = "";
+      let targetTripId = "";
+      
+      const { data: activeTrips } = await supabaseAdmin
+        .from("trips")
+        .select("id, bus_id")
+        .in("bus_id", [sourceBus.id, targetBus.id])
+        .in("status", ["IN_PROGRESS", "SCHEDULED"]);
+        
+      if (activeTrips) {
+         const sourceTrip = activeTrips.find(t => t.bus_id === sourceBus.id);
+         const targetTrip = activeTrips.find(t => t.bus_id === targetBus.id);
+         if (sourceTrip) sourceTripId = sourceTrip.id;
+         if (targetTrip) targetTripId = targetTrip.id;
+      }
+
+      if (redis) {
+         if (sourceTripId) {
+            const val = await redis.get(`occupancy:${sourceTripId}`);
+            if (val) sourceOcc = parseInt(String(val), 10);
+         }
+         if (targetTripId) {
+            const val = await redis.get(`occupancy:${targetTripId}`);
+            if (val) targetOcc = parseInt(String(val), 10);
+         }
+      }
+
+      const combined = sourceOcc + targetOcc;
       if (combined > (targetBus.capacity || 50)) {
         return NextResponse.json(
           {
@@ -246,6 +276,12 @@ export async function POST(req: NextRequest) {
       }
 
       // Execute Merge
+      // 0. Update Redis Capacity Layer
+      if (redis) {
+        if (targetTripId) await redis.set(`occupancy:${targetTripId}`, combined, { ex: 28800 });
+        if (sourceTripId) await redis.del(`occupancy:${sourceTripId}`);
+      }
+
       // 1. Update suggestion status
       await supabaseAdmin
         .from("bus_merge_suggestions")
