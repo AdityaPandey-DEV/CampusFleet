@@ -322,18 +322,11 @@ export default function PortalPaymentsView({
             <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
               Operational Portals
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Link href="/portal" className="p-4 border border-gray-200 dark:border-gray-800 hover:border-blue-500 bg-white dark:bg-gray-900 flex items-center justify-between group transition-all">
                 <div className="flex items-center gap-3">
                   <BusFront className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Cockpit</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600" />
-              </Link>
-              <Link href="/portal/booking" className="p-4 border border-gray-200 dark:border-gray-800 hover:border-blue-500 bg-white dark:bg-gray-900 flex items-center justify-between group transition-all">
-                <div className="flex items-center gap-3">
-                  <CalendarCheck className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Booking</span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600" />
               </Link>
