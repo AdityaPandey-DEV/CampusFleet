@@ -47,13 +47,13 @@ export async function POST(request: NextRequest) {
 
     const host = request.headers.get("host") || "campusfleet.vercel.app";
     const protocol = host.includes("localhost") ? "http" : "https";
-    const callbackUrl = `${protocol}://${host}/portal/payments`;
+    const callbackUrl = `${protocol}://${host}/portal/payments?student_id=${studentId}`;
 
     const options = {
       amount: amountInPaise,
       currency: "INR",
       accept_partial: false,
-      reference_id: `ref_${studentId}_${Date.now()}`.substring(0, 40),
+      reference_id: `ref_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`,
       description: "CampusFleet Transit Pass",
       customer: {
         name: studentRecord?.full_name || session.fullName || "Student",

@@ -122,6 +122,7 @@ export default function PortalPaymentsView({
     const refId = params.get("razorpay_payment_link_reference_id");
     const status = params.get("razorpay_payment_link_status");
     const sig = params.get("razorpay_signature");
+    const studentIdParam = params.get("student_id");
 
     if (paymentId && linkId && sig) {
       setSubmitError(null);
@@ -137,6 +138,7 @@ export default function PortalPaymentsView({
           razorpay_payment_link_reference_id: refId,
           razorpay_payment_link_status: status,
           razorpay_signature: sig,
+          studentId: studentIdParam || activeStudent?.id,
         })
       })
       .then(res => res.json())

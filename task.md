@@ -5,3 +5,4 @@
 - `[x]` Add QR code download feature in Staff Panel for Bus & Seats
 - `[x]` Fix stop filtering in CommuteBusSelector
 - `[x]` Implement assigned trip filtering and Seat QRs in ConductorCockpitView
+- `[x]` Make scanner camera full-screen on `/portal/scan` for better mobile UX

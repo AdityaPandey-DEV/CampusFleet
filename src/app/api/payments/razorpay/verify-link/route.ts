@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
       razorpay_payment_link_id, 
       razorpay_payment_link_reference_id,
       razorpay_payment_link_status,
-      razorpay_signature 
+      razorpay_signature,
+      studentId: providedStudentId
     } = body;
 
     if (!razorpay_payment_id || !razorpay_payment_link_id || !razorpay_signature || !razorpay_payment_link_reference_id || !razorpay_payment_link_status) {
@@ -43,9 +44,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark as paid in database
-    // We get the studentId from the reference_id (ref_{studentId}_{timestamp})
-    const refParts = razorpay_payment_link_reference_id.split("_");
-    const studentId = refParts[1];
+    // Get studentId from the frontend payload or fallback to old reference_id format
+    let studentId = providedStudentId;
+    if (!studentId) {
+      const refParts = razorpay_payment_link_reference_id.split("_");
+      if (refParts.length >= 2 && refParts[1].length > 10) {
+        studentId = refParts[1];
+      }
+    }
 
     if (!studentId) {
       return NextResponse.json({ success: false, error: "Could not determine student ID from payment reference." }, { status: 400 });
