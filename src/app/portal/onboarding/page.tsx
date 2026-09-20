@@ -647,28 +647,6 @@ export default function StudentOnboardingPage() {
             </p>
           </div>
 
-          {/* Primary Boarding Stop (Filtered strictly to selected zone) */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-blue-600" />
-                Primary Boarding Stop ({selectedZoneCode}) *
-              </span>
-            </label>
-            <select
-              value={primaryStopId}
-              onChange={e => setPrimaryStopId(e.target.value)}
-              className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
-            >
-              {stops
-                .filter(st => (st.zoneCode || "ZONE_B") === selectedZoneCode)
-                .map(st => (
-                  <option key={st.id} value={st.id}>
-                    {st.name} ({st.code}) • {st.landmark}
-                  </option>
-                ))}
-            </select>
-          </div>
 
           {/* Emergency Guardian Section */}
           <div className="p-5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
