@@ -86,9 +86,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, message: "Payment verified successfully." });
-  } catch (err: any) {
-    console.error("Razorpay verify-link error:", err);
-    return NextResponse.json({ success: false, error: "Internal server error during verification." }, { status: 500 });
+    // 4. Actively write TRUE to Redis so the user is INSTANTLY authorized on the portal!
+    const { cacheSet } = await import("@/lib/redis");
+    await cacheSet(`student:subscription:${studentId}`, true, 300); // 5 minutes cache
+
+    return NextResponse.json({ success: true, message: "Payment verified and recorded." });
+
+  } catch (error: any) {
+    console.error("Razorpay Link Verification Error:", error);
+    return NextResponse.json({ success: false, error: "Server error verifying payment link." }, { status: 500 });
   }
 }
