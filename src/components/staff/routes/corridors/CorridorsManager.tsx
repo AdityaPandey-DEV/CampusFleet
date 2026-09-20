@@ -750,81 +750,6 @@ export default function CorridorsManager({ mode = "view" }: { mode?: "view" | "c
 
   return (
     <div className="space-y-6 animate-in fade-in pb-12">
-      {/* Top Banner & Two Primary Creation Options */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-blue-900/10  p-6 rounded-3xl border border-blue-200/60 dark:border-blue-900/40">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
-            <Sparkles className="w-4 h-4" />
-            University Transit Network Architect
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2.5 mt-1">
-            <RouteIcon className="w-7 h-7 text-blue-600" />
-            Route Builder & Stops Management
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-2xl">
-            Design multi-stop university transit corridors using the interactive flowchart builder, drop station pins directly on the map, and shift route paths with live OSRM road geometry.
-          </p>
-        </div>
-
-        {/* 2 PRIMARY CREATION OPTIONS */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <Link
-            href="/staff/fleet/routes/stops/create"
-            className="px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-bold text-xs rounded-2xl flex items-center gap-2 border border-gray-200 dark:border-gray-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
-          >
-            <div className="w-6 h-6 rounded-lg bg-green-100 dark:bg-green-950/60 text-green-600 flex items-center justify-center font-bold">
-              <MapPin className="w-3.5 h-3.5" />
-            </div>
-            <span>+ Create Stop</span>
-          </Link>
-
-          <Link
-            href="/staff/fleet/routes/corridors/create"
-            className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-2xl flex items-center gap-2.5 shadow-lg shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-95"
-          >
-            <div className="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center font-bold">
-              <GitBranch className="w-3.5 h-3.5" />
-            </div>
-            <span>+ Create Route (Flowchart Builder)</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Network Topology KPI Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-gray-400">Network Hub Station</span>
-          <div className="text-sm font-black text-gray-900 dark:text-white truncate">
-            {hubStop?.name || "Transit Terminal"}
-          </div>
-          <p className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">Most connected transfer node</p>
-        </div>
-
-        <div className="p-4 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-gray-400">Network Diameter</span>
-          <div className="text-sm font-black text-blue-600 dark:text-blue-400">
-            {networkStats.networkDiameterKm} km
-          </div>
-          <p className="text-[10px] text-gray-400 font-mono">Longest shortest path corridor</p>
-        </div>
-
-        <div className="p-4 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-gray-400">Minimum Spanning Tree</span>
-          <div className="text-sm font-black text-green-600 dark:text-green-400">
-            {networkStats.mstTotalKm} km
-          </div>
-          <p className="text-[10px] text-gray-400 font-mono">Kruskal MST infrastructure span</p>
-        </div>
-
-        <div className="p-4 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-gray-400">Station Density</span>
-          <div className="text-sm font-black text-pink-600 dark:text-pink-400">
-            {networkStats.avgConnectivity} conn / stop
-          </div>
-          <p className="text-[10px] text-gray-400 font-mono">{stops.length} physical stops cataloged</p>
-        </div>
-      </div>
-
       {/* Main Tabs */}
       <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -847,6 +772,16 @@ export default function CorridorsManager({ mode = "view" }: { mode?: "view" | "c
             {isOverrideActive ? "Override Active" : "Emergency Override"}
           </button>
         )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/staff/fleet/routes/stops/create" className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+            <MapPin className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+            <span className="hidden sm:inline">Add Stop</span>
+          </Link>
+          <Link href="/staff/fleet/routes/corridors/create" className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+            <Plus className="w-3.5 h-3.5" />
+            <span>Create Route</span>
+          </Link>
         </div>
       </div>
 
