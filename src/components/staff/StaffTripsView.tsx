@@ -375,125 +375,29 @@ export default function StaffTripsView({
         </div>
       )}
 
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-2.5">
-            <Navigation className="w-7 h-7 text-blue-600" />
-            <span>Trip Schedules & Dispatch Hub</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Dispatch bus services across <strong>Home to Campus</strong>, <strong>Campus to Home</strong>, and <strong>Campus to Campus</strong>. Schedule infinite trips at any custom departure time.
-          </p>
+      {/* Compact Header & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-3">
+        <div className="flex items-center gap-2">
+          <button className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 bg-blue-600 text-white shadow-md shadow-blue-600/20`}>
+            <Navigation className="w-4 h-4" />
+            <span className="hidden sm:inline">Trip Schedules & Dispatch Hub</span>
+          </button>
         </div>
-
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-0">
           <button
             onClick={() => setIsManageShiftsOpen(true)}
-            className="px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-800 dark:text-gray-200 font-bold text-xs rounded-2xl flex items-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95"
+            className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-800 dark:text-gray-200 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
           >
-            <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span>Manage Shift Master ({shifts.length})</span>
+            <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <span className="hidden sm:inline">Manage Shift Master ({shifts.length})</span>
           </button>
-
           <button
             onClick={() => setIsAddTripOpen(true)}
-            className="px-5 py-3 bg-blue-600 hover:bg-blue-500  text-white font-black text-xs rounded-2xl flex items-center gap-2 shadow-lg shadow-blue-600/20 transform active:scale-95 transition-all"
+            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Schedule New Trip</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Schedule New Trip</span>
           </button>
-        </div>
-      </div>
-
-      {/* Quick KPI Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Active Trips */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">Total Trips</span>
-            <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300">
-              <CalendarDays className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mt-2">
-            {stats.total}
-          </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-bold">
-            {stats.confirmedPassengers} Commuters Booked
-          </p>
-        </div>
-
-        {/* Home to Campus Inbound */}
-        <div
-          onClick={() => setSelectedDirection("HOME_TO_CAMPUS")}
-          className={`cursor-pointer bg-white dark:bg-gray-900 rounded-3xl p-5 border transition-all ${selectedDirection === "HOME_TO_CAMPUS"
-              ? "border-blue-500 ring-2 ring-blue-500/20 shadow-md"
-              : "border-gray-200 dark:border-gray-800 hover:border-blue-400"
-            }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
-              Home → Campus
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Home className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 mt-2">
-            {stats.homeToCampus}
-          </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-bold">
-            Morning Inbound Services
-          </p>
-        </div>
-
-        {/* Campus to Home Return */}
-        <div
-          onClick={() => setSelectedDirection("CAMPUS_TO_HOME")}
-          className={`cursor-pointer bg-white dark:bg-gray-900 rounded-3xl p-5 border transition-all ${selectedDirection === "CAMPUS_TO_HOME"
-              ? "border-pink-500 ring-2 ring-pink-500/20 shadow-md"
-              : "border-gray-200 dark:border-gray-800 hover:border-pink-400"
-            }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-pink-600 dark:text-pink-400">
-              Campus → Home
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 flex items-center justify-center">
-              <Building2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-pink-600 dark:text-pink-400 mt-2">
-            {stats.campusToHome}
-          </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-bold">
-            Evening Return Dispersal
-          </p>
-        </div>
-
-        {/* Campus to Campus Inter-Campus */}
-        <div
-          onClick={() => setSelectedDirection("CAMPUS_TO_CAMPUS")}
-          className={`cursor-pointer bg-white dark:bg-gray-900 rounded-3xl p-5 border transition-all ${selectedDirection === "CAMPUS_TO_CAMPUS"
-              ? "border-green-500 ring-2 ring-green-500/20 shadow-md"
-              : "border-gray-200 dark:border-gray-800 hover:border-green-400"
-            }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-green-600 dark:text-green-400">
-              Campus ⇄ Campus
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-green-100 dark:bg-green-950 text-green-600 dark:text-green-400 flex items-center justify-center">
-              <Shuffle className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-green-600 dark:text-green-400 mt-2">
-            {stats.campusToCampus}
-          </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-bold">
-            Inter-Campus Express Shuttles
-          </p>
         </div>
       </div>
 
