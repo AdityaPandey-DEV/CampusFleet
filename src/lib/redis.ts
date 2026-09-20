@@ -34,6 +34,7 @@ export const CACHE_TTL = {
   HOT_DATA_STOPS: 3600, // 1 hour
   HOT_DATA_SHIFTS: 3600, // 1 hour
   HOT_DATA_TRIPS: 60, // 1 minute (changes often with active trips)
+  MASTER_DATA_PERMANENT: 86400, // 24 hours (actively invalidated via webhooks)
 } as const;
 
 /**

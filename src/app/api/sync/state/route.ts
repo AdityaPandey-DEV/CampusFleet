@@ -11,7 +11,7 @@ export async function GET() {
     if (!routes) {
       const { data } = await supabaseAdmin.from("routes").select("*");
       routes = data || [];
-      await cacheSet("campusfleet:state:routes", routes, CACHE_TTL.HOT_DATA_ROUTES);
+      await cacheSet("campusfleet:state:routes", routes, CACHE_TTL.MASTER_DATA_PERMANENT);
     }
 
     // 2. Fetch Stops (cached)
@@ -19,7 +19,7 @@ export async function GET() {
     if (!stops) {
       const { data } = await supabaseAdmin.from("stops").select("*");
       stops = data || [];
-      await cacheSet("campusfleet:state:stops", stops, CACHE_TTL.HOT_DATA_STOPS);
+      await cacheSet("campusfleet:state:stops", stops, CACHE_TTL.MASTER_DATA_PERMANENT);
     }
 
     // 3. Fetch Shifts (cached)
@@ -27,7 +27,7 @@ export async function GET() {
     if (!shifts) {
       const { data } = await supabaseAdmin.from("shifts").select("*");
       shifts = data || [];
-      await cacheSet("campusfleet:state:shifts", shifts, CACHE_TTL.HOT_DATA_SHIFTS);
+      await cacheSet("campusfleet:state:shifts", shifts, CACHE_TTL.MASTER_DATA_PERMANENT);
     }
 
     // 4. Fetch Trips (short TTL cached)
@@ -35,7 +35,7 @@ export async function GET() {
     if (!trips) {
       const { data } = await supabaseAdmin.from("trips").select("*");
       trips = data || [];
-      await cacheSet("campusfleet:state:trips", trips, CACHE_TTL.HOT_DATA_TRIPS);
+      await cacheSet("campusfleet:state:trips", trips, CACHE_TTL.MASTER_DATA_PERMANENT);
     }
 
     // 5. Fetch Stop Routes (cached)
@@ -43,7 +43,7 @@ export async function GET() {
     if (!stopRoutes) {
       const { data } = await supabaseAdmin.from("route_stops").select("*");
       stopRoutes = data || [];
-      await cacheSet("campusfleet:state:stop_routes", stopRoutes, CACHE_TTL.HOT_DATA_ROUTES); // Same TTL as routes
+      await cacheSet("campusfleet:state:stop_routes", stopRoutes, CACHE_TTL.MASTER_DATA_PERMANENT);
     }
 
     // 6. Fetch Buses (cached)
@@ -51,7 +51,7 @@ export async function GET() {
     if (!buses) {
       const { data } = await supabaseAdmin.from("buses").select("*");
       buses = data || [];
-      await cacheSet("campusfleet:state:buses", buses, CACHE_TTL.HOT_DATA_TRIPS); // Changes moderately often
+      await cacheSet("campusfleet:state:buses", buses, CACHE_TTL.MASTER_DATA_PERMANENT);
     }
 
     // Aggregate everything into a single payload

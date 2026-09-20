@@ -94,6 +94,11 @@ export async function POST(req: NextRequest) {
       campus: effectiveCampus,
       department: (department || "").trim() || null,
       semester: (semester || "").trim() || null,
+      year_num: (() => {
+        const sem = (semester || "").trim().replace(/\D/g, ""); // Extract number
+        if (!sem) return null;
+        return String(Math.ceil(Number(sem) / 2));
+      })(),
       zone_code: zoneCode || null,
       primary_stop_id: primaryStopId || null,
       emergency_contact: emergencyContact || null,
@@ -112,7 +117,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (!existingStudentId) {
-      studentData.total_fee_due = 12000;
+      let feeDue = 12000; // default fallback
+      if (zoneCode) {
+        const { data: zone } = await supabaseAdmin.from("transit_zones").select("semester_fee").eq("code", zoneCode).single();
+        if (zone?.semester_fee) {
+          feeDue = Number(zone.semester_fee);
+        }
+      }
+      studentData.total_fee_due = feeDue;
       studentData.total_fee_paid = 0;
       studentData.payment_status = "UNPAID";
     }
