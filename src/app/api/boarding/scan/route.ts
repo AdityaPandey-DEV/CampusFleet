@@ -106,11 +106,32 @@ export async function POST(req: NextRequest) {
     // Check roaming
     const isRoaming = student.primary_route_id !== trip?.route_id;
 
-    // 4. Prevent duplicate check-in (Fast Redis Validation)
+    // 4. Prevent duplicate check-in (Atomic Redis Validation)
     const duplicateCheckKey = `checkin:${tripId}:${resolvedStudentId}`;
-    const alreadyBoarded = await cacheGet(duplicateCheckKey);
     
-    if (alreadyBoarded) {
+    // We use SETNX (Set if Not eXists) with a 12 hour TTL.
+    // If it returns null/false, the key already existed, meaning they already scanned!
+    let isDuplicate = false;
+    if (redis) {
+       // Atomic race-condition prevention
+       const setnxResult = await redis.set(duplicateCheckKey, true, { nx: true, ex: 43200 }); // 12 hours
+       if (!setnxResult) {
+         isDuplicate = true;
+       }
+    } else {
+       // Fallback to DB check if Redis is down
+       const { data: existingAttendance } = await supabaseAdmin
+        .from("attendance_records")
+        .select("id, status, timestamp, method")
+        .eq("student_id", resolvedStudentId)
+        .eq("trip_id", tripId)
+        .limit(1);
+       if (existingAttendance && existingAttendance.length > 0 && existingAttendance[0].status === "BOARDED") {
+         isDuplicate = true;
+       }
+    }
+    
+    if (isDuplicate) {
       return NextResponse.json(
         {
           success: false,
@@ -133,6 +154,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (student.transport_access_suspended) {
+      if (redis) await redis.del(duplicateCheckKey);
       return NextResponse.json(
         { success: false, status: "REJECTED", message: `ACCESS SUSPENDED: Transport access for ${student.full_name} is suspended.` },
         { status: 403 }
@@ -140,6 +162,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (bus && (bus.status === "MAINTENANCE" || bus.status === "INACTIVE")) {
+      if (redis) await redis.del(duplicateCheckKey);
       return NextResponse.json(
         { success: false, status: "VEHICLE_UNAVAILABLE", message: `VEHICLE UNDER MAINTENANCE: Bus ${bus.bus_number} is currently marked ${bus.status}.` },
         { status: 400 }
@@ -153,6 +176,8 @@ export async function POST(req: NextRequest) {
     if (redis) {
       // Temporarily increment to test capacity (we decrement if validation fails later)
       currentBoardedCount = await redis.incr(occupancyKey);
+      // Set an expiry of 8 hours so it auto-heals if something crashes and leaks seats
+      await redis.expire(occupancyKey, 28800);
     } else {
       // Fallback if Redis is down
       const { count } = await supabaseAdmin
@@ -164,7 +189,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (bus && currentBoardedCount > bus.capacity) {
-      if (redis) await redis.decr(occupancyKey); // Revert the test increment
+      if (redis) {
+         await redis.decr(occupancyKey); // Revert the test increment
+         await redis.del(duplicateCheckKey); // Release the boarding lock
+      }
       return NextResponse.json(
         { success: false, status: "CAPACITY_FULL", message: `SEAT CAPACITY REACHED: Bus ${bus.bus_number} is full (${bus.capacity}/${bus.capacity}).` },
         { status: 400 }
@@ -201,8 +229,8 @@ export async function POST(req: NextRequest) {
           if (currentTimeStr >= slotStart && currentTimeStr <= slotEnd) {
             if (redis) await redis.decr(occupancyKey); // Revert occupancy test
             
-            // Asynchronous audit logging (don't await to speed up API response)
-            supabaseAdmin.from("audit_logs").insert({
+            // Audit logging (Awaited to prevent Vercel dropping the promise)
+            await supabaseAdmin.from("audit_logs").insert({
               user_id: student.id,
               user_email: student.email,
               user_role: "student",
@@ -212,15 +240,18 @@ export async function POST(req: NextRequest) {
               reason: `Student has active lecture '${slot.subject}' scheduled from ${slotStart} to ${slotEnd}.`,
               previous_value: { status: "PENDING" },
               new_value: { status: "DENIED", class: student.class_name, subject: slot.subject },
-            }).then();
+            });
 
-            supabaseAdmin.from("notifications").insert({
+            await supabaseAdmin.from("notifications").insert({
               user_id: student.id,
               title: "❌ Bus Boarding Denied",
               message: `You cannot board the campus bus right now because you have an ongoing scheduled class: ${slot.subject} (${slotStart.substring(0, 5)} - ${slotEnd.substring(0, 5)}).`,
               type: "BOARDING",
               is_read: false,
-            }).then();
+            });
+
+            // Revert duplicate lock since we blocked them
+            if (redis) await redis.del(duplicateCheckKey);
 
             return NextResponse.json(
               {
@@ -246,7 +277,10 @@ export async function POST(req: NextRequest) {
     // 6. PREVIEW VERIFY vs CONFIRM BOARDING
     // ─────────────────────────────────────────────────────────────
     if (action === "PREVIEW_VERIFY") {
-      if (redis) await redis.decr(occupancyKey); // Not actually boarding, so revert test
+      if (redis) {
+         await redis.decr(occupancyKey); // Not actually boarding, so revert test
+         await redis.del(duplicateCheckKey); // Remove the boarding lock since they didn't board
+      }
       return NextResponse.json({
         success: true,
         status: "READY_FOR_CONFIRMATION",
@@ -277,33 +311,39 @@ export async function POST(req: NextRequest) {
     // 7a. Create verified attendance record
     const attendanceId = `att-${Date.now()}`;
     
-    // We do NOT await the insert to Postgres. Let it run asynchronously in the background.
-    // The Redis state represents the source of truth for immediate subsequent scans.
-    const pgPromise = supabaseAdmin.from("attendance_records").insert({
+    // We MUST await the insert to Postgres, otherwise Vercel Edge Serverless
+    // might freeze the container execution and the DB write will be lost permanently!
+    const { error: insertErr } = await supabaseAdmin.from("attendance_records").insert({
       id: attendanceId,
       student_id: student.id,
       trip_id: tripId,
       bus_id: resolvedBusId,
-      method: "QR_SCAN",
       status: "BOARDED",
-      verified_by: conductorName,
-      signature_token: `SIG-${Date.now().toString(36).toUpperCase()}`,
-      notes: `Verified by ${conductorName} at ${new Date().toLocaleTimeString()} ${isRoaming ? '(Roaming)' : ''}`,
-      timestamp,
-      // HACK: for backwards compatibility if booking_id was required in DB schema
-      booking_id: `att-${Date.now()}` 
+      method: "QR_SCAN",
+      scanned_by: conductorName,
+      location: null, // Could pull from conductor's GPS
+      timestamp: timestamp,
+      booking_id: `att-${Date.now()}`,
+      metadata: { 
+        conductor: conductorName, 
+        roaming: isRoaming,
+        resolvedBus: bus?.bus_number,
+        timestamp: timestamp
+      }
     });
 
-    // Mark as checked-in in Redis instantly
-    await cacheSet(duplicateCheckKey, true, 43200); // 12 hours TTL
-
-    // Fire and forget Postgres DB insert (Vercel will wait for it to resolve before killing edge function)
-    pgPromise.then(({ error: insertErr }) => {
-       if (insertErr) {
-          console.error("Async DB write failed for attendance:", insertErr);
-          // If we had a message queue we'd retry here.
-       }
-    });
+    if (insertErr) {
+      console.error("Database write failed for attendance:", insertErr);
+      // Revert Redis state if DB fails so they can scan again
+      if (redis) {
+        await redis.decr(occupancyKey);
+        await redis.del(duplicateCheckKey);
+      }
+      return NextResponse.json(
+        { success: false, status: "DATABASE_ERROR", message: "Failed to record attendance check-in." },
+        { status: 500 }
+      );
+    }
 
     // 7b. Record Audit Log
     await supabaseAdmin.from("audit_logs").insert({
