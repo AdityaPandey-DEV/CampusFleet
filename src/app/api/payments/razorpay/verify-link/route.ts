@@ -16,20 +16,20 @@ export async function POST(request: NextRequest) {
       razorpay_payment_link_id, 
       razorpay_payment_link_reference_id,
       razorpay_payment_link_status,
-      razorpay_signature,
-      studentId: providedStudentId
+      razorpay_signature
     } = body;
 
     if (!razorpay_payment_id || !razorpay_payment_link_id || !razorpay_signature || !razorpay_payment_link_reference_id || !razorpay_payment_link_status) {
       return NextResponse.json({ success: false, error: "Missing required payment parameters." }, { status: 400 });
     }
 
-    if (!process.env.RAZORPAY_KEY_SECRET) {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return NextResponse.json(
         { success: false, error: "Razorpay credentials not configured on the server." },
         { status: 500 }
       );
     }
+    const keyId = process.env.RAZORPAY_KEY_ID.trim().replace(/['"]/g, "");
     const keySecret = process.env.RAZORPAY_KEY_SECRET.trim().replace(/['"]/g, "");
 
     // Razorpay signature for payment links:
@@ -43,18 +43,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid payment signature. Verification failed." }, { status: 400 });
     }
 
-    // Mark as paid in database
-    // Get studentId from the frontend payload or fallback to old reference_id format
-    let studentId = providedStudentId;
-    if (!studentId) {
-      const refParts = razorpay_payment_link_reference_id.split("_");
-      if (refParts.length >= 2 && refParts[1].length > 10) {
-        studentId = refParts[1];
+    // --------------------------------------------------------
+    // SECURITY AUDIT: S2S Verification to prevent IDOR and forgery
+    // --------------------------------------------------------
+    const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+    const rzpRes = await fetch(`https://api.razorpay.com/v1/payment_links/${razorpay_payment_link_id}`, {
+      headers: {
+        "Authorization": `Basic ${auth}`
       }
+    });
+
+    if (!rzpRes.ok) {
+      return NextResponse.json({ success: false, error: "Failed to fetch secure payment details from Razorpay." }, { status: 500 });
     }
 
+    const linkData = await rzpRes.json();
+    const studentId = linkData.notes?.studentId;
+    const amountPaid = (linkData.amount_paid || linkData.amount) / 100; // Convert from paise to INR
+
     if (!studentId) {
-      return NextResponse.json({ success: false, error: "Could not determine student ID from payment reference." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Could not determine student ID securely from payment metadata." }, { status: 400 });
     }
 
     const { data: studentRecord, error: fetchError } = await supabaseAdmin
@@ -83,7 +91,7 @@ export async function POST(request: NextRequest) {
         student_id: studentId,
         student_name: studentRecord.full_name || "Student",
         zone_code: studentRecord.zone_code || "ZONE_B",
-        amount: 8545,
+        amount: amountPaid,
         receipt_url: `https://dashboard.razorpay.com/app/payments/${razorpay_payment_id}`,
         transaction_id: razorpay_payment_id,
         auto_detected: true,

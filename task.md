@@ -6,3 +6,4 @@
 - `[x]` Fix stop filtering in CommuteBusSelector
 - `[x]` Implement assigned trip filtering and Seat QRs in ConductorCockpitView
 - `[x]` Make scanner camera full-screen on `/portal/scan` for better mobile UX
+- `[x]` Resolve Razorpay duplicate reference_id error on payment link creation

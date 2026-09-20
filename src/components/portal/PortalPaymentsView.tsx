@@ -138,7 +138,6 @@ export default function PortalPaymentsView({
           razorpay_payment_link_reference_id: refId,
           razorpay_payment_link_status: status,
           razorpay_signature: sig,
-          studentId: studentIdParam || activeStudent?.id,
         })
       })
       .then(res => res.json())
