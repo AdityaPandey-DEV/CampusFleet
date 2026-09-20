@@ -81,56 +81,7 @@ export async function POST(req: NextRequest) {
        await redis.decr(`occupancy:${booking.trip_id}`);
     }
 
-    // 3. Promote standby / waitlisted passenger if any
-    let promotedPassenger: any = null;
-    if (booking.seat_number) {
-      // Atomic Waitlist Retry Loop to prevent Waitlist Promotion Stampede
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const { data: waitlist } = await supabaseAdmin
-          .from("bookings")
-          .select("*")
-          .eq("trip_id", booking.trip_id)
-          .eq("status", "WAITLISTED")
-          .order("waitlist_position", { ascending: true })
-          .limit(1);
 
-        if (!waitlist || waitlist.length === 0) {
-          break; // No one left on waitlist
-        }
-
-        const topStandby = waitlist[0];
-        
-        // ATOMIC PROMOTION: Only update if their status is still WAITLISTED
-        const { data: updatedStandby } = await supabaseAdmin
-          .from("bookings")
-          .update({
-            status: "CONFIRMED",
-            seat_number: booking.seat_number,
-            waitlist_position: null,
-          })
-          .eq("id", topStandby.id)
-          .eq("status", "WAITLISTED")
-          .select()
-          .maybeSingle();
-
-        if (updatedStandby) {
-          promotedPassenger = updatedStandby;
-          // Notify promoted passenger
-          try {
-            await supabaseAdmin.from("notifications").insert({
-              user_id: topStandby.student_id,
-              title: "Standby Promoted to Confirmed Seat! 🎉",
-              message: `A seat opened up on your trip! Seat ${booking.seat_number} has been assigned to you.`,
-              type: "CONFIRMATION",
-              is_read: false,
-            });
-          } catch {}
-          break; // Successfully promoted!
-        }
-        // If updatedStandby is null, another cancellation just promoted this exact student.
-        // The loop will retry and fetch the NEXT waitlisted student.
-      }
-    }
 
     // 4. Log audit entry
     try {
@@ -144,7 +95,6 @@ export async function POST(req: NextRequest) {
           bookingCode: booking.booking_code,
           seatNumber: booking.seat_number,
           reason,
-          promotedBookingId: promotedPassenger?.id || null,
         },
       });
     } catch {}
@@ -153,7 +103,6 @@ export async function POST(req: NextRequest) {
       success: true,
       message: "Seat reservation cancelled successfully. The seat has been released back to available inventory.",
       cancelledBookingId: bookingId,
-      promotedBookingId: promotedPassenger?.id || null,
     });
   } catch (err: any) {
     console.error("Cancel booking API error:", err);
