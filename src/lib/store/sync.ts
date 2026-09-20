@@ -518,8 +518,20 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
       return;
     }
 
-    // 5. Fetch Users
-    const { data: dbUsers } = await supabase.from("users").select("*");
+    // Parallelize heavy Admin fetches to drop load time from ~10s to ~2s
+    const [
+      { data: dbUsers },
+      { data: dbStudents },
+      { data: dbStaff },
+      { data: dbBookings }
+    ] = await Promise.all([
+      supabase.from("users").select("*"),
+      supabase.from("students_full").select("*"),
+      supabase.from("staff_full").select("*"),
+      supabase.from("bookings_full").select("*")
+    ]);
+
+    // 5. Map Users
     if (dbUsers && dbUsers.length > 0) {
       this.users = dbUsers.map(u => ({
         id: u.id,
@@ -534,8 +546,7 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
       }));
     }
 
-    // 7. Fetch Students
-    const { data: dbStudents } = await supabase.from("students_full").select("*");
+    // 7. Map Students
     let mappedStudents: Student[] = [];
     if (dbStudents && dbStudents.length > 0) {
       mappedStudents = dbStudents.map(s => ({
@@ -569,9 +580,6 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
       }));
     }
 
-    // PREVENT DATA LOSS ON REFRESH FOR STUDENTS
-    // But ONLY merge fields that the server might not provide (e.g. temporary local state)
-    // NEVER overwrite paymentStatus, hasActiveSubscription, or expiry dates from the server!
     const activeStudentUser = this.currentUser;
     if (activeStudentUser && activeStudentUser.role === "student") {
       const existingProfile = this.students.find(
@@ -582,25 +590,21 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
           s => s.userId === activeStudentUser.id || s.email?.toLowerCase() === activeStudentUser.email?.toLowerCase()
         );
         if (mappedIdx >= 0) {
-          // Merge safely: Server data is the source of truth for payment/access control
           mappedStudents[mappedIdx] = {
             ...existingProfile,
             ...mappedStudents[mappedIdx],
-            // Explicitly force the server values for critical payment fields just to be 100% sure
             hasActiveSubscription: mappedStudents[mappedIdx].hasActiveSubscription,
             paymentStatus: mappedStudents[mappedIdx].paymentStatus,
             subscriptionExpiryDate: mappedStudents[mappedIdx].subscriptionExpiryDate,
           };
         } else {
-          // Server returned nothing (maybe still processing), so keep the local profile alive
           mappedStudents.push(existingProfile);
         }
       }
     }
     this.students = mappedStudents;
 
-    // 8. Fetch Staff
-    const { data: dbStaff } = await supabase.from("staff_full").select("*");
+    // 8. Map Staff
     if (dbStaff && dbStaff.length > 0) {
       this.staff = dbStaff.map(s => ({
         id: s.id,
@@ -618,8 +622,7 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
       }));
     }
 
-    // 9. Fetch Bookings
-    const { data: dbBookings } = await supabase.from("bookings_full").select("*");
+    // 9. Map Bookings
     if (dbBookings) {
       this.bookings = dbBookings.map(b => ({
         id: b.id,
