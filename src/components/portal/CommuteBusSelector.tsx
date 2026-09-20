@@ -5,7 +5,7 @@ import { store } from "@/lib/store";
 import { formatTime } from "@/lib/utils";
 import { useCampusTime } from "@/components/common/CampusTimeProvider";
 import { Clock, MapPin, BusFront, ChevronRight, Route as RouteIcon } from "lucide-react";
-import type { Student, Shift, Stop, Bus, Trip, Booking } from "@/lib/types";
+import type { Student, Shift, Stop, Bus, Trip, Booking, Route } from "@/lib/types";
 
 export interface CommuteBusSelectorProps {
   onBusSelected: (shiftId: string, stopId: string, busId: string) => void;
@@ -37,6 +37,7 @@ export default function CommuteBusSelector({
   const [stops, setStops] = useState<Stop[]>(() => initialStops.length > 0 ? initialStops : store.getStops());
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
   const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
+  const [routes, setRoutes] = useState<Route[]>(() => store.getRoutes());
 
   const [activeStep, setActiveStep] = useState<"SHIFT" | "STOP" | "BUS" | "MESSAGE">("SHIFT");
   const [selectedShiftId, setSelectedShiftId] = useState(shifts[0]?.id || "");
@@ -116,8 +117,20 @@ export default function CommuteBusSelector({
   }, [trips, selectedShiftId, todayStr]);
 
   const shiftBuses = useMemo(() => {
-    return buses.filter(b => shiftTrips.some(t => t.busId === b.id));
-  }, [buses, shiftTrips]);
+    return buses.filter(b => shiftTrips.some(t => {
+      if (t.busId !== b.id) return false;
+      const route = routes.find(r => r.id === t.routeId);
+      if (!route) return false;
+      // Ensure the route contains the selected stop
+      const stopIndex = route.stops.findIndex(rs => rs.stop.id === selectedStopId);
+      if (stopIndex === -1) return false;
+      
+      // Also optionally check if the bus has already passed this stop
+      // If t.currentStopIndex > stopIndex, it might have passed.
+      // We will just return true for now if it's on the route.
+      return t.currentStopIndex <= stopIndex || t.status === "SCHEDULED" || t.status === "DELAYED";
+    }));
+  }, [buses, shiftTrips, routes, selectedStopId]);
 
   const handleBusSelected = (busId: string) => {
     onBusSelected(selectedShiftId, selectedStopId, busId);

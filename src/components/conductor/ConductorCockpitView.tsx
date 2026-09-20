@@ -110,10 +110,18 @@ export default function ConductorCockpitView({
     return unsub;
   }, []);
 
-  const activeTrip = trips.find(t => t.id === selectedTripId) || trips[0];
-  const bus = buses.find(b => b.id === activeTrip?.busId) || buses[0];
-  const route = routes.find(r => r.id === activeTrip?.routeId) || routes[0];
-  const shift = shifts.find(sh => sh.id === activeTrip?.shiftId) || shifts[0];
+  const myTrips = trips.filter(
+    t => 
+      t.conductorId === currentUser?.id || 
+      t.conductorId === currentUser?.fullName ||
+      t.driverId === currentUser?.id ||
+      t.driverId === currentUser?.fullName
+  );
+
+  const activeTrip = myTrips.find(t => t.id === selectedTripId) || myTrips[0];
+  const bus = buses.find(b => b.id === activeTrip?.busId);
+  const route = routes.find(r => r.id === activeTrip?.routeId);
+  const shift = shifts.find(sh => sh.id === activeTrip?.shiftId);
   const tripBookings = activeTrip ? bookings.filter(b => b.tripId === activeTrip.id) : [];
 
   const totalConfirmed = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
@@ -349,14 +357,15 @@ export default function ConductorCockpitView({
           </div>
         )}
 
-        {trips.length === 0 || !activeTrip ? (
-          <div className="py-20 bg-white dark:bg-gray-900/80 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-center">
-            <BusLoadingScreen
-              compact={false}
-              fullScreen={false}
-              message="Loading Scheduled Bus Trips & Manifests..."
-              subtitle="Synchronizing Realtime Fleet Telematics Database"
-            />
+        {myTrips.length === 0 || !activeTrip ? (
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-400 mb-4">
+              <BusFront className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">No Assigned Trips</h2>
+            <p className="text-gray-500 text-sm max-w-md">
+              You don't have any trips assigned to you as a driver or conductor today. Please contact dispatch if you believe this is an error.
+            </p>
           </div>
         ) : (
           <>
@@ -523,11 +532,11 @@ export default function ConductorCockpitView({
                 <div className="space-y-2.5 text-xs text-gray-700 dark:text-gray-300">
                   <div className="flex justify-between">
                     <span className="text-gray-400 dark:text-gray-500">Vehicle:</span>
-                    <span className="font-bold text-gray-900 dark:text-white">{bus.busNumber} ({bus.registrationNo})</span>
+                    <span className="font-bold text-gray-900 dark:text-white">{bus?.busNumber || "N/A"} ({bus?.registrationNo || "N/A"})</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 dark:text-gray-500">Route:</span>
-                    <span className="font-bold text-green-600 dark:text-green-300">{route.name}</span>
+                    <span className="font-bold text-green-600 dark:text-green-300">{route?.name || "N/A"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 dark:text-gray-500">Scheduled Departure:</span>
@@ -535,7 +544,7 @@ export default function ConductorCockpitView({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 dark:text-gray-500">Total Capacity:</span>
-                    <span className="font-bold font-mono text-gray-900 dark:text-white">{bus.capacity} Seats</span>
+                    <span className="font-bold font-mono text-gray-900 dark:text-white">{bus?.capacity || "N/A"} Seats</span>
                   </div>
                 </div>
 
@@ -984,12 +993,12 @@ export default function ConductorCockpitView({
         {/* Tab 5: Bus QR Display */}
         {activeConsoleTab === "BUS_QR" && activeTrip && bus && (
           <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 animate-in fade-in zoom-in duration-300">
-            <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-2xl max-w-sm w-full border border-gray-200 dark:border-gray-800 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-2xl max-w-4xl w-full border border-gray-200 dark:border-gray-800 text-center">
               <h3 className="font-black text-xl text-gray-900 dark:text-white mb-2 flex items-center justify-center gap-2">
                 <QrCode className="w-6 h-6 text-blue-500" />
                 Bus Self-Boarding QR
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 leading-relaxed max-w-md mx-auto">
                 Display this to students if the physical QR sticker on the bus door is damaged. Students can scan it to securely check-in.
               </p>
               
@@ -1003,13 +1012,39 @@ export default function ConductorCockpitView({
                 />
               </div>
 
-              <div className="mt-8">
+              <div className="mt-8 mb-12">
                 <h4 className="font-black text-2xl text-gray-900 dark:text-white">
                   {bus.busNumber}
                 </h4>
                 <p className="text-sm font-mono font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-lg inline-block px-3 py-1 mt-2">
                   {bus.registrationNo}
                 </p>
+              </div>
+
+              <div className="border-t border-gray-100 dark:border-gray-800 pt-12">
+                <h3 className="font-black text-xl text-gray-900 dark:text-white mb-2">
+                  Seat QRs
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 leading-relaxed max-w-md mx-auto">
+                  Digital backups for individual seat QR codes.
+                </p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {Array.from({ length: bus.capacity }, (_, i) => i + 1).map(seatNum => (
+                    <div key={seatNum} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col items-center">
+                      <div className="text-xs font-black text-gray-500 mb-2">SEAT {seatNum}</div>
+                      <div className="bg-white p-2 rounded-xl mb-2">
+                        <QRCodeSVG
+                          value={JSON.stringify({ type: "SEAT_QR", busId: bus.id, seatId: seatNum, busNumber: bus.busNumber })}
+                          size={80}
+                          bgColor="#ffffff"
+                          fgColor="#000000"
+                          level="H"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
