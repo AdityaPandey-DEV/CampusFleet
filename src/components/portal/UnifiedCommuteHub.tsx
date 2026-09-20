@@ -75,7 +75,7 @@ export default function UnifiedCommuteHub({
   // Auto-switch tabs based on state
   useEffect(() => {
     if (activeBooking && activeTab === "BOOKING") {
-      setActiveTab("PASS");
+      setActiveTab("TRACKER");
     }
   }, [activeBooking]);
 
@@ -147,6 +147,7 @@ export default function UnifiedCommuteHub({
       initialStaff={initialStaff}
       initialStudents={initialStudents}
       isEmbedded={true}
+      activeBooking={activeBooking}
     />
   );
 

@@ -9,6 +9,7 @@ import { formatTime, formatDate } from "@/lib/utils";
 import { useCampusTime } from "@/components/common/CampusTimeProvider";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { NearestStopFinder } from "@/components/booking/NearestStopFinder";
+import { calculateHaversineDistanceKm } from "@/lib/eta-calculator";
 import { BoardingPassCard } from "@/components/ticket/BoardingPassCard";
 import {
   CalendarCheck,
@@ -496,7 +497,34 @@ export default function ShiftBookingView({
                   </div>
                   <button 
                     onClick={() => {
-                      setIsScanningBus(true);
+                      setIsBookingLoading(true);
+                      if ("geolocation" in navigator) {
+                        navigator.geolocation.getCurrentPosition(
+                          (position) => {
+                            const userLat = position.coords.latitude;
+                            const userLon = position.coords.longitude;
+                            const liveLoc = store.getLiveLocation();
+                            const busLat = liveLoc?.latitude || 29.2889; // Default bounds
+                            const busLon = liveLoc?.longitude || 79.4678;
+
+                            const distanceKm = calculateHaversineDistanceKm(userLat, userLon, busLat, busLon);
+                            setIsBookingLoading(false);
+                            
+                            if (distanceKm > 0.2) {
+                              alert("You are too far from the bus! Please go near the bus and try again.");
+                              return;
+                            }
+                            setIsScanningBus(true);
+                          },
+                          (error) => {
+                            setIsBookingLoading(false);
+                            alert("Unable to fetch your location. Please enable location services to claim a seat.");
+                          }
+                        );
+                      } else {
+                        setIsBookingLoading(false);
+                        alert("Geolocation is not supported by your browser.");
+                      }
                     }} 
                     disabled={isBookingLoading}
                     className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 text-white text-sm font-black rounded-2xl hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2"

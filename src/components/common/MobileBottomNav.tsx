@@ -28,13 +28,13 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
   // If no dynamic items provided, default to the student navigation logic
   const defaultNavItems = isPaymentApproved
     ? [
-        { href: "/portal", label: "My Commute", icon: BusFront, highlight: true },
-        { href: "/portal/scan", label: "Scan QR", icon: QrCode },
-        { href: "/portal/settings", label: "Settings", icon: Settings },
-      ]
+      { href: "/portal", label: "My Commute", icon: BusFront, highlight: true },
+      { href: "/portal/Qr", label: "Scan QR", icon: QrCode },
+      { href: "/portal/settings", label: "Settings", icon: Settings },
+    ]
     : [
-        { href: "/portal/payments", label: "Activate Transit Pass", icon: CreditCard },
-      ];
+      { href: "/portal/payments", label: "Activate Transit Pass", icon: CreditCard },
+    ];
 
   const itemsToRender = navItems.length > 0 ? navItems : defaultNavItems;
 
@@ -46,9 +46,8 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
       <div className="max-w-md mx-auto pointer-events-auto">
         <div className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-2xl border border-white/60 dark:border-gray-800/80 rounded-3xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
           <div
-            className={`grid gap-1 items-center ${
-              isPaymentApproved ? "grid-cols-3" : "grid-cols-1"
-            }`}
+            className={`grid gap-1 items-center ${isPaymentApproved ? "grid-cols-3" : "grid-cols-1"
+              }`}
           >
             {itemsToRender.map((item) => {
               const Icon = item.icon;
@@ -71,23 +70,21 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 group active:scale-95 ${
-                    isActive
+                  className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 group active:scale-95 ${isActive
                       ? item.highlight
                         ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 -translate-y-1"
                         : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold"
                       : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                    }`}
                 >
                   <div className="relative">
                     <Icon
-                      className={`w-5 h-5 transition-transform duration-200 ${
-                        isActive
+                      className={`w-5 h-5 transition-transform duration-200 ${isActive
                           ? item.highlight
                             ? "text-white scale-110"
                             : "scale-110"
                           : "group-hover:scale-105"
-                      }`}
+                        }`}
                     />
                     {item.highlight && !isActive && (
                       <span className="absolute -top-1 -right-1 flex h-2 w-2">
@@ -97,9 +94,8 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
                     )}
                   </div>
                   <span
-                    className={`text-[10px] tracking-tight mt-1 truncate max-w-full font-medium ${
-                      isActive ? (item.highlight ? "text-white font-bold" : "font-black") : ""
-                    }`}
+                    className={`text-[10px] tracking-tight mt-1 truncate max-w-full font-medium ${isActive ? (item.highlight ? "text-white font-bold" : "font-black") : ""
+                      }`}
                   >
                     {item.label}
                   </span>

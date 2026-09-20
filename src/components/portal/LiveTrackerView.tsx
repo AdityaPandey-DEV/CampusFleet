@@ -35,7 +35,7 @@ const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"),
   ),
 });
 
-import type { Bus, Route, Stop, Trip, Staff, Student } from "@/lib/types";
+import type { Bus, Route, Stop, Trip, Staff, Student, Booking } from "@/lib/types";
 import BusFullnessRoamingBanner from "./BusFullnessRoamingBanner";
 import BusDepartureAlertModal from "./BusDepartureAlertModal";
 
@@ -48,6 +48,7 @@ export interface LiveTrackerProps {
   initialStaff?: Staff[];
   initialStudents?: Student[];
   isEmbedded?: boolean;
+  activeBooking?: Booking | null;
 }
 
 export default function LiveTrackerView({
@@ -59,6 +60,7 @@ export default function LiveTrackerView({
   initialStaff = [],
   initialStudents = [],
   isEmbedded = false,
+  activeBooking = null,
 }: LiveTrackerProps = {}) {
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
@@ -106,6 +108,10 @@ export default function LiveTrackerView({
 
   // Resolve assigned route dynamically
   const assignedRoute = useMemo(() => {
+    if (activeBooking?.tripId) {
+      const bTrip = trips.find(t => t.id === activeBooking.tripId);
+      if (bTrip) return routes.find(r => r.id === bTrip.routeId) || routes[0];
+    }
     if (selectedRouteId) {
       return routes.find(r => r.id === selectedRouteId) || routes[0];
     }
@@ -113,10 +119,13 @@ export default function LiveTrackerView({
       return routes.find(r => r.id === activeStudent.primaryRouteId) || routes[0];
     }
     return routes[0];
-  }, [routes, selectedRouteId, activeStudent]);
+  }, [routes, selectedRouteId, activeStudent, activeBooking, trips]);
 
   // Resolve pickup stop dynamically
   const pickupStop = useMemo(() => {
+    if (activeBooking?.boardingStopId) {
+      return stops.find(s => s.id === activeBooking.boardingStopId);
+    }
     if (inspectedStopId) {
       return stops.find(s => s.id === inspectedStopId);
     }
@@ -127,10 +136,18 @@ export default function LiveTrackerView({
       return assignedRoute.stops[0].stop;
     }
     return stops[0];
-  }, [stops, inspectedStopId, activeStudent, assignedRoute]);
+  }, [stops, inspectedStopId, activeStudent, assignedRoute, activeBooking]);
 
-  const activeTrip = trips.find(t => t.routeId === assignedRoute?.id) || trips[0];
-  const assignedBus = buses.find(b => b.id === (activeTrip?.busId || liveLocation?.busId)) || buses[0];
+  const activeTrip = useMemo(() => {
+    if (activeBooking?.tripId) return trips.find(t => t.id === activeBooking.tripId) || trips[0];
+    return trips.find(t => t.routeId === assignedRoute?.id) || trips[0];
+  }, [trips, assignedRoute, activeBooking]);
+
+  const assignedBus = useMemo(() => {
+    if (activeBooking?.busId) return buses.find(b => b.id === activeBooking.busId) || buses[0];
+    return buses.find(b => b.id === (activeTrip?.busId || liveLocation?.busId)) || buses[0];
+  }, [buses, activeTrip, activeBooking, liveLocation]);
+
   const assignedDriver = store.getStaff().find((s) => s.id === activeTrip?.driverId);
   const shifts = store.getShifts();
   const activeShift = shifts.find((s) => s.id === activeTrip?.shiftId);
@@ -258,7 +275,7 @@ export default function LiveTrackerView({
         </p>
         <Link
           href="/staff/fleet/routes"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition-all"
         >
           <Plus className="w-4 h-4" />
           Create Stops & Routes in Staff Console →
@@ -268,11 +285,11 @@ export default function LiveTrackerView({
   }
 
   return (
-    <div className={`${isEmbedded ? "h-full flex flex-col space-y-4" : "space-y-6"} animate-in fade-in`}>
+    <div className={`${isEmbedded ? "h-full flex flex-col space-y-4" : "space-y-6"} animate-in fade-in zoom-in-95 pb-24`}>
       {!isEmbedded && (
         <Link
           href="/portal"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         >
           ← Back to My Commute Cockpit
         </Link>
@@ -295,20 +312,22 @@ export default function LiveTrackerView({
 
         {/* Route Selector Dropdown & Live Pulse */}
         <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={selectedRouteId || assignedRoute?.id || ""}
-            onChange={e => {
-              setSelectedRouteId(e.target.value);
-              setInspectedStopId("");
-            }}
-            className="text-xs font-bold bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 outline-none shadow-sm cursor-pointer text-gray-900 dark:text-white"
-          >
-            {routes.map(r => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+          {!activeBooking && (
+            <select
+              value={selectedRouteId || assignedRoute?.id || ""}
+              onChange={e => {
+                setSelectedRouteId(e.target.value);
+                setInspectedStopId("");
+              }}
+              className="text-xs font-bold bg-white dark:bg-gray-800/60 backdrop-blur-xl border border-gray-200 dark:border-gray-800/60 rounded-xl px-3 py-2 outline-none shadow-sm cursor-pointer text-gray-900 dark:text-white transition-all hover:border-gray-300"
+            >
+              {routes.map(r => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          )}
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 dark:bg-green-950/60 border border-green-300 dark:border-green-800 text-xs font-bold text-green-800 dark:text-green-300 shadow-sm">
             <span className={`w-2.5 h-2.5 rounded-full ${isTripInProgress ? "bg-green-500 animate-ping" : "bg-yellow-500"}`} />
@@ -350,30 +369,32 @@ export default function LiveTrackerView({
             <Compass className="w-5 h-5 text-blue-600" />
             <h2 className="text-lg font-black tracking-tight text-gray-900 dark:text-white">Live Radar</h2>
           </div>
-          <select
-            value={selectedRouteId || assignedRoute?.id || ""}
-            onChange={e => {
-              setSelectedRouteId(e.target.value);
-              setInspectedStopId("");
-            }}
-            className="text-xs font-bold bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 outline-none shadow-sm cursor-pointer text-gray-900 dark:text-white"
-          >
-            {routes.map(r => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
+          {!activeBooking && (
+            <select
+              value={selectedRouteId || assignedRoute?.id || ""}
+              onChange={e => {
+                setSelectedRouteId(e.target.value);
+                setInspectedStopId("");
+              }}
+              className="text-xs font-bold bg-white dark:bg-gray-800/60 backdrop-blur-xl border border-gray-200 dark:border-gray-800/60 rounded-xl px-3 py-1.5 outline-none shadow-sm cursor-pointer text-gray-900 dark:text-white transition-all"
+            >
+              {routes.map(r => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          )}
         </div>
       )}
 
       {/* View Mode Switcher Header */}
-      <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${isEmbedded ? "px-1" : "bg-white dark:bg-gray-900 p-3 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm"}`}>
-        <div className={`flex items-center gap-1.5 p-1 ${isEmbedded ? "bg-gray-100 dark:bg-gray-800" : "bg-gray-100 dark:bg-gray-800/80"} rounded-xl w-full sm:w-auto`}>
+      <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${isEmbedded ? "px-1" : "bg-white dark:bg-gray-800/60 backdrop-blur-xl p-3 rounded-3xl border border-gray-200 dark:border-gray-800/60 shadow-xl"}`}>
+        <div className={`flex items-center gap-1.5 p-1 ${isEmbedded ? "bg-white dark:bg-gray-800/60 shadow-sm border border-gray-200 dark:border-gray-800/60 rounded-2xl" : "bg-gray-50 dark:bg-gray-900 rounded-2xl"} w-full sm:w-auto`}>
           <button
             onClick={() => setTrackingMode("FLOWCHART")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               trackingMode === "FLOWCHART"
-                ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+                ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md scale-100"
+                : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:scale-[1.02]"
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -381,13 +402,13 @@ export default function LiveTrackerView({
           </button>
           <button
             onClick={() => setTrackingMode("MAP")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               trackingMode === "MAP"
-                ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+                ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md scale-100"
+                : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:scale-[1.02]"
             }`}
           >
-            <Navigation className="w-3.5 h-3.5" />
+            <MapPin className="w-3.5 h-3.5" />
             <span>Satellite 2D Map</span>
           </button>
         </div>
