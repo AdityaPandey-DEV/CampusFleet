@@ -389,47 +389,49 @@ CampusFleetStore.prototype.syncLiveTransit = async function(this: CampusFleetSto
       }));
     }
 
-    // 12. Fetch Attendance Records
-    const { data: dbAttendance } = await supabase
-      .from("attendance_records")
-      .select("*")
-      .order("timestamp", { ascending: false })
-      .limit(100);
-    if (dbAttendance && dbAttendance.length > 0) {
-      this.attendanceRecords = dbAttendance.map(a => ({
-        id: a.id,
-        studentId: a.student_id,
-        bookingId: a.booking_id || "",
-        tripId: a.trip_id,
-        method: a.method || "QR_SCAN",
-        status: a.status || "BOARDED",
-        verifiedBy: a.verified_by || a.conductor_id || "Conductor Terminal",
-        signatureToken: a.signature_token || "",
-        notes: a.notes,
-        timestamp: a.timestamp || new Date().toISOString(),
-      }));
-    }
+    // 12. Fetch Attendance Records (ONLY FOR STAFF)
+    if (this.currentUser?.role !== "student") {
+      const { data: dbAttendance } = await supabase
+        .from("attendance_records")
+        .select("*")
+        .order("timestamp", { ascending: false })
+        .limit(100);
+      if (dbAttendance && dbAttendance.length > 0) {
+        this.attendanceRecords = dbAttendance.map(a => ({
+          id: a.id,
+          studentId: a.student_id,
+          bookingId: a.booking_id || "",
+          tripId: a.trip_id,
+          method: a.method || "QR_SCAN",
+          status: a.status || "BOARDED",
+          verifiedBy: a.verified_by || a.conductor_id || "Conductor Terminal",
+          signatureToken: a.signature_token || "",
+          notes: a.notes,
+          timestamp: a.timestamp || new Date().toISOString(),
+        }));
+      }
 
-    // 13. Fetch Vehicle Issues
-    const { data: dbIssues } = await supabase
-      .from("vehicle_issues_full")
-      .select("*")
-      .order("reported_at", { ascending: false })
-      .limit(50);
-    if (dbIssues && dbIssues.length > 0) {
-      this.issues = dbIssues.map(i => ({
-        id: i.id,
-        busId: i.bus_id,
-        busNumber: i.bus_number,
-        reportedBy: i.reported_by,
-        issueType: i.issue_type,
-        severity: i.severity,
-        description: i.description,
-        status: i.status || "OPEN",
-        location: (i.latitude && i.longitude) ? { latitude: i.latitude, longitude: i.longitude } : undefined,
-        reportedAt: i.reported_at,
-        resolvedAt: i.resolved_at,
-      }));
+      // 13. Fetch Vehicle Issues (ONLY FOR STAFF)
+      const { data: dbIssues } = await supabase
+        .from("vehicle_issues_full")
+        .select("*")
+        .order("reported_at", { ascending: false })
+        .limit(50);
+      if (dbIssues && dbIssues.length > 0) {
+        this.issues = dbIssues.map(i => ({
+          id: i.id,
+          busId: i.bus_id,
+          busNumber: i.bus_number,
+          reportedBy: i.reported_by,
+          issueType: i.issue_type,
+          severity: i.severity,
+          description: i.description,
+          status: i.status || "OPEN",
+          location: (i.latitude && i.longitude) ? { latitude: i.latitude, longitude: i.longitude } : undefined,
+          reportedAt: i.reported_at,
+          resolvedAt: i.resolved_at,
+        }));
+      }
     }
 
     this.notify();

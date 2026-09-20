@@ -4,6 +4,7 @@ import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
 import { getSessionFromRequest } from "@/lib/jwt";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge"; // Edge runtime for ultra-fast, low-latency execution
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,72 +14,47 @@ export async function GET(request: NextRequest) {
     if (!isCron) {
       const session = await getSessionFromRequest(request);
       if (!session) {
-        return NextResponse.json({ success: false, error: "Unauthorized access to master data." }, { status: 401 });
+        return NextResponse.json({ success: false, error: "Unauthorized access to state data." }, { status: 401 });
       }
     }
-    // 1. Fetch Routes (cached)
-    let routes = await cacheGet("campusfleet:state:routes");
-    if (!routes) {
-      const { data } = await supabaseAdmin.from("routes").select("*");
-      routes = data || [];
-      await cacheSet("campusfleet:state:routes", routes, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
 
-    // 2. Fetch Stops (cached)
-    let stops = await cacheGet("campusfleet:state:stops");
-    if (!stops) {
-      const { data } = await supabaseAdmin.from("stops").select("*");
-      stops = data || [];
-      await cacheSet("campusfleet:state:stops", stops, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
+    // PHASE 9 OPTIMIZATION: 
+    // Stripped redundant Master Data (routes, stops, shifts, campuses). 
+    // The client already fetches these once via ISR from /api/sync/master.
+    // We only fetch volatile live state (trips & buses) here, and we run them in parallel to drop latency.
 
-    // 3. Fetch Shifts (cached)
-    let shifts = await cacheGet("campusfleet:state:shifts");
-    if (!shifts) {
-      const { data } = await supabaseAdmin.from("shifts").select("*");
-      shifts = data || [];
-      await cacheSet("campusfleet:state:shifts", shifts, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
-
-    // 4. Fetch Trips (short TTL cached)
-    let trips = await cacheGet("campusfleet:state:trips");
-    if (!trips) {
-      const { data } = await supabaseAdmin.from("trips").select("*");
-      trips = data || [];
-      await cacheSet("campusfleet:state:trips", trips, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
-
-    // 5. Fetch Stop Routes (cached)
-    let stopRoutes = await cacheGet("campusfleet:state:stop_routes");
-    if (!stopRoutes) {
-      const { data } = await supabaseAdmin.from("route_stops").select("*");
-      stopRoutes = data || [];
-      await cacheSet("campusfleet:state:stop_routes", stopRoutes, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
-
-    // 6. Fetch Buses (cached)
-    let buses = await cacheGet("campusfleet:state:buses");
-    if (!buses) {
-      const { data } = await supabaseAdmin.from("buses").select("*");
-      buses = data || [];
-      await cacheSet("campusfleet:state:buses", buses, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
+    const [tripsData, busesData] = await Promise.all([
+      (async () => {
+        let trips = await cacheGet("campusfleet:state:trips");
+        if (!trips) {
+          const { data } = await supabaseAdmin.from("trips").select("*");
+          trips = data || [];
+          await cacheSet("campusfleet:state:trips", trips, CACHE_TTL.MASTER_DATA_PERMANENT);
+        }
+        return trips;
+      })(),
+      (async () => {
+        let buses = await cacheGet("campusfleet:state:buses");
+        if (!buses) {
+          const { data } = await supabaseAdmin.from("buses").select("*");
+          buses = data || [];
+          await cacheSet("campusfleet:state:buses", buses, CACHE_TTL.MASTER_DATA_PERMANENT);
+        }
+        return buses;
+      })()
+    ]);
 
     // If it's a cron job, just return a small payload to avoid response size limits
     if (isCron) {
-      return NextResponse.json({ success: true, message: "Cache warmed successfully by cron" });
+      return NextResponse.json({ success: true, message: "Live state cache warmed successfully by cron" });
     }
 
-    // Aggregate everything into a single payload
+    // Aggregate into a minimal, lightning-fast payload
     return NextResponse.json({
       success: true,
       data: {
-        routes,
-        stops,
-        shifts,
-        trips,
-        stopRoutes,
-        buses,
+        trips: tripsData,
+        buses: busesData,
       },
     });
   } catch (error: any) {
