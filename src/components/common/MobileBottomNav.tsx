@@ -11,6 +11,7 @@ import {
   Zap,
   User,
   LayoutDashboard,
+  BusFront,
 } from "lucide-react";
 
 interface MobileBottomNavItem {
@@ -32,9 +33,8 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
   const defaultNavItems = isPaymentApproved
     ? [
         { href: "/portal", label: "Hub", icon: LayoutDashboard },
-        { href: "/portal/booking", label: "Seats", icon: CalendarCheck },
-        { href: "/portal/pass", label: "Pass", icon: QrCode, highlight: true },
-        { href: "/portal/tracker", label: "Radar", icon: Compass },
+        { href: "/portal/commute", label: "My Commute", icon: BusFront, highlight: true },
+        { href: "/portal/running-late", label: "Late?", icon: Zap },
         { href: "/portal/profile", label: "Profile", icon: User },
       ]
     : [
@@ -52,7 +52,7 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
         <div className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-2xl border border-white/60 dark:border-gray-800/80 rounded-3xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
           <div
             className={`grid gap-1 items-center ${
-              isPaymentApproved ? "grid-cols-5" : "grid-cols-1"
+              isPaymentApproved ? "grid-cols-4" : "grid-cols-1"
             }`}
           >
             {itemsToRender.map((item) => {

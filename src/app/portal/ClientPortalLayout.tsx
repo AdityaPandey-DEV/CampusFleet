@@ -199,10 +199,10 @@ export default function ClientPortalLayout({
         mobilePrimaryAction={
           isSubscriptionActive
             ? {
-                label: "Live GPS Bus Radar",
-                href: "/portal/tracker",
-                subtitle: "Track real-time bus locations & arrival ETA",
-                icon: Navigation,
+                label: "My Commute Hub",
+                href: "/portal/commute",
+                subtitle: "Book seats, view pass & track buses",
+                icon: BusFront,
               }
             : {
                 label: "Activate Transit Pass",
