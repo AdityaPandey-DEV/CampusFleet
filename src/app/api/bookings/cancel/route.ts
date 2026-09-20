@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSessionFromRequest } from "@/lib/jwt";
+import { redis } from "@/lib/redis";
 
 // POST /api/bookings/cancel
 export async function POST(req: NextRequest) {
@@ -74,40 +75,60 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: cancelErr.message }, { status: 500 });
     }
 
+    // 2b. Redis Unboarding Sync
+    // If the student had already physically boarded, decrement the live capacity tracker
+    if (booking.status === "BOARDED" && redis) {
+       await redis.decr(`occupancy:${booking.trip_id}`);
+    }
+
     // 3. Promote standby / waitlisted passenger if any
     let promotedPassenger: any = null;
     if (booking.seat_number) {
-      const { data: waitlist } = await supabaseAdmin
-        .from("bookings")
-        .select("*")
-        .eq("trip_id", booking.trip_id)
-        .eq("status", "WAITLISTED")
-        .order("waitlist_position", { ascending: true })
-        .limit(1);
+      // Atomic Waitlist Retry Loop to prevent Waitlist Promotion Stampede
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: waitlist } = await supabaseAdmin
+          .from("bookings")
+          .select("*")
+          .eq("trip_id", booking.trip_id)
+          .eq("status", "WAITLISTED")
+          .order("waitlist_position", { ascending: true })
+          .limit(1);
 
-      if (waitlist && waitlist.length > 0) {
+        if (!waitlist || waitlist.length === 0) {
+          break; // No one left on waitlist
+        }
+
         const topStandby = waitlist[0];
-        await supabaseAdmin
+        
+        // ATOMIC PROMOTION: Only update if their status is still WAITLISTED
+        const { data: updatedStandby } = await supabaseAdmin
           .from("bookings")
           .update({
             status: "CONFIRMED",
             seat_number: booking.seat_number,
             waitlist_position: null,
           })
-          .eq("id", topStandby.id);
+          .eq("id", topStandby.id)
+          .eq("status", "WAITLISTED")
+          .select()
+          .maybeSingle();
 
-        promotedPassenger = topStandby;
-
-        // Notify promoted passenger
-        try {
-          await supabaseAdmin.from("notifications").insert({
-            user_id: topStandby.student_id,
-            title: "Standby Promoted to Confirmed Seat! 🎉",
-            message: `A seat opened up on your trip! Seat ${booking.seat_number} has been assigned to you.`,
-            type: "CONFIRMATION",
-            is_read: false,
-          });
-        } catch {}
+        if (updatedStandby) {
+          promotedPassenger = updatedStandby;
+          // Notify promoted passenger
+          try {
+            await supabaseAdmin.from("notifications").insert({
+              user_id: topStandby.student_id,
+              title: "Standby Promoted to Confirmed Seat! 🎉",
+              message: `A seat opened up on your trip! Seat ${booking.seat_number} has been assigned to you.`,
+              type: "CONFIRMATION",
+              is_read: false,
+            });
+          } catch {}
+          break; // Successfully promoted!
+        }
+        // If updatedStandby is null, another cancellation just promoted this exact student.
+        // The loop will retry and fetch the NEXT waitlisted student.
       }
     }
 
