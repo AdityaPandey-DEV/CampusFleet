@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getTodayIST } from "@/lib/time-manager";
+import { redis } from "@/lib/redis";
 
 // GET /api/shuttles/incoming-claim?stopId=...
 // Retrieve incoming buses approaching the specified stop with free seats and merge stop info
@@ -203,7 +204,30 @@ export async function POST(req: NextRequest) {
     const bus = trip.buses;
     const capacity = bus.capacity || 50;
 
-    // 3. Count occupied seated bookings
+    // 3. Count occupied seated bookings & check capacity via Redis
+    const occupancyKey = `occupancy:${tripId}`;
+    let currentOccupancy = 0;
+    
+    if (redis) {
+      const exists = await redis.exists(occupancyKey);
+      if (!exists) {
+        const { count } = await supabaseAdmin
+          .from("attendance_records")
+          .select("*", { count: "exact", head: true })
+          .eq("trip_id", tripId)
+          .eq("status", "BOARDED");
+        await redis.set(occupancyKey, count || 0, { nx: true, ex: 28800 });
+      }
+      currentOccupancy = parseInt(await redis.get(occupancyKey) || "0", 10);
+    } else {
+      const { count } = await supabaseAdmin
+        .from("attendance_records")
+        .select("*", { count: "exact", head: true })
+        .eq("trip_id", tripId)
+        .eq("status", "BOARDED");
+      currentOccupancy = count || 0;
+    }
+
     const { data: seatedBookings } = await supabaseAdmin
       .from("bookings")
       .select("seat_number")
@@ -211,13 +235,13 @@ export async function POST(req: NextRequest) {
       .in("status", ["CONFIRMED", "BOARDED"])
       .neq("passenger_type", "STANDING_TILL_MERGE");
 
-    const occupiedCount = (seatedBookings || []).length;
-    const hasFreeSeat = occupiedCount < capacity;
+    const hasFreeSeat = currentOccupancy < capacity;
 
     let allocatedSeatNumber = "";
     let passengerType = "SEATED";
     let mergeStopName = "";
     let mergeStopId = "";
+    let redisSeatLockAcquired = false;
 
     if (hasFreeSeat) {
       // Find lowest unallocated seat number (1..capacity)
@@ -225,15 +249,31 @@ export async function POST(req: NextRequest) {
       for (let i = 1; i <= capacity; i++) {
         const candidate = `${i}`;
         if (!takenSeats.has(candidate) && !takenSeats.has(`${candidate}A`) && !takenSeats.has(`${candidate}B`)) {
-          allocatedSeatNumber = candidate;
-          break;
+          if (redis) {
+            const seatLockKey = `seat_lock:${tripId}:${candidate}`;
+            const locked = await redis.set(seatLockKey, student.id, { nx: true, ex: 60 });
+            if (locked) {
+              allocatedSeatNumber = candidate;
+              redisSeatLockAcquired = true;
+              break;
+            }
+          } else {
+            allocatedSeatNumber = candidate;
+            break;
+          }
         }
       }
-      if (!allocatedSeatNumber) allocatedSeatNumber = `${occupiedCount + 1}`;
-      passengerType = "SEATED";
+      
+      // If we couldn't secure a lock, fallback to standing passenger
+      if (!allocatedSeatNumber) {
+        passengerType = "STANDING_TILL_MERGE";
+      }
     } else {
-      // BUS IS FULL: Assign standing passenger pass till merge stop!
       passengerType = "STANDING_TILL_MERGE";
+    }
+
+    if (passengerType === "STANDING_TILL_MERGE") {
+      // BUS IS FULL: Assign standing passenger pass till merge stop!
       allocatedSeatNumber = "STANDING";
 
       // Find nearest designated merge stop
@@ -285,13 +325,18 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
 
-    if (bookErr) throw bookErr;
+    if (bookErr) {
+      if (redis && redisSeatLockAcquired) {
+        await redis.del(`seat_lock:${tripId}:${allocatedSeatNumber}`);
+      }
+      throw bookErr;
+    }
 
-    // 5. Update bus occupancy in database
-    await supabaseAdmin
-      .from("buses")
-      .update({ occupancy: (bus.occupancy || 0) + 1 })
-      .eq("id", bus.id);
+    // 5. Update bus occupancy in Redis
+    if (redis) {
+      await redis.incr(`occupancy:${tripId}`);
+      await redis.expire(`occupancy:${tripId}`, 28800);
+    }
 
     // 6. Audit trail
     await supabaseAdmin.from("audit_logs").insert({
