@@ -1,0 +1,15 @@
+
+> campusfleet@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 1270ms
+ ○ Compiling /portal/commute ...
+ ✓ Compiled /portal/commute in 4s (1704 modules)
+ ✓ Compiled in 862ms (805 modules)
+ ✓ Compiled in 54ms (786 modules)
+ GET /portal/commute 200 in 7101ms

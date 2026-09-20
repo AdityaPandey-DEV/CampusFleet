@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import StudentPortalView from "@/components/portal/StudentPortalView";
+import UnifiedCommuteHub from "@/components/portal/UnifiedCommuteHub";
 import type { Student, Bus, Route, Stop, Shift, Trip, Booking, Staff } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -167,17 +167,16 @@ export default async function StudentPortalPage() {
   }));
 
   return (
-    <StudentPortalView
-      initialUser={{ ...session, id: session.userId }}
-      initialStudent={currentStudent}
+    <UnifiedCommuteHub
+      initialUser={session}
       initialStudents={students}
       initialBuses={buses}
-      initialRoutes={routes}
-      initialStops={stops}
-      initialShifts={shifts}
       initialTrips={trips}
+      initialShifts={shifts}
+      initialStops={stops}
       initialBookings={bookings}
       initialStaff={staff}
+      initialRoutes={routes}
     />
   );
 }

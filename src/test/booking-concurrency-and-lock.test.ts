@@ -20,9 +20,11 @@ describe("Shift-Level Booking Lock & Concurrency Integrity Tests", () => {
     primaryRouteId: "route-blue",
     transportAccessSuspended: false,
     hasActiveSubscription: true,
-    subscriptionPlan: "SEMESTER",
-    subscriptionStatus: "ACTIVE",
-    subscriptionEndDate: "2026-12-31",
+    emergencyContact: {
+      name: "Parent",
+      relationship: "Parent",
+      phone: "+91 9876543210"
+    }
   };
 
   const mockBus1: Bus = {

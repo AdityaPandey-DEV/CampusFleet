@@ -21,6 +21,13 @@ describe("Attendance and Passport Photo Anti-Impersonation Verification", () => 
         photoUrl: "",
         photoLocked: false,
         hasActiveSubscription: true,
+        primaryRouteId: "",
+        transportAccessSuspended: false,
+        emergencyContact: {
+          name: "Parent",
+          relationship: "Parent",
+          phone: "+91 98765 43210"
+        }
       };
       (store as any).students.push(newStudent);
     } else {
@@ -103,8 +110,7 @@ describe("Attendance and Passport Photo Anti-Impersonation Verification", () => 
         seatNumber: "12A",
         status: "CONFIRMED",
         bookingDate: new Date().toISOString().split("T")[0],
-        pickupStopId: "stop-1",
-        dropStopId: "stop-campus",
+        boardingStopId: "stop-1",
         createdAt: new Date().toISOString(),
       };
       (store as any).bookings.push(testBooking);

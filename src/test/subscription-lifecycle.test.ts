@@ -12,16 +12,22 @@ describe("Student Subscription Lifecycle Engine", () => {
     userId: "usr-101",
     fullName: "Aarav Sharma",
     email: "aarav@gehu.ac.in",
-    contactNo: "+919876543210",
-    pickupStopId: "stop-kathgodam",
-    stopName: "Kathgodam Station",
+    phone: "+919876543210",
+    primaryStopId: "stop-kathgodam",
     zoneCode: "ZONE_B",
-    morningBusId: "bus-101",
-    eveningBusId: "bus-101",
     hasActiveSubscription: false,
     paymentStatus: "UNPAID",
     totalFeePaid: 0,
     subscriptionExpiryDate: "2026-12-31",
+    department: "Computer Science",
+    semester: "4th",
+    primaryRouteId: "route-1",
+    transportAccessSuspended: false,
+    emergencyContact: {
+      name: "Parent",
+      relationship: "Parent",
+      phone: "+919876543210"
+    }
   };
 
   describe("isStudentSubscriptionActive()", () => {

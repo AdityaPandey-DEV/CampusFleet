@@ -204,6 +204,7 @@ describe("CampusFleet Daily Operations & Rollover Engine Tests", () => {
       startTime: "07:30",
       endTime: "08:45",
       bookingCutoffMins: 30,
+      direction: "HOME_TO_CAMPUS",
     },
     {
       id: "shift-2",
@@ -212,6 +213,7 @@ describe("CampusFleet Daily Operations & Rollover Engine Tests", () => {
       startTime: "16:30",
       endTime: "17:45",
       bookingCutoffMins: 45,
+      direction: "CAMPUS_TO_HOME",
     },
   ];
 

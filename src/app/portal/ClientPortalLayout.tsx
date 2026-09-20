@@ -171,10 +171,8 @@ export default function ClientPortalLayout({
   // 2. If Paid & Active: Show Commute Cockpit, Seat Booking, Digital Pass, Live Radar (Fee payment form deactivated)
   const navLinks = isSubscriptionActive
     ? [
-        { href: "/portal", label: "Overview", icon: LayoutDashboard, requiresPayment: false },
-        { href: "/portal/commute", label: "My Commute", icon: Navigation, requiresPayment: false },
-        { href: "/portal/running-late", label: "Running Late", icon: Zap, requiresPayment: false },
-        { href: "/portal/profile", label: "Profile", icon: User, requiresPayment: false },
+        { href: "/portal", label: "My Commute", icon: Navigation, requiresPayment: false },
+        { href: "/portal/settings", label: "Settings", icon: User, requiresPayment: false },
       ]
     : [
         { href: "/portal/payments", label: "Pass Activation & Fees", icon: CreditCard, requiresPayment: false },
@@ -198,12 +196,12 @@ export default function ClientPortalLayout({
         onOpenSOS={() => setIsSOSOpen(true)}
         mobilePrimaryAction={
           isSubscriptionActive
-            ? {
-                label: "My Commute Hub",
-                href: "/portal/commute",
-                subtitle: "Book seats, view pass & track buses",
-                icon: BusFront,
-              }
+              ? {
+                  label: "My Commute Hub",
+                  href: "/portal",
+                  subtitle: "Book seats, view pass & track buses",
+                  icon: BusFront,
+                }
             : {
                 label: "Activate Transit Pass",
                 href: "/portal/payments",

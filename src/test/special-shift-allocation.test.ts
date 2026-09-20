@@ -10,6 +10,7 @@ describe("Special Shift & Placement Facility Student Allocation Tests", () => {
     startTime: "07:30",
     endTime: "08:45",
     bookingCutoffMins: 30,
+    direction: "HOME_TO_CAMPUS",
     isSpecial: false,
     isPlacement: false,
   };
@@ -21,6 +22,7 @@ describe("Special Shift & Placement Facility Student Allocation Tests", () => {
     startTime: "16:30",
     endTime: "17:45",
     bookingCutoffMins: 45,
+    direction: "HOME_TO_CAMPUS",
     isSpecial: false,
     isPlacement: false,
   };
@@ -32,6 +34,7 @@ describe("Special Shift & Placement Facility Student Allocation Tests", () => {
     startTime: "05:00",
     endTime: "10:30",
     bookingCutoffMins: 120,
+    direction: "CAMPUS_TO_CAMPUS",
     isSpecial: true,
     isPlacement: true,
   };
@@ -43,6 +46,7 @@ describe("Special Shift & Placement Facility Student Allocation Tests", () => {
     startTime: "08:30",
     endTime: "09:45",
     bookingCutoffMins: 60,
+    direction: "HOME_TO_CAMPUS",
     isSpecial: true,
     isPlacement: false,
   };
@@ -59,6 +63,11 @@ describe("Special Shift & Placement Facility Student Allocation Tests", () => {
     primaryRouteId: "route-1",
     transportAccessSuspended: false,
     hasActiveSubscription: true,
+    emergencyContact: {
+      name: "Parent",
+      relationship: "Parent",
+      phone: "+91 9876543210"
+    }
   };
 
   const mockStudent2: Student = {
@@ -73,6 +82,11 @@ describe("Special Shift & Placement Facility Student Allocation Tests", () => {
     primaryRouteId: "route-2",
     transportAccessSuspended: false,
     hasActiveSubscription: true,
+    emergencyContact: {
+      name: "Parent",
+      relationship: "Parent",
+      phone: "+91 9876543211"
+    }
   };
 
   beforeEach(() => {

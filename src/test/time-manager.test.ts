@@ -20,6 +20,7 @@ describe("CampusFleet Universal Time Manager Tests", () => {
     startTime: "07:30",
     endTime: "08:45",
     bookingCutoffMins: 45, // Cutoff at 06:45 (405m)
+    direction: "HOME_TO_CAMPUS",
   };
 
   const mockShiftEvening: Shift = {
@@ -29,6 +30,7 @@ describe("CampusFleet Universal Time Manager Tests", () => {
     startTime: "17:15",
     endTime: "18:45",
     bookingCutoffMins: 45, // Cutoff at 16:30 (990m)
+    direction: "CAMPUS_TO_HOME",
   };
 
   const mockTrip: Trip = {
@@ -40,8 +42,6 @@ describe("CampusFleet Universal Time Manager Tests", () => {
     driverId: "staff-1",
     conductorId: "staff-2",
     tripDate: "2026-09-15",
-    departureTime: "07:30",
-    arrivalTime: "08:45",
     status: "SCHEDULED",
     delayMinutes: 0,
     manifestLocked: false,
