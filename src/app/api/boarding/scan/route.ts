@@ -170,18 +170,22 @@ export async function POST(req: NextRequest) {
           const slotEnd = slot.end_time;
 
           if (currentTimeStr >= slotStart && currentTimeStr <= slotEnd) {
-            // Fire-and-forget: don't block conductor's response for side effects
-            supabaseAdmin.from("audit_logs").insert({
-              user_id: student.id,
-              user_email: student.email,
-              user_role: "student",
-              action: "BOARDING_DENIED_SCHEDULED_CLASS",
-              entity: "BoardingScan",
-              entity_id: tripId,
-              reason: `Student has active lecture '${slot.subject}' scheduled from ${slotStart} to ${slotEnd}.`,
-              previous_value: { status: "PENDING" },
-              new_value: { status: "DENIED", class: student.class_name, subject: slot.subject },
-            });
+            // Audit log (AWAITED — security-critical denial record)
+            try {
+              await supabaseAdmin.from("audit_logs").insert({
+                user_id: student.id,
+                user_email: student.email,
+                user_role: "student",
+                action: "BOARDING_DENIED_SCHEDULED_CLASS",
+                entity: "BoardingScan",
+                entity_id: tripId,
+                reason: `Student has active lecture '${slot.subject}' scheduled from ${slotStart} to ${slotEnd}.`,
+                previous_value: { status: "PENDING" },
+                new_value: { status: "DENIED", class: student.class_name, subject: slot.subject },
+              });
+            } catch (auditErr) {
+              console.error("[AUDIT_FAIL] BOARDING_DENIED audit log failed:", auditErr);
+            }
 
             supabaseAdmin.from("notifications").insert({
               user_id: student.id,
@@ -259,20 +263,24 @@ export async function POST(req: NextRequest) {
       booking_id: `att-${Date.now()}` 
     });
 
-    // 7b. Record Audit Log + Push notification (fire-and-forget — non-blocking)
-    // Saves ~160ms of network round-trips per successful boarding scan.
-    supabaseAdmin.from("audit_logs").insert({
-      user_id: student.id,
-      user_email: student.email,
-      user_role: "student",
-      action: "PASSENGER_BOARDED_SUCCESS",
-      entity: "AttendanceRecord",
-      entity_id: attendanceId,
-      reason: `QR scan verified by conductor ${conductorName}.`,
-      previous_value: { status: "PENDING" },
-      new_value: { status: "BOARDED", tripId: tripId, isRoaming },
-    });
+    // 7b. Record Audit Log (AWAITED — security-critical attendance verification)
+    try {
+      await supabaseAdmin.from("audit_logs").insert({
+        user_id: student.id,
+        user_email: student.email,
+        user_role: "student",
+        action: "PASSENGER_BOARDED_SUCCESS",
+        entity: "AttendanceRecord",
+        entity_id: attendanceId,
+        reason: `QR scan verified by conductor ${conductorName}.`,
+        previous_value: { status: "PENDING" },
+        new_value: { status: "BOARDED", tripId: tripId, isRoaming },
+      });
+    } catch (auditErr) {
+      console.error("[AUDIT_FAIL] PASSENGER_BOARDED_SUCCESS audit log failed:", auditErr);
+    }
 
+    // 7c. Push notification (fire-and-forget — UX only)
     supabaseAdmin.from("notifications").insert({
       user_id: student.id,
       title: "Boarding Verified ✓",

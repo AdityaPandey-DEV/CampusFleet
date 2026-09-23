@@ -350,24 +350,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: insertError.message }, { status: 500 });
     }
 
-    // 8. Log audit trail + dispatch notification (fire-and-forget — non-blocking)
-    // These are non-critical side effects; don't block the booking response.
-    // Saves ~160ms of network round-trip latency per booking.
-    supabaseAdmin.from("audit_logs").insert({
-      user_id: student.id,
-      user_email: student.email,
-      user_role: "student",
-      action: "BOOKING_CONFIRMED",
-      entity: "Booking",
-      entity_id: newBooking.id,
-      details: {
-        bookingCode,
-        busNumber: bus.bus_number,
-        seatNumber: allocatedSeat,
-        shiftId: trip.shift_id,
-      },
-    });
+    // 8. Log audit trail (AWAITED — security-critical, must persist for compliance)
+    try {
+      await supabaseAdmin.from("audit_logs").insert({
+        user_id: student.id,
+        user_email: student.email,
+        user_role: "student",
+        action: "BOOKING_CONFIRMED",
+        entity: "Booking",
+        entity_id: newBooking.id,
+        details: {
+          bookingCode,
+          busNumber: bus.bus_number,
+          seatNumber: allocatedSeat,
+          shiftId: trip.shift_id,
+        },
+      });
+    } catch (auditErr) {
+      console.error("[AUDIT_FAIL] BOOKING_CONFIRMED audit log failed:", auditErr);
+    }
 
+    // 9. Dispatch notification (fire-and-forget — UX only, not security-critical)
     supabaseAdmin.from("notifications").insert({
       user_id: student.id,
       title: "Seat Confirmed! 🎉",
