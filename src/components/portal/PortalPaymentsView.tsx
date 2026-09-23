@@ -20,7 +20,8 @@ import {
   Compass,
   QrCode,
   Clock,
-  Settings
+  Settings,
+  User,
 } from "lucide-react";
 import {
   isStudentSubscriptionActive,
@@ -31,6 +32,7 @@ export default function PortalPaymentsView({
   initialUser,
   initialStudents = [],
   initialPayments = [],
+  initialZones = [],
 }: any) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
@@ -53,8 +55,13 @@ export default function PortalPaymentsView({
 
   // Zone & Payment Plan State
   const studentCampusId = activeStudent?.campusId || currentUser?.campusId;
-  const [transitZones, setTransitZones] = useState<TransitZone[]>(() => store.getTransitZones(studentCampusId));
+  const [transitZones, setTransitZones] = useState<TransitZone[]>(() => {
+    // Prefer server-side zones (already filtered by campus), fall back to store
+    if (initialZones.length > 0) return initialZones;
+    return store.getTransitZones(studentCampusId);
+  });
   const selectedZoneCode = activeStudent?.zoneCode || "ZONE_B";
+  const isDataReady = Boolean(activeStudent && transitZones.length > 0);
   const currentZone = useMemo(() => {
     if (studentCampusId) {
       const matchCampus = transitZones.find(
@@ -209,6 +216,16 @@ export default function PortalPaymentsView({
     console.log("=====================================");
   }, [activeStudent, isPassApproved, currentPaid]);
 
+  // Show loading state until student + zone data is confirmed
+  if (!isDataReady) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+        <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+        <p className="text-sm font-medium text-gray-500">Loading your transit zone & billing data...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in max-w-5xl mx-auto pb-12">
       
@@ -276,6 +293,15 @@ export default function PortalPaymentsView({
                ? `Valid until ${formatDate(activeStudent?.subscriptionExpiryDate || "2026-12-31")}`
                : "Payment required for access"}
            </div>
+           {!isPassApproved && (
+             <Link
+               href="/portal/onboarding"
+               className="mt-3 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
+             >
+               <span>Edit Profile Details</span>
+               <ArrowRight className="w-3.5 h-3.5" />
+             </Link>
+           )}
         </div>
       </div>
 
@@ -365,19 +391,33 @@ export default function PortalPaymentsView({
              <span className="text-lg font-black text-gray-900 dark:text-white">{formatCurrency(amountToPay)}</span>
            </div>
 
-           <button
-             type="button"
-             onClick={handleRazorpayCheckout}
-             disabled={isRazorpayLoading}
-             className="w-full max-w-sm py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-           >
-             {isRazorpayLoading ? (
-               <RefreshCw className="w-5 h-5 animate-spin" />
-             ) : (
-               <CreditCard className="w-5 h-5" />
-             )}
-             {isRazorpayLoading ? "Connecting Gateway..." : "Proceed to Payment"}
-           </button>
+           <div className="w-full max-w-sm space-y-3">
+             <button
+               type="button"
+               onClick={handleRazorpayCheckout}
+               disabled={isRazorpayLoading}
+               className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+             >
+               {isRazorpayLoading ? (
+                 <RefreshCw className="w-5 h-5 animate-spin" />
+               ) : (
+                 <CreditCard className="w-5 h-5" />
+               )}
+               {isRazorpayLoading ? "Connecting Gateway..." : "Proceed to Payment"}
+             </button>
+
+             <Link
+               href="/portal/onboarding"
+               className="w-full py-3.5 px-4 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 font-bold text-sm flex items-center justify-center gap-2 transition-all group"
+             >
+               <User className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+               <span>Edit Profile Details</span>
+             </Link>
+           </div>
+
+           <p className="text-xs text-gray-400 max-w-xs leading-relaxed">
+             Need to change your transit corridor, pickup stop, or personal details? Update your profile before completing payment.
+           </p>
         </div>
       )}
 

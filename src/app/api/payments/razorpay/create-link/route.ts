@@ -10,19 +10,51 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { amount, studentId } = body;
+    const { studentId } = body;
 
-    const amountInPaise = Math.round(Number(amount) * 100);
-    if (!amountInPaise || amountInPaise < 100) {
-      return NextResponse.json({ success: false, error: "Invalid amount. Minimum amount is 1 INR." }, { status: 400 });
-    }
-
-    // Fetch student details to get phone number for Razorpay
+    // Fetch student details including zone_code and campus_id for server-side price verification
     const { data: studentRecord } = await supabaseAdmin
       .from("students")
-      .select("user_id, phone, full_name, email")
+      .select("user_id, phone, full_name, email, zone_code, campus_id, total_fee_due, total_fee_paid")
       .eq("id", studentId)
       .maybeSingle();
+
+    if (!studentRecord) {
+      return NextResponse.json({ success: false, error: "Student record not found. Please complete your profile first." }, { status: 404 });
+    }
+
+    // Server-authoritative price: look up the fee from transit_zones based on student's zone + campus
+    let serverFee = Number(studentRecord.total_fee_due) || 0;
+    if (studentRecord.zone_code && studentRecord.campus_id) {
+      const { data: zone } = await supabaseAdmin
+        .from("transit_zones")
+        .select("semester_fee")
+        .eq("code", studentRecord.zone_code)
+        .eq("campus_id", studentRecord.campus_id)
+        .maybeSingle();
+      if (zone?.semester_fee) {
+        serverFee = Number(zone.semester_fee);
+      }
+    } else if (studentRecord.zone_code) {
+      const { data: zone } = await supabaseAdmin
+        .from("transit_zones")
+        .select("semester_fee")
+        .eq("code", studentRecord.zone_code)
+        .limit(1)
+        .maybeSingle();
+      if (zone?.semester_fee) {
+        serverFee = Number(zone.semester_fee);
+      }
+    }
+
+    const alreadyPaid = Number(studentRecord.total_fee_paid) || 0;
+    const amountToPay = Math.max(0, serverFee - alreadyPaid);
+
+    if (amountToPay <= 0) {
+      return NextResponse.json({ success: false, error: "No outstanding balance. Your fees are fully paid." }, { status: 400 });
+    }
+
+    const amountInPaise = Math.round(amountToPay * 100);
 
     // Verify ownership
     const isStaffOrAdmin = ["admin", "staff", "transport_manager", "supervisor"].includes(session.role);

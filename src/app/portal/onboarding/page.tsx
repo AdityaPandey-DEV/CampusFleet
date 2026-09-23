@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { store } from "@/lib/store";
 import { Student, TransitZone, Campus } from "@/lib/types";
 import {
@@ -17,6 +18,8 @@ import {
   Upload,
   Lock,
   Loader2,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
 
@@ -85,7 +88,7 @@ export default function StudentOnboardingPage() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const isPassApproved = isStudentSubscriptionActive(activeStudent);
-  const isPhotoLocked = isPassApproved || Boolean(activeStudent?.photoLocked);
+  const isPhotoLocked = isPassApproved;
   const isZoneLocked = isPassApproved;
   const isCampusLocked = isPassApproved;
 
@@ -325,7 +328,11 @@ export default function StudentOnboardingPage() {
       setToast("✓ Student Profile Saved & Verified in Institutional Database!");
       setTimeout(() => {
         setToast(null);
-        router.push("/portal");
+        if (!isPassApproved) {
+          router.push("/portal/payments");
+        } else {
+          router.push("/portal");
+        }
       }, 1200);
     } else {
       alert(res.message);
@@ -346,13 +353,33 @@ export default function StudentOnboardingPage() {
       <div className="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Link
+              href={isPassApproved ? "/portal" : "/portal/payments"}
+              className="p-1.5 -ml-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+              title={isPassApproved ? "Back to Portal" : "Back to Payment"}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
             <div className="p-2 bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400">
               <GraduationCap className="w-5 h-5" />
             </div>
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Profile Setup</h1>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+              {activeStudent?.phone ? "Profile & Transit Details" : "Profile Setup"}
+            </h1>
           </div>
-          <div className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 flex items-center gap-1.5 uppercase tracking-wider border border-gray-200 dark:border-gray-700">
-            <Lock className="w-3 h-3" /> Secure
+          <div className="flex items-center gap-2">
+            {!isPassApproved && (
+              <Link
+                href="/portal/payments"
+                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2.5 py-1.5 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 flex items-center gap-1 transition-colors"
+              >
+                <span>Pass & Fees</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
+            <div className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 flex items-center gap-1.5 uppercase tracking-wider border border-gray-200 dark:border-gray-700">
+              <Lock className="w-3 h-3" /> Secure
+            </div>
           </div>
         </div>
       </div>
@@ -679,7 +706,11 @@ export default function StudentOnboardingPage() {
               className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
             >
               <CheckCircle2 className="w-5 h-5" />
-              {isSubmitting ? "Saving to Database..." : "Save Profile & Verify Transit Account"}
+              {isSubmitting
+                ? "Saving to Database..."
+                : isPassApproved
+                ? "Save Profile & Verify Transit Account"
+                : "Save Details & Proceed to Payment"}
             </button>
           </div>
         </form>

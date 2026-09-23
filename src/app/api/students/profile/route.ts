@@ -42,10 +42,11 @@ export async function POST(req: NextRequest) {
     let existingPhotoUrl: string | null = null;
     let existingCampusId: string | null = null;
     let existingCampus: string | null = null;
+    let existingPaymentStatus: string | null = null;
 
     const { data: existingStudents } = await supabaseAdmin
       .from("students")
-      .select("id, photo_url, photo_locked, campus_id, campus")
+      .select("id, photo_url, photo_locked, campus_id, campus, payment_status")
       .or(`user_id.eq.${userId},email.ilike.${cleanEmail}`)
       .order("created_at", { ascending: false })
       .limit(1);
@@ -56,24 +57,30 @@ export async function POST(req: NextRequest) {
       existingPhotoUrl = existingStudent.photo_url;
       existingCampusId = existingStudent.campus_id;
       existingCampus = existingStudent.campus;
+      existingPaymentStatus = existingStudent.payment_status;
     }
 
-    // Anti-fraud guardrail: Students cannot modify an existing photo once uploaded!
+    // Subscription is considered active if payment has been approved
+    const hasActiveSubscription = existingPaymentStatus === "APPROVED";
+
+    // Anti-fraud guardrail: Students cannot modify photo AFTER payment is approved
+    // Before payment: students can freely update their photo
+    // After payment: only staff/admin can change it
     if (body.photoUrl && existingPhotoUrl && existingPhotoUrl !== body.photoUrl) {
-      if (!isStaffOrAdmin) {
+      if (!isStaffOrAdmin && hasActiveSubscription) {
         return NextResponse.json(
           {
             success: false,
-            error: "Official identity photo is locked. Only campus transport staff can update your verification photo.",
+            error: "Official identity photo is locked after payment approval. Only campus transport staff can update your verification photo.",
           },
           { status: 403 }
         );
       }
     }
 
-    // Campus Lock Guardrail: Once set, non-admin students cannot change their campus
-    const effectiveCampusId = (!isStaffOrAdmin && existingCampusId) ? existingCampusId : (campusId || existingCampusId || null);
-    const effectiveCampus = (!isStaffOrAdmin && existingCampus) ? existingCampus : (campus || existingCampus || session.campus || "").trim() || null;
+    // Campus Lock Guardrail: Only lock campus AFTER payment is approved
+    const effectiveCampusId = (!isStaffOrAdmin && hasActiveSubscription && existingCampusId) ? existingCampusId : (campusId || existingCampusId || null);
+    const effectiveCampus = (!isStaffOrAdmin && hasActiveSubscription && existingCampus) ? existingCampus : (campus || existingCampus || session.campus || "").trim() || null;
 
     const finalStudentId =
       existingStudentId ||
@@ -106,7 +113,8 @@ export async function POST(req: NextRequest) {
 
     if (body.photoUrl) {
       studentData.photo_url = body.photoUrl;
-      studentData.photo_locked = true;
+      // Only lock photo if student already has an approved subscription
+      studentData.photo_locked = hasActiveSubscription;
     }
 
     if (validClassId) {
@@ -117,16 +125,27 @@ export async function POST(req: NextRequest) {
     }
 
     if (!existingStudentId) {
+      // New student: set initial fee based on zone
       let feeDue = 12000; // default fallback
-      if (zoneCode) {
-        const { data: zone } = await supabaseAdmin.from("transit_zones").select("semester_fee").eq("code", zoneCode).single();
-        if (zone?.semester_fee) {
-          feeDue = Number(zone.semester_fee);
-        }
+      if (zoneCode && effectiveCampusId) {
+        const { data: zone } = await supabaseAdmin.from("transit_zones").select("semester_fee").eq("code", zoneCode).eq("campus_id", effectiveCampusId).maybeSingle();
+        if (zone?.semester_fee) feeDue = Number(zone.semester_fee);
+      } else if (zoneCode) {
+        const { data: zone } = await supabaseAdmin.from("transit_zones").select("semester_fee").eq("code", zoneCode).limit(1).maybeSingle();
+        if (zone?.semester_fee) feeDue = Number(zone.semester_fee);
       }
       studentData.total_fee_due = feeDue;
       studentData.total_fee_paid = 0;
       studentData.payment_status = "UNPAID";
+    } else if (zoneCode && !hasActiveSubscription) {
+      // Existing student changing zone BEFORE payment: update fee to match new zone
+      if (effectiveCampusId) {
+        const { data: zone } = await supabaseAdmin.from("transit_zones").select("semester_fee").eq("code", zoneCode).eq("campus_id", effectiveCampusId).maybeSingle();
+        if (zone?.semester_fee) studentData.total_fee_due = Number(zone.semester_fee);
+      } else {
+        const { data: zone } = await supabaseAdmin.from("transit_zones").select("semester_fee").eq("code", zoneCode).limit(1).maybeSingle();
+        if (zone?.semester_fee) studentData.total_fee_due = Number(zone.semester_fee);
+      }
     }
 
     const { data: savedStudent, error: studentErr } = await supabaseAdmin

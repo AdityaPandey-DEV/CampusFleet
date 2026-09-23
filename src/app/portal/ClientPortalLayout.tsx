@@ -114,11 +114,7 @@ export default function ClientPortalLayout({
         console.warn("[REDIRECT] Profile Incomplete -> /portal/onboarding");
         router.replace("/portal/onboarding");
       } 
-      // 2. Return to portal if they try to access onboarding when already complete
-      else if (hasCompleteProfile && isOnboardingPage) {
-        router.replace("/portal");
-      }
-      // 3. Force payment if profile is complete but subscription inactive
+      // 2. Force payment if profile is complete but subscription inactive
       // ONLY if confirmedActiveRef was never set (truly never paid)
       else if (hasCompleteProfile && !isSubscriptionActive && !isPaymentPage && !isOnboardingPage) {
         console.warn("[REDIRECT] Subscription Inactive -> /portal/payments");
@@ -178,6 +174,7 @@ export default function ClientPortalLayout({
       ]
     : [
         { href: "/portal/payments", label: "Pass Activation & Fees", icon: CreditCard, requiresPayment: false },
+        { href: "/portal/onboarding", label: "Profile Details", icon: User, requiresPayment: false },
       ];
 
   const processedNavLinks = navLinks.map(link => ({
@@ -256,13 +253,20 @@ export default function ClientPortalLayout({
               </div>
             )}
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/portal/payments"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700  text-white font-extrabold text-sm shadow-lg shadow-blue-500/25 transition-transform active:scale-95"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm shadow-lg shadow-blue-500/25 transition-transform active:scale-95"
               >
                 <CreditCard className="w-4 h-4" />
                 <span>Go to Pass & Fee Payment Gateway →</span>
+              </Link>
+              <Link
+                href="/portal/onboarding"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm transition-all"
+              >
+                <User className="w-4 h-4" />
+                <span>Edit Profile Details</span>
               </Link>
             </div>
           </div>
