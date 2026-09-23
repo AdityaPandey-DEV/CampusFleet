@@ -170,7 +170,8 @@ export async function POST(req: NextRequest) {
           const slotEnd = slot.end_time;
 
           if (currentTimeStr >= slotStart && currentTimeStr <= slotEnd) {
-            await supabaseAdmin.from("audit_logs").insert({
+            // Fire-and-forget: don't block conductor's response for side effects
+            supabaseAdmin.from("audit_logs").insert({
               user_id: student.id,
               user_email: student.email,
               user_role: "student",
@@ -182,7 +183,7 @@ export async function POST(req: NextRequest) {
               new_value: { status: "DENIED", class: student.class_name, subject: slot.subject },
             });
 
-            await supabaseAdmin.from("notifications").insert({
+            supabaseAdmin.from("notifications").insert({
               user_id: student.id,
               title: "❌ Bus Boarding Denied",
               message: `You cannot board the campus bus right now because you have an ongoing scheduled class: ${slot.subject} (${slotStart.substring(0, 5)} - ${slotEnd.substring(0, 5)}).`,
@@ -258,8 +259,9 @@ export async function POST(req: NextRequest) {
       booking_id: `att-${Date.now()}` 
     });
 
-    // 7b. Record Audit Log
-    await supabaseAdmin.from("audit_logs").insert({
+    // 7b. Record Audit Log + Push notification (fire-and-forget — non-blocking)
+    // Saves ~160ms of network round-trips per successful boarding scan.
+    supabaseAdmin.from("audit_logs").insert({
       user_id: student.id,
       user_email: student.email,
       user_role: "student",
@@ -271,8 +273,7 @@ export async function POST(req: NextRequest) {
       new_value: { status: "BOARDED", tripId: tripId, isRoaming },
     });
 
-    // 7c. Push notification to student
-    await supabaseAdmin.from("notifications").insert({
+    supabaseAdmin.from("notifications").insert({
       user_id: student.id,
       title: "Boarding Verified ✓",
       message: `Your bus pass was scanned. Welcome aboard ${bus?.bus_number || "Campus Shuttle"}!`,

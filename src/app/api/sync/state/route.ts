@@ -16,53 +16,26 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: false, error: "Unauthorized access to master data." }, { status: 401 });
       }
     }
-    // 1. Fetch Routes (cached)
-    let routes = await cacheGet("campusfleet:state:routes");
-    if (!routes) {
-      const { data } = await supabaseAdmin.from("routes").select("*");
-      routes = data || [];
-      await cacheSet("campusfleet:state:routes", routes, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
+    // Parallel fetch: all 6 tables fetched simultaneously instead of sequentially.
+    // On cache miss, worst case drops from ~600ms (6 × 100ms) to ~100ms (1 round-trip).
+    const fetchOrCache = async (cacheKey: string, table: string, ttl: number) => {
+      const cached = await cacheGet(cacheKey);
+      if (cached) return cached;
+      const { data } = await supabaseAdmin.from(table).select("*");
+      const result = data || [];
+      // Fire-and-forget: don't block response for cache write
+      void cacheSet(cacheKey, result, ttl);
+      return result;
+    };
 
-    // 2. Fetch Stops (cached)
-    let stops = await cacheGet("campusfleet:state:stops");
-    if (!stops) {
-      const { data } = await supabaseAdmin.from("stops").select("*");
-      stops = data || [];
-      await cacheSet("campusfleet:state:stops", stops, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
-
-    // 3. Fetch Shifts (cached)
-    let shifts = await cacheGet("campusfleet:state:shifts");
-    if (!shifts) {
-      const { data } = await supabaseAdmin.from("shifts").select("*");
-      shifts = data || [];
-      await cacheSet("campusfleet:state:shifts", shifts, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
-
-    // 4. Fetch Trips (short TTL cached)
-    let trips = await cacheGet("campusfleet:state:trips");
-    if (!trips) {
-      const { data } = await supabaseAdmin.from("trips").select("*");
-      trips = data || [];
-      await cacheSet("campusfleet:state:trips", trips, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
-
-    // 5. Fetch Stop Routes (cached)
-    let stopRoutes = await cacheGet("campusfleet:state:stop_routes");
-    if (!stopRoutes) {
-      const { data } = await supabaseAdmin.from("route_stops").select("*");
-      stopRoutes = data || [];
-      await cacheSet("campusfleet:state:stop_routes", stopRoutes, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
-
-    // 6. Fetch Buses (cached)
-    let buses = await cacheGet("campusfleet:state:buses");
-    if (!buses) {
-      const { data } = await supabaseAdmin.from("buses").select("*");
-      buses = data || [];
-      await cacheSet("campusfleet:state:buses", buses, CACHE_TTL.MASTER_DATA_PERMANENT);
-    }
+    const [routes, stops, shifts, trips, stopRoutes, buses] = await Promise.all([
+      fetchOrCache("campusfleet:state:routes", "routes", CACHE_TTL.MASTER_DATA_PERMANENT),
+      fetchOrCache("campusfleet:state:stops", "stops", CACHE_TTL.MASTER_DATA_PERMANENT),
+      fetchOrCache("campusfleet:state:shifts", "shifts", CACHE_TTL.MASTER_DATA_PERMANENT),
+      fetchOrCache("campusfleet:state:trips", "trips", CACHE_TTL.MASTER_DATA_PERMANENT),
+      fetchOrCache("campusfleet:state:stop_routes", "route_stops", CACHE_TTL.MASTER_DATA_PERMANENT),
+      fetchOrCache("campusfleet:state:buses", "buses", CACHE_TTL.MASTER_DATA_PERMANENT),
+    ]);
 
     // If it's a cron job, just return a small payload to avoid response size limits
     if (isCron) {
