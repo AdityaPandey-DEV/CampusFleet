@@ -65,6 +65,92 @@ export function SettingsView() {
   const [notifBilling, setNotifBilling] = useState(true);
   const [notifGeneral, setNotifGeneral] = useState(true);
 
+  // Load and save notification preferences
+  const [notifLoading, setNotifLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("campusfleet_notif_prefs");
+      if (saved) {
+        const prefs = JSON.parse(saved);
+        setAllEmails(prefs.allEmails ?? true);
+        setNotifDefault(prefs.notifDefault ?? true);
+        setNotifTrip(prefs.notifTrip ?? true);
+        setNotifBilling(prefs.notifBilling ?? true);
+        setNotifGeneral(prefs.notifGeneral ?? true);
+      }
+    } catch {}
+
+    const fetchPrefs = async () => {
+      try {
+        const res = await fetch("/api/users/notifications");
+        const data = await res.json();
+        if (data.success && data.preferences && Object.keys(data.preferences).length > 0) {
+          const p = data.preferences;
+          if (p.allEmails !== undefined) setAllEmails(p.allEmails);
+          if (p.notifDefault !== undefined) setNotifDefault(p.notifDefault);
+          if (p.notifTrip !== undefined) setNotifTrip(p.notifTrip);
+          if (p.notifBilling !== undefined) setNotifBilling(p.notifBilling);
+          if (p.notifGeneral !== undefined) setNotifGeneral(p.notifGeneral);
+          
+          localStorage.setItem("campusfleet_notif_prefs", JSON.stringify(p));
+        }
+      } catch (err) {
+        console.error("Failed to load notif prefs", err);
+      } finally {
+        setNotifLoading(false);
+      }
+    };
+    
+    if (currentUser) {
+      fetchPrefs();
+    } else {
+      setNotifLoading(false);
+    }
+  }, [currentUser]);
+
+  const saveNotifPrefs = async (prefs: any) => {
+    localStorage.setItem("campusfleet_notif_prefs", JSON.stringify(prefs));
+    try {
+      await fetch("/api/users/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(prefs)
+      });
+    } catch (err) {
+      console.error("Failed to save notif prefs", err);
+    }
+  };
+
+  const handleAllEmailsToggle = (checked: boolean) => {
+    setAllEmails(checked);
+    setNotifDefault(checked);
+    setNotifTrip(checked);
+    setNotifBilling(checked);
+    setNotifGeneral(checked);
+    saveNotifPrefs({
+      allEmails: checked,
+      notifDefault: checked,
+      notifTrip: checked,
+      notifBilling: checked,
+      notifGeneral: checked
+    });
+  };
+
+  const handleSingleToggle = (key: string, checked: boolean) => {
+    const newPrefs = {
+      allEmails, notifDefault, notifTrip, notifBilling, notifGeneral,
+      [key]: checked
+    };
+    
+    if (key === 'notifDefault') { setNotifDefault(checked); }
+    if (key === 'notifTrip') { setNotifTrip(checked); }
+    if (key === 'notifBilling') { setNotifBilling(checked); }
+    if (key === 'notifGeneral') { setNotifGeneral(checked); }
+
+    saveNotifPrefs(newPrefs);
+  };
+
   // Profile form states
   const [zoomLevel, setZoomLevel] = useState(100);
   const [fontFamily, setFontFamily] = useState('system');
@@ -475,31 +561,31 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">All email notifications</h3>
                 <p className="text-sm text-gray-500">Manage which emails you receive at {email}.</p>
               </div>
-              <Toggle checked={allEmails} onChange={() => setAllEmails(!allEmails)} />
+              <Toggle checked={allEmails} onChange={() => handleAllEmailsToggle(!allEmails)} />
             </div>
             
             <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
             
-            <div>
+            <div className={!allEmails ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
               <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Email categories</h3>
               <p className="text-sm text-gray-500 mb-6">Turn off individual categories to stop those emails while staying subscribed to others.</p>
               
-              <div className="space-y-6">
+              <div className={`space-y-6 ${notifLoading ? 'opacity-50 pointer-events-none' : ''}`}>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Default</span>
-                  <Toggle checked={notifDefault} onChange={() => setNotifDefault(!notifDefault)} />
+                  <Toggle checked={notifDefault} onChange={() => handleSingleToggle('notifDefault', !notifDefault)} />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Trip Updates</span>
-                  <Toggle checked={notifTrip} onChange={() => setNotifTrip(!notifTrip)} />
+                  <Toggle checked={notifTrip} onChange={() => handleSingleToggle('notifTrip', !notifTrip)} />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Billing Alerts</span>
-                  <Toggle checked={notifBilling} onChange={() => setNotifBilling(!notifBilling)} />
+                  <Toggle checked={notifBilling} onChange={() => handleSingleToggle('notifBilling', !notifBilling)} />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">General Notice</span>
-                  <Toggle checked={notifGeneral} onChange={() => setNotifGeneral(!notifGeneral)} />
+                  <Toggle checked={notifGeneral} onChange={() => handleSingleToggle('notifGeneral', !notifGeneral)} />
                 </div>
               </div>
             </div>
