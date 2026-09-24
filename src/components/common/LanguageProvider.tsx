@@ -22,7 +22,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [primaryLanguage, setPrimaryLangState] = useState<SupportedLanguage>("en");
   const [secondaryLanguage, setSecondaryLangState] = useState<SupportedLanguage | null>(null);
 
-  // Load from localStorage on mount
+  // Load saved language preference from localStorage on mount
   useEffect(() => {
     try {
       const savedPrimary = localStorage.getItem(STORAGE_KEY) as SupportedLanguage | null;
@@ -39,15 +39,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Set primary language — updates React state instantly, no page reload
   const setPrimaryLanguage = useCallback((lang: SupportedLanguage) => {
     if (lang === primaryLanguage) return;
     setPrimaryLangState(lang);
     try {
       localStorage.setItem(STORAGE_KEY, lang);
-      // Trigger Google Translate via cookie
-      document.cookie = `googtrans=/en/${lang}; path=/`;
-      document.cookie = `googtrans=/en/${lang}; domain=.${window.location.hostname}; path=/`;
-      window.location.reload();
     } catch {}
   }, [primaryLanguage]);
 
@@ -62,7 +59,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
-  // Translation function - uses primary language, falls back to English
+  // Translation function — looks up the key in our dictionary,
+  // falls back to English if the key is missing in the target language
   const t = useCallback((key: string): string => {
     return getTranslation(primaryLanguage, key);
   }, [primaryLanguage]);

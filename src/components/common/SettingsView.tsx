@@ -68,7 +68,7 @@ const CustomDropdown = ({
 
 export function SettingsView() {
   const { theme, setTheme } = useTheme();
-  const { primaryLanguage, setPrimaryLanguage, languageOptions } = useTranslation();
+  const { primaryLanguage, setPrimaryLanguage, languageOptions, t } = useTranslation();
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [mounted, setMounted] = useState(false);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
@@ -381,7 +381,7 @@ export function SettingsView() {
         {/* Profile Details Card */}
         <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-none">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Profile Details</h2>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t('profileDetails')}</h2>
           </div>
           
           <div className="p-6 space-y-6">
@@ -537,16 +537,16 @@ export function SettingsView() {
                 disabled={isSaving}
                 className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-none transition-colors"
               >
-                {isSaving ? "Saving..." : "Save Profile"}
+                {isSaving ? t('saving') : t('saveProfile')}
               </button>
             </div>
           </div>
         </div>
         
         {/* Appearance Card */}
-        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none">
+        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none relative z-20">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Appearance</h2>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t('appearance')}</h2>
             <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
               <Sun className="w-5 h-5" />
             </div>
@@ -555,8 +555,8 @@ export function SettingsView() {
           <div className="p-6 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Theme</h3>
-                <p className="text-sm text-gray-500">Switch between light, dark, or system mode</p>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('theme')}</h3>
+                <p className="text-sm text-gray-500">{t('switchThemeDesc')}</p>
               </div>
               <div className="flex items-center border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900">
                 <button 
@@ -567,7 +567,7 @@ export function SettingsView() {
                       : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                   }`}
                 >
-                  <Sun className="w-4 h-4" /> Light
+                  <Sun className="w-4 h-4" /> {t('light')}
                 </button>
                 <button 
                   onClick={() => setTheme('dark')}
@@ -577,7 +577,7 @@ export function SettingsView() {
                       : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                   }`}
                 >
-                  <Moon className="w-4 h-4" /> Dark
+                  <Moon className="w-4 h-4" /> {t('dark')}
                 </button>
                 <button 
                   onClick={() => setTheme('system')}
@@ -587,7 +587,7 @@ export function SettingsView() {
                       : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                   }`}
                 >
-                  System
+                  {t('system')}
                 </button>
               </div>
             </div>
@@ -596,8 +596,8 @@ export function SettingsView() {
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Language</h3>
-                <p className="text-sm text-gray-500">Choose your preferred language</p>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('language')}</h3>
+                <p className="text-sm text-gray-500">{t('chooseLangDesc')}</p>
               </div>
               <div className="relative">
                 <button
@@ -649,8 +649,8 @@ export function SettingsView() {
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Font Family</h3>
-                <p className="text-sm text-gray-500">Choose your preferred font</p>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('fontFamily')}</h3>
+                <p className="text-sm text-gray-500">{t('chooseFontDesc')}</p>
               </div>
               <div className="relative">
                 <button
@@ -720,7 +720,7 @@ export function SettingsView() {
         {/* Notifications Card */}
         <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Notifications</h2>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t('notifications')}</h2>
             <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
               <Bell className="w-5 h-5" />
             </div>
@@ -729,7 +729,7 @@ export function SettingsView() {
           <div className="p-6 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">All email notifications</h3>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('emailNotifications')}</h3>
                 <p className="text-sm text-gray-500">Manage which emails you receive at {email}.</p>
               </div>
               <Toggle checked={allEmails} onChange={() => handleAllEmailsToggle(!allEmails)} />
@@ -738,24 +738,24 @@ export function SettingsView() {
             <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
             
             <div className={!allEmails ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Email categories</h3>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('emailCategories')}</h3>
               <p className="text-sm text-gray-500 mb-6">Turn off individual categories to stop those emails while staying subscribed to others.</p>
               
               <div className={`space-y-6 ${notifLoading ? 'opacity-50 pointer-events-none' : ''}`}>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Default</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('default')}</span>
                   <Toggle checked={notifDefault} onChange={() => handleSingleToggle('notifDefault', !notifDefault)} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Trip Updates</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('tripUpdates')}</span>
                   <Toggle checked={notifTrip} onChange={() => handleSingleToggle('notifTrip', !notifTrip)} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Billing Alerts</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('billingAlerts')}</span>
                   <Toggle checked={notifBilling} onChange={() => handleSingleToggle('notifBilling', !notifBilling)} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">General Notice</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('generalNotice')}</span>
                   <Toggle checked={notifGeneral} onChange={() => handleSingleToggle('notifGeneral', !notifGeneral)} />
                 </div>
               </div>
@@ -766,7 +766,7 @@ export function SettingsView() {
         {/* Privacy & Security Card */}
         <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Privacy & Security</h2>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t('privacySecurity')}</h2>
             <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
               <Shield className="w-5 h-5" />
             </div>
@@ -775,7 +775,7 @@ export function SettingsView() {
           <div className="p-6 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Two-Factor Authentication</h3>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('twoFactorAuth')}</h3>
                 <p className="text-sm text-gray-500">Add an extra layer of security</p>
               </div>
               <button onClick={() => handleNotImplemented('Advanced Security')} className="p-2 border border-gray-200 dark:border-gray-800 rounded-none text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"><Shield className="w-4 h-4" /></button>
@@ -785,7 +785,7 @@ export function SettingsView() {
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Data Privacy</h3>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('dataPrivacy')}</h3>
                 <p className="text-sm text-gray-500">Manage your data privacy settings</p>
               </div>
               <button onClick={() => handleNotImplemented('Advanced Security')} className="p-2 border border-gray-200 dark:border-gray-800 rounded-none text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"><Shield className="w-4 h-4" /></button>
@@ -796,7 +796,7 @@ export function SettingsView() {
         {/* Data & Storage Card */}
         <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none mb-12">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Data & Storage</h2>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t('dataStorage')}</h2>
             <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
               <Database className="w-5 h-5" />
             </div>
@@ -805,12 +805,12 @@ export function SettingsView() {
           <div className="p-6 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Install App</h3>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('installApp')}</h3>
                 <p className="text-sm text-gray-500">Add this app to your home screen or desktop for quicker access</p>
               </div>
               <button onClick={handleInstallClick} className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
                 <Download className="w-4 h-4" />
-                Install app
+                {t('installApp')}
               </button>
             </div>
             
@@ -826,7 +826,7 @@ export function SettingsView() {
                 className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
-                Update now
+                {t('updateNow')}
               </button>
             </div>
 
@@ -846,7 +846,7 @@ export function SettingsView() {
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Clear Cache</h3>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('clearCache')}</h3>
                 <p className="text-sm text-gray-500">Clear all cached data</p>
               </div>
               <button 
@@ -870,7 +870,7 @@ export function SettingsView() {
         {/* Danger Zone Card */}
         <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-none mb-12">
           <div className="flex items-center justify-between p-6 border-b border-red-200 dark:border-red-900/50">
-            <h2 className="text-lg font-medium text-red-700 dark:text-red-400">Danger Zone</h2>
+            <h2 className="text-lg font-medium text-red-700 dark:text-red-400">{t('dangerZone')}</h2>
             <div className="p-2 border border-red-200 dark:border-red-900/50 rounded-none text-red-500">
               <Trash className="w-5 h-5" />
             </div>
@@ -878,9 +878,9 @@ export function SettingsView() {
           
           <div className="p-6 space-y-6">
             <div>
-              <h3 className="text-sm font-medium text-red-800 dark:text-red-300 mb-1">Delete Account</h3>
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-300 mb-1">{t('deleteAccount')}</h3>
               <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-4">
-                Once you delete your account, there is no going back. Please be certain.
+                {t('deleteAccountDesc')}
               </p>
               
               <div className="space-y-4 max-w-md">
@@ -894,7 +894,7 @@ export function SettingsView() {
                     </div>
                   </div>
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    I accept the terms and conditions and understand that my account will be permanently deleted.
+                    {t('deleteAccountTerms')}
                   </span>
                 </div>
                 
@@ -907,7 +907,7 @@ export function SettingsView() {
                       : "bg-red-600 hover:bg-red-700 text-white"
                   }`}
                 >
-                  {isDeleting ? "Deleting..." : "Permanently Delete Account"}
+                  {isDeleting ? t('deleting') : t('permanentlyDelete')}
                 </button>
               </div>
             </div>
