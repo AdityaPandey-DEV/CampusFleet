@@ -5,15 +5,18 @@ import { useTheme } from "@/components/common/ThemeProvider";
 import { store } from "@/lib/store";
 import { 
   Sun, Moon, Bell, Shield, Database, Download, RefreshCw, MessageSquare, Trash, 
-  ChevronDown
+  ChevronDown, Check, Globe
 } from "lucide-react";
 import { usePWAInstall } from "@/lib/usePWAInstall";
 import { InstallAppModal } from "@/components/common/InstallAppModal";
+import { useTranslation } from "@/components/common/LanguageProvider";
 
 export function SettingsView() {
   const { theme, setTheme } = useTheme();
+  const { primaryLanguage, setPrimaryLanguage, languageOptions } = useTranslation();
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [mounted, setMounted] = useState(false);
+  const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
 
   // App Install state
   const { promptInstall } = usePWAInstall();
@@ -28,10 +31,11 @@ export function SettingsView() {
 
   // Delete Account state
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [isRobotVerified, setIsRobotVerified] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmName !== currentUser?.fullName) {
+    if (!isRobotVerified || !termsAccepted) {
       return;
     }
     
@@ -46,7 +50,7 @@ export function SettingsView() {
       store.wipeAllData();
       localStorage.removeItem("campusfleet_store");
       
-      window.location.href = "/login?message=Account%20deleted%20successfully";
+      window.location.href = "/account-deleted";
     } catch (err) {
       console.error(err);
       alert("An error occurred while deleting your account.");
@@ -366,6 +370,59 @@ export function SettingsView() {
             </div>
             
             <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Language</h3>
+                <p className="text-sm text-gray-500">Choose your preferred language</p>
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
+                  className="flex items-center justify-between min-w-[200px] px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-gray-500" />
+                    <span>
+                      {languageOptions.find(l => l.code === primaryLanguage)?.nativeName || "Language"}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                </button>
+                
+                {isLangDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsLangDropdownOpen(false)} 
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-full z-20 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                      <div className="max-h-60 overflow-y-auto py-1">
+                        {languageOptions.map(lang => (
+                          <button
+                            key={lang.code}
+                            onClick={() => {
+                              setPrimaryLanguage(lang.code as any);
+                              setIsLangDropdownOpen(false);
+                            }}
+                            className={`w-full text-left flex items-center justify-between px-4 py-2.5 text-sm transition-colors ${
+                              primaryLanguage === lang.code 
+                                ? 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white font-medium' 
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'
+                            }`}
+                          >
+                            <span>{lang.nativeName}</span>
+                            {primaryLanguage === lang.code && <Check className="w-4 h-4 text-gray-900 dark:text-white" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -570,24 +627,35 @@ export function SettingsView() {
               </p>
               
               <div className="space-y-4 max-w-md">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase text-red-700 dark:text-red-400">
-                    Type your full name to confirm: <span className="font-black">"{currentUser?.fullName}"</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={deleteConfirmName}
-                    onChange={e => setDeleteConfirmName(e.target.value)}
-                    className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-red-200 dark:border-red-800 rounded-none focus:outline-none focus:border-red-500 text-sm"
-                    placeholder={currentUser?.fullName || "Your name"}
-                  />
+                <div 
+                  className="flex items-center space-x-3 p-4 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer" 
+                  onClick={() => setIsRobotVerified(!isRobotVerified)}
+                >
+                  <div className={`w-6 h-6 border flex items-center justify-center transition-colors ${isRobotVerified ? 'bg-green-500 border-green-500' : 'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-600'}`}>
+                    {isRobotVerified && <Check className="w-4 h-4 text-white" />}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">I'm not a robot</span>
+                </div>
+                
+                <div 
+                  className="flex items-start space-x-3 cursor-pointer" 
+                  onClick={() => setTermsAccepted(!termsAccepted)}
+                >
+                  <div className="mt-0.5">
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${termsAccepted ? 'border-red-500' : 'border-gray-400'}`}>
+                      {termsAccepted && <div className="w-2 h-2 rounded-full bg-red-500" />}
+                    </div>
+                  </div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    I accept the terms and conditions and understand that my account will be permanently deleted.
+                  </span>
                 </div>
                 
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={isDeleting || deleteConfirmName !== currentUser?.fullName}
-                  className={`px-6 py-2 rounded-none text-sm font-bold shadow-none-none transition-all ${
-                    isDeleting || deleteConfirmName !== currentUser?.fullName
+                  disabled={isDeleting || !isRobotVerified || !termsAccepted}
+                  className={`px-6 py-2 text-sm font-bold shadow-none transition-all ${
+                    isDeleting || !isRobotVerified || !termsAccepted
                       ? "bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
                       : "bg-red-600 hover:bg-red-700 text-white"
                   }`}
