@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
       semester,
       emergencyContactName,
       emergencyContactPhone,
+      classId,
+      className,
       // Staff specific
       employeeCode,
       category,
@@ -40,7 +42,9 @@ export async function POST(request: NextRequest) {
           name: fullName, // keeping name synced for backwards compat
           phone: phone || null,
           department: department || null,
-          semester: semester ? Number(semester) : null,
+          semester: semester ? Number(semester.replace(/\D/g, '') || semester) : null,
+          class_id: classId || null,
+          class_name: className || null,
           emergency_contact_name: emergencyContactName || null,
           emergency_contact_phone: emergencyContactPhone || null
         })

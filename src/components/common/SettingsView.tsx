@@ -5,11 +5,65 @@ import { useTheme } from "@/components/common/ThemeProvider";
 import { store } from "@/lib/store";
 import { 
   Sun, Moon, Bell, Shield, Database, Download, RefreshCw, MessageSquare, Trash, 
-  ChevronDown, Check, Globe
+  ChevronDown, Check, Globe, Loader2
 } from "lucide-react";
 import { usePWAInstall } from "@/lib/usePWAInstall";
 import { InstallAppModal } from "@/components/common/InstallAppModal";
 import { useTranslation } from "@/components/common/LanguageProvider";
+
+
+const CustomDropdown = ({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder 
+}: { 
+  options: string[], 
+  value: string, 
+  onChange: (val: string) => void,
+  placeholder: string
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-2 text-left border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500 flex justify-between items-center"
+      >
+        <span className={value ? "text-gray-900 dark:text-white" : "text-gray-500"}>
+          {value || placeholder}
+        </span>
+        <ChevronDown className="w-4 h-4 text-gray-500" />
+      </button>
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+            {options.map(opt => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => {
+                  onChange(opt);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                  value === opt 
+                    ? 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white font-medium' 
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 export function SettingsView() {
   const { theme, setTheme } = useTheme();
@@ -30,9 +84,13 @@ export function SettingsView() {
   };
 
   // Delete Account state
+
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRobotVerified, setIsRobotVerified] = useState(false);
+  const [isVerifyingRobot, setIsVerifyingRobot] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [classesList, setClassesList] = useState<any[]>([]);
+
 
   const handleDeleteAccount = async () => {
     if (!isRobotVerified || !termsAccepted) {
@@ -183,6 +241,9 @@ export function SettingsView() {
     photoUrl: "",
     department: "",
     semester: "",
+    section: "",
+    classId: "",
+    className: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
     employeeCode: "",
@@ -205,6 +266,9 @@ export function SettingsView() {
         photoUrl: activeStudent?.photoUrl || (activeStaff as any)?.photoUrl || user.avatarUrl || "",
         department: activeStudent?.department || "",
         semester: activeStudent?.semester || "",
+        section: activeStudent?.className ? activeStudent.className.split("-").pop()?.trim() || "" : "",
+        classId: activeStudent?.classId || "",
+        className: activeStudent?.className || "",
         emergencyContactName: activeStudent?.emergencyContact?.name || "",
         emergencyContactPhone: activeStudent?.emergencyContact?.phone || "",
         employeeCode: activeStaff?.employeeCode || "",
@@ -318,20 +382,41 @@ export function SettingsView() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Department</label>
-                    <input 
-                      type="text" 
-                      value={profileForm.department} 
-                      onChange={e => setProfileForm({...profileForm, department: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                    <CustomDropdown 
+                      options={coursesList}
+                      value={profileForm.department}
+                      placeholder="Select Department"
+                      onChange={(val) => {
+                        setProfileForm({...profileForm, department: val, semester: "", section: "", classId: "", className: ""});
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Semester</label>
-                    <input 
-                      type="text" 
-                      value={profileForm.semester} 
-                      onChange={e => setProfileForm({...profileForm, semester: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                    <CustomDropdown 
+                      options={yearsList}
+                      value={profileForm.semester}
+                      placeholder="Select Semester"
+                      onChange={(val) => {
+                        setProfileForm({...profileForm, semester: val, section: "", classId: "", className: ""});
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Section</label>
+                    <CustomDropdown 
+                      options={sectionsList}
+                      value={profileForm.section}
+                      placeholder="Select Section"
+                      onChange={(val) => {
+                        const matchedClass = classesList.find(c => c.course === profileForm.department && c.semester === profileForm.semester && c.section === val);
+                        setProfileForm({
+                          ...profileForm, 
+                          section: val, 
+                          classId: matchedClass?.id || "",
+                          className: matchedClass?.name || ""
+                        });
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
@@ -714,13 +799,37 @@ export function SettingsView() {
               
               <div className="space-y-4 max-w-md">
                 <div 
-                  className="flex items-center space-x-3 p-4 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer" 
-                  onClick={() => setIsRobotVerified(!isRobotVerified)}
+                  className="flex items-center justify-between p-2 pl-3 pr-2 w-full max-w-[300px] border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-sm cursor-pointer shadow-sm shadow-gray-200 dark:shadow-gray-900" 
+                  onClick={() => {
+                    if (!isRobotVerified) {
+                      setIsVerifyingRobot(true);
+                      setTimeout(() => {
+                        setIsVerifyingRobot(false);
+                        setIsRobotVerified(true);
+                      }, 1000);
+                    } else {
+                      setIsRobotVerified(false);
+                    }
+                  }}
                 >
-                  <div className={`w-6 h-6 border flex items-center justify-center transition-colors ${isRobotVerified ? 'bg-green-500 border-green-500' : 'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-600'}`}>
-                    {isRobotVerified && <Check className="w-4 h-4 text-white" />}
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-sm shadow-inner transition-colors">
+                      {isVerifyingRobot ? (
+                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                      ) : isRobotVerified ? (
+                        <Check className="w-6 h-6 text-green-600 font-bold" strokeWidth={3} />
+                      ) : null}
+                    </div>
+                    <span className="text-sm text-gray-800 dark:text-gray-200 font-medium tracking-tight">I'm not a robot</span>
                   </div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">I'm not a robot</span>
+                  
+                  <div className="flex flex-col items-center justify-center text-center mr-1">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" className="text-blue-600 mb-1 opacity-90">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H8l4-5v4h3l-4 5z"/>
+                    </svg>
+                    <span className="text-[10px] text-gray-500 leading-none">reCAPTCHA</span>
+                    <span className="text-[8px] text-gray-500 mt-0.5 leading-none">Privacy - Terms</span>
+                  </div>
                 </div>
                 
                 <div 
