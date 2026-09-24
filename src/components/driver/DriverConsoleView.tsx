@@ -26,6 +26,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
+import { useTranslation } from "@/components/common/LanguageProvider";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 import { supabase } from "@/lib/supabaseClient";
@@ -48,6 +49,7 @@ export default function DriverConsoleView({
   initialStops = [],
   initialUser,
 }: DriverConsoleProps) {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
@@ -319,7 +321,7 @@ export default function DriverConsoleView({
         portalTitle="CampusFleet"
         portalSubtitle={bus?.busNumber ? `Cockpit • ${bus.busNumber}` : "Driver HUD Console"}
         mobilePrimaryAction={{
-          label: "Conductor Manifest Console",
+          label: t('conductor'),
           href: "/conductor",
           subtitle: "Switch to passenger QR ticket verification",
           icon: FileCheck2,
@@ -331,7 +333,7 @@ export default function DriverConsoleView({
             title="Switch to Conductor Manifest Console"
           >
             <FileCheck2 className="w-3.5 h-3.5 text-pink-500" />
-            <span>Conductor</span>
+            <span>{t('conductor')}</span>
           </Link>
         }
       />
