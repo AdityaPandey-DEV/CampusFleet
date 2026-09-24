@@ -391,7 +391,7 @@ export function SettingsView() {
             </div>
 
             {/* Role Specific Fields */}
-            {currentUser?.role === "student" && (
+            {((currentUser as any)?.role === "student" || (currentUser as any)?.role === "portal" || !currentUser?.role) && (
               <>
                 <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">Student Details</h3>
@@ -442,6 +442,7 @@ export function SettingsView() {
                       value={profileForm.emergencyContactName} 
                       onChange={e => setProfileForm({...profileForm, emergencyContactName: e.target.value})}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                      placeholder="E.g. Parent / Guardian"
                     />
                   </div>
                   <div className="space-y-2">
@@ -451,6 +452,7 @@ export function SettingsView() {
                       value={profileForm.emergencyContactPhone} 
                       onChange={e => setProfileForm({...profileForm, emergencyContactPhone: e.target.value})}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                      placeholder="+91 0000000000"
                     />
                   </div>
                 </div>
@@ -460,7 +462,11 @@ export function SettingsView() {
             {(["admin", "staff", "driver", "conductor", "teacher"].includes(currentUser?.role || "")) && (
               <>
                 <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">Staff Details</h3>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">
+                  {currentUser?.role === "conductor" ? "Conductor Details" : 
+                   currentUser?.role === "driver" ? "Driver Details" : 
+                   "Staff Details"}
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Employee Code</label>
@@ -469,6 +475,7 @@ export function SettingsView() {
                       value={profileForm.employeeCode} 
                       onChange={e => setProfileForm({...profileForm, employeeCode: e.target.value})}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                      placeholder="E.g. EMP-1001"
                     />
                   </div>
                   <div className="space-y-2">
@@ -478,6 +485,7 @@ export function SettingsView() {
                       value={profileForm.category} 
                       onChange={e => setProfileForm({...profileForm, category: e.target.value})}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                      placeholder="E.g. Senior"
                     />
                   </div>
                   {currentUser?.role === "driver" && (
@@ -488,6 +496,18 @@ export function SettingsView() {
                         value={profileForm.licenseNo} 
                         onChange={e => setProfileForm({...profileForm, licenseNo: e.target.value})}
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500" 
+                        placeholder="E.g. DL-XXXXXX"
+                      />
+                    </div>
+                  )}
+                  {currentUser?.role === "conductor" && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Assigned Bus / Duty</label>
+                      <input 
+                        type="text" 
+                        value="Assigned by Dispatcher" 
+                        disabled
+                        className="w-full px-4 py-2 border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-gray-500 rounded-none cursor-not-allowed" 
                       />
                     </div>
                   )}
