@@ -597,3 +597,18 @@ export interface UserPreferences {
   primaryLanguage: SupportedLanguage;
   secondaryLanguage: SupportedLanguage | null;
 }
+
+export type HaltRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
+
+export interface HaltRequest {
+  id: string; // usually tripId:studentId
+  tripId: string;
+  studentId: string;
+  studentName: string;
+  studentPhoto?: string;
+  latitude: number;
+  longitude: number;
+  status: HaltRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}

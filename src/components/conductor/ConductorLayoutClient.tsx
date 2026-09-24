@@ -70,6 +70,7 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
     { href: "/conductor/scanner", label: "Scanner", icon: QrCode },
     { href: "/conductor/manifest", label: "Manifest", icon: FileText },
     { href: "/conductor/seat-map", label: "Seat Map", icon: LayoutGrid },
+    { href: "/conductor/late-requests", label: "SOS Halt", icon: AlertTriangle },
     { href: "/conductor/audit", label: "Audit", icon: ShieldCheck },
   ];
 
@@ -79,6 +80,7 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
   if (pathname.includes("/scanner")) currentTitle = "Boarding Scanner";
   else if (pathname.includes("/manifest")) currentTitle = "Passenger Manifest";
   else if (pathname.includes("/seat-map")) currentTitle = "Live Seat Map";
+  else if (pathname.includes("/late-requests")) currentTitle = "SOS / Halt Requests";
   else if (pathname.includes("/audit")) currentTitle = "Attendance Audit";
   else if (pathname.includes("/bus-qr")) currentTitle = "Bus QR";
 
