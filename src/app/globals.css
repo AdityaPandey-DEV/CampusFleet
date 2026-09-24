@@ -128,3 +128,10 @@ body {
   border-radius: 9999px;
   background-color: hsl(var(--background));
 }
+
+/* Hide Google Translate Toolbar */
+.VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
+.goog-te-banner-frame { display: none !important; }
+body { top: 0px !important; }
+#goog-gt-tt { display: none !important; }
+

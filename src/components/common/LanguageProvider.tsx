@@ -40,11 +40,16 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setPrimaryLanguage = useCallback((lang: SupportedLanguage) => {
+    if (lang === primaryLanguage) return;
     setPrimaryLangState(lang);
     try {
       localStorage.setItem(STORAGE_KEY, lang);
+      // Trigger Google Translate via cookie
+      document.cookie = `googtrans=/en/${lang}; path=/`;
+      document.cookie = `googtrans=/en/${lang}; domain=.${window.location.hostname}; path=/`;
+      window.location.reload();
     } catch {}
-  }, []);
+  }, [primaryLanguage]);
 
   const setSecondaryLanguage = useCallback((lang: SupportedLanguage | null) => {
     setSecondaryLangState(lang);

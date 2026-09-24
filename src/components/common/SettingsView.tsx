@@ -6,7 +6,7 @@ import { useTheme } from "@/components/common/ThemeProvider";
 import { store } from "@/lib/store";
 import { 
   Sun, Moon, Bell, Shield, Database, Download, RefreshCw, MessageSquare, Trash, 
-  ChevronDown, Check, Globe, Loader2
+  ChevronDown, Check, Globe, Loader2, Type
 } from "lucide-react";
 import { usePWAInstall } from "@/lib/usePWAInstall";
 import { InstallAppModal } from "@/components/common/InstallAppModal";
@@ -72,6 +72,17 @@ export function SettingsView() {
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [mounted, setMounted] = useState(false);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
+  const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
+  const fontOptions = [
+    { value: "system", label: "System Default" },
+    { value: "inter, sans-serif", label: "Inter" },
+    { value: "roboto, sans-serif", label: "Roboto" },
+    { value: "'Open Sans', sans-serif", label: "Open Sans" },
+    { value: "lato, sans-serif", label: "Lato" },
+    { value: "poppins, sans-serif", label: "Poppins" },
+    { value: "monospace", label: "Monospace" },
+    { value: "serif", label: "Serif" },
+  ];
 
   // App Install state
   const { promptInstall } = usePWAInstall();
@@ -636,19 +647,53 @@ export function SettingsView() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Font Family</h3>
                 <p className="text-sm text-gray-500">Choose your preferred font</p>
               </div>
-              <select 
-                value={fontFamily}
-                onChange={(e) => {
-                  setFontFamily(e.target.value);
-                  document.documentElement.style.fontFamily = e.target.value === 'system' ? '' : e.target.value;
-                }}
-                className="flex items-center justify-between min-w-[180px] px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-none bg-white dark:bg-gray-950 focus:outline-none transition-colors"
-              >
-                <option value="system">System Default</option>
-                <option value="Inter, sans-serif">Inter</option>
-                <option value="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas">Monospace</option>
-                <option value="Georgia, serif">Serif</option>
-              </select>
+              <div className="relative">
+                <button
+                  onClick={() => setIsFontDropdownOpen(!isFontDropdownOpen)}
+                  className="flex items-center justify-between min-w-[200px] px-4 py-2 text-sm font-medium border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <Type className="w-4 h-4 text-gray-500" />
+                    <span>
+                      {fontOptions.find(f => f.value === fontFamily)?.label || "System Default"}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                </button>
+                
+                {isFontDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsFontDropdownOpen(false)} 
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-full z-20 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                      <div className="max-h-60 overflow-y-auto py-1">
+                        {fontOptions.map(font => (
+                          <button
+                            key={font.value}
+                            onClick={() => {
+                              setFontFamily(font.value);
+                              document.documentElement.style.fontFamily = font.value === 'system' ? '' : font.value;
+                              setIsFontDropdownOpen(false);
+                            }}
+                            className={`w-full text-left flex items-center justify-between px-4 py-2.5 text-sm transition-colors ${
+                              fontFamily === font.value 
+                                ? 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white font-medium' 
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'
+                            }`}
+                          >
+                            <span style={{ fontFamily: font.value === 'system' ? 'inherit' : font.value }}>
+                              {font.label}
+                            </span>
+                            {fontFamily === font.value && <Check className="w-4 h-4 text-gray-900 dark:text-white" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="h-px bg-gray-100 dark:bg-gray-800/60" />

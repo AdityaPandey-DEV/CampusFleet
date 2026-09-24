@@ -41,6 +41,20 @@ export default function RootLayout({
             </CampusTimeProvider>
           </LanguageProvider>
         </ThemeProvider>
+        
+        {/* Google Translate Integration */}
+        <div id="google_translate_element" style={{ display: 'none' }}></div>
+        <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            function googleTranslateElementInit() {
+              new window.google.translate.TranslateElement({
+                pageLanguage: 'en',
+                autoDisplay: false
+              }, 'google_translate_element');
+            }
+          `
+        }} />
       </body>
     </html>
   );
