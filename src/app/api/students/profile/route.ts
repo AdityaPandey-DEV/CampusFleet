@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     let existingPaymentStatus: string | null = null;
 
     const { data: existingStudents } = await supabaseAdmin
-      .from("students")
+      .from("students_full")
       .select("id, photo_url, photo_locked, campus_id, campus, payment_status")
       .or(`user_id.eq.${userId},email.ilike.${cleanEmail}`)
       .order("created_at", { ascending: false })
@@ -111,10 +111,12 @@ export async function POST(req: NextRequest) {
       emergency_contact: emergencyContact || null,
     };
 
+    let finalPhotoUrl = null;
+    let finalPhotoLocked = false;
     if (body.photoUrl) {
-      studentData.photo_url = body.photoUrl;
+      finalPhotoUrl = body.photoUrl;
       // Only lock photo if student already has an approved subscription
-      studentData.photo_locked = hasActiveSubscription;
+      finalPhotoLocked = hasActiveSubscription;
     }
 
     if (validClassId) {
@@ -171,6 +173,7 @@ export async function POST(req: NextRequest) {
         campus: studentData.campus,
         role: "student",
         provider: "Institutional SSO",
+        ...(finalPhotoUrl ? { avatar_url: finalPhotoUrl, photo_locked: finalPhotoLocked } : {}),
       }, { onConflict: "id" });
 
     return NextResponse.json({

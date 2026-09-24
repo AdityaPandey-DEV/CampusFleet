@@ -382,8 +382,6 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
       payment_status: updatedStudent.paymentStatus || "UNPAID",
       total_fee_due: updatedStudent.totalFeeDue || 12000,
       total_fee_paid: updatedStudent.totalFeePaid || 0,
-      photo_url: updatedStudent.photoUrl || null,
-      photo_locked: updatedStudent.photoLocked || false,
     });
 
     if (updatedStudent.userId) {
@@ -393,6 +391,7 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
         campus_id: updatedStudent.campusId || null,
         campus: updatedStudent.campus,
         avatar_url: updatedStudent.photoUrl || null,
+        photo_locked: updatedStudent.photoLocked || false,
       }).eq("id", updatedStudent.userId);
     }
   } catch (e) {
