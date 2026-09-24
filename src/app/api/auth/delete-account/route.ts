@@ -123,7 +123,10 @@ export async function DELETE(req: NextRequest) {
 
     if (deleteError) {
       console.error("Supabase Admin Delete Error:", deleteError);
-      throw new Error(`Failed to delete Auth User: ${deleteError.message}`);
+      // If the user is already deleted from Auth, just proceed to clear cookies
+      if (!deleteError.message.includes("User not found")) {
+        throw new Error(`Failed to delete Auth User: ${deleteError.message}`);
+      }
     }
 
     // 4. Invalidate Redis cache for user role
