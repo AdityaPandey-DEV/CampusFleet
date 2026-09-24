@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import ReCAPTCHA from "react-google-recaptcha";
 import { useTheme } from "@/components/common/ThemeProvider";
 import { store } from "@/lib/store";
 import { 
@@ -87,7 +88,7 @@ export function SettingsView() {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRobotVerified, setIsRobotVerified] = useState(false);
-  const [isVerifyingRobot, setIsVerifyingRobot] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [classesList, setClassesList] = useState<any[]>([]);
 
@@ -101,6 +102,8 @@ export function SettingsView() {
     try {
       const res = await fetch("/api/auth/delete-account", {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recaptchaToken }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete account");
@@ -811,38 +814,18 @@ export function SettingsView() {
               </p>
               
               <div className="space-y-4 max-w-md">
-                <div 
-                  className="flex items-center justify-between p-2 pl-3 pr-2 w-full max-w-[300px] border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-sm cursor-pointer shadow-sm shadow-gray-200 dark:shadow-gray-900" 
-                  onClick={() => {
-                    if (!isRobotVerified) {
-                      setIsVerifyingRobot(true);
-                      setTimeout(() => {
-                        setIsVerifyingRobot(false);
-                        setIsRobotVerified(true);
-                      }, 1000);
-                    } else {
+                <div className="w-full max-w-[300px]">
+                  <ReCAPTCHA
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+                    onChange={(token) => {
+                      setRecaptchaToken(token);
+                      setIsRobotVerified(!!token);
+                    }}
+                    onExpired={() => {
+                      setRecaptchaToken(null);
                       setIsRobotVerified(false);
-                    }
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-sm shadow-inner transition-colors">
-                      {isVerifyingRobot ? (
-                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                      ) : isRobotVerified ? (
-                        <Check className="w-6 h-6 text-green-600 font-bold" strokeWidth={3} />
-                      ) : null}
-                    </div>
-                    <span className="text-sm text-gray-800 dark:text-gray-200 font-medium tracking-tight">I'm not a robot</span>
-                  </div>
-                  
-                  <div className="flex flex-col items-center justify-center text-center mr-1">
-                    <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" className="text-blue-600 mb-1 opacity-90">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H8l4-5v4h3l-4 5z"/>
-                    </svg>
-                    <span className="text-[10px] text-gray-500 leading-none">reCAPTCHA</span>
-                    <span className="text-[8px] text-gray-500 mt-0.5 leading-none">Privacy - Terms</span>
-                  </div>
+                    }}
+                  />
                 </div>
                 
                 <div 

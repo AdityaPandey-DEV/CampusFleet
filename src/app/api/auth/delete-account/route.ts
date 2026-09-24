@@ -23,6 +23,24 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    const { recaptchaToken } = await req.json();
+    if (!recaptchaToken) {
+      return NextResponse.json({ success: false, error: "Missing reCAPTCHA token" }, { status: 400 });
+    }
+
+    const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
+    if (recaptchaSecret) {
+      const verifyRes = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `secret=${recaptchaSecret}&response=${recaptchaToken}`
+      });
+      const recaptchaData = await verifyRes.json();
+      if (!recaptchaData.success) {
+        return NextResponse.json({ success: false, error: "Robot verification failed" }, { status: 403 });
+      }
+    }
+
     const session = await verifyToken(token);
     if (!session || !session.userId) {
       return NextResponse.json({ success: false, error: "Invalid session" }, { status: 401 });
