@@ -50,7 +50,7 @@ export default function RunningLatePage() {
     let isMounted = true;
     const fetchBusLocations = async () => {
       // Bypass store and check for active trips directly to ensure real-time radar
-      let currentActiveTrips = [];
+      let currentActiveTrips: any[] = [];
       try {
         const { data } = await supabase.from('trips').select('id, bus_id').eq('status', 'IN_PROGRESS');
         if (data) currentActiveTrips = data;
