@@ -153,7 +153,7 @@ export async function DELETE(req: NextRequest) {
   } catch (err: any) {
     console.error("Account Deletion Error:", err);
     return NextResponse.json(
-      { success: false, error: "An unexpected error occurred during account deletion" },
+      { success: false, error: err.message || "An unexpected error occurred during account deletion" },
       { status: 500 }
     );
   }
