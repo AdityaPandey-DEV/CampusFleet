@@ -78,7 +78,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://translate.googleapis.com https://www.gstatic.com",
               "img-src 'self' data: blob: https: http: https://translate.googleapis.com https://www.gstatic.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://translate.googleapis.com https://*.vercel.app https://*.upstash.io",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://translate.googleapis.com https://*.vercel.app https://*.upstash.io https://www.google.com/recaptcha/",
               "frame-src 'self' https://accounts.google.com https://www.google.com/recaptcha/",
               "object-src 'none'",
               "base-uri 'self'",

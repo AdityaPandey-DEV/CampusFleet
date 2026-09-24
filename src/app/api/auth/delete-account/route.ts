@@ -104,6 +104,12 @@ export async function DELETE(req: NextRequest) {
 
       const { error: e6 } = await supabaseAdmin.from("payment_submissions").delete().eq("student_id", studentData.id);
       checkDbError(e6, "payment_submissions");
+
+      const { error: e7 } = await supabaseAdmin.from("payment_records").delete().eq("student_id", studentData.id);
+      checkDbError(e7, "payment_records");
+
+      const { error: e8 } = await supabaseAdmin.from("special_shift_allocations").delete().eq("student_id", studentData.id);
+      checkDbError(e8, "special_shift_allocations");
     }
 
     // Delete audit logs, notifications, user preferences
