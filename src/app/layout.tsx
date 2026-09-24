@@ -44,10 +44,9 @@ export default function RootLayout({
         
         {/* Google Translate Integration */}
         <div id="google_translate_element" style={{ display: 'none' }}></div>
-        <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
         <script dangerouslySetInnerHTML={{
           __html: `
-            function googleTranslateElementInit() {
+            window.googleTranslateElementInit = function() {
               new window.google.translate.TranslateElement({
                 pageLanguage: 'en',
                 autoDisplay: false
@@ -55,6 +54,7 @@ export default function RootLayout({
             }
           `
         }} />
+        <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
       </body>
     </html>
   );

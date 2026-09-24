@@ -11,6 +11,7 @@ import { SOSModal } from "@/components/common/SOSModal";
 import { AuthModal } from "@/components/auth/AuthModal";
 import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
+import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
 import {
   BusFront,
   Compass,
@@ -182,7 +183,7 @@ export default function ClientPortalLayout({
     isLocked: false,
   }));
 
-  return (
+  const layoutContent = (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col pb-20 md:pb-6 overflow-x-hidden">
       {/* Zero-Overflow Unified Header with Vertical Slide-Down Command Panel */}
       <UnifiedAppHeader
@@ -292,5 +293,11 @@ export default function ClientPortalLayout({
         initialRole="student"
       />
     </div>
+  );
+
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}>
+      {layoutContent}
+    </GoogleReCaptchaProvider>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import ReCAPTCHA from "react-google-recaptcha";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { useTheme } from "@/components/common/ThemeProvider";
 import { store } from "@/lib/store";
 import { 
@@ -97,24 +97,29 @@ export function SettingsView() {
 
   // Delete Account state
 
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isRobotVerified, setIsRobotVerified] = useState(false);
-  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [classesList, setClassesList] = useState<any[]>([]);
 
 
   const handleDeleteAccount = async () => {
-    if (!isRobotVerified || !termsAccepted) {
+    if (!termsAccepted) {
+      return;
+    }
+
+    if (!executeRecaptcha) {
+      alert("Security verification is loading, please wait a moment.");
       return;
     }
     
     setIsDeleting(true);
     try {
+      const token = await executeRecaptcha("delete_account");
       const res = await fetch("/api/auth/delete-account", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recaptchaToken }),
+        body: JSON.stringify({ recaptchaToken: token }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete account");
@@ -879,20 +884,6 @@ export function SettingsView() {
               </p>
               
               <div className="space-y-4 max-w-md">
-                <div className="w-full max-w-[300px]">
-                  <ReCAPTCHA
-                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
-                    onChange={(token) => {
-                      setRecaptchaToken(token);
-                      setIsRobotVerified(!!token);
-                    }}
-                    onExpired={() => {
-                      setRecaptchaToken(null);
-                      setIsRobotVerified(false);
-                    }}
-                  />
-                </div>
-                
                 <div 
                   className="flex items-start space-x-3 cursor-pointer" 
                   onClick={() => setTermsAccepted(!termsAccepted)}
@@ -909,9 +900,9 @@ export function SettingsView() {
                 
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={isDeleting || !isRobotVerified || !termsAccepted}
+                  disabled={isDeleting || !termsAccepted}
                   className={`px-6 py-2 text-sm font-bold shadow-none transition-all ${
-                    isDeleting || !isRobotVerified || !termsAccepted
+                    isDeleting || !termsAccepted
                       ? "bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
                       : "bg-red-600 hover:bg-red-700 text-white"
                   }`}

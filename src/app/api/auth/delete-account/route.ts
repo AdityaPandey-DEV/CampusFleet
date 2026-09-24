@@ -36,8 +36,8 @@ export async function DELETE(req: NextRequest) {
         body: `secret=${recaptchaSecret}&response=${recaptchaToken}`
       });
       const recaptchaData = await verifyRes.json();
-      if (!recaptchaData.success) {
-        return NextResponse.json({ success: false, error: "Robot verification failed" }, { status: 403 });
+      if (!recaptchaData.success || (recaptchaData.score !== undefined && recaptchaData.score < 0.5)) {
+        return NextResponse.json({ success: false, error: "Robot verification failed or score too low" }, { status: 403 });
       }
     }
 
