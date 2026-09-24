@@ -29,8 +29,10 @@ export default async function StudentPortalPage() {
     supabaseAdmin.from("stops").select("*"),
     supabaseAdmin.from("shifts").select("*"),
     supabaseAdmin.from("trips").select("*").order("trip_code"),
-    supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(200),
-    supabaseAdmin.from("staff").select("*"),
+    // Security Fix: Only fetch bookings for the logged-in student!
+    supabaseAdmin.from("bookings_full").select("*").eq("student_id", session.userId).order("created_at", { ascending: false }).limit(50),
+    // Security Fix: Students do not need to download the entire staff directory.
+    Promise.resolve({ data: [] }),
   ]);
 
   const students: Student[] = (dbStudents || []).map((s: any) => ({
