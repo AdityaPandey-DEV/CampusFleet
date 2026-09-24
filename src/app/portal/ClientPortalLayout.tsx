@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { store } from "@/lib/store";
 import { authService } from "@/lib/auth-service";
+import { useTranslation } from "@/components/common/LanguageProvider";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { SOSModal } from "@/components/common/SOSModal";
@@ -39,6 +40,7 @@ export default function ClientPortalLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [students, setStudents] = useState(store.getStudents());
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
@@ -169,13 +171,13 @@ export default function ClientPortalLayout({
   // 2. If Paid & Active: Show Commute Cockpit, Seat Booking, Digital Pass, Live Radar (Fee payment form deactivated)
   const navLinks = isSubscriptionActive
     ? [
-        { href: "/portal", label: "My Commute", icon: Navigation, requiresPayment: false },
-        { href: "/portal/late", label: "Running Late", icon: Clock, requiresPayment: false },
-        { href: "/portal/settings", label: "Settings", icon: User, requiresPayment: false },
+        { href: "/portal", label: t('commutePortal'), icon: Navigation, requiresPayment: false },
+        { href: "/portal/late", label: t('tripUpdates'), icon: Clock, requiresPayment: false },
+        { href: "/portal/settings", label: t('settings'), icon: User, requiresPayment: false },
       ]
     : [
-        { href: "/portal/payments", label: "Pass Activation & Fees", icon: CreditCard, requiresPayment: false },
-        { href: "/portal/onboarding", label: "Profile Details", icon: User, requiresPayment: false },
+        { href: "/portal/payments", label: t('feePayment'), icon: CreditCard, requiresPayment: false },
+        { href: "/portal/onboarding", label: t('profileDetails'), icon: User, requiresPayment: false },
       ];
 
   const processedNavLinks = navLinks.map(link => ({
