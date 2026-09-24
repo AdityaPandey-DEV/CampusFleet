@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSessionFromRequest } from "@/lib/jwt";
+import { cacheSet } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -175,6 +176,11 @@ export async function POST(req: NextRequest) {
         provider: "Institutional SSO",
         ...(finalPhotoUrl ? { avatar_url: finalPhotoUrl, photo_locked: finalPhotoLocked } : {}),
       }, { onConflict: "id" });
+
+    // 5. Update Redis cache for instant UI resolution
+    if (finalPhotoUrl) {
+      await cacheSet(`student:photo:${userId}`, finalPhotoUrl, 300);
+    }
 
     return NextResponse.json({
       success: true,
