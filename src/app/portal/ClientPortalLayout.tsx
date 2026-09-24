@@ -12,7 +12,7 @@ import { SOSModal } from "@/components/common/SOSModal";
 import { AuthModal } from "@/components/auth/AuthModal";
 import BusLoadingScreen from "@/components/common/BusLoadingScreen";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
-import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
+// Removed reCAPTCHA
 import {
   BusFront,
   Compass,
@@ -297,9 +297,5 @@ export default function ClientPortalLayout({
     </div>
   );
 
-  return (
-    <GoogleReCaptchaProvider reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}>
-      {layoutContent}
-    </GoogleReCaptchaProvider>
-  );
+  return layoutContent;
 }

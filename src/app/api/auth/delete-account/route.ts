@@ -23,24 +23,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { recaptchaToken } = await req.json();
-    if (!recaptchaToken) {
-      return NextResponse.json({ success: false, error: "Missing reCAPTCHA token" }, { status: 400 });
-    }
-
-    const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
-    if (recaptchaSecret) {
-      const verifyRes = await fetch("https://www.google.com/recaptcha/api/siteverify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `secret=${recaptchaSecret}&response=${recaptchaToken}`
-      });
-      const recaptchaData = await verifyRes.json();
-      if (!recaptchaData.success || (recaptchaData.score !== undefined && recaptchaData.score < 0.5)) {
-        return NextResponse.json({ success: false, error: "Robot verification failed or score too low" }, { status: 403 });
-      }
-    }
-
+    // ReCAPTCHA completely removed as per user request
+    
     const session = await verifyToken(token);
     if (!session || !session.userId) {
       return NextResponse.json({ success: false, error: "Invalid session" }, { status: 401 });
@@ -54,9 +38,15 @@ export async function DELETE(req: NextRequest) {
       .eq("user_id", session.userId)
       .single();
 
-    // Helper to throw on error
+    // Helper to throw on error, but ignore missing tables (in case of partial migrations)
     const checkDbError = (err: any, table: string) => {
-      if (err) throw new Error(`Failed to delete from ${table}: ${err.message}`);
+      if (err) {
+        if (err.message && err.message.includes("Could not find the table")) {
+          console.warn(`Skipping missing table: ${table}`);
+          return;
+        }
+        throw new Error(`Failed to delete from ${table}: ${err.message}`);
+      }
     };
 
     if (studentData) {

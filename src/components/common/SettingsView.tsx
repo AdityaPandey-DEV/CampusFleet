@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+// Removed useGoogleReCaptcha
 import { useTheme } from "@/components/common/ThemeProvider";
 import { store } from "@/lib/store";
 import { 
@@ -96,29 +96,23 @@ export function SettingsView() {
   };
 
   // Delete Account state
-  const { executeRecaptcha } = useGoogleReCaptcha();
   const [isDeleting, setIsDeleting] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [classesList, setClassesList] = useState<any[]>([]);
 
 
   const handleDeleteAccount = async () => {
-    if (!termsAccepted) {
-      return;
-    }
-
-    if (!executeRecaptcha) {
-      alert("Security verification is loading, please wait a moment.");
+    if (deleteConfirmation !== "DELETE") {
+      alert("Please type DELETE to confirm.");
       return;
     }
     
     setIsDeleting(true);
     try {
-      const token = await executeRecaptcha("delete_account");
       const res = await fetch("/api/auth/delete-account", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recaptchaToken: token }),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete account");
@@ -883,25 +877,24 @@ export function SettingsView() {
               </p>
               
               <div className="space-y-4 max-w-md">
-                <div 
-                  className="flex items-start space-x-3 cursor-pointer" 
-                  onClick={() => setTermsAccepted(!termsAccepted)}
-                >
-                  <div className="mt-0.5">
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${termsAccepted ? 'border-red-500' : 'border-gray-400'}`}>
-                      {termsAccepted && <div className="w-2 h-2 rounded-full bg-red-500" />}
-                    </div>
-                  </div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {t('deleteAccountTerms')}
-                  </span>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    To confirm, type <span className="font-bold text-red-600">DELETE</span> below:
+                  </label>
+                  <input
+                    type="text"
+                    value={deleteConfirmation}
+                    onChange={(e) => setDeleteConfirmation(e.target.value)}
+                    placeholder="DELETE"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:border-red-500 rounded-none"
+                  />
                 </div>
                 
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={isDeleting || !termsAccepted}
+                  disabled={isDeleting || deleteConfirmation !== "DELETE"}
                   className={`px-6 py-2 text-sm font-bold shadow-none transition-all mt-4 ${
-                    isDeleting || !termsAccepted
+                    isDeleting || deleteConfirmation !== "DELETE"
                       ? "bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
                       : "bg-red-600 hover:bg-red-700 text-white"
                   }`}
