@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { cacheGet, cacheSet, cacheDel } from "@/lib/redis";
 
 /**
  * Digital Seat-Hold, Campus Roaming & Bus Departure Recall API
@@ -21,99 +22,104 @@ export async function GET(req: NextRequest) {
     }
 
     let resolvedTripId = tripId;
-
-    // If only studentId provided, find active booking and trip for student
-    let studentBooking: any = null;
-    if (studentId) {
+    
+    // Find active trip if studentId provided
+    if (!resolvedTripId && studentId) {
       const { data: bData } = await supabaseAdmin
         .from("bookings")
-        .select("*")
-        .or(`student_id.eq.${studentId}`)
+        .select("trip_id")
+        .eq("student_id", studentId)
         .in("status", ["CONFIRMED", "BOARDED"])
         .order("created_at", { ascending: false })
         .limit(1);
-
       if (bData && bData.length > 0) {
-        studentBooking = bData[0];
-        if (!resolvedTripId) {
-          resolvedTripId = studentBooking.trip_id;
-        }
+        resolvedTripId = bData[0].trip_id;
       }
     }
 
     if (!resolvedTripId) {
-      return NextResponse.json({
-        success: true,
-        activeAlert: null,
-        studentBooking: null,
-        fullness: null,
-      });
+      return NextResponse.json({ success: true, activeAlert: null, studentBooking: null, fullness: null });
     }
 
-    // 1. Fetch Trip & Bus Capacity from Database
-    const { data: tripData } = await supabaseAdmin
-      .from("trips")
-      .select("*, bus:buses(*)")
-      .eq("id", resolvedTripId)
-      .single();
+    const cacheKey = `roaming:trip:${resolvedTripId}`;
+    let cachedData: any = await cacheGet(cacheKey);
 
-    const busCapacity = tripData?.bus?.capacity || 40;
-    const busNumber = tripData?.bus?.bus_number || "Campus Shuttle";
-    const regNo = tripData?.bus?.registration_no || "";
+    if (!cachedData) {
+      // 1. Fetch Trip & Bus
+      const { data: tripData } = await supabaseAdmin.from("trips").select("*, bus:buses(*)").eq("id", resolvedTripId).single();
+      const busCapacity = tripData?.bus?.capacity || 40;
+      const busNumber = tripData?.bus?.bus_number || "Campus Shuttle";
+      const regNo = tripData?.bus?.registration_no || "";
 
-    // 2. Fetch all bookings for this trip
-    const { data: tripBookings } = await supabaseAdmin
-      .from("bookings")
-      .select("id, student_id, seat_number, status, roaming_status, running_grace_until, boarded_at")
-      .eq("trip_id", resolvedTripId);
+      // 2. Fetch all bookings
+      const { data: tripBookings } = await supabaseAdmin
+        .from("bookings")
+        .select("id, student_id, seat_number, status, roaming_status, running_grace_until, boarded_at")
+        .eq("trip_id", resolvedTripId);
+      
+      const bookingsList = tripBookings || [];
 
-    const bookingsList = tripBookings || [];
+      // 3. Check for Active Departure Alert
+      const { data: activeAlerts } = await supabaseAdmin
+        .from("bus_departure_alerts")
+        .select("*")
+        .eq("trip_id", resolvedTripId)
+        .eq("status", "ACTIVE")
+        .order("triggered_at", { ascending: false })
+        .limit(1);
+
+      cachedData = {
+        trip: {
+          id: resolvedTripId,
+          tripCode: tripData?.trip_code,
+          status: tripData?.status,
+          busId: tripData?.bus_id,
+          busNumber,
+          registrationNo: regNo,
+          capacity: busCapacity,
+          departureTime: tripData?.departure_time,
+        },
+        bookingsList,
+        activeAlert: activeAlerts && activeAlerts.length > 0 ? activeAlerts[0] : null,
+      };
+
+      // Cache it for 7 seconds!
+      await cacheSet(cacheKey, cachedData, 7);
+    }
+
+    const { trip, bookingsList, activeAlert } = cachedData;
+
     const totalBooked = bookingsList.length;
-
-    // Counts by Roaming Status
-    const roamingCount = bookingsList.filter(
-      (b) => b.roaming_status === "ROAMING" || (!b.roaming_status && b.status === "BOARDED")
-    ).length;
-    const onboardConfirmedCount = bookingsList.filter(
-      (b) => b.roaming_status === "ONBOARD_CONFIRMED"
-    ).length;
-    const runningCount = bookingsList.filter(
-      (b) => b.roaming_status === "RUNNING_TO_BUS"
-    ).length;
-    const pendingCount = bookingsList.filter(
-      (b) => !b.roaming_status || b.roaming_status === "CONFIRMED"
-    ).length;
+    const roamingCount = bookingsList.filter((b: any) => b.roaming_status === "ROAMING" || (!b.roaming_status && b.status === "BOARDED")).length;
+    const onboardConfirmedCount = bookingsList.filter((b: any) => b.roaming_status === "ONBOARD_CONFIRMED").length;
+    const runningCount = bookingsList.filter((b: any) => b.roaming_status === "RUNNING_TO_BUS").length;
+    const pendingCount = bookingsList.filter((b: any) => !b.roaming_status || b.roaming_status === "CONFIRMED").length;
 
     const totalClaimedSeats = roamingCount + onboardConfirmedCount + runningCount;
-    const isBusFull = totalClaimedSeats >= busCapacity;
-    const seatsRemaining = Math.max(0, busCapacity - totalClaimedSeats);
-    const fullnessPercentage = Math.min(100, Math.round((totalClaimedSeats / busCapacity) * 100));
+    const isBusFull = totalClaimedSeats >= trip.capacity;
+    const seatsRemaining = Math.max(0, trip.capacity - totalClaimedSeats);
+    const fullnessPercentage = Math.min(100, Math.round((totalClaimedSeats / trip.capacity) * 100));
 
-    // 3. Check for Active Departure Alert in Database
-    const { data: activeAlerts } = await supabaseAdmin
-      .from("bus_departure_alerts")
-      .select("*")
-      .eq("trip_id", resolvedTripId)
-      .eq("status", "ACTIVE")
-      .order("triggered_at", { ascending: false })
-      .limit(1);
-
-    const activeAlert = activeAlerts && activeAlerts.length > 0 ? activeAlerts[0] : null;
+    let studentBooking = null;
+    if (studentId) {
+      const sb = bookingsList.find((b: any) => b.student_id === studentId);
+      if (sb) {
+        studentBooking = {
+          id: sb.id,
+          seatNumber: sb.seat_number,
+          status: sb.status,
+          roamingStatus: sb.roaming_status || (sb.status === "BOARDED" ? "ROAMING" : "CONFIRMED"),
+          runningGraceUntil: sb.running_grace_until,
+          boardedAt: sb.boarded_at,
+        };
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      trip: {
-        id: resolvedTripId,
-        tripCode: tripData?.trip_code,
-        status: tripData?.status,
-        busId: tripData?.bus_id,
-        busNumber,
-        registrationNo: regNo,
-        capacity: busCapacity,
-        departureTime: tripData?.departure_time,
-      },
+      trip,
       fullness: {
-        totalCapacity: busCapacity,
+        totalCapacity: trip.capacity,
         totalBooked,
         totalClaimedSeats,
         seatsRemaining,
@@ -124,33 +130,19 @@ export async function GET(req: NextRequest) {
         runningCount,
         pendingCount,
       },
-      studentBooking: studentBooking
-        ? {
-            id: studentBooking.id,
-            seatNumber: studentBooking.seat_number,
-            status: studentBooking.status,
-            roamingStatus: studentBooking.roaming_status || (studentBooking.status === "BOARDED" ? "ROAMING" : "CONFIRMED"),
-            runningGraceUntil: studentBooking.running_grace_until,
-            boardedAt: studentBooking.boarded_at,
-          }
-        : null,
-      activeAlert: activeAlert
-        ? {
-            id: activeAlert.id,
-            alertType: activeAlert.alert_type,
-            message: activeAlert.message,
-            triggeredAt: activeAlert.triggered_at,
-            triggeredBy: activeAlert.triggered_by,
-            status: activeAlert.status,
-          }
-        : null,
+      studentBooking,
+      activeAlert: activeAlert ? {
+        id: activeAlert.id,
+        alertType: activeAlert.alert_type,
+        message: activeAlert.message,
+        triggeredAt: activeAlert.triggered_at,
+        triggeredBy: activeAlert.triggered_by,
+        status: activeAlert.status,
+      } : null,
     });
   } catch (error: any) {
     console.error("Error fetching roaming fullness:", error);
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to fetch status" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
@@ -160,6 +152,7 @@ export async function POST(req: NextRequest) {
     const { action, tripId, bookingId, studentId, conductorName = "Conductor Console", message } = body;
 
     const timestamp = new Date().toISOString();
+    const invalidateTrip = async (id: string) => { if (id) await cacheDel(`roaming:trip:${id}`); };
 
     // ─────────────────────────────────────────────────────────────
     // 1. CONDUCTOR SCANS / MARKS STUDENT: SEAT-HOLD & ROAMING
@@ -212,6 +205,7 @@ export async function POST(req: NextRequest) {
         timestamp,
       });
 
+      if (tripId) await invalidateTrip(tripId);
       // Audit Log
       await supabaseAdmin.from("audit_logs").insert({
         user_id: targetBooking.student_id,
@@ -261,6 +255,7 @@ export async function POST(req: NextRequest) {
         alertTriggered = true;
       }
 
+      await invalidateTrip(resolvedTripId);
       return NextResponse.json({
         success: true,
         status: "ROAMING",
@@ -294,6 +289,7 @@ export async function POST(req: NextRequest) {
 
       await query;
 
+      if (tripId) await invalidateTrip(tripId);
       // Audit Log
       await supabaseAdmin.from("audit_logs").insert({
         user_id: studentId || "student",
@@ -336,6 +332,7 @@ export async function POST(req: NextRequest) {
 
       await query;
 
+      if (tripId) await invalidateTrip(tripId);
       // Audit Log
       await supabaseAdmin.from("audit_logs").insert({
         user_id: studentId || "student",
@@ -347,6 +344,7 @@ export async function POST(req: NextRequest) {
         new_value: { roamingStatus: "RUNNING_TO_BUS", runningGraceUntil: graceTime },
       });
 
+      if (tripId) await invalidateTrip(tripId);
       return NextResponse.json({
         success: true,
         status: "RUNNING_TO_BUS",
@@ -389,6 +387,7 @@ export async function POST(req: NextRequest) {
         .select("student_id")
         .eq("trip_id", tripId);
 
+      await invalidateTrip(tripId);
       if (tripBookings && tripBookings.length > 0) {
         const notifs = tripBookings.map((b) => ({
           user_id: b.student_id,
@@ -421,6 +420,7 @@ export async function POST(req: NextRequest) {
         .eq("trip_id", tripId)
         .eq("status", "ACTIVE");
 
+      await invalidateTrip(tripId);
       return NextResponse.json({
         success: true,
         message: "Departure alert resolved.",

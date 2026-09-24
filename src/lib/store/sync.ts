@@ -84,40 +84,11 @@ CampusFleetStore.prototype.initCrossTabSync = function (this: CampusFleetStore) 
 // ── Real-time Supabase postgres_changes synchronization ──
 
 CampusFleetStore.prototype.initSupabaseRealtime = function (this: CampusFleetStore) {
-  try {
-    supabase
-      .channel("campusfleet-realtime-global-sync")
-      // User Data changes (Bookings, Students, Staff, special allocations)
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
-        this.debouncedSyncUserData();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "students" }, () => {
-        this.debouncedSyncUserData();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "special_shift_allocations" }, () => {
-        this.debouncedSyncUserData();
-      })
-      // Live Transit Data changes (Trips, Buses, Issues, Attendance)
-      .on("postgres_changes", { event: "*", schema: "public", table: "trips" }, () => {
-        this.debouncedSyncLiveTransit();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "buses" }, () => {
-        this.debouncedSyncLiveTransit();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "vehicle_issues" }, () => {
-        this.debouncedSyncLiveTransit();
-      })
-      // Master Data changes (Zones, Routes, Stops, Plans, Campuses, Shifts)
-      .on("postgres_changes", { event: "*", schema: "public", table: "routes" }, () => {
-        this.debouncedSyncMasterData();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "stops" }, () => {
-        this.debouncedSyncMasterData();
-      })
-      .subscribe();
-  } catch (err) {
-    console.warn("Supabase realtime sync warning:", err);
-  }
+  // KILLED POSTGRES POLLING: 
+  // We no longer subscribe to postgres_changes because it triggers full-table fetches
+  // on every single db update, causing gigabytes of egress.
+  // Data is now fetched once upon initialization.
+  console.log("[Sync] Supabase Realtime polling disabled to prevent egress spikes.");
 };
 
 // ── Student payment/subscription polling ──
@@ -181,7 +152,7 @@ CampusFleetStore.prototype.initStudentPaymentSync = function (this: CampusFleetS
   };
 
   syncStudentStatus();
-  setInterval(syncStudentStatus, 30_000);
+  // KILLED: setInterval(syncStudentStatus, 30_000);
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
