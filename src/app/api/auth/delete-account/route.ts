@@ -54,6 +54,11 @@ export async function DELETE(req: NextRequest) {
       .eq("user_id", session.userId)
       .single();
 
+    // Helper to throw on error
+    const checkDbError = (err: any, table: string) => {
+      if (err) throw new Error(`Failed to delete from ${table}: ${err.message}`);
+    };
+
     if (studentData) {
       // Fetch all payment submissions to delete their receipt blobs
       const { data: submissions } = await supabaseAdmin
@@ -75,26 +80,57 @@ export async function DELETE(req: NextRequest) {
         }
       }
 
-      // Delete bookings and payment submissions for this student
-      await supabaseAdmin.from("bookings").delete().eq("student_id", studentData.id);
-      await supabaseAdmin.from("payment_submissions").delete().eq("student_id", studentData.id);
+      // Delete ALL student dependencies first to avoid foreign key constraints
+      const { error: e1 } = await supabaseAdmin.from("attendance_records").delete().eq("student_id", studentData.id);
+      checkDbError(e1, "attendance_records");
+
+      const { error: e2 } = await supabaseAdmin.from("halt_requests").delete().eq("student_id", studentData.id);
+      checkDbError(e2, "halt_requests");
+
+      const { error: e3 } = await supabaseAdmin.from("bus_departure_alerts").delete().eq("student_id", studentData.id);
+      checkDbError(e3, "bus_departure_alerts");
+
+      // Booking status history depends on bookings
+      // Delete all booking status history for bookings belonging to this student
+      const { data: studentBookings } = await supabaseAdmin.from("bookings").select("id").eq("student_id", studentData.id);
+      if (studentBookings && studentBookings.length > 0) {
+        const bookingIds = studentBookings.map(b => b.id);
+        const { error: e4 } = await supabaseAdmin.from("booking_status_history").delete().in("booking_id", bookingIds);
+        checkDbError(e4, "booking_status_history");
+      }
+
+      const { error: e5 } = await supabaseAdmin.from("bookings").delete().eq("student_id", studentData.id);
+      checkDbError(e5, "bookings");
+
+      const { error: e6 } = await supabaseAdmin.from("payment_submissions").delete().eq("student_id", studentData.id);
+      checkDbError(e6, "payment_submissions");
     }
 
-    // Delete audit logs, students, and profile records
-    await supabaseAdmin.from("audit_logs").delete().eq("user_id", session.userId);
-    await supabaseAdmin.from("notifications").delete().eq("user_id", session.userId);
-    await supabaseAdmin.from("staff").delete().eq("user_id", session.userId);
-    await supabaseAdmin.from("guardians").delete().eq("user_id", session.userId);
-    await supabaseAdmin.from("students").delete().eq("user_id", session.userId);
-    await supabaseAdmin.from("profiles").delete().eq("id", session.userId);
+    // Delete audit logs, notifications, user preferences
+    const { error: err1 } = await supabaseAdmin.from("audit_logs").delete().eq("user_id", session.userId);
+    checkDbError(err1, "audit_logs");
+    const { error: err2 } = await supabaseAdmin.from("notifications").delete().eq("user_id", session.userId);
+    checkDbError(err2, "notifications");
+    const { error: errPref } = await supabaseAdmin.from("user_preferences").delete().eq("id", session.userId);
+    // Ignore pref error if it doesn't exist
+
+    // Delete roles
+    const { error: err3 } = await supabaseAdmin.from("staff").delete().eq("user_id", session.userId);
+    checkDbError(err3, "staff");
+    const { error: err4 } = await supabaseAdmin.from("guardians").delete().eq("user_id", session.userId);
+    checkDbError(err4, "guardians");
+    const { error: err5 } = await supabaseAdmin.from("students").delete().eq("user_id", session.userId);
+    checkDbError(err5, "students");
+    
+    const { error: err6 } = await supabaseAdmin.from("profiles").delete().eq("id", session.userId);
+    checkDbError(err6, "profiles");
 
     // 3. Delete user from Supabase Auth
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(session.userId);
 
     if (deleteError) {
       console.error("Supabase Admin Delete Error:", deleteError);
-      // We will still proceed to clear cookies and pretend success to the user 
-      // instead of blocking them completely.
+      throw new Error(`Failed to delete Auth User: ${deleteError.message}`);
     }
 
     // 4. Invalidate Redis cache for user role
