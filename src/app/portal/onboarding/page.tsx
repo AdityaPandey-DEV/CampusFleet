@@ -287,6 +287,13 @@ export default function StudentOnboardingPage() {
       return;
     }
 
+    if (!photoUrl) {
+      setToast("Error: You must upload an official ID photo before activating your pass.");
+      setTimeout(() => setToast(null), 5000);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     setIsSubmitting(true);
     const targetStudentId = activeStudent?.id || `stud-${currentUser?.id || Date.now()}`;
     const chosenClass = classesList.find(c => c.id === selectedClassId);
@@ -694,12 +701,22 @@ export default function StudentOnboardingPage() {
           <div className="pt-4">
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              disabled={isSubmitting || !photoUrl}
+              className={`w-full py-4 font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-all duration-300 ${
+                !photoUrl
+                  ? "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
+              } ${isSubmitting ? "opacity-50" : ""}`}
             >
-              <CheckCircle2 className="w-5 h-5" />
+              {!photoUrl ? (
+                <Lock className="w-5 h-5" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5" />
+              )}
               {isSubmitting
                 ? "Saving to Database..."
+                : !photoUrl
+                ? "Upload Official ID Photo to Proceed"
                 : isPassApproved
                 ? "Save Profile & Verify Transit Account"
                 : "Save Details & Proceed to Payment"}
