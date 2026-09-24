@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const { data, error } = await supabaseAdmin
-      .from("profiles")
+      .from("users")
       .select("notification_preferences")
       .eq("id", session.userId)
       .single();
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const preferences = await request.json();
 
     const { error } = await supabaseAdmin
-      .from("profiles")
+      .from("users")
       .update({ notification_preferences: preferences })
       .eq("id", session.userId);
 
