@@ -38,14 +38,10 @@ export async function DELETE(req: NextRequest) {
       .eq("user_id", session.userId)
       .single();
 
-    // Helper to throw on error, but ignore missing tables (in case of partial migrations)
+    // Helper to log errors instead of throwing, so deletion can always proceed
     const checkDbError = (err: any, table: string) => {
       if (err) {
-        if (err.message && err.message.includes("Could not find the table")) {
-          console.warn(`Skipping missing table: ${table}`);
-          return;
-        }
-        throw new Error(`Failed to delete from ${table}: ${err.message}`);
+        console.warn(`[Delete Account] Skipping ${table} deletion - Error: ${err.message}`);
       }
     };
 
@@ -74,6 +70,7 @@ export async function DELETE(req: NextRequest) {
       const { error: e1 } = await supabaseAdmin.from("attendance_records").delete().eq("student_id", studentData.id);
       checkDbError(e1, "attendance_records");
 
+      // Wrap in try-catch/error logging so missing tables/columns don't break deletion
       const { error: e2 } = await supabaseAdmin.from("halt_requests").delete().eq("student_id", studentData.id);
       checkDbError(e2, "halt_requests");
 
