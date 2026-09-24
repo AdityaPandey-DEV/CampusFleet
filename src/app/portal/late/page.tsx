@@ -21,7 +21,6 @@ const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"),
 export default function RunningLatePage() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [buses, setBuses] = useState<Bus[]>([]);
-  const [stops, setStops] = useState<Stop[]>([]);
   
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const [liveBuses, setLiveBuses] = useState<FleetBusMarkerData[]>([]);
@@ -30,12 +29,10 @@ export default function RunningLatePage() {
     // Initial fetch from store
     setTrips(store.getTrips());
     setBuses(store.getBuses());
-    setStops(store.getStops());
     
     const unsub = store.subscribe(() => {
       setTrips(store.getTrips());
       setBuses(store.getBuses());
-      setStops(store.getStops());
     });
 
     return unsub;
@@ -62,7 +59,6 @@ export default function RunningLatePage() {
               tripId: trip.id,
               latitude: data.liveLocation.latitude,
               longitude: data.liveLocation.longitude,
-              heading: data.liveLocation.headingDeg,
               speedKmh: data.liveLocation.speedKmh,
               tripStatus: "IN_PROGRESS",
               state: "IN_TRANSIT"
@@ -160,7 +156,7 @@ export default function RunningLatePage() {
         
         <div className="h-[600px] w-full">
           <CampusFleetMap 
-            stops={stops}
+            stops={[]}
             fleetBuses={liveBuses}
             focusedBusId={nearestBusId}
             showUserLocation={true}
