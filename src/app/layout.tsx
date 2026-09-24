@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/common/ThemeProvider";
 import { CampusTimeProvider } from "@/components/common/CampusTimeProvider";
 import { LanguageProvider } from "@/components/common/LanguageProvider";
+import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,18 +44,18 @@ export default function RootLayout({
         </ThemeProvider>
         
         {/* Google Translate Integration */}
-        <div id="google_translate_element" style={{ display: 'none' }}></div>
-        <script dangerouslySetInnerHTML={{
-          __html: `
+        <div id="google_translate_element" className="sr-only"></div>
+        <Script id="google-translate-init" strategy="beforeInteractive">
+          {`
             window.googleTranslateElementInit = function() {
               new window.google.translate.TranslateElement({
                 pageLanguage: 'en',
                 autoDisplay: false
               }, 'google_translate_element');
             }
-          `
-        }} />
-        <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
+          `}
+        </Script>
+        <Script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" strategy="afterInteractive" />
       </body>
     </html>
   );
