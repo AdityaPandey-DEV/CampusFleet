@@ -368,15 +368,7 @@ export default function StudentOnboardingPage() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            {!isPassApproved && (
-              <Link
-                href="/portal/payments"
-                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2.5 py-1.5 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 flex items-center gap-1 transition-colors"
-              >
-                <span>Pass & Fees</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            )}
+
             <div className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 flex items-center gap-1.5 uppercase tracking-wider border border-gray-200 dark:border-gray-700">
               <Lock className="w-3 h-3" /> Secure
             </div>
