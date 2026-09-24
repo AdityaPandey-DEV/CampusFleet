@@ -39,14 +39,15 @@ export async function POST(request: NextRequest) {
         .from("students")
         .update({
           full_name: fullName,
-          name: fullName, // keeping name synced for backwards compat
           phone: phone || null,
           department: department || null,
-          semester: semester ? Number(semester.replace(/\D/g, '') || semester) : null,
+          semester: semester || null,
           class_id: classId || null,
           class_name: className || null,
-          emergency_contact_name: emergencyContactName || null,
-          emergency_contact_phone: emergencyContactPhone || null
+          emergency_contact: {
+            name: emergencyContactName || "",
+            phone: emergencyContactPhone || ""
+          }
         })
         .eq("user_id", session.userId);
 
@@ -60,7 +61,6 @@ export async function POST(request: NextRequest) {
         .from("staff")
         .update({
           full_name: fullName,
-          name: fullName,
           phone: phone || null,
           employee_code: employeeCode || null,
           category: category || null,
