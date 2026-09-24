@@ -286,6 +286,19 @@ export function SettingsView() {
     return unsub;
   }, []);
 
+  useEffect(() => {
+    fetch("/api/classes")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.classes) setClassesList(data.classes);
+      })
+      .catch(console.error);
+  }, []);
+
+  const coursesList = Array.from(new Set(classesList.map(c => c.course).filter(Boolean))) as string[];
+  const yearsList = Array.from(new Set(classesList.filter(c => c.course === profileForm.department).map(c => c.semester).filter(Boolean))) as string[];
+  const sectionsList = Array.from(new Set(classesList.filter(c => c.course === profileForm.department && c.semester === profileForm.semester).map(c => c.section).filter(Boolean))) as string[];
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
