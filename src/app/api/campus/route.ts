@@ -44,12 +44,20 @@ export async function GET(req: NextRequest) {
     const campuses = (rows || []).map(mapCampusRow);
     const primaryCampus = campuses.find((c) => c.isPrimary) || campuses[0] || null;
 
-    return NextResponse.json({
-      success: true,
-      campuses,
-      primaryCampus,
-      campus: primaryCampus, // Backwards-compatibility
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        campuses,
+        primaryCampus,
+        campus: primaryCampus, // Backwards-compatibility
+      },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("GET /api/campus error:", error);
     return NextResponse.json(

@@ -209,22 +209,30 @@ export async function POST(request: NextRequest) {
       // Non-fatal
     }
 
-    return NextResponse.json({
-      success: true,
-      submission,
-      receiptNumber,
-      balance: {
-        totalFeeDue,
-        totalPaid: totalApprovedOnly,
-        totalPending: totalPendingAndApproved - totalApprovedOnly,
-        totalSubmitted: totalPendingAndApproved,
-        amountLeft,
-        isFullyPaid: amountLeft <= 0 && totalFeeDue > 0,
+    return NextResponse.json(
+      {
+        success: true,
+        submission,
+        receiptNumber,
+        balance: {
+          totalFeeDue,
+          totalPaid: totalApprovedOnly,
+          totalPending: totalPendingAndApproved - totalApprovedOnly,
+          totalSubmitted: totalPendingAndApproved,
+          amountLeft,
+          isFullyPaid: amountLeft <= 0 && totalFeeDue > 0,
+        },
+        message: amountLeft <= 0 && totalFeeDue > 0
+          ? "All installments submitted! Your receipts are queued for staff verification."
+          : `Receipt submitted successfully. ₹${amountLeft.toLocaleString()} remaining.`,
       },
-      message: amountLeft <= 0 && totalFeeDue > 0
-        ? "All installments submitted! Your receipts are queued for staff verification."
-        : `Receipt submitted successfully. ₹${amountLeft.toLocaleString()} remaining.`,
-    });
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "private, no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (err: any) {
     console.error("Payment submit API error:", err);
     return NextResponse.json(

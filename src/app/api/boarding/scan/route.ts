@@ -291,29 +291,37 @@ export async function POST(req: NextRequest) {
 
     const newOccupancy = (currentBoardedCount || 0) + 1;
 
-    return NextResponse.json({
-      success: true,
-      status: "APPROVED",
-      message: isRoaming 
-        ? `⚠️ ROAMING APPROVED: ${student.full_name} is not assigned to this route but has been boarded.`
-        : `✓ BOARDING APPROVED: ${student.full_name} checked in successfully!`,
-      student: {
-        id: student.id,
-        fullName: student.full_name,
-        photoUrl: student.photo_url,
-        className: student.class_name,
+    return NextResponse.json(
+      {
+        success: true,
+        status: "APPROVED",
+        message: isRoaming 
+          ? `⚠️ ROAMING APPROVED: ${student.full_name} is not assigned to this route but has been boarded.`
+          : `✓ BOARDING APPROVED: ${student.full_name} checked in successfully!`,
+        student: {
+          id: student.id,
+          fullName: student.full_name,
+          photoUrl: student.photo_url,
+          className: student.class_name,
+        },
+        booking: {
+          bookingCode: isRoaming ? "ROAMING_PASS" : "ROUTE_PASS",
+          passengerType: isRoaming ? "ROAMING" : "SEATED",
+        },
+        occupancy: {
+          current: newOccupancy,
+          capacity: bus?.capacity || 32,
+          occupancyRatePercent: Math.round((newOccupancy / (bus?.capacity || 32)) * 100),
+        },
+        timestamp,
       },
-      booking: {
-        bookingCode: isRoaming ? "ROAMING_PASS" : "ROUTE_PASS",
-        passengerType: isRoaming ? "ROAMING" : "SEATED",
-      },
-      occupancy: {
-        current: newOccupancy,
-        capacity: bus?.capacity || 32,
-        occupancyRatePercent: Math.round((newOccupancy / (bus?.capacity || 32)) * 100),
-      },
-      timestamp,
-    });
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "private, no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("Boarding Scan API Exception:", error);
     return NextResponse.json(

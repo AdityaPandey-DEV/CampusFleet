@@ -65,12 +65,20 @@ export async function GET(req: NextRequest) {
       .map((b) => b.seat_number)
       .filter(Boolean);
 
-    return NextResponse.json({
-      success: true,
-      tripBookings,
-      occupiedSeats,
-      userShiftBooking,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        tripBookings,
+        occupiedSeats,
+        userShiftBooking,
+      },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "private, no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

@@ -42,7 +42,15 @@ export async function GET(req: NextRequest) {
       updatedAt: z.updated_at,
     }));
 
-    return NextResponse.json({ success: true, zones });
+    return NextResponse.json(
+      { success: true, zones },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      }
+    );
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

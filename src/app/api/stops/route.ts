@@ -25,7 +25,15 @@ export async function GET() {
       createdAt: s.created_at,
     }));
 
-    return NextResponse.json({ success: true, stops: formatted });
+    return NextResponse.json(
+      { success: true, stops: formatted },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || "Failed to load stops." },
