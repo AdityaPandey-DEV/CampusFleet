@@ -67,56 +67,40 @@ export async function DELETE(req: NextRequest) {
       }
 
       // Delete ALL student dependencies first to avoid foreign key constraints
-      const { error: e1 } = await supabaseAdmin.from("attendance_records").delete().eq("student_id", studentData.id);
-      checkDbError(e1, "attendance_records");
-
-      // Wrap in try-catch/error logging so missing tables/columns don't break deletion
-      const { error: e2 } = await supabaseAdmin.from("halt_requests").delete().eq("student_id", studentData.id);
-      checkDbError(e2, "halt_requests");
-
-      const { error: e3 } = await supabaseAdmin.from("bus_departure_alerts").delete().eq("student_id", studentData.id);
-      checkDbError(e3, "bus_departure_alerts");
+      // Run most deletions concurrently for speed
+      const queries = [
+        supabaseAdmin.from("attendance_records").delete().eq("student_id", studentData.id),
+        supabaseAdmin.from("halt_requests").delete().eq("student_id", studentData.id),
+        supabaseAdmin.from("bus_departure_alerts").delete().eq("student_id", studentData.id),
+        supabaseAdmin.from("payment_submissions").delete().eq("student_id", studentData.id),
+        supabaseAdmin.from("payment_records").delete().eq("student_id", studentData.id),
+        supabaseAdmin.from("special_shift_allocations").delete().eq("student_id", studentData.id)
+      ];
 
       // Booking status history depends on bookings
-      // Delete all booking status history for bookings belonging to this student
       const { data: studentBookings } = await supabaseAdmin.from("bookings").select("id").eq("student_id", studentData.id);
       if (studentBookings && studentBookings.length > 0) {
         const bookingIds = studentBookings.map(b => b.id);
-        const { error: e4 } = await supabaseAdmin.from("booking_status_history").delete().in("booking_id", bookingIds);
-        checkDbError(e4, "booking_status_history");
+        queries.push(supabaseAdmin.from("booking_status_history").delete().in("booking_id", bookingIds));
       }
+      
+      queries.push(supabaseAdmin.from("bookings").delete().eq("student_id", studentData.id));
 
-      const { error: e5 } = await supabaseAdmin.from("bookings").delete().eq("student_id", studentData.id);
-      checkDbError(e5, "bookings");
-
-      const { error: e6 } = await supabaseAdmin.from("payment_submissions").delete().eq("student_id", studentData.id);
-      checkDbError(e6, "payment_submissions");
-
-      const { error: e7 } = await supabaseAdmin.from("payment_records").delete().eq("student_id", studentData.id);
-      checkDbError(e7, "payment_records");
-
-      const { error: e8 } = await supabaseAdmin.from("special_shift_allocations").delete().eq("student_id", studentData.id);
-      checkDbError(e8, "special_shift_allocations");
+      await Promise.allSettled(queries);
     }
 
-    // Delete audit logs, notifications, user preferences
-    const { error: err1 } = await supabaseAdmin.from("audit_logs").delete().eq("user_id", session.userId);
-    checkDbError(err1, "audit_logs");
-    const { error: err2 } = await supabaseAdmin.from("notifications").delete().eq("user_id", session.userId);
-    checkDbError(err2, "notifications");
-    const { error: errPref } = await supabaseAdmin.from("user_preferences").delete().eq("id", session.userId);
-    // Ignore pref error if it doesn't exist
+    // Delete audit logs, notifications, user preferences, staff, guardians, students, and profiles concurrently
+    const userQueries = [
+      supabaseAdmin.from("audit_logs").delete().eq("user_id", session.userId),
+      supabaseAdmin.from("notifications").delete().eq("user_id", session.userId),
+      supabaseAdmin.from("user_preferences").delete().eq("id", session.userId),
+      supabaseAdmin.from("staff").delete().eq("user_id", session.userId),
+      supabaseAdmin.from("guardians").delete().eq("user_id", session.userId),
+      supabaseAdmin.from("students").delete().eq("user_id", session.userId),
+      supabaseAdmin.from("profiles").delete().eq("id", session.userId)
+    ];
 
-    // Delete roles
-    const { error: err3 } = await supabaseAdmin.from("staff").delete().eq("user_id", session.userId);
-    checkDbError(err3, "staff");
-    const { error: err4 } = await supabaseAdmin.from("guardians").delete().eq("user_id", session.userId);
-    checkDbError(err4, "guardians");
-    const { error: err5 } = await supabaseAdmin.from("students").delete().eq("user_id", session.userId);
-    checkDbError(err5, "students");
-    
-    const { error: err6 } = await supabaseAdmin.from("profiles").delete().eq("id", session.userId);
-    checkDbError(err6, "profiles");
+    await Promise.allSettled(userQueries);
 
     // 3. Delete user from Supabase Auth
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(session.userId);
