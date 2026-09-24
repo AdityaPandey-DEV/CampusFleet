@@ -102,7 +102,8 @@ export function SettingsView() {
 
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmation !== "DELETE") {
+    const confirmText = deleteConfirmation.trim().toUpperCase();
+    if (confirmText !== "DELETE") {
       alert("Please type DELETE to confirm.");
       return;
     }
@@ -892,9 +893,9 @@ export function SettingsView() {
                 
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={isDeleting || deleteConfirmation !== "DELETE"}
+                  disabled={isDeleting || deleteConfirmation.trim().toUpperCase() !== "DELETE"}
                   className={`px-6 py-2 text-sm font-bold shadow-none transition-all mt-4 ${
-                    isDeleting || deleteConfirmation !== "DELETE"
+                    isDeleting || deleteConfirmation.trim().toUpperCase() !== "DELETE"
                       ? "bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
                       : "bg-red-600 hover:bg-red-700 text-white"
                   }`}
