@@ -374,7 +374,7 @@ export function SettingsView() {
       <div className="space-y-8">
 
         {/* Profile Details Card */}
-        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-none overflow-hidden">
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-none">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">Profile Details</h2>
           </div>
@@ -539,7 +539,7 @@ export function SettingsView() {
         </div>
         
         {/* Appearance Card */}
-        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none overflow-hidden">
+        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">Appearance</h2>
             <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
@@ -713,7 +713,7 @@ export function SettingsView() {
         </div>
 
         {/* Notifications Card */}
-        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none overflow-hidden">
+        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">Notifications</h2>
             <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
@@ -759,7 +759,7 @@ export function SettingsView() {
         </div>
 
         {/* Privacy & Security Card */}
-        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none overflow-hidden">
+        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">Privacy & Security</h2>
             <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
@@ -789,7 +789,7 @@ export function SettingsView() {
         </div>
 
         {/* Data & Storage Card */}
-        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none overflow-hidden mb-12">
+        <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none mb-12">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">Data & Storage</h2>
             <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
@@ -863,7 +863,7 @@ export function SettingsView() {
         <InstallAppModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
 
         {/* Danger Zone Card */}
-        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-none overflow-hidden mb-12">
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-none mb-12">
           <div className="flex items-center justify-between p-6 border-b border-red-200 dark:border-red-900/50">
             <h2 className="text-lg font-medium text-red-700 dark:text-red-400">Danger Zone</h2>
             <div className="p-2 border border-red-200 dark:border-red-900/50 rounded-none text-red-500">
