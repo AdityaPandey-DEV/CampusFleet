@@ -3,14 +3,23 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSession } from "@/lib/jwt";
 import type { Shift, ShiftType } from "@/lib/types";
 
+import { cacheGet, cacheSet, cacheDel } from "@/lib/redis";
+
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/shifts
- * Fetches all fleet dispatch shifts from PostgreSQL
+ * Fetches all fleet dispatch shifts from PostgreSQL (Cached in Redis)
  */
 export async function GET(req: NextRequest) {
   try {
+    const CACHE_KEY = "api:shifts:all";
+    const cachedShifts = await cacheGet<Shift[]>(CACHE_KEY);
+    
+    if (cachedShifts) {
+      return NextResponse.json({ success: true, shifts: cachedShifts });
+    }
+
     const { data: dbShifts, error } = await supabaseAdmin
       .from("shifts")
       .select("*")
@@ -36,6 +45,9 @@ export async function GET(req: NextRequest) {
       ),
       isPlacement: Boolean(s.name?.toLowerCase().includes("placement")),
     }));
+
+    // Cache in Redis for 5 minutes (300 seconds)
+    await cacheSet(CACHE_KEY, shifts, 300);
 
     return NextResponse.json({ success: true, shifts });
   } catch (err: any) {
@@ -98,6 +110,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
+    // Invalidate cache
+    await cacheDel("api:shifts:all");
+
     return NextResponse.json({
       success: true,
       shift: {
@@ -158,6 +173,9 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
+    // Invalidate cache
+    await cacheDel("api:shifts:all");
+
     return NextResponse.json({
       success: true,
       shift: {
@@ -200,6 +218,9 @@ export async function DELETE(req: NextRequest) {
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
+
+    // Invalidate cache
+    await cacheDel("api:shifts:all");
 
     return NextResponse.json({ success: true, message: `Shift ${id} deleted.` });
   } catch (err: any) {

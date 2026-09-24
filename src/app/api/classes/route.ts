@@ -62,7 +62,15 @@ export async function GET() {
       shiftSchedule: c.shift_schedule || {},
     }));
 
-    return NextResponse.json({ success: true, classes: result });
+    return NextResponse.json(
+      { success: true, classes: result },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("GET /api/classes error:", error);
     return NextResponse.json(
