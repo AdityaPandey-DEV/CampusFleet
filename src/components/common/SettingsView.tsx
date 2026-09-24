@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import ReCAPTCHA from "react-google-recaptcha";
 import { useTheme } from "@/components/common/ThemeProvider";
 import { store } from "@/lib/store";
 import { 
@@ -96,8 +96,7 @@ export function SettingsView() {
   };
 
   // Delete Account state
-
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [classesList, setClassesList] = useState<any[]>([]);
@@ -108,18 +107,17 @@ export function SettingsView() {
       return;
     }
 
-    if (!executeRecaptcha) {
-      alert("Security verification is loading, please wait a moment.");
+    if (!recaptchaToken) {
+      alert("Please complete the reCAPTCHA verification.");
       return;
     }
     
     setIsDeleting(true);
     try {
-      const token = await executeRecaptcha("delete_account");
       const res = await fetch("/api/auth/delete-account", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recaptchaToken: token }),
+        body: JSON.stringify({ recaptchaToken: recaptchaToken }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete account");
@@ -897,12 +895,19 @@ export function SettingsView() {
                     {t('deleteAccountTerms')}
                   </span>
                 </div>
+                <div className="mt-4">
+                  <ReCAPTCHA
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+                    onChange={(token) => setRecaptchaToken(token)}
+                    theme="light"
+                  />
+                </div>
                 
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={isDeleting || !termsAccepted}
-                  className={`px-6 py-2 text-sm font-bold shadow-none transition-all ${
-                    isDeleting || !termsAccepted
+                  disabled={isDeleting || !termsAccepted || !recaptchaToken}
+                  className={`px-6 py-2 text-sm font-bold shadow-none transition-all mt-4 ${
+                    isDeleting || !termsAccepted || !recaptchaToken
                       ? "bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
                       : "bg-red-600 hover:bg-red-700 text-white"
                   }`}

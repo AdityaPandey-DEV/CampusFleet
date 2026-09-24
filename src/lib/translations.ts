@@ -41,7 +41,8 @@ type TranslationKeys =
   | "twoFactorAuth" | "dataPrivacy" | "deleteAccountDesc" | "deleteAccountTerms"
   | "permanentlyDelete" | "deleting"
   | "emailNotifications" | "emailCategories" | "tripUpdates" | "billingAlerts" | "generalNotice"
-  | "default";
+  | "default"
+  | "hub" | "scanner" | "manifest" | "seatMap" | "sosHalt" | "audit" | "driverHud";
 
 type TranslationDictionary = Record<TranslationKeys, string>;
 
@@ -163,6 +164,13 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     billingAlerts: "Billing Alerts",
     generalNotice: "General Notice",
     default: "Default",
+    hub: "Hub",
+    scanner: "Scanner",
+    manifest: "Manifest",
+    seatMap: "Seat Map",
+    sosHalt: "SOS / Halt",
+    audit: "Audit",
+    driverHud: "Driver HUD",
   },
 
   hi: {
@@ -282,6 +290,14 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     billingAlerts: "बिलिंग अलर्ट",
     generalNotice: "सामान्य सूचना",
     default: "डिफ़ॉल्ट",
+    hub: "Hub",
+    scanner: "Scanner",
+    manifest: "Manifest",
+    seatMap: "Seat Map",
+    sosHalt: "SOS / Halt",
+    audit: "Audit",
+    driverHud: "Driver HUD",
+
   },
 
   // Abbreviated translations for other languages (key labels only)
@@ -334,6 +350,14 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     billingAlerts: "ਬਿਲਿੰਗ ਚੇਤਾਵਨੀਆਂ",
     generalNotice: "ਆਮ ਨੋਟਿਸ",
     default: "ਡਿਫਾਲਟ",
+    hub: "Hub",
+    scanner: "Scanner",
+    manifest: "Manifest",
+    seatMap: "Seat Map",
+    sosHalt: "SOS / Halt",
+    audit: "Audit",
+    driverHud: "Driver HUD",
+
 
   },
 
@@ -386,6 +410,14 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     billingAlerts: "বিলিং সতর্কতা",
     generalNotice: "সাধারণ বিজ্ঞপ্তি",
     default: "ডিফল্ট",
+    hub: "Hub",
+    scanner: "Scanner",
+    manifest: "Manifest",
+    seatMap: "Seat Map",
+    sosHalt: "SOS / Halt",
+    audit: "Audit",
+    driverHud: "Driver HUD",
+
 
   },
 
@@ -438,6 +470,14 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     billingAlerts: "பில்லிங் எச்சரிக்கைகள்",
     generalNotice: "பொது அறிவிப்பு",
     default: "இயல்புநிலை",
+    hub: "Hub",
+    scanner: "Scanner",
+    manifest: "Manifest",
+    seatMap: "Seat Map",
+    sosHalt: "SOS / Halt",
+    audit: "Audit",
+    driverHud: "Driver HUD",
+
 
   },
 
@@ -490,6 +530,14 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     billingAlerts: "బిల్లింగ్ హెచ్చరికలు",
     generalNotice: "సాధారణ నోటీసు",
     default: "డిఫాల్ట్",
+    hub: "Hub",
+    scanner: "Scanner",
+    manifest: "Manifest",
+    seatMap: "Seat Map",
+    sosHalt: "SOS / Halt",
+    audit: "Audit",
+    driverHud: "Driver HUD",
+
 
   },
 
@@ -542,6 +590,14 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     billingAlerts: "बिलिंग सूचना",
     generalNotice: "सामान्य सूचना",
     default: "डीफॉल्ट",
+    hub: "Hub",
+    scanner: "Scanner",
+    manifest: "Manifest",
+    seatMap: "Seat Map",
+    sosHalt: "SOS / Halt",
+    audit: "Audit",
+    driverHud: "Driver HUD",
+
 
   },
 
@@ -594,6 +650,14 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     billingAlerts: "બિલિંગ ચેતવણીઓ",
     generalNotice: "સામાન્ય સૂચના",
     default: "ડિફૉલ્ટ",
+    hub: "Hub",
+    scanner: "Scanner",
+    manifest: "Manifest",
+    seatMap: "Seat Map",
+    sosHalt: "SOS / Halt",
+    audit: "Audit",
+    driverHud: "Driver HUD",
+
 
   },
 
@@ -646,6 +710,14 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     billingAlerts: "ಬಿಲ್ಲಿಂಗ್ ಎಚ್ಚರಿಕೆಗಳು",
     generalNotice: "ಸಾಮಾನ್ಯ ಸೂಚನೆ",
     default: "ಡೀಫಾಲ್ಟ್",
+    hub: "Hub",
+    scanner: "Scanner",
+    manifest: "Manifest",
+    seatMap: "Seat Map",
+    sosHalt: "SOS / Halt",
+    audit: "Audit",
+    driverHud: "Driver HUD",
+
 
   },
 
@@ -698,6 +770,14 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     billingAlerts: "ബില്ലിംഗ് അലേർട്ടുകൾ",
     generalNotice: "പൊതു അറിയിപ്പ്",
     default: "സ്ഥിരസ്ഥിതി",
+    hub: "Hub",
+    scanner: "Scanner",
+    manifest: "Manifest",
+    seatMap: "Seat Map",
+    sosHalt: "SOS / Halt",
+    audit: "Audit",
+    driverHud: "Driver HUD",
+
 
   },
 };

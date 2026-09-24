@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "@/components/common/LanguageProvider";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import {
   BusFront,
@@ -20,6 +21,7 @@ import { useConductorContext } from "./ConductorContext";
 
 export default function ConductorLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const { currentUser, activeTrip, bus, route, trips, setSelectedTripId } = useConductorContext();
 
   const isAuthorizedConductor = currentUser?.role === "conductor" || currentUser?.role === "driver";
@@ -66,12 +68,12 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
   }
 
   const topLevelLinks = [
-    { href: "/conductor", label: "Hub", icon: Home },
-    { href: "/conductor/scanner", label: "Scanner", icon: QrCode },
-    { href: "/conductor/manifest", label: "Manifest", icon: FileText },
-    { href: "/conductor/seat-map", label: "Seat Map", icon: LayoutGrid },
-    { href: "/conductor/late-requests", label: "SOS Halt", icon: AlertTriangle },
-    { href: "/conductor/audit", label: "Audit", icon: ShieldCheck },
+    { href: "/conductor", label: t('hub'), icon: Home },
+    { href: "/conductor/scanner", label: t('scanner'), icon: QrCode },
+    { href: "/conductor/manifest", label: t('manifest'), icon: FileText },
+    { href: "/conductor/seat-map", label: t('seatMap'), icon: LayoutGrid },
+    { href: "/conductor/late-requests", label: t('sosHalt'), icon: AlertTriangle },
+    { href: "/conductor/audit", label: t('audit'), icon: ShieldCheck },
   ];
 
   const currentNavLinks = topLevelLinks;
@@ -92,7 +94,7 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
         portalSubtitle={activeTrip ? `${bus?.busNumber || "Bus"} • ${route?.name || "Corridor"}` : "Conductor Operations"}
         navLinks={currentNavLinks}
         mobilePrimaryAction={{
-          label: "Driver HUD",
+          label: t('driverHud'),
           href: "/driver",
           subtitle: "Live telemetry",
           icon: BusFront,
@@ -102,10 +104,10 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
             <Link
               href="/driver"
               className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-green-50 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-900/60 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 text-xs font-bold transition-all shadow-2xs"
-              title="Switch to Driver Cockpit HUD"
+              title={t('driverHud')}
             >
               <BusFront className="w-3.5 h-3.5 text-green-500" />
-              <span>Driver HUD</span>
+              <span>{t('driverHud')}</span>
             </Link>
             {trips.length > 0 && (
               <select
