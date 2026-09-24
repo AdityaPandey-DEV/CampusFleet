@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, Compass, AlertCircle, Hand, MapPin, Loader2, Navigation2, Check, X } from "lucide-react";
 import { store } from "@/lib/store";
+import { supabase } from "@/lib/supabaseClient";
 import { calculateDistanceKm } from "@/lib/utils";
 import type { Bus, Trip, FleetBusMarkerData } from "@/lib/types";
 
@@ -43,17 +44,30 @@ export default function RunningLatePage() {
     return unsub;
   }, []);
 
-  const activeTrips = useMemo(() => trips.filter(t => t.status === "IN_PROGRESS"), [trips]);
-  
+  const [activeTripsLive, setActiveTripsLive] = useState<any[]>([]);
+
   useEffect(() => {
     let isMounted = true;
     const fetchBusLocations = async () => {
-      if (activeTrips.length === 0) return;
+      // Bypass store and check for active trips directly to ensure real-time radar
+      let currentActiveTrips = [];
+      try {
+        const { data } = await supabase.from('trips').select('id, bus_id').eq('status', 'IN_PROGRESS');
+        if (data) currentActiveTrips = data;
+      } catch (e) {}
+
+      if (isMounted) setActiveTripsLive(currentActiveTrips);
+
+      if (currentActiveTrips.length === 0) {
+        if (isMounted) setLiveBuses([]);
+        return;
+      }
+
       const newLiveBuses: FleetBusMarkerData[] = [];
-      for (const trip of activeTrips) {
-        if (!trip.busId) continue;
+      for (const trip of currentActiveTrips) {
+        if (!trip.bus_id) continue;
         try {
-          const res = await fetch(`/api/telematics/live?busId=${trip.busId}`);
+          const res = await fetch(`/api/telematics/live?busId=${trip.bus_id}`);
           if (!res.ok) continue;
           const data = await res.json();
           if (data.liveLocation) {
@@ -84,7 +98,7 @@ export default function RunningLatePage() {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [activeTrips, buses]);
+  }, [buses]);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -160,7 +174,7 @@ export default function RunningLatePage() {
     setIsRequesting(false);
   };
 
-  if (activeTrips.length === 0) {
+  if (activeTripsLive.length === 0) {
     return (
       <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 h-screen flex flex-col justify-center">
         <Link href="/portal" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 mb-6 font-bold self-start">
