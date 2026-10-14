@@ -214,10 +214,10 @@ export default function BusDepartureAlertModal({
                 </div>
                 <div>
                   <div className="text-xs font-black text-white">
-                    {bus?.busNumber || "Campus Bus"}
+                    {bus?.busNumber || "NONE"}
                   </div>
                   <div className="text-[10px] text-gray-400 font-mono">
-                    {bus?.registrationNo || "UK 04 PA 2158"} • Seat: {booking?.seatNumber || "Reserved"}
+                    {bus?.registrationNo || "NONE"} • Seat: {booking?.seatNumber || "NONE"}
                   </div>
                 </div>
               </div>

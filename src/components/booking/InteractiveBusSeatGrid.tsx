@@ -33,10 +33,10 @@ export function InteractiveBusSeatGrid({
     .map(b => b.seatNumber)
     .filter(Boolean) as string[];
 
-  const layout = bus.seatLayout || "2x2";
-  const capacity = bus.capacity || 40;
+  const layout = bus.seatLayout || "NONE";
+  const capacity = Number(bus.capacity || 0);
   const is3x2 = layout === "3x2" || layout === "2x3";
-  const rowsCount = Math.ceil(capacity / (is3x2 ? 5 : 4));
+  const rowsCount = capacity > 0 ? Math.ceil(capacity / (is3x2 ? 5 : 4)) : 0;
 
   // Generate matrix of rows
   const rows: { leftSeats: string[]; rightSeats: string[] }[] = [];

@@ -173,13 +173,13 @@ export default async function TeacherPage() {
   const fleetShifts = (dbShifts || []).map((sh: any) => ({
     id: sh.id,
     name: sh.name,
-    shiftType: sh.type || "MORNING",
-    direction: sh.direction || "HOME_TO_CAMPUS",
-    startTime: (sh.start_time || "07:30").substring(0, 5),
-    endTime: (sh.end_time || "08:45").substring(0, 5),
-    bookingCutoffMins: sh.booking_cutoff_minutes || 30,
-    isSpecial: sh.is_special || false,
-    isPlacement: sh.is_placement || false,
+    shiftType: sh.type,
+    direction: sh.direction,
+    startTime: sh.start_time ? sh.start_time.substring(0, 5) : "",
+    endTime: sh.end_time ? sh.end_time.substring(0, 5) : "",
+    bookingCutoffMins: Number(sh.booking_cutoff_minutes),
+    isSpecial: Boolean(sh.is_special),
+    isPlacement: Boolean(sh.is_placement),
   }));
 
   return (

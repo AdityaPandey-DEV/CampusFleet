@@ -112,7 +112,7 @@ export interface Bus {
   registrationNo: string; // e.g. "DL-01-AB-1234"
   model: string; // e.g. "Tata Starbus Ultra 40-Seater"
   capacity: number;
-  seatLayout: "2x2" | "2x3" | "3x2";
+  seatLayout: "2x2" | "2x3" | "3x2" | "NONE" | string;
   status: VehicleStatus;
   gpsDeviceId: string;
   insuranceExpiry: string;
@@ -295,7 +295,7 @@ export interface FleetBusMarkerData {
   longitude: number;
   speedKmh: number;
   headingDeg: number;
-  state: "CAMPUS_PARKED" | "STANDBY_STARTING_POINT" | "IN_TRANSIT";
+  state: "CAMPUS_PARKED" | "STANDBY_STARTING_POINT" | "IN_TRANSIT" | "NONE" | string;
   statusText: string;
   driverName?: string;
   conductorName?: string;

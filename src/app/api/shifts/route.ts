@@ -32,11 +32,11 @@ export async function GET(req: NextRequest) {
     const shifts: Shift[] = (dbShifts || []).map((s: any) => ({
       id: s.id,
       name: s.name,
-      shiftType: (s.type || "MORNING") as ShiftType,
-      direction: s.direction || "HOME_TO_CAMPUS",
-      startTime: (s.start_time || "07:30").substring(0, 5),
-      endTime: (s.end_time || "08:45").substring(0, 5),
-      bookingCutoffMins: s.booking_cutoff_minutes || 30,
+      shiftType: (s.type || "NONE") as ShiftType,
+      direction: s.direction || "NONE",
+      startTime: s.start_time ? s.start_time.substring(0, 5) : "",
+      endTime: s.end_time ? s.end_time.substring(0, 5) : "",
+      bookingCutoffMins: Number(s.booking_cutoff_minutes || 0),
       isSpecial: Boolean(
         s.is_special ||
         s.type === "CUSTOM" ||

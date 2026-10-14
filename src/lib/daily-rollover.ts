@@ -146,8 +146,8 @@ export async function executeDailyRollover(
       if (!assignedBus) return;
 
       activeShifts.forEach((shift) => {
-        const shiftType = (shift.type || "MORNING").toUpperCase();
-        const shiftSuffix = shiftType === "MORNING" ? "M" : shiftType === "EVENING" ? "E" : "C";
+        const shiftType = (shift.type || "NONE").toUpperCase();
+        const shiftSuffix = shiftType === "MORNING" ? "M" : shiftType === "EVENING" ? "E" : (shiftType.charAt(0) || "C");
         const routeClean = route.id.replace(/[^a-zA-Z0-9]/g, "-");
         const tripId = `trip-${routeClean}-${shiftSuffix.toLowerCase()}-${targetDate}`;
         const tripCode = `TRIP-${(route.code || routeClean).toUpperCase().replace(/[^a-zA-Z0-9]/g, "")}-${shiftSuffix}-${targetDate.replace(/-/g, "")}`;
@@ -161,8 +161,8 @@ export async function executeDailyRollover(
           route_id: route.id,
           bus_id: assignedBus.id,
           shift_id: shift.id,
-          driver_id: driver?.id || "driver-1",
-          conductor_id: conductor?.id || "conductor-1",
+          driver_id: driver?.id || null,
+          conductor_id: conductor?.id || null,
           trip_date: targetDate,
           status: "SCHEDULED",
           delay_minutes: 0,

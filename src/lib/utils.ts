@@ -46,10 +46,12 @@ export function formatDate(dateStr?: string): string {
   }
 }
 
-export function generateSeatLayout(capacity: number, layout: "2x2" | "2x3" | "3x2" = "2x2"): string[] {
+export function generateSeatLayout(capacity: number, layout: "2x2" | "2x3" | "3x2" | "NONE" | string = "NONE"): string[] {
+  if (!capacity || capacity <= 0) return [];
   const seats: string[] = [];
-  const rows = Math.ceil(capacity / 4);
-  const colLetters = layout === "2x2" ? ["A", "B", "C", "D"] : ["A", "B", "C", "D", "E"];
+  const colLetters = layout === "2x3" || layout === "3x2" ? ["A", "B", "C", "D", "E"] : ["A", "B", "C", "D"];
+  const cols = colLetters.length;
+  const rows = Math.ceil(capacity / cols);
   let count = 0;
   for (let r = 1; r <= rows; r++) {
     for (const col of colLetters) {

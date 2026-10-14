@@ -48,80 +48,59 @@ export default async function DriverPage() {
     id: s.id,
     name: s.name,
     code: s.code,
-    latitude: s.latitude,
-    longitude: s.longitude,
+    latitude: Number(s.latitude),
+    longitude: Number(s.longitude),
     landmark: s.landmark,
-    geofenceRadiusMeters: s.geofence_radius || 80,
-    campusId: s.campus_id || s.campus || "",
-    campus: s.campus || "",
+    geofenceRadiusMeters: Number(s.geofence_radius),
+    campusId: s.campus_id || s.campus,
+    campus: s.campus,
     isBusMergeStop: Boolean(s.is_bus_merge_stop),
-    zoneCode: s.zone_code || "ZONE_B",
+    zoneCode: s.zone_code,
   }));
 
   const stopMap = new Map(stops.map(s => [s.id, s]));
 
   const routes: Route[] = (dbRoutes || []).map((r: any) => {
     let routeStops = (dbRouteStops || [])
-      .filter((rs: any) => rs.route_id === r.id)
+      .filter((rs: any) => rs.route_id === r.id && stopMap.has(rs.stop_id))
       .sort((a: any, b: any) => (a.stop_order ?? a.stop_sequence ?? 0) - (b.stop_order ?? b.stop_sequence ?? 0))
       .map((rs: any) => ({
         stopId: rs.stop_id,
         stopOrder: rs.stop_order || rs.stop_sequence || 0,
         stopSequence: rs.stop_order || rs.stop_sequence || 0,
         arrivalOffsetMinutes: rs.arrival_offset_minutes || 0,
-        bufferTimeMinutes: rs.buffer_time_minutes || 2,
-        stop: stopMap.get(rs.stop_id) || {
-          id: rs.stop_id,
-          name: rs.stop_id,
-          code: rs.stop_id,
-          latitude: 29.35,
-          longitude: 79.55,
-          landmark: "",
-          geofenceRadiusMeters: 80,
-          campusId: "",
-          campus: "",
-          isBusMergeStop: false,
-          zoneCode: "ZONE_B",
-        },
+        bufferTimeMinutes: rs.buffer_time_minutes || 0,
+        stop: stopMap.get(rs.stop_id)!,
       }));
 
     if (routeStops.length === 0 && Array.isArray(r.stops_data) && r.stops_data.length > 0) {
-      routeStops = r.stops_data.map((rs: any, idx: number) => {
-        const stopId = rs.stopId || rs.id || rs.stop?.id || `stop-${idx}`;
-        const stopObj = stopMap.get(stopId) || rs.stop || {
-          id: stopId,
-          name: rs.name || stopId,
-          code: rs.code || `STN-${idx + 1}`,
-          latitude: 29.35,
-          longitude: 79.55,
-          landmark: "",
-          geofenceRadiusMeters: 80,
-          campusId: "",
-          campus: "",
-          isBusMergeStop: false,
-          zoneCode: "ZONE_B",
-        };
-        return {
-          stopId,
-          stopOrder: rs.stopOrder || idx + 1,
-          stopSequence: rs.stopOrder || idx + 1,
-          arrivalOffsetMinutes: rs.arrivalOffsetMinutes ?? idx * 8,
-          bufferTimeMinutes: rs.bufferTimeMinutes ?? 2,
-          stop: stopObj,
-        };
-      });
+      routeStops = r.stops_data
+        .map((rs: any, idx: number) => {
+          const stopId = rs.stopId || rs.id || rs.stop?.id;
+          const stopObj = stopMap.get(stopId) || rs.stop;
+          if (!stopObj) return null;
+          return {
+            stopId: stopObj.id || stopId,
+            stopOrder: rs.stopOrder || idx + 1,
+            stopSequence: rs.stopOrder || idx + 1,
+            arrivalOffsetMinutes: Number(rs.arrivalOffsetMinutes),
+            bufferTimeMinutes: Number(rs.bufferTimeMinutes),
+            stop: stopObj,
+          };
+        })
+        .filter(Boolean) as any[];
     }
 
     return {
       id: r.id,
       code: r.code,
       name: r.name,
-      description: r.description || "",
-      direction: r.direction || "HOME_TO_CAMPUS",
-      color: r.color || "#2563EB",
-      totalDistanceKm: Number(r.total_distance_km) || 28.0,
-      estimatedDurationMins: Number(r.estimated_duration_mins) || 55,
-      isActive: r.is_active ?? true,
+      description: r.description,
+      direction: r.direction,
+      color: r.color,
+      totalDistanceKm: Number(r.total_distance_km),
+      estimatedDurationMins: Number(r.estimated_duration_mins),
+      isActive: Boolean(r.is_active),
       stops: routeStops,
     };
   });
@@ -135,7 +114,7 @@ export default async function DriverPage() {
     driverId: t.driver_id || "",
     conductorId: t.conductor_id || "",
     tripDate: t.trip_date,
-    status: t.status || "SCHEDULED",
+    status: t.status ,
     delayMinutes: t.delay_minutes || 0,
     manifestLocked: t.manifest_locked || false,
     manifestLockedAt: t.manifest_locked_at,
@@ -148,13 +127,13 @@ export default async function DriverPage() {
     id: b.id,
     busNumber: b.bus_number,
     registrationNo: b.registration_no || b.bus_number,
-    model: b.model || "Eicher Skyline Pro 36-Seater",
-    capacity: b.capacity || 36,
-    seatLayout: (b.seat_layout as any) || "2x2",
+    model: b.model || "",
+    capacity: Number(b.capacity || 0),
+    seatLayout: (b.seat_layout as any) || "NONE",
     status: b.status || "ACTIVE",
     gpsDeviceId: b.gps_device_id || "",
-    insuranceExpiry: b.insurance_expiry || "2026-12-31",
-    maintenanceDueDate: b.maintenance_due_date || "2026-12-31",
+    insuranceExpiry: b.insurance_expiry || "",
+    maintenanceDueDate: b.maintenance_due_date || "",
     currentRouteId: b.current_route_id,
   }));
 
@@ -166,10 +145,10 @@ export default async function DriverPage() {
     busId: b.bus_id || "",
     bookingDate: b.booking_date || (b.created_at ? b.created_at.split("T")[0] : ""),
     boardingStopId: b.boarding_stop_id || b.stop_id || "",
-    status: b.status || "CONFIRMED",
+    status: b.status,
     waitlistPosition: b.waitlist_position,
     seatNumber: b.seat_number,
-    passengerType: b.passenger_type || "SEATED",
+    passengerType: b.passenger_type,
     mergeStopId: b.merge_stop_id,
     createdAt: b.created_at || new Date().toISOString(),
   }));

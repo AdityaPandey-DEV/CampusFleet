@@ -22,7 +22,7 @@ export default function ManifestPage() {
   const handleMarkAttendance = (studentId: string, status: "BOARDED" | "ABSENT" | "NO_SHOW") => {
     store.recordAttendance(studentId, activeTrip.id, "QR_SCAN", status, "Conductor Desk 1-Tap Manifest Check");
     const student = students.find(s => s.id === studentId || s.userId === studentId);
-    showToast(`✓ ${student?.fullName || "Student"} marked as ${status}!`);
+    showToast(`✓ ${student?.fullName || ""} marked as ${status}!`);
   };
 
   const handleMarkRoamingHold = async (studentId: string, bookingId: string) => {

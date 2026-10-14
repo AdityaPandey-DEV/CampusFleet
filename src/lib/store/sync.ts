@@ -375,11 +375,11 @@ CampusFleetStore.prototype.syncMasterData = async function(this: CampusFleetStor
       this.shifts = dbShifts.map((sh: any) => ({
         id: sh.id,
         name: sh.name,
-        shiftType: sh.type || "MORNING",
-        direction: sh.direction || "HOME_TO_CAMPUS",
-        startTime: (sh.start_time || "07:30").substring(0, 5),
-        endTime: (sh.end_time || "08:45").substring(0, 5),
-        bookingCutoffMins: sh.booking_cutoff_minutes || 30,
+        shiftType: sh.type,
+        direction: sh.direction,
+        startTime: sh.start_time ? sh.start_time.substring(0, 5) : "",
+        endTime: sh.end_time ? sh.end_time.substring(0, 5) : "",
+        bookingCutoffMins: Number(sh.booking_cutoff_minutes || 0),
         isSpecial: Boolean(
           sh.is_special ||
           sh.type === "CUSTOM" ||
@@ -410,7 +410,7 @@ CampusFleetStore.prototype.syncLiveTransit = async function(this: CampusFleetSto
         registrationNo: b.registration_no,
         model: b.model,
         capacity: b.capacity,
-        seatLayout: b.seat_layout || "2x2",
+        seatLayout: b.seat_layout || "NONE",
         status: b.status || "ACTIVE",
         gpsDeviceId: b.gps_device_id,
         insuranceExpiry: b.insurance_expiry,

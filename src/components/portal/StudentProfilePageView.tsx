@@ -199,7 +199,7 @@ export default function StudentProfilePageView({
                 {activeStudent?.photoUrl ? (
                   <img
                     src={activeStudent.photoUrl}
-                    alt={activeStudent.fullName || "Student"}
+                    alt={activeStudent.fullName || "NONE"}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -222,21 +222,21 @@ export default function StudentProfilePageView({
                   Verified Student Commuter
                 </span>
                 <span className="text-xs text-blue-200/70 font-mono">
-                  {activeStudent?.campus || store.getPrimaryCampus()?.name || "Graphic Era Hill University - Bhimtal Campus"}
+                  {activeStudent?.campus || store.getPrimaryCampus()?.name || "NONE"}
                 </span>
               </div>
 
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white truncate">
-                {activeStudent?.fullName || currentUser?.fullName || "Student Commuter"}
+                {activeStudent?.fullName || currentUser?.fullName || "NONE"}
               </h1>
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-300 font-medium">
                 <span>
-                  {activeStudent?.department || "B.Tech Computer Science & Engineering"}
+                  {activeStudent?.department || "NONE"}
                 </span>
                 <span>•</span>
                 <span className="px-2 py-0.5 rounded-none bg-gray-800 text-gray-200 text-xs font-bold">
-                  Zone {activeStudent?.zoneCode || "ZONE_B"}
+                  Zone {activeStudent?.zoneCode || "NONE"}
                 </span>
               </div>
             </div>
@@ -285,7 +285,7 @@ export default function StudentProfilePageView({
             </div>
             <div className="text-base sm:text-lg font-black text-gray-900 dark:text-white">
               {activeBooking
-                ? `Active Reservation: Seat ${activeBooking.seatNumber || "Confirmed"} • Bus ${assignedBus?.busNumber || "2"}`
+                ? `Active Reservation: Seat ${activeBooking.seatNumber || "NONE"} • Bus ${assignedBus?.busNumber || "NONE"}`
                 : "No Seat Reserved for Current / Upcoming Shift"}
             </div>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -330,7 +330,7 @@ export default function StudentProfilePageView({
             {/* University Card Header */}
             <div className="border-b border-white/10 pb-4 text-center space-y-1">
               <div className="text-[10px] font-black uppercase tracking-widest text-blue-300">
-                Graphic Era Hill University
+                {activeStudent?.campus || store.getPrimaryCampus()?.name || "Campus Mobility"}
               </div>
               <div className="text-xs font-extrabold uppercase text-gray-300 tracking-wider">
                 Student Mobility ID Card
@@ -343,7 +343,7 @@ export default function StudentProfilePageView({
                 {activeStudent?.photoUrl ? (
                   <img
                     src={activeStudent.photoUrl}
-                    alt={activeStudent.fullName || "Student"}
+                    alt={activeStudent.fullName || "NONE"}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -352,10 +352,10 @@ export default function StudentProfilePageView({
               </div>
               <div className="min-w-0 space-y-1">
                 <div className="text-sm font-black text-white truncate">
-                  {activeStudent?.fullName || currentUser?.fullName || "Student Commuter"}
+                  {activeStudent?.fullName || currentUser?.fullName || "NONE"}
                 </div>
                 <div className="text-[10px] text-gray-300 truncate">
-                  {activeStudent?.className || activeStudent?.department || "B.Tech CSE"}
+                  {activeStudent?.className || activeStudent?.department || "NONE"}
                 </div>
                 <div className="inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded bg-green-500/20 text-green-300 border border-green-400/30">
                   Pass Active
@@ -367,21 +367,21 @@ export default function StudentProfilePageView({
             <div className="space-y-2 text-xs border-t border-white/10 pt-4 font-medium">
               <div className="flex justify-between">
                 <span className="text-gray-400">Transit Zone:</span>
-                <span className="font-bold text-white">Zone {activeStudent?.zoneCode || "ZONE_B"}</span>
+                <span className="font-bold text-white">Zone {activeStudent?.zoneCode || "NONE"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Boarding Stop:</span>
                 <span className="font-bold text-white truncate max-w-[140px]">
-                  {primaryStop?.name || "Bhakda Chauraha"}
+                  {primaryStop?.name || "NONE"}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Assigned Bus:</span>
-                <span className="font-bold text-white">{assignedBus?.busNumber || "Bus 2"}</span>
+                <span className="font-bold text-white">{assignedBus?.busNumber || "NONE"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Valid Through:</span>
-                <span className="font-bold text-white">31 Dec 2026</span>
+                <span className="font-bold text-white">{activeStudent?.subscriptionExpiryDate ? formatDate(activeStudent.subscriptionExpiryDate) : "NONE"}</span>
               </div>
             </div>
 
@@ -488,7 +488,7 @@ export default function StudentProfilePageView({
                   Course & Degree
                 </div>
                 <div className="font-black text-gray-900 dark:text-white text-sm">
-                  {activeStudent?.department || "B.Tech Computer Science & Engineering"}
+                  {activeStudent?.department || "NONE"}
                 </div>
               </div>
 
@@ -497,8 +497,7 @@ export default function StudentProfilePageView({
                   Semester & Section
                 </div>
                 <div className="font-black text-gray-900 dark:text-white text-sm">
-                  {activeStudent?.className ||
-                    `${activeStudent?.semester || "4th"} Semester • Section IV (CC)`}
+                  {activeStudent?.className || (activeStudent?.semester ? `${activeStudent.semester} Semester` : "NONE")}
                 </div>
               </div>
 
@@ -507,7 +506,7 @@ export default function StudentProfilePageView({
                   Institutional Campus
                 </div>
                 <div className="font-black text-gray-900 dark:text-white text-sm">
-                  {activeStudent?.campus || store.getPrimaryCampus()?.name || "Graphic Era Hill University - Bhimtal Campus"}
+                  {activeStudent?.campus || store.getPrimaryCampus()?.name || "NONE"}
                 </div>
               </div>
 
@@ -516,7 +515,7 @@ export default function StudentProfilePageView({
                   Registered Email
                 </div>
                 <div className="font-medium text-gray-700 dark:text-gray-200 truncate">
-                  {activeStudent?.email || currentUser?.email || "student@gehu.ac.in"}
+                  {activeStudent?.email || currentUser?.email || "NONE"}
                 </div>
               </div>
 
@@ -525,7 +524,7 @@ export default function StudentProfilePageView({
                   Primary Mobile Phone
                 </div>
                 <div className="font-medium text-gray-700 dark:text-gray-200">
-                  {activeStudent?.phone || currentUser?.phone || "Not Provided"}
+                  {activeStudent?.phone || currentUser?.phone || "NONE"}
                 </div>
               </div>
             </div>
@@ -556,10 +555,10 @@ export default function StudentProfilePageView({
                   Primary Boarding Stop
                 </div>
                 <div className="font-black text-gray-900 dark:text-white text-sm">
-                  {primaryStop?.name || "Bhakda & Laldant Road Chauraha"}
+                  {primaryStop?.name || "NONE"}
                 </div>
                 <div className="text-[11px] text-gray-500">
-                  {primaryStop?.landmark || "Lal Danth Tiraha / Kaladhungi Road"}
+                  {primaryStop?.landmark || ""}
                 </div>
               </div>
 
@@ -568,10 +567,10 @@ export default function StudentProfilePageView({
                   Assigned Vehicle & Corridor
                 </div>
                 <div className="font-black text-gray-900 dark:text-white text-sm">
-                  {assignedBus?.busNumber || "Bus 2"} ({assignedBus?.registrationNo || "UK04PA 2158"})
+                  {assignedBus ? `${assignedBus.busNumber} (${assignedBus.registrationNo || "NONE"})` : "NONE"}
                 </div>
                 <div className="text-[11px] text-gray-500">
-                  {assignedBus?.model || "Tata Starbus 40-Seater"}
+                  {assignedBus?.model || ""}
                 </div>
               </div>
 
@@ -580,10 +579,7 @@ export default function StudentProfilePageView({
                   Transit Zone Code
                 </div>
                 <div className="font-black text-gray-900 dark:text-white text-sm flex items-center gap-2">
-                  <span>Zone {activeStudent?.zoneCode || "ZONE_B"}</span>
-                  <span className="text-[10px] font-normal text-gray-400">
-                    (Standard City Corridor)
-                  </span>
+                  <span>Zone {activeStudent?.zoneCode || "NONE"}</span>
                 </div>
               </div>
 
@@ -592,7 +588,9 @@ export default function StudentProfilePageView({
                   Academic Shifts
                 </div>
                 <div className="font-black text-gray-900 dark:text-white text-sm">
-                  Morning (07:30 - 08:45) & Evening (16:30 - 17:45)
+                  {store.getShifts().length > 0
+                    ? store.getShifts().map((s) => `${s.name} (${s.startTime || ""} - ${s.endTime || ""})`).join(" & ")
+                    : "NONE"}
                 </div>
               </div>
             </div>
@@ -623,10 +621,10 @@ export default function StudentProfilePageView({
                   Guardian / Contact Person
                 </div>
                 <div className="font-black text-gray-900 dark:text-white text-sm">
-                  {activeStudent?.emergencyContact?.name || "Parent / Guardian"}
+                  {activeStudent?.emergencyContact?.name || "NONE"}
                 </div>
                 <div className="text-[11px] text-gray-500">
-                  Relationship: {activeStudent?.emergencyContact?.relationship || "Parent"}
+                  Relationship: {activeStudent?.emergencyContact?.relationship || "NONE"}
                 </div>
               </div>
 

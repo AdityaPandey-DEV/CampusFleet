@@ -52,7 +52,7 @@ export default function RunningLatePage() {
       // Bypass store and check for active trips directly to ensure real-time radar
       let currentActiveTrips: any[] = [];
       try {
-        const { data } = await supabase.from('trips').select('id, bus_id').eq('status', 'IN_PROGRESS');
+        const { data } = await supabase.from('trips').select('id, bus_id, status').eq('status', 'IN_PROGRESS');
         if (data) currentActiveTrips = data;
       } catch (e) {}
 
@@ -75,16 +75,16 @@ export default function RunningLatePage() {
             newLiveBuses.push({
               busId: data.liveLocation.busId,
               tripId: trip.id,
-              latitude: data.liveLocation.latitude,
-              longitude: data.liveLocation.longitude,
-              speedKmh: data.liveLocation.speedKmh,
-              headingDeg: data.liveLocation.headingDeg || 0,
-              tripStatus: "IN_PROGRESS",
-              state: "IN_TRANSIT",
-              busNumber: busData?.busNumber || "Unknown",
-              shortLabel: busData?.busNumber?.substring(0, 3) || "BUS",
-              registrationNo: busData?.registrationNo || "N/A",
-              statusText: "En Route"
+              latitude: Number(data.liveLocation.latitude),
+              longitude: Number(data.liveLocation.longitude),
+              speedKmh: Number(data.liveLocation.speedKmh ?? 0),
+              headingDeg: Number(data.liveLocation.headingDeg ?? 0),
+              tripStatus: trip.status || "NONE",
+              state: data.liveLocation.state || "NONE",
+              busNumber: busData?.busNumber || "NONE",
+              shortLabel: busData?.busNumber || "NONE",
+              registrationNo: busData?.registrationNo || "NONE",
+              statusText: data.liveLocation.statusText || trip.status || "NONE"
             } as FleetBusMarkerData);
           }
         } catch(e) {}
@@ -160,7 +160,7 @@ export default function RunningLatePage() {
         body: JSON.stringify({
           tripId: nearestBus.tripId,
           studentId: currentUser.id,
-          studentName: currentUser.fullName || currentUser.name || "Student",
+          studentName: currentUser.fullName || currentUser.name || "NONE",
           latitude: userLocation.lat,
           longitude: userLocation.lng
         })

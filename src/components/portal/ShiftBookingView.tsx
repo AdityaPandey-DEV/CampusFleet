@@ -339,13 +339,13 @@ export default function ShiftBookingView({
 
   const selectedStop = stops.find(s => s.id === selectedStopId) || stops[0];
   const primaryCampus = useMemo(() => store.getPrimaryCampus(), []);
-  const studentCampusName = activeStudent?.campus || primaryCampus?.name || "Graphic Era Hill University - Bhimtal Campus";
+  const studentCampusName = activeStudent?.campus || primaryCampus?.name || "NONE";
 
   // Guaranteed QR Booking payload
   const displayBookingForQR = useMemo(() => {
     if (userExistingBooking) return userExistingBooking;
     if (!currentUser || !activeStudent) return null;
-    const anyActive = bookings.find(
+    return bookings.find(
       b =>
         (b.studentId === activeStudent.id ||
           b.studentId === activeStudent.userId ||
@@ -353,20 +353,8 @@ export default function ShiftBookingView({
           b.studentId === currentUser.studentId ||
           b.studentId === `stud-${currentUser.id}`) &&
         (b.status === "CONFIRMED" || b.status === "BOARDED" || b.status === "WAITLISTED")
-    );
-    if (anyActive) return anyActive;
-
-    return {
-      id: `bk-${activeStudent.id}-preview`,
-      bookingCode: "GEHU-PASS-01",
-      studentId: activeStudent.id,
-      tripId: targetTrip?.id || trips[0]?.id || "trip-1",
-      boardingStopId: selectedStopId || stops[0]?.id || "stop-1",
-      status: "CONFIRMED" as const,
-      seatNumber: selectedSeatNumber || "1A",
-      createdAt: "2026-08-30T00:00:00.000Z",
-    };
-  }, [userExistingBooking, bookings, activeStudent, currentUser, targetTrip, trips, selectedStopId, stops, selectedSeatNumber]);
+    ) || null;
+  }, [userExistingBooking, bookings, activeStudent, currentUser]);
 
   // Dynamic Dijkstra Shortest Path to Campus
   const shortestPath = useMemo(() => {
@@ -431,7 +419,7 @@ export default function ShiftBookingView({
       if (res.success) {
         setBookingMessage({
           type: "success",
-          text: res.message || `✓ Attendance Marked! Seat ${selectedSeatNumber || "1A"} on ${bus.busNumber} claimed.`,
+          text: res.message || (selectedSeatNumber ? `✓ Attendance Marked! Seat ${selectedSeatNumber} on ${bus.busNumber} claimed.` : `✓ Attendance Marked on ${bus.busNumber}.`),
         });
         setIsQRModalOpen(true);
         return true;

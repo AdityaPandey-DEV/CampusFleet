@@ -33,7 +33,7 @@ export default function StaffBusesView({
     registrationNo: string;
     model: string;
     capacity: number;
-    seatLayout: "2x2" | "3x2" | "2x3";
+    seatLayout: "2x2" | "3x2" | "2x3" | "NONE" | string;
     status: VehicleStatus;
     gpsDeviceId: string;
     insuranceExpiry: string;
@@ -41,13 +41,13 @@ export default function StaffBusesView({
   }>({
     busNumber: "",
     registrationNo: "",
-    model: "Tata Starbus Ultra 40-Seater",
-    capacity: 40,
-    seatLayout: "2x2",
+    model: "",
+    capacity: 0,
+    seatLayout: "NONE",
     status: "ACTIVE",
     gpsDeviceId: "",
-    insuranceExpiry: "2027-05-15",
-    maintenanceDueDate: "2026-12-10",
+    insuranceExpiry: "",
+    maintenanceDueDate: "",
   });
 
   useEffect(() => {
@@ -77,13 +77,13 @@ export default function StaffBusesView({
     setFormData({
       busNumber: "",
       registrationNo: "",
-      model: "Tata Starbus Ultra 40-Seater",
-      capacity: 40,
-      seatLayout: "2x2",
+      model: "",
+      capacity: 0,
+      seatLayout: "NONE",
       status: "ACTIVE",
       gpsDeviceId: "",
-      insuranceExpiry: "2027-05-15",
-      maintenanceDueDate: "2026-12-10",
+      insuranceExpiry: "",
+      maintenanceDueDate: "",
     });
   };
 

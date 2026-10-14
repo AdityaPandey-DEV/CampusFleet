@@ -210,20 +210,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const shiftStartTime = shift?.start_time ? shift.start_time.substring(0, 5) : "";
+    const shiftEndTime = shift?.end_time ? shift.end_time.substring(0, 5) : "";
+
     const isCutoff = isTripCutoffPassed(
       {
         ...trip,
         manifestLocked: Boolean(trip.manifest_locked),
-        departureTime: trip.departure_time || shift?.start_time?.substring(0, 5) || "16:30",
-        arrivalTime: trip.arrival_time || shift?.end_time?.substring(0, 5) || "17:45",
+        departureTime: trip.departure_time || shiftStartTime,
+        arrivalTime: trip.arrival_time || shiftEndTime,
       } as any,
       {
         id: shift?.id || trip.shift_id,
-        name: shift?.name || "Shift",
-        shiftType: shift?.type || "EVENING",
-        startTime: (shift?.start_time || "16:30:00").substring(0, 5),
-        endTime: (shift?.end_time || "17:45:00").substring(0, 5),
-        bookingCutoffMins: shift?.booking_cutoff_minutes || 45,
+        name: shift?.name,
+        shiftType: shift?.type,
+        startTime: shiftStartTime,
+        endTime: shiftEndTime,
+        bookingCutoffMins: Number(shift?.booking_cutoff_minutes || 0),
       } as any
     );
 
@@ -282,7 +285,7 @@ export async function POST(req: NextRequest) {
       (activeTripBookings || []).map((b) => b.seat_number).filter(Boolean)
     );
 
-    const allSeats = generateSeatLayout(bus.capacity, bus.seat_layout || "2x2");
+    const allSeats = generateSeatLayout(bus.capacity, bus.seat_layout || "NONE");
     const availableSeats = allSeats.filter((s) => !occupiedSeatSet.has(s));
 
     if (availableSeats.length === 0) {

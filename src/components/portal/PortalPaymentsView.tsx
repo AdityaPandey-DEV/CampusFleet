@@ -290,7 +290,7 @@ export default function PortalPaymentsView({
            </div>
            <div className="text-xs text-gray-500 mt-2 font-medium">
              {isPassApproved
-               ? `Valid until ${formatDate(activeStudent?.subscriptionExpiryDate || "2026-12-31")}`
+               ? (activeStudent?.subscriptionExpiryDate ? `Valid until ${formatDate(activeStudent.subscriptionExpiryDate)}` : "Valid Pass")
                : "Payment required for access"}
            </div>
            {!isPassApproved && (
@@ -324,7 +324,7 @@ export default function PortalPaymentsView({
             <div className="p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-2">
               <div className="text-xs font-bold uppercase text-gray-500">Validity</div>
               <div className="text-sm font-black text-gray-900 dark:text-white">
-                {formatDate(activeStudent?.subscriptionExpiryDate || "2026-12-31")}
+                {activeStudent?.subscriptionExpiryDate ? formatDate(activeStudent.subscriptionExpiryDate) : "NONE"}
               </div>
             </div>
             <div className="p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-2">

@@ -294,10 +294,10 @@ export default function DigitalPassView({
                 </div>
                 <div>
                   <div className="text-[10px] uppercase font-bold tracking-wider text-white/80">
-                    {activeStudent?.campus || store.getPrimaryCampus()?.name || "Graphic Era Hill University"}
+                    {activeStudent?.campus || store.getPrimaryCampus()?.name || "NONE"}
                   </div>
                   <div className="text-base font-black truncate tracking-tight">
-                    {bus?.busNumber || "Bus 44"} • {bus?.registrationNo || "UK 04 PA 1234"}
+                    {bus?.busNumber || "NONE"}{bus?.registrationNo ? ` • ${bus.registrationNo}` : ""}
                   </div>
                 </div>
               </div>
@@ -320,10 +320,10 @@ export default function DigitalPassView({
                   </span>
                   <div className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-1.5 mt-0.5">
                     <MapPin className="w-4 h-4 text-blue-600" />
-                    <span>{stop?.name || "Panchakki"}</span>
+                    <span>{stop?.name || "NONE"}</span>
                   </div>
                   <div className="text-xs text-gray-500 font-mono mt-0.5">
-                    Shift: {shift?.name || "Morning Inbound"} ({formatTime(shift?.startTime || "07:30")})
+                    Shift: {shift?.name || "NONE"} {shift?.startTime ? `(${formatTime(shift.startTime)})` : ""}
                   </div>
                 </div>
 
@@ -339,7 +339,7 @@ export default function DigitalPassView({
                         : "text-blue-600 dark:text-blue-400"
                     }`}
                   >
-                    {isStandingPassenger ? "STAND" : activeBooking.seatNumber || "1A"}
+                    {isStandingPassenger ? "STAND" : activeBooking.seatNumber || "NONE"}
                   </div>
                   <div className="text-[10px] text-gray-400 font-bold uppercase">
                     {isStandingPassenger ? "Till Merge Hub" : "Reserved Chassis"}
@@ -381,7 +381,7 @@ export default function DigitalPassView({
 
               <div className="space-y-1">
                 <div className="text-xs font-mono font-bold text-gray-700 dark:text-gray-300 tracking-wider">
-                  {activeBooking.bookingCode || "GEHU-PASS-01"}
+                  {activeBooking.bookingCode || "NONE"}
                 </div>
                 <div className="text-[10px] text-gray-400 flex items-center justify-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
@@ -418,7 +418,7 @@ export default function DigitalPassView({
                     {activeStudent.fullName}
                   </div>
                   <div className="text-[10px] text-gray-400 font-mono">
-                    Zone {activeStudent.zoneCode || "B"}
+                    Zone {activeStudent.zoneCode || "NONE"}
                   </div>
                 </div>
               </div>
@@ -604,10 +604,10 @@ export default function DigitalPassView({
           <div className="max-w-xs w-full bg-white p-6 rounded-3xl text-center space-y-4 shadow-2xl">
             <div className="text-gray-900 space-y-0.5">
               <div className="text-xs font-black uppercase text-blue-600 tracking-wider">
-                {bus?.busNumber || "Campus Bus 44"}
+                {bus?.busNumber || "NONE"}
               </div>
               <div className="text-2xl font-black font-mono">
-                {isStandingPassenger ? "PASSENGER: STAND" : `SEAT: ${activeBooking.seatNumber || "1A"}`}
+                {isStandingPassenger ? "PASSENGER: STAND" : `SEAT: ${activeBooking.seatNumber || "NONE"}`}
               </div>
               <div className="text-xs font-bold text-gray-500">
                 {activeStudent?.fullName} • {stop?.name}
