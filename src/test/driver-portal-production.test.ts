@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { store } from "../lib/store";
 import { telematicsService } from "../lib/telematicsService";
 import { Trip, UserRole, LiveBusLocation } from "../lib/types";
+import { calculateHaversineDistanceKm } from "../lib/eta-calculator";
 
 describe("Driver Portal Production Functionality & Resilience Tests", () => {
   beforeEach(() => {
@@ -298,6 +299,31 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
       expect(formatAccuracy(4.8)).toBe("±5m");
       expect(formatAccuracy(12.2)).toBe("±12m");
       expect(formatAccuracy(null)).toBe("Standby");
+    });
+
+    it("should detect arrival automatically when GPS enters stop geofence radius (<150m)", () => {
+      // Station coordinates
+      const stopLat = 29.2208;
+      const stopLon = 79.5167;
+
+      // Bus is 80 meters away (inside geofence)
+      const busNearLat = 29.2212;
+      const busNearLon = 79.5171;
+      const distKmInside = calculateHaversineDistanceKm(busNearLat, busNearLon, stopLat, stopLon);
+      const distMetersInside = Math.round(distKmInside * 1000);
+      const isInsideGeofence = distMetersInside <= 150;
+
+      expect(isInsideGeofence).toBe(true);
+
+      // Bus is 1.5 km away (outside geofence)
+      const busFarLat = 29.2340;
+      const busFarLon = 79.5250;
+      const distKmOutside = calculateHaversineDistanceKm(busFarLat, busFarLon, stopLat, stopLon);
+      const distMetersOutside = Math.round(distKmOutside * 1000);
+      const isOutsideGeofence = distMetersOutside <= 150;
+
+      expect(isOutsideGeofence).toBe(false);
+      expect(distMetersOutside).toBeGreaterThan(1000);
     });
   });
 });

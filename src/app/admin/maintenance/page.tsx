@@ -62,13 +62,13 @@ export default async function MaintenanceDeskPage() {
     id: b.id,
     busNumber: b.bus_number,
     registrationNo: b.registration_no || b.bus_number,
-    model: b.model || "Tata Starbus Ultra 40-Seater",
-    capacity: b.capacity || 40,
-    seatLayout: (b.seat_layout as any) || "2x2",
+    model: b.model || "",
+    capacity: b.capacity,
+    seatLayout: (b.seat_layout as any) || "",
     status: b.status || "ACTIVE",
     gpsDeviceId: b.gps_device_id || "",
-    insuranceExpiry: b.insurance_expiry || "2027-05-15",
-    maintenanceDueDate: b.maintenance_due_date || "2026-12-10",
+    insuranceExpiry: b.insurance_expiry,
+    maintenanceDueDate: b.maintenance_due_date,
     currentRouteId: b.current_route_id,
   }));
 

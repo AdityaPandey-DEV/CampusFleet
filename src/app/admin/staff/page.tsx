@@ -44,7 +44,7 @@ export default async function UserAndRBACManagementPage() {
     phone: u.phone || undefined,
     campusId: u.campus_id || u.campus || undefined,
     campus: u.campus || undefined,
-    provider: u.provider || "Institutional SSO",
+    provider: u.provider || "NONE",
     createdAt: u.created_at || new Date().toISOString(),
   }));
 
@@ -65,7 +65,7 @@ export default async function UserAndRBACManagementPage() {
         phone: s.phone || undefined,
         campusId: s.campus_id || s.campus || "",
         campus: s.campus || "",
-        provider: "Institutional SSO",
+        provider: "NONE",
         createdAt: s.created_at || new Date().toISOString(),
       };
       userList.unshift(healedUser);
@@ -81,7 +81,7 @@ export default async function UserAndRBACManagementPage() {
         campus_id: s.campus_id || null,
         campus: s.campus || "",
         role: "student",
-        provider: "Institutional SSO",
+        provider: "NONE",
       }, { onConflict: "id" }).then(() => {});
     }
   }

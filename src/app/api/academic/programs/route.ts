@@ -69,42 +69,6 @@ export async function GET() {
       }
     }
 
-    // Default fallback if database table is not yet initialized
-    if (departmentMap.size === 0) {
-      const defaultDepts = [
-        { id: "dept-1", code: "CSE", name: "B.Tech Computer Science & Engineering" },
-        { id: "dept-2", code: "AI_DS", name: "B.Tech Artificial Intelligence & Data Science" },
-        { id: "dept-3", code: "ECE", name: "B.Tech Electronics & Communication Engineering" },
-        { id: "dept-4", code: "MECH", name: "B.Tech Mechanical Engineering" },
-        { id: "dept-5", code: "CIVIL", name: "B.Tech Civil Engineering" },
-        { id: "dept-6", code: "BCA", name: "BCA - Bachelor of Computer Applications" },
-        { id: "dept-7", code: "MCA", name: "MCA - Master of Computer Applications" },
-        { id: "dept-8", code: "MBA", name: "MBA - Master of Business Administration" },
-        { id: "dept-9", code: "BBA", name: "BBA - Bachelor of Business Administration" },
-        { id: "dept-10", code: "BPHARM", name: "B.Pharma - Bachelor of Pharmacy" },
-        { id: "dept-11", code: "BSC", name: "B.Sc Biotechnology / Applied Sciences" },
-      ];
-      for (const d of defaultDepts) {
-        departmentMap.set(d.name.toLowerCase(), d);
-      }
-    }
-
-    if (semesterMap.size === 0) {
-      const defaultSems = [
-        { id: "sem-1", code: "SEM_1", name: "1st Semester (Freshman)", orderIndex: 1 },
-        { id: "sem-2", code: "SEM_2", name: "2nd Semester", orderIndex: 2 },
-        { id: "sem-3", code: "SEM_3", name: "3rd Semester (Sophomore)", orderIndex: 3 },
-        { id: "sem-4", code: "SEM_4", name: "4th Semester", orderIndex: 4 },
-        { id: "sem-5", code: "SEM_5", name: "5th Semester (Junior)", orderIndex: 5 },
-        { id: "sem-6", code: "SEM_6", name: "6th Semester", orderIndex: 6 },
-        { id: "sem-7", code: "SEM_7", name: "7th Semester (Senior)", orderIndex: 7 },
-        { id: "sem-8", code: "SEM_8", name: "8th Semester", orderIndex: 8 },
-      ];
-      for (const s of defaultSems) {
-        semesterMap.set(s.name.toLowerCase(), s);
-      }
-    }
-
     return NextResponse.json(
       {
         success: true,

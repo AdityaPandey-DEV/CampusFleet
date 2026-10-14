@@ -29,6 +29,7 @@ import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { useTranslation } from "@/components/common/LanguageProvider";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
+import { calculateHaversineDistanceKm } from "@/lib/eta-calculator";
 import { supabase } from "@/lib/supabaseClient";
 import type { Trip, Bus, Route, Booking, Stop } from "@/lib/types";
 
@@ -110,6 +111,9 @@ export default function DriverConsoleView({
   const [gpsStatusText, setGpsStatusText] = useState<string>("Initializing GPS Sensor...");
   const [gpsPermissionState, setGpsPermissionState] = useState<"prompt" | "granted" | "denied" | "unsupported">("prompt");
   const [hasRealGpsLock, setHasRealGpsLock] = useState(false);
+  const [distanceToNextStopMeters, setDistanceToNextStopMeters] = useState<number | null>(null);
+  const autoAdvancingRef = useRef<boolean>(false);
+  const lastAutoAdvancedStopIdRef = useRef<string | null>(null);
   const realDeviceGpsRef = useRef<{
     latitude: number;
     longitude: number;
@@ -117,6 +121,90 @@ export default function DriverConsoleView({
     headingDeg: number;
     accuracy: number;
   } | null>(null);
+
+  // Automatic GPS Geofence Arrival Detection (Hands-Free Station Progression)
+  const checkAndTriggerGeofenceArrival = useCallback(async (currentLat: number, currentLon: number) => {
+    if (!activeTrip || activeTrip.status !== "IN_PROGRESS" || !route?.stops || autoAdvancingRef.current) {
+      return;
+    }
+
+    const currentIdx = activeTrip.currentStopIndex || 0;
+    const currentRouteStop = route.stops[currentIdx];
+    if (!currentRouteStop || !currentRouteStop.stop) return;
+
+    const targetStop = currentRouteStop.stop;
+    if (lastAutoAdvancedStopIdRef.current === targetStop.id) {
+      return;
+    }
+
+    const distKm = calculateHaversineDistanceKm(currentLat, currentLon, targetStop.latitude, targetStop.longitude);
+    const distMeters = Math.round(distKm * 1000);
+    setDistanceToNextStopMeters(distMeters);
+
+    // Dynamic Geofence trigger threshold: stop radius or 150m vehicular approach buffer
+    const geofenceRadius = Math.max(targetStop.geofenceRadiusMeters || 100, 150);
+
+    if (distMeters <= geofenceRadius) {
+      autoAdvancingRef.current = true;
+      lastAutoAdvancedStopIdRef.current = targetStop.id;
+
+      // In Express Direct mode, once the last booked passenger stop is passed, jump straight to Campus
+      if (directExpressResult.isExpressDirect && targetStop.id === directExpressResult.lastPassengerStop?.id) {
+        const campusIdx = route.stops.length - 1;
+        const campusStop = route.stops[campusIdx].stop;
+
+        setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, currentStopIndex: campusIdx } : t));
+        await store.updateTrip(activeTrip.id, { currentStopIndex: campusIdx });
+
+        store.updateLiveLocation({
+          busId: bus?.id,
+          tripId: activeTrip?.id,
+          latitude: currentLat,
+          longitude: currentLon,
+          currentStopId: route.stops[campusIdx].stopId,
+          estimatedArrivalNextStopMins: 0,
+          speedKmh: realDeviceGpsRef.current?.speedKmh ?? 0,
+        });
+
+        setToastMessage(`🎯 Auto GPS Geofence: Express Direct Arrived at ${campusStop.name}`);
+        setTimeout(() => {
+          setToastMessage(null);
+          autoAdvancingRef.current = false;
+        }, 4000);
+        return;
+      }
+
+      const nextIdx = currentIdx + 1;
+      if (nextIdx < route.stops.length) {
+        const nextStop = route.stops[nextIdx].stop;
+
+        setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, currentStopIndex: nextIdx } : t));
+        await store.updateTrip(activeTrip.id, { currentStopIndex: nextIdx });
+
+        store.updateLiveLocation({
+          busId: bus?.id,
+          tripId: activeTrip?.id,
+          latitude: currentLat,
+          longitude: currentLon,
+          currentStopId: route.stops[nextIdx].stopId,
+          estimatedArrivalNextStopMins: 0,
+          speedKmh: realDeviceGpsRef.current?.speedKmh ?? 0,
+        });
+
+        setToastMessage(`🎯 Auto GPS Arrival (${distMeters}m): Arrived at ${targetStop.name}`);
+        setTimeout(() => {
+          setToastMessage(null);
+          autoAdvancingRef.current = false;
+        }, 4000);
+      } else {
+        setToastMessage(`🎯 Auto GPS Arrival: Arrived at Final Station ${targetStop.name}`);
+        setTimeout(() => {
+          setToastMessage(null);
+          autoAdvancingRef.current = false;
+        }, 4000);
+      }
+    }
+  }, [activeTrip, route?.stops, directExpressResult, bus?.id]);
 
   // Actively request real device GPS sensor permission
   const requestGpsPermission = useCallback(() => {
@@ -147,6 +235,8 @@ export default function DriverConsoleView({
           headingDeg,
           currentStopId: route?.stops?.[activeTrip?.currentStopIndex || 0]?.stopId,
         });
+
+        checkAndTriggerGeofenceArrival(latitude, longitude);
       },
       (err) => {
         console.warn("Hardware GPS sensor permission notice:", err);
@@ -165,7 +255,7 @@ export default function DriverConsoleView({
         maximumAge: 0,
       }
     );
-  }, [bus?.id, activeTrip?.id, route?.stops, activeTrip?.currentStopIndex]);
+  }, [bus?.id, activeTrip?.id, route?.stops, activeTrip?.currentStopIndex, checkAndTriggerGeofenceArrival]);
 
   // Request browser location permission on mount
   useEffect(() => {
@@ -212,6 +302,8 @@ export default function DriverConsoleView({
             headingDeg,
             currentStopId: route?.stops?.[activeTrip?.currentStopIndex || 0]?.stopId,
           });
+
+          checkAndTriggerGeofenceArrival(latitude, longitude);
         }
       },
       (err) => {
@@ -233,10 +325,12 @@ export default function DriverConsoleView({
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [isBroadcasting, bus?.id, activeTrip?.id, route?.stops, activeTrip?.currentStopIndex]);
+  }, [isBroadcasting, bus?.id, activeTrip?.id, route?.stops, activeTrip?.currentStopIndex, checkAndTriggerGeofenceArrival]);
 
   const handleStartTrip = async () => {
     if (!activeTrip) return;
+    lastAutoAdvancedStopIdRef.current = null;
+    autoAdvancingRef.current = false;
     const startedAt = new Date().toISOString();
     const startingStop = route?.stops?.[0]?.stop;
     const realGps = realDeviceGpsRef.current;
@@ -260,7 +354,7 @@ export default function DriverConsoleView({
       currentStopId: startingStop?.id,
     });
 
-    setToastMessage("✓ Trip started! GPS coordinates broadcasting live to commuters.");
+    setToastMessage("✓ Trip started! Hands-free GPS geofencing is actively tracking stops.");
     setTimeout(() => setToastMessage(null), 3500);
   };
 
@@ -268,6 +362,8 @@ export default function DriverConsoleView({
     if (!activeTrip) return;
     if (confirm("Are you sure you want to end this trip?")) {
       const completedAt = new Date().toISOString();
+      lastAutoAdvancedStopIdRef.current = null;
+      autoAdvancingRef.current = false;
 
       setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, status: "COMPLETED", completedAt } : t));
 
@@ -303,6 +399,7 @@ export default function DriverConsoleView({
     if (!activeTrip || !route?.stops) return;
     const currentIdx = activeTrip.currentStopIndex || 0;
     const currentStop = route.stops[currentIdx]?.stop;
+    lastAutoAdvancedStopIdRef.current = currentStop?.id || null;
     const realGps = realDeviceGpsRef.current;
 
     // In Express Direct mode, once the last booked passenger stop is passed, jump straight to Campus
@@ -508,7 +605,7 @@ export default function DriverConsoleView({
             </div>
           )}
 
-          {/* Big Action Buttons */}
+          {/* Action Buttons: Start/End Trip & Hands-Free Automatic GPS Geofence Progression */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             {activeTrip?.status !== "IN_PROGRESS" ? (
               <button
@@ -528,17 +625,37 @@ export default function DriverConsoleView({
               </button>
             )}
 
-            <button
-              onClick={handleAdvanceStop}
-              className={`py-4 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
-                directExpressResult.isExpressDirect
-                  ? "bg-green-600 hover:bg-green-500  shadow-green-600/25"
-                  : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/20"
-              }`}
-            >
-              {directExpressResult.isExpressDirect ? <Zap className="w-5 h-5 fill-current" /> : <Navigation className="w-5 h-5" />}
-              <span>{directExpressResult.isExpressDirect ? "EXPRESS TO CAMPUS" : "ARRIVED AT STOP"}</span>
-            </button>
+            {activeTrip?.status === "IN_PROGRESS" ? (
+              <button
+                type="button"
+                onClick={handleAdvanceStop}
+                className={`py-4 active:scale-95 text-white font-black text-xs sm:text-sm rounded-2xl flex flex-col items-center justify-center gap-1 shadow-lg transition-all cursor-pointer ${
+                  directExpressResult.isExpressDirect
+                    ? "bg-green-600 hover:bg-green-500 shadow-green-600/25"
+                    : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/20"
+                }`}
+                title="GPS Geofencing automatically advances stations. Tap only if you need to manually skip."
+              >
+                <div className="flex items-center gap-2">
+                  {directExpressResult.isExpressDirect ? <Zap className="w-4 h-4 fill-current" /> : <Navigation className="w-4 h-4 animate-pulse" />}
+                  <span>
+                    {directExpressResult.isExpressDirect
+                      ? "EXPRESS TO CAMPUS"
+                      : distanceToNextStopMeters !== null
+                      ? `AUTO-TRACKING (${distanceToNextStopMeters}m to stop)`
+                      : "AUTO-GEOFENCE ACTIVE"}
+                  </span>
+                </div>
+                <span className="text-[10px] text-white/80 font-normal">
+                  Auto-advances on arrival (&lt;150m) • Tap for manual skip
+                </span>
+              </button>
+            ) : (
+              <div className="py-4 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700">
+                <Navigation className="w-4 h-4" />
+                <span>Hands-Free Auto-Arrival Ready</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -668,7 +785,7 @@ export default function DriverConsoleView({
                   </div>
 
                   <span className="text-xs font-mono font-semibold flex-shrink-0 ml-2">
-                    {isCurrent ? "Approaching" : isPassed ? "Departed" : `+${rs.arrivalOffsetMinutes}m`}
+                    {isCurrent ? (distanceToNextStopMeters !== null ? `Approaching (${distanceToNextStopMeters}m)` : "Approaching") : isPassed ? "Departed" : `+${rs.arrivalOffsetMinutes}m`}
                   </span>
                 </div>
               );

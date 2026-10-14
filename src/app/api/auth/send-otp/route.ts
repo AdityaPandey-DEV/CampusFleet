@@ -98,11 +98,11 @@ export async function POST(req: NextRequest) {
 
     // Log OTP only on server (never in response)
     console.log(
-      `\n🔐 [OTP] Email: ${cleanEmail} | Expires: ${expiresAt} | Sent via SMTP: ${emailResult.sent}\n`
+      `\n [OTP] Email: ${cleanEmail} | Expires: ${expiresAt} | Sent via SMTP: ${emailResult.sent}\n`
     );
 
     if (!emailResult.sent) {
-      console.warn("⚠️ SMTP dispatch failed:", emailResult.reason);
+      console.warn("SMTP dispatch failed:", emailResult.reason);
     }
 
     // ── Response — NEVER expose OTP code in production ────────────────
