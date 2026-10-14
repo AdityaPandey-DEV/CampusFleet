@@ -67,6 +67,8 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
         tripDate: "2026-10-19",
         status: "SCHEDULED",
         currentStopIndex: 0,
+        delayMinutes: 0,
+        manifestLocked: false,
       },
       {
         id: "trip-evening",
@@ -79,6 +81,8 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
         tripDate: "2026-10-19",
         status: "SCHEDULED",
         currentStopIndex: 0,
+        delayMinutes: 0,
+        manifestLocked: false,
       },
       {
         id: "trip-other-driver",
@@ -91,6 +95,8 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
         tripDate: "2026-10-19",
         status: "SCHEDULED",
         currentStopIndex: 0,
+        delayMinutes: 0,
+        manifestLocked: false,
       },
     ];
 
@@ -169,6 +175,8 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
       tripDate: "2026-10-19",
       status: "SCHEDULED",
       currentStopIndex: 0,
+      delayMinutes: 0,
+      manifestLocked: false,
     };
 
     beforeEach(() => {
@@ -268,6 +276,8 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
         speedKmh: 38,
         headingDeg: 145,
         lastPingAt: new Date().toISOString(),
+        estimatedArrivalNextStopMins: 4,
+        delayMinutes: 0,
       };
 
       store.updateLiveLocation(payload);
