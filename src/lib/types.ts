@@ -8,7 +8,6 @@ export type TripStatus = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
 
 export type ShiftType = "MORNING" | "AFTERNOON" | "EVENING" | "CUSTOM" | string;
 
-
 export type VehicleStatus = "ACTIVE" | "MAINTENANCE" | "INACTIVE" | "DECOMMISSIONED";
 
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "WAIVED";
@@ -310,13 +309,17 @@ export interface FleetBusMarkerData {
 export interface AttendanceRecord {
   id: string;
   studentId: string;
+  userId?: string;
+  userRole?: "driver" | "conductor" | "student" | string;
+  userName?: string;
   tripId: string;
+  busId?: string;
   bookingId?: string;
-  method: AttendanceMethod;
+  method: AttendanceMethod | "BUS_QR_SCAN" | "MANUAL_SELECT";
   verifiedBy: string;
   signatureToken?: string;
   deviceId?: string;
-  status: "BOARDED" | "ABSENT" | "NO_SHOW";
+  status: "BOARDED" | "ABSENT" | "NO_SHOW" | "CHECKED_IN";
   notes?: string;
   timestamp: string;
 }

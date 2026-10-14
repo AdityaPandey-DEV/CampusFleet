@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "@/components/common/LanguageProvider";
@@ -17,12 +17,15 @@ import {
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
+import { CrewBusSelectorModal } from "@/components/common/CrewBusSelectorModal";
 import { useConductorContext } from "./ConductorContext";
 
 export default function ConductorLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { t } = useTranslation();
-  const { currentUser, activeTrip, bus, route, trips, setSelectedTripId } = useConductorContext();
+  const { currentUser, activeTrip, bus, route, trips, setSelectedTripId, showToast } = useConductorContext();
+  const [isCrewSelectorOpen, setIsCrewSelectorOpen] = useState(false);
+  const [selectorTab, setSelectorTab] = useState<"CARDS" | "SCANNER">("CARDS");
 
   const isAuthorizedConductor = currentUser?.role === "conductor" || currentUser?.role === "driver";
   if (currentUser && !isAuthorizedConductor) {
@@ -103,28 +106,39 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
           <div className="flex items-center gap-1.5 sm:gap-2">
             <Link
               href="/driver"
-              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-green-50 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-900/60 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 text-xs font-bold transition-all shadow-2xs"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-green-50 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-900/60 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 text-xs font-bold transition-all shadow-2xs"
               title={t('driverHud')}
             >
               <BusFront className="w-3.5 h-3.5 text-green-500" />
               <span>{t('driverHud')}</span>
             </Link>
-            {trips.length > 0 && (
-              <select
-                value={activeTrip?.id || ""}
-                onChange={e => setSelectedTripId(e.target.value)}
-                className="hidden sm:inline-block text-xs font-bold bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white rounded-xl px-2.5 py-1.5 outline-none cursor-pointer max-w-[190px] truncate shadow-sm transition-colors"
-              >
-                {trips.map(t => {
-                  const b = trips.find(busItem => busItem.id === t.busId);
-                  return (
-                    <option key={t.id} value={t.id}>
-                      {t.tripCode}
-                    </option>
-                  );
-                })}
-              </select>
-            )}
+
+            {/* Quick Bus QR Door Check-in & Bus Card Selector */}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectorTab("SCANNER");
+                setIsCrewSelectorOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold shadow-sm transition-all"
+              title="Scan physical QR code on bus door to mark attendance"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Scan Door QR</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectorTab("CARDS");
+                setIsCrewSelectorOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 dark:bg-gray-900 dark:hover:bg-gray-800 active:scale-95 text-gray-900 dark:text-gray-100 text-xs font-bold border border-gray-200 dark:border-gray-800 shadow-sm transition-all max-w-[190px] truncate"
+              title="Choose bus from cards"
+            >
+              <BusFront className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <span className="truncate">{bus?.busNumber || "Select Bus"}</span>
+            </button>
           </div>
         }
       />
@@ -135,6 +149,25 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
       </main>
 
       <MobileBottomNav isPaymentApproved={true} navItems={currentNavLinks} />
+
+      {/* Crew Bus Selector & QR Attendance Modal */}
+      <CrewBusSelectorModal
+        isOpen={isCrewSelectorOpen}
+        onClose={() => setIsCrewSelectorOpen(false)}
+        role="conductor"
+        initialTab={selectorTab}
+        currentUser={currentUser}
+        currentTripId={activeTrip?.id}
+        onSelectBusAndTrip={(busId, tripId) => {
+          if (tripId) {
+            setSelectedTripId(tripId);
+          } else {
+            const match = trips.find(t => t.busId === busId && t.status !== "COMPLETED") || trips.find(t => t.busId === busId);
+            if (match) setSelectedTripId(match.id);
+          }
+          showToast("✓ Conductor duty active! Bus claimed and attendance recorded.");
+        }}
+      />
     </div>
   );
 }

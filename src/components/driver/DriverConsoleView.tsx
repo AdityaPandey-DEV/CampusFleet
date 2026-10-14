@@ -24,6 +24,8 @@ import {
   Zap,
   FileCheck2,
   ArrowRight,
+  QrCode,
+  ShieldCheck,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { useTranslation } from "@/components/common/LanguageProvider";
@@ -31,7 +33,8 @@ import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 import { calculateHaversineDistanceKm } from "@/lib/eta-calculator";
 import { supabase } from "@/lib/supabaseClient";
-import type { Trip, Bus, Route, Booking, Stop } from "@/lib/types";
+import { CrewBusSelectorModal } from "@/components/common/CrewBusSelectorModal";
+import type { Trip, Bus, Route, Booking, Stop, AttendanceRecord } from "@/lib/types";
 
 export interface DriverConsoleProps {
   initialTrips?: Trip[];
@@ -80,15 +83,25 @@ export default function DriverConsoleView({
       setStops(store.getStops());
       setBookings(store.getBookings());
       setLiveLocation(store.getLiveLocation());
+      setAttendanceRecords(store.getAttendanceRecords());
     });
     return unsub;
   }, [initialTrips, initialBuses, initialRoutes, initialBookings, initialStops, trips.length, buses.length, routes.length, bookings.length, stops.length]);
 
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => store.getAttendanceRecords());
+  const [isCrewSelectorOpen, setIsCrewSelectorOpen] = useState(false);
+  const [selectorTab, setSelectorTab] = useState<"CARDS" | "SCANNER">("CARDS");
+
   const myAssignedTrips = trips.filter(t => 
-    (currentUser?.id && t.driverId === currentUser.id) || 
-    (currentUser?.staffId && t.driverId === currentUser.staffId)
+    Boolean(currentUser?.id && t.driverId === currentUser.id)
   );
-  const eligibleTrips = myAssignedTrips.length > 0 ? myAssignedTrips : trips;
+  // Filter out ancient completed trips; prioritize non-completed runs
+  const activeOrScheduledTrips = trips.filter(t => t.status !== "COMPLETED");
+  const eligibleTrips = myAssignedTrips.length > 0 
+    ? myAssignedTrips 
+    : activeOrScheduledTrips.length > 0 
+    ? activeOrScheduledTrips 
+    : trips;
   const [selectedTripId, setSelectedTripId] = useState<string>(() => eligibleTrips[0]?.id || "");
 
   useEffect(() => {
@@ -100,6 +113,12 @@ export default function DriverConsoleView({
   const activeTrip = eligibleTrips.find(t => t.id === selectedTripId) || eligibleTrips[0];
   const bus = buses.find(b => b.id === activeTrip?.busId) || buses[0];
   const route = routes.find(r => r.id === activeTrip?.routeId) || routes[0];
+
+  const dutyAttendance = attendanceRecords.find(
+    (a) =>
+      (a.userId === currentUser?.id || a.studentId === currentUser?.id) &&
+      (a.busId === bus?.id || a.tripId === activeTrip?.id)
+  );
   const tripBookings = bookings.filter(b => b.tripId === activeTrip?.id);
   const confirmedCount = tripBookings.filter(b => b.status === "CONFIRMED" || b.status === "BOARDED").length;
 
@@ -566,23 +585,72 @@ export default function DriverConsoleView({
             </div>
           </div>
 
-          {/* Shift Selector if multiple trips assigned */}
-          {eligibleTrips.length > 1 && (
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-1 pb-1 border-b border-gray-100 dark:border-gray-800">
-              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 shrink-0">Scheduled Run:</span>
-              <select
-                value={activeTrip?.id}
-                onChange={(e) => setSelectedTripId(e.target.value)}
-                className="w-full sm:w-auto max-w-full text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white outline-none cursor-pointer truncate"
-              >
-                {eligibleTrips.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.tripCode} ({t.status})
-                  </option>
-                ))}
-              </select>
+          {/* Duty Vehicle & QR Attendance Verification Card */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/60 flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-blue-100 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
+                <BusFront className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-sm text-gray-900 dark:text-white">
+                    {bus?.busNumber || "Bus TBA"}
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold">
+                    {bus?.registrationNo || "UK-07-FLEET"}
+                  </span>
+                </div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+                  {route?.name || "Campus Transit Corridor"}
+                </div>
+              </div>
             </div>
-          )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              {dutyAttendance?.method === "BUS_QR_SCAN" ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Duty Verified (Bus QR)</span>
+                </span>
+              ) : dutyAttendance ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 text-xs font-bold">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Duty Active (Card)</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold animate-pulse">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Check-in Required</span>
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectorTab("SCANNER");
+                  setIsCrewSelectorOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold shadow-sm transition-all"
+                title="Scan physical QR code on bus door to mark duty attendance"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>Scan Bus QR</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectorTab("CARDS");
+                  setIsCrewSelectorOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 active:scale-95 text-gray-900 dark:text-gray-100 text-xs font-bold border border-gray-200 dark:border-gray-700 shadow-sm transition-all"
+                title="Select a bus from cards like students"
+              >
+                <BusFront className="w-3.5 h-3.5 text-blue-500" />
+                <span>Switch Bus</span>
+              </button>
+            </div>
+          </div>
 
           <div>
             <div className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">{route?.name || "Campus Shuttle Route"}</div>
@@ -856,6 +924,26 @@ export default function DriverConsoleView({
           </div>
         </div>
       )}
+
+      {/* Crew Bus Selector & QR Attendance Modal */}
+      <CrewBusSelectorModal
+        isOpen={isCrewSelectorOpen}
+        onClose={() => setIsCrewSelectorOpen(false)}
+        role="driver"
+        initialTab={selectorTab}
+        currentUser={currentUser}
+        currentTripId={activeTrip?.id}
+        onSelectBusAndTrip={(busId, tripId) => {
+          if (tripId) {
+            setSelectedTripId(tripId);
+          } else {
+            const match = trips.find(t => t.busId === busId && t.status !== "COMPLETED") || trips.find(t => t.busId === busId);
+            if (match) setSelectedTripId(match.id);
+          }
+          setToastMessage("✓ Duty active! Bus claimed and attendance recorded.");
+          setTimeout(() => setToastMessage(null), 3500);
+        }}
+      />
     </div>
   );
 }

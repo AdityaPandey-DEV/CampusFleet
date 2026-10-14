@@ -81,8 +81,8 @@ export function ConductorProvider({
       t.driverId === currentUser?.fullName
   );
 
-  const activeTrip = myTrips.find(t => t.id === selectedTripId) || myTrips[0];
-  const bus = buses.find(b => b.id === activeTrip?.busId);
+  const activeTrip = trips.find(t => t.id === selectedTripId) || myTrips.find(t => t.id === selectedTripId) || myTrips[0] || trips[0];
+  const bus = buses.find(b => b.id === activeTrip?.busId) || buses[0];
   const route = routes.find(r => r.id === activeTrip?.routeId);
   const shift = shifts.find(sh => sh.id === activeTrip?.shiftId);
     const tripBookings = React.useMemo(() => {

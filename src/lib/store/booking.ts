@@ -7,6 +7,16 @@ import type { Booking, AttendanceRecord } from "../types";
 declare module "./_base" {
   interface CampusFleetStore {
     recordAttendance(studentId: string, tripId: string, method: "QR_SCAN" | "BIOMETRIC_DEVICE" | "MANUAL_OVERRIDE", status?: "BOARDED" | "ABSENT" | "NO_SHOW", notes?: string): Promise<any>;
+    recordUserAttendance(params: {
+      userId: string;
+      userName?: string;
+      userRole: "driver" | "conductor" | "student" | string;
+      busId: string;
+      tripId?: string;
+      method: "BUS_QR_SCAN" | "MANUAL_SELECT";
+      notes?: string;
+    }): Promise<{ success: boolean; message: string; record: AttendanceRecord }>;
+    recordStaffAttendance(params: any): Promise<{ success: boolean; message: string; record: AttendanceRecord }>;
     assignWaitlistSeat(bookingId: string, seatCode: string): Promise<any>;
     bookShift(studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string, instantBoard?: boolean): Promise<any>;
     cancelBooking(bookingId: string): Promise<any>;
@@ -128,6 +138,102 @@ CampusFleetStore.prototype.recordAttendance = async function (
   this.saveToLocalStorage();
   this.notify();
   return { success: true, message: `Passenger attendance marked as ${status}`, record: newRecord };
+};
+
+// ── User / Crew Duty Attendance ─────────────────────────────────────────────
+
+CampusFleetStore.prototype.recordUserAttendance = async function (
+  this: CampusFleetStore,
+  params: {
+    userId: string;
+    userName?: string;
+    userRole: "driver" | "conductor" | "student" | string;
+    busId: string;
+    tripId?: string;
+    method: "BUS_QR_SCAN" | "MANUAL_SELECT";
+    notes?: string;
+  }
+) {
+  const { userId, userName, userRole, busId, tripId, method, notes } = params;
+  const bus = this.buses.find(b => b.id === busId);
+  const resolvedTrip = tripId
+    ? this.trips.find(t => t.id === tripId)
+    : this.trips.find(t => t.busId === busId && t.status !== "COMPLETED");
+  const finalTripId = resolvedTrip?.id || tripId || "";
+  const resolvedUserName =
+    userName ||
+    this.currentUser?.fullName ||
+    (userRole === "driver" ? "Bus Driver" : userRole === "conductor" ? "Bus Conductor" : "Passenger");
+
+  // Create attendance record
+  const newRecord: AttendanceRecord = {
+    id: `att-${Date.now()}`,
+    studentId: userId,
+    userId,
+    userRole,
+    userName: resolvedUserName,
+    tripId: finalTripId,
+    busId,
+    method: method as any,
+    verifiedBy: `${userRole.toUpperCase()}: ${resolvedUserName}`,
+    signatureToken: `DUTY-${Date.now().toString(36).toUpperCase()}`,
+    status: "BOARDED",
+    notes: notes || `Duty attendance marked via ${method === "BUS_QR_SCAN" ? "Physical Bus QR Code" : "Bus Selection Card"}`,
+    timestamp: new Date().toISOString(),
+  };
+
+  this.attendanceRecords = [newRecord, ...this.attendanceRecords];
+
+  // If trip exists and role is driver/conductor, update trip crew
+  if (resolvedTrip) {
+    if (userRole === "driver") {
+      resolvedTrip.driverId = userId;
+    } else if (userRole === "conductor") {
+      resolvedTrip.conductorId = userId;
+    }
+  }
+
+  // Audit log to PostgreSQL
+  try {
+    await supabase.from("audit_logs").insert({
+      user_id: userId,
+      user_role: userRole,
+      action: `USER_DUTY_CHECKIN_${method}`,
+      entity: "UserAttendance",
+      entity_id: newRecord.id,
+      reason: notes || `Duty check-in for bus ${bus?.busNumber || busId}`,
+      new_value: {
+        userRole,
+        userName: resolvedUserName,
+        busId,
+        tripId: finalTripId,
+        method,
+        timestamp: newRecord.timestamp,
+      },
+    });
+  } catch (e) {
+    console.warn("DB recordUserAttendance notice:", e);
+  }
+
+  this.saveToLocalStorage();
+  this.notify();
+  return {
+    success: true,
+    message: `✓ Attendance verified for ${bus?.busNumber || "Bus"}! Duty active.`,
+    record: newRecord,
+  };
+};
+
+CampusFleetStore.prototype.recordStaffAttendance = async function (this: CampusFleetStore, params: any) {
+  return this.recordUserAttendance({
+    userId: params.userId || params.staffId,
+    userName: params.userName || params.staffName,
+    userRole: params.userRole || params.staffRole,
+    busId: params.busId,
+    tripId: params.tripId,
+    method: params.method,
+    notes: params.notes,
+  });
 };
 
 // ── Waitlist Seat Assignment ────────────────────────────────────────────────

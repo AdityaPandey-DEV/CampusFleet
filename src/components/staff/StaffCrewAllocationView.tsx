@@ -14,8 +14,13 @@ import {
   X,
   Plus,
   RefreshCw,
+  Clock,
+  QrCode,
+  Banknote,
+  Check,
 } from "lucide-react";
-import type { Trip, Bus, Route, Staff, UserAccount } from "@/lib/types";
+import { formatTime, formatDate } from "@/lib/utils";
+import type { Trip, Bus, Route, Staff, UserAccount, AttendanceRecord } from "@/lib/types";
 
 interface StaffCrewAllocationViewProps {
   initialTrips?: Trip[];
@@ -38,7 +43,9 @@ export default function StaffCrewAllocationView({
   const [staff, setStaff] = useState<Staff[]>(() => (initialStaff.length > 0 ? initialStaff : store.getStaff()));
   const [users, setUsers] = useState<UserAccount[]>(() => (initialUsers.length > 0 ? initialUsers : store.getUsers()));
   const [shifts, setShifts] = useState<any[]>(() => store.getShifts());
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => store.getAttendanceRecords());
 
+  const [activeViewMode, setActiveViewMode] = useState<"ROSTER" | "DUTY_LEDGER">("ROSTER");
   const [crewSearchQuery, setCrewSearchQuery] = useState("");
   const [shiftFilter, setShiftFilter] = useState("ALL");
   const [selectedTripForCrew, setSelectedTripForCrew] = useState<any | null>(null);
@@ -68,6 +75,7 @@ export default function StaffCrewAllocationView({
       setStaff(store.getStaff());
       setUsers(store.getUsers());
       setShifts(store.getShifts());
+      setAttendanceRecords(store.getAttendanceRecords());
     });
     return unsub;
   }, []);
@@ -166,6 +174,16 @@ export default function StaffCrewAllocationView({
       );
     });
   }, [trips, crewDate, crewSearchQuery, shiftFilter, buses, routes]);
+
+  const crewDutyRecords = useMemo(() => {
+    return attendanceRecords.filter(
+      (a) =>
+        a.userRole === "driver" ||
+        a.userRole === "conductor" ||
+        a.signatureToken?.startsWith("DUTY-") ||
+        a.method === "BUS_QR_SCAN"
+    );
+  }, [attendanceRecords]);
 
   const openAssignModal = (trip: Trip) => {
     setSelectedTripForCrew(trip);
@@ -293,138 +311,329 @@ export default function StaffCrewAllocationView({
         </div>
       </div>
 
-      {/* Crew Allocation Roster Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 className="font-black text-sm text-gray-900 dark:text-white flex items-center gap-2">
-            <BusFront className="w-4 h-4 text-blue-600" />
-            <span>Fleet Crew Dispatch Table</span>
-          </h3>
+      {/* View Mode Switcher Tabs */}
+      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-800 pb-2">
+        <button
+          onClick={() => setActiveViewMode("ROSTER")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeViewMode === "ROSTER"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+              : "bg-white dark:bg-gray-850 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+          }`}
+        >
+          <BusFront className="w-4 h-4" />
+          <span>Fleet Crew Dispatch Table</span>
+        </button>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <select
-              value={shiftFilter}
-              onChange={(e) => setShiftFilter(e.target.value)}
-              className="px-4 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 font-bold cursor-pointer"
-            >
-              <option value="ALL">All Shifts</option>
-              <option value="MORNING">Morning Inbound</option>
-              <option value="EVENING">Evening Return</option>
-            </select>
-            <div className="relative flex-1 sm:w-72 sm:flex-none">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={crewSearchQuery}
-                onChange={(e) => setCrewSearchQuery(e.target.value)}
-                placeholder="Search bus or route..."
-                className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 font-bold"
-              />
+        <button
+          onClick={() => setActiveViewMode("DUTY_LEDGER")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeViewMode === "DUTY_LEDGER"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+              : "bg-white dark:bg-gray-850 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+          }`}
+        >
+          <Banknote className="w-4 h-4" />
+          <span>Crew Duty Attendance & Payroll Ledger ({crewDutyRecords.length})</span>
+        </button>
+      </div>
+
+      {/* Tab 1: Dispatch Table */}
+      {activeViewMode === "ROSTER" && (
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h3 className="font-black text-sm text-gray-900 dark:text-white flex items-center gap-2">
+              <BusFront className="w-4 h-4 text-blue-600" />
+              <span>Fleet Crew Dispatch Table</span>
+            </h3>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <select
+                value={shiftFilter}
+                onChange={(e) => setShiftFilter(e.target.value)}
+                className="px-4 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 font-bold cursor-pointer"
+              >
+                <option value="ALL">All Shifts</option>
+                <option value="MORNING">Morning Inbound</option>
+                <option value="EVENING">Evening Return</option>
+              </select>
+              <div className="relative flex-1 sm:w-72 sm:flex-none">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={crewSearchQuery}
+                  onChange={(e) => setCrewSearchQuery(e.target.value)}
+                  placeholder="Search bus or route..."
+                  className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 font-bold"
+                />
+              </div>
             </div>
           </div>
+
+          {filteredTrips.length === 0 ? (
+            <div className="py-16 text-center text-xs text-gray-400 font-mono space-y-2">
+              <Users className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600" />
+              <div>No trips found for the selected date or search query.</div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-gray-50 dark:bg-gray-800/60 uppercase font-black text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                  <tr>
+                    <th className="p-3.5">Bus & Trip</th>
+                    <th className="p-3.5">Corridor Route</th>
+                    <th className="p-3.5">Assigned Driver</th>
+                    <th className="p-3.5">Assigned Conductor</th>
+                    <th className="p-3.5 text-center">Crew Status</th>
+                    <th className="p-3.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {filteredTrips.map((trip) => {
+                    const bus = buses.find((b) => b.id === trip.busId);
+                    const route = routes.find((r) => r.id === trip.routeId);
+                    const driver = staff.find((s) => s.id === trip.driverId) || users.find((u) => u.id === trip.driverId);
+                    const conductor = staff.find((s) => s.id === trip.conductorId) || users.find((u) => u.id === trip.conductorId);
+
+                    const driverAtt = attendanceRecords.find(
+                      (a) =>
+                        (a.userId === trip.driverId || a.studentId === trip.driverId) &&
+                        (a.tripId === trip.id || a.busId === trip.busId)
+                    );
+
+                    const conductorAtt = attendanceRecords.find(
+                      (a) =>
+                        (a.userId === trip.conductorId || a.studentId === trip.conductorId) &&
+                        (a.tripId === trip.id || a.busId === trip.busId)
+                    );
+
+                    const isComplete = Boolean(trip.driverId && trip.conductorId);
+
+                    return (
+                      <tr key={trip.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                        <td className="p-3.5">
+                          <div className="font-black text-gray-900 dark:text-white flex items-center gap-1.5">
+                            <BusFront className="w-3.5 h-3.5 text-blue-600" />
+                            <span>{bus?.busNumber || "Bus TBA"}</span>
+                          </div>
+                          <div className="text-[10px] font-mono text-gray-400">{trip.tripCode}</div>
+                        </td>
+
+                        <td className="p-3.5">
+                          <div className="font-bold text-gray-800 dark:text-gray-200">{route?.name || "Route TBA"}</div>
+                          <div className="text-[10px] text-gray-400 font-mono">
+                            {(() => {
+                              const shift = shifts.find(s => s.id === trip.shiftId);
+                              return shift?.direction === "HOME_TO_CAMPUS" ? "Morning Inbound" : "Evening Return";
+                            })()}
+                          </div>
+                        </td>
+
+                        <td className="p-3.5">
+                          {driver ? (
+                            <div>
+                              <div className="font-bold text-gray-900 dark:text-white">{driver.fullName}</div>
+                              <div className="text-[10px] text-gray-400 font-mono">{driver.phone || "—"}</div>
+                              {driverAtt ? (
+                                driverAtt.method === "BUS_QR_SCAN" ? (
+                                  <div className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                    <ShieldCheck className="w-3 h-3" />
+                                    <span>✓ QR Checked-in ({formatTime(driverAtt.timestamp)})</span>
+                                  </div>
+                                ) : (
+                                  <div className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 mt-0.5">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>✓ Card Checked-in ({formatTime(driverAtt.timestamp)})</span>
+                                  </div>
+                                )
+                              ) : (
+                                <div className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-500 mt-0.5">
+                                  <Clock className="w-3 h-3" />
+                                  <span>Check-in Pending</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-bold text-red-500 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Unassigned
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="p-3.5">
+                          {conductor ? (
+                            <div>
+                              <div className="font-bold text-gray-900 dark:text-white">{conductor.fullName}</div>
+                              <div className="text-[10px] text-gray-400 font-mono">{conductor.phone || "—"}</div>
+                              {conductorAtt ? (
+                                conductorAtt.method === "BUS_QR_SCAN" ? (
+                                  <div className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                    <ShieldCheck className="w-3 h-3" />
+                                    <span>✓ QR Checked-in ({formatTime(conductorAtt.timestamp)})</span>
+                                  </div>
+                                ) : (
+                                  <div className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 mt-0.5">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>✓ Card Checked-in ({formatTime(conductorAtt.timestamp)})</span>
+                                  </div>
+                                )
+                              ) : (
+                                <div className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-500 mt-0.5">
+                                  <Clock className="w-3 h-3" />
+                                  <span>Check-in Pending</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-bold text-yellow-500 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Unassigned
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="p-3.5 text-center">
+                          <span
+                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              isComplete
+                                ? "bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300"
+                                : "bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300"
+                            }`}
+                          >
+                            {isComplete ? "Fully Crewed" : "Incomplete"}
+                          </span>
+                        </td>
+
+                        <td className="p-3.5 text-right">
+                          <button
+                            onClick={() => openAssignModal(trip)}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                          >
+                            {isComplete ? "Change Crew" : "Assign Crew"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
+      )}
 
-        {filteredTrips.length === 0 ? (
-          <div className="py-16 text-center text-xs text-gray-400 font-mono space-y-2">
-            <Users className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600" />
-            <div>No trips found for the selected date or search query.</div>
+      {/* Tab 2: Crew Duty Attendance & Payroll Ledger */}
+      {activeViewMode === "DUTY_LEDGER" && (
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-black text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                <Banknote className="w-4 h-4 text-emerald-600" />
+                <span>Staff & Crew Duty Attendance Ledger</span>
+              </h3>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                Verified duty check-ins recorded via Physical Bus QR Door Scanner or Card Selector for payroll and shift compensation auditing.
+              </p>
+            </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-gray-50 dark:bg-gray-800/60 uppercase font-black text-gray-400 border-b border-gray-200 dark:border-gray-800">
-                <tr>
-                  <th className="p-3.5">Bus & Trip</th>
-                  <th className="p-3.5">Corridor Route</th>
-                  <th className="p-3.5">Assigned Driver</th>
-                  <th className="p-3.5">Assigned Conductor</th>
-                  <th className="p-3.5 text-center">Crew Status</th>
-                  <th className="p-3.5 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {filteredTrips.map((trip) => {
-                  const bus = buses.find((b) => b.id === trip.busId);
-                  const route = routes.find((r) => r.id === trip.routeId);
-                  const driver = staff.find((s) => s.id === trip.driverId) || users.find((u) => u.id === trip.driverId);
-                  const conductor = staff.find((s) => s.id === trip.conductorId) || users.find((u) => u.id === trip.conductorId);
 
-                  const isComplete = Boolean(trip.driverId && trip.conductorId);
+          {crewDutyRecords.length === 0 ? (
+            <div className="py-16 text-center text-xs text-gray-400 font-mono space-y-2">
+              <Clock className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600" />
+              <div>No staff duty attendance logged yet. Attendance is recorded when crew scans a bus QR or selects a bus card.</div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-gray-50 dark:bg-gray-800/60 uppercase font-black text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                  <tr>
+                    <th className="p-3.5">Crew Member</th>
+                    <th className="p-3.5">Assigned Bus</th>
+                    <th className="p-3.5">Trip & Corridor</th>
+                    <th className="p-3.5">Verification Method</th>
+                    <th className="p-3.5">Timestamp</th>
+                    <th className="p-3.5">Duty Signature</th>
+                    <th className="p-3.5 text-right">Payroll Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {crewDutyRecords.map((record) => {
+                    const bus = buses.find((b) => b.id === record.busId);
+                    const trip = trips.find((t) => t.id === record.tripId);
+                    const route = routes.find((r) => r.id === trip?.routeId);
 
-                  return (
-                    <tr key={trip.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                      <td className="p-3.5">
-                        <div className="font-black text-gray-900 dark:text-white flex items-center gap-1.5">
-                          <BusFront className="w-3.5 h-3.5 text-blue-600" />
-                          <span>{bus?.busNumber || "Bus TBA"}</span>
-                        </div>
-                        <div className="text-[10px] font-mono text-gray-400">{trip.tripCode}</div>
-                      </td>
-
-                      <td className="p-3.5">
-                        <div className="font-bold text-gray-800 dark:text-gray-200">{route?.name || "Route TBA"}</div>
-                        <div className="text-[10px] text-gray-400 font-mono">
-                          {(() => {
-                            const shift = shifts.find(s => s.id === trip.shiftId);
-                            return shift?.direction === "HOME_TO_CAMPUS" ? "Morning Inbound" : "Evening Return";
-                          })()}
-                        </div>
-                      </td>
-
-                      <td className="p-3.5">
-                        {driver ? (
-                          <div>
-                            <div className="font-bold text-gray-900 dark:text-white">{driver.fullName}</div>
-                            <div className="text-[10px] text-gray-400 font-mono">{driver.phone || "—"}</div>
+                    return (
+                      <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                        <td className="p-3.5">
+                          <div className="font-bold text-gray-900 dark:text-white">
+                            {record.userName || record.userId || "Staff Member"}
                           </div>
-                        ) : (
-                          <span className="text-[11px] font-bold text-red-500 flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> Unassigned
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider mt-0.5 ${
+                              record.userRole === "driver"
+                                ? "bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300"
+                                : "bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300"
+                            }`}
+                          >
+                            {record.userRole || "CREW"}
                           </span>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="p-3.5">
-                        {conductor ? (
-                          <div>
-                            <div className="font-bold text-gray-900 dark:text-white">{conductor.fullName}</div>
-                            <div className="text-[10px] text-gray-400 font-mono">{conductor.phone || "—"}</div>
+                        <td className="p-3.5">
+                          <div className="font-bold text-gray-800 dark:text-gray-200">
+                            {bus?.busNumber || record.busId || "Fleet Bus"}
                           </div>
-                        ) : (
-                          <span className="text-[11px] font-bold text-yellow-500 flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> Unassigned
+                          <div className="text-[10px] font-mono text-gray-400">
+                            {bus?.registrationNo || "UK-07-FLEET"}
+                          </div>
+                        </td>
+
+                        <td className="p-3.5">
+                          <div className="font-bold text-gray-800 dark:text-gray-200">
+                            {trip?.tripCode || record.tripId || "General Duty"}
+                          </div>
+                          <div className="text-[10px] text-gray-400">
+                            {route?.name || "Campus Transit Corridor"}
+                          </div>
+                        </td>
+
+                        <td className="p-3.5">
+                          {record.method === "BUS_QR_SCAN" ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-[11px]">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Bus Door QR Scan</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 font-bold text-[11px]">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Card Selector</span>
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="p-3.5 font-mono text-gray-600 dark:text-gray-300">
+                          <div>{formatDate(record.timestamp)}</div>
+                          <div className="text-[10px] text-gray-400">{formatTime(record.timestamp)}</div>
+                        </td>
+
+                        <td className="p-3.5 font-mono text-[10px] text-gray-500">
+                          {record.signatureToken || `DUTY-${record.id.substring(0, 8)}`}
+                        </td>
+
+                        <td className="p-3.5 text-right">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-black text-[10px]">
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            <span>Qualified Duty Record</span>
                           </span>
-                        )}
-                      </td>
-
-                      <td className="p-3.5 text-center">
-                        <span
-                          className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                            isComplete
-                              ? "bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300"
-                              : "bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300"
-                          }`}
-                        >
-                          {isComplete ? "Fully Crewed" : "Incomplete"}
-                        </span>
-                      </td>
-
-                      <td className="p-3.5 text-right">
-                        <button
-                          onClick={() => openAssignModal(trip)}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
-                        >
-                          {isComplete ? "Change Crew" : "Assign Crew"}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Crew Assignment Modal */}
       {crewModalOpen && selectedTripForCrew && (
