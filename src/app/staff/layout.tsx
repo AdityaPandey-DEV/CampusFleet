@@ -53,28 +53,28 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       ]
     },
     fleet: {
-      title: t('fleetRoutes') || "Buses & Corridors",
+      title: "Buses & Staff",
       items: [
         { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
-        { href: "/staff/fleet/buses", label: t('buses'), shortLabel: t('buses'), icon: BusFront },
-        { href: "/staff/fleet/routes", label: t('routes'), shortLabel: t('routes'), icon: Route },
-        { href: "/staff/fleet/flowchart", label: "Flowchart", shortLabel: "Flowchart", icon: GitBranch },
+        { href: "/staff/fleet/buses", label: t('buses') || "Buses", shortLabel: t('buses') || "Buses", icon: BusFront },
+        { href: "/staff/fleet/crew", label: t('staff') || "Staff", shortLabel: t('staff') || "Staff", icon: Users },
       ]
     },
     dispatch: {
-      title: t('tripsShifts') || "Trips & Dispatch",
+      title: "Routes, Trips & Shifts",
       items: [
         { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
-        { href: "/staff/dispatch/trips", label: t('trips'), shortLabel: t('trips'), icon: Navigation },
+        { href: "/staff/dispatch/trips", label: t('trips') || "Trips", shortLabel: t('trips') || "Trips", icon: Navigation },
+        { href: "/staff/fleet/routes", label: t('routes') || "Routes", shortLabel: t('routes') || "Routes", icon: Route },
+        { href: "/staff/dispatch/demand", label: "Demand", shortLabel: "Demand", icon: BarChart3 },
+        { href: "/staff/fleet/flowchart", label: "Flowchart", shortLabel: "Flowchart", icon: GitBranch },
       ]
     },
-    allocations: {
-      title: "Crew & Allocations",
+    merges: {
+      title: "Route & Bus Merges",
       items: [
         { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
-        { href: "/staff/allocations/crew", label: "Crew", shortLabel: "Crew", icon: Users },
-        { href: "/staff/allocations/merges", label: "Merges", shortLabel: "Merges", icon: GitMerge },
-        { href: "/staff/allocations/demand", label: "Demand", shortLabel: "Demand", icon: BarChart3 },
+        { href: "/staff/merges", label: "Merges Console", shortLabel: "Merges", icon: GitMerge },
       ]
     },
     academics: {
@@ -107,9 +107,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   // 2. Define top-level Hub links (shown when exactly at /staff)
   const topLevelLinks = [
     { href: "/staff/billing/approvals", label: t('billing') || "Finance", icon: CreditCard },
-    { href: "/staff/fleet/buses", label: t('fleetRoutes') || "Fleet", icon: BusFront },
-    { href: "/staff/dispatch/trips", label: t('trips') || "Dispatch", icon: Navigation },
-    { href: "/staff/allocations/crew", label: "Allocations", icon: Users },
+    { href: "/staff/fleet/buses", label: "Buses & Staff", icon: BusFront },
+    { href: "/staff/dispatch/trips", label: "Routes & Trips", icon: Navigation },
+    { href: "/staff/merges", label: "Merges", icon: GitMerge },
     { href: "/staff/academics/students", label: t('students') || "Commuters", icon: GraduationCap },
     { href: "/staff/maintenance", label: t('maintenance') || "Workshop", icon: Wrench },
     { href: "/staff/system/reports", label: t('reports') || "System", icon: Shield },
@@ -122,15 +122,19 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   if (pathname.startsWith("/staff/billing")) {
     currentNavLinks = subPortals.billing.items;
     currentTitle = subPortals.billing.title;
+  } else if (
+    pathname.startsWith("/staff/dispatch") || 
+    pathname.startsWith("/staff/fleet/routes") || 
+    pathname.startsWith("/staff/fleet/flowchart")
+  ) {
+    currentNavLinks = subPortals.dispatch.items;
+    currentTitle = subPortals.dispatch.title;
   } else if (pathname.startsWith("/staff/fleet")) {
     currentNavLinks = subPortals.fleet.items;
     currentTitle = subPortals.fleet.title;
-  } else if (pathname.startsWith("/staff/dispatch")) {
-    currentNavLinks = subPortals.dispatch.items;
-    currentTitle = subPortals.dispatch.title;
-  } else if (pathname.startsWith("/staff/allocations")) {
-    currentNavLinks = subPortals.allocations.items;
-    currentTitle = subPortals.allocations.title;
+  } else if (pathname.startsWith("/staff/merges")) {
+    currentNavLinks = subPortals.merges.items;
+    currentTitle = subPortals.merges.title;
   } else if (pathname.startsWith("/staff/academics")) {
     currentNavLinks = subPortals.academics.items;
     currentTitle = subPortals.academics.title;

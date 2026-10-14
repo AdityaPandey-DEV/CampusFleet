@@ -5,7 +5,7 @@ import {
   Navigation, 
   GraduationCap, 
   Wrench, 
-  Users,
+  GitMerge,
   Shield 
 } from "lucide-react";
 import { Metadata } from "next";
@@ -22,22 +22,22 @@ const staffModules: HubModule[] = [
     href: "/staff/billing/approvals"
   },
   {
-    title: "Buses & Corridors",
-    description: "Monitor real-time bus locations, manage routes, and view corridor analytics.",
+    title: "Buses & Staff",
+    description: "Manage bus fleet, monitor active vehicles, and assign drivers & conductors.",
     icon: BusFront,
     href: "/staff/fleet/buses"
   },
   {
-    title: "Trips & Dispatch",
-    description: "Monitor live trips, track service shifts, and coordinate fleet dispatching.",
+    title: "Routes, Trips & Shifts",
+    description: "Oversee scheduled and active trips, manage transit routes, and analyze passenger demand.",
     icon: Navigation,
     href: "/staff/dispatch/trips"
   },
   {
-    title: "Crew & Allocations",
-    description: "Allocate drivers & conductors, optimize route merges, and analyze fleet demand.",
-    icon: Users,
-    href: "/staff/allocations/crew"
+    title: "Route & Bus Merges",
+    description: "Consolidate low-occupancy buses, configure merge points, and optimize seat capacity.",
+    icon: GitMerge,
+    href: "/staff/merges"
   },
   {
     title: "Commuters & Academics",

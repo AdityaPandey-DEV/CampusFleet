@@ -3,8 +3,8 @@ import StaffCrewAllocationView from "@/components/staff/StaffCrewAllocationView"
 
 export const dynamic = "force-dynamic";
 
-export default async function StaffAllocationsCrewPage() {
-  const data = await getStaffServerData("/staff/allocations/crew");
+export default async function StaffFleetCrewPage() {
+  const data = await getStaffServerData("/staff/fleet/crew");
 
   return (
     <StaffCrewAllocationView

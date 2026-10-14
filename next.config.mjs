@@ -95,17 +95,32 @@ const nextConfig = {
     return [
       {
         source: "/staff/dispatch/crew",
-        destination: "/staff/allocations/crew",
+        destination: "/staff/fleet/crew",
+        permanent: true,
+      },
+      {
+        source: "/staff/allocations/crew",
+        destination: "/staff/fleet/crew",
         permanent: true,
       },
       {
         source: "/staff/dispatch/merges",
-        destination: "/staff/allocations/merges",
+        destination: "/staff/merges",
         permanent: true,
       },
       {
-        source: "/staff/dispatch/demand",
-        destination: "/staff/allocations/demand",
+        source: "/staff/allocations/merges",
+        destination: "/staff/merges",
+        permanent: true,
+      },
+      {
+        source: "/staff/allocations/demand",
+        destination: "/staff/dispatch/demand",
+        permanent: true,
+      },
+      {
+        source: "/staff/allocations",
+        destination: "/staff/fleet/crew",
         permanent: true,
       },
       {
@@ -114,8 +129,8 @@ const nextConfig = {
         permanent: true,
       },
       {
-        source: "/staff/allocations",
-        destination: "/staff/allocations/crew",
+        source: "/staff/fleet",
+        destination: "/staff/fleet/buses",
         permanent: true,
       },
     ];
