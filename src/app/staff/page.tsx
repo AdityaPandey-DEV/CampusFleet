@@ -1,59 +1,66 @@
 import { HubDashboardView, HubModule } from "@/components/common/HubDashboardView";
 import { 
-  CreditCard, 
-  BusFront, 
+  BusFront,
+  Route, 
   Navigation, 
+  GitMerge,
+  CreditCard, 
   GraduationCap, 
   Wrench, 
-  GitMerge,
   Shield 
 } from "lucide-react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Staff Hub | CampusFleet",
+  title: "Transport Hub | CampusFleet",
 };
 
 const staffModules: HubModule[] = [
   {
-    title: "Finance & Billing",
-    description: "Manage fee approvals, track ledgers, and monitor UPI & QR transactions.",
-    icon: CreditCard,
-    href: "/staff/billing/approvals"
-  },
-  {
-    title: "Buses & Staff",
-    description: "Manage bus fleet, monitor active vehicles, and assign drivers & conductors.",
+    title: "Buses & Drivers",
+    description: "See all college buses, check seating capacity, and assign drivers.",
     icon: BusFront,
     href: "/staff/fleet/buses"
   },
   {
-    title: "Routes, Trips & Shifts",
-    description: "Oversee scheduled and active trips, manage transit routes, and analyze passenger demand.",
+    title: "Routes & Stops",
+    description: "Manage bus routes, pickup points, timings, and visual route maps.",
+    icon: Route,
+    href: "/staff/fleet/routes"
+  },
+  {
+    title: "Today's Trips",
+    description: "Track running morning and evening trips, delays, and seat demand.",
     icon: Navigation,
     href: "/staff/dispatch/trips"
   },
   {
-    title: "Route & Bus Merges",
-    description: "Consolidate low-occupancy buses, configure merge points, and optimize seat capacity.",
+    title: "Combine Buses",
+    description: "Merge two half-empty buses into one to save fuel and drivers.",
     icon: GitMerge,
     href: "/staff/merges"
   },
   {
-    title: "Commuters & Academics",
-    description: "View student directories, manage reservations, and track campus data.",
+    title: "Bus Fees",
+    description: "Approve student payment receipts, view payment history, and manage UPI QR.",
+    icon: CreditCard,
+    href: "/staff/billing/approvals"
+  },
+  {
+    title: "Students & Passes",
+    description: "Search student photo directory, view daily bookings, and manage classes.",
     icon: GraduationCap,
     href: "/staff/academics/students"
   },
   {
-    title: "Workshop & Maintenance",
-    description: "Track maintenance requests, schedule servicing, and monitor fleet health.",
+    title: "Bus Repairs",
+    description: "Track workshop maintenance, engine servicing, and breakdown tickets.",
     icon: Wrench,
     href: "/staff/maintenance"
   },
   {
-    title: "System & Compliance",
-    description: "Manage staff directory, review system reports, and update access controls.",
+    title: "Staff & Reports",
+    description: "Manage driver and conductor logins, and download daily attendance reports.",
     icon: Shield,
     href: "/staff/system/staff"
   }

@@ -43,95 +43,105 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
   // 1. Define all sub-portal link definitions
   const subPortals = {
-    billing: {
-      title: t('billing') || "Finance & Billing",
+    buses: {
+      title: "Buses & Drivers",
       items: [
-        { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
-        { href: "/staff/billing/approvals", label: t('status') || "Approvals", shortLabel: t('status') || "Approvals", icon: ShieldCheck },
-        { href: "/staff/billing", label: t('billing'), shortLabel: t('billing'), icon: CreditCard },
-        { href: "/staff/billing/qr", label: "UPI & QR", shortLabel: "UPI QR", icon: QrCode },
+        { href: "/staff", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/staff/fleet/buses", label: "All Buses", shortLabel: "Buses", icon: BusFront },
+        { href: "/staff/fleet/crew", label: "Assign Drivers", shortLabel: "Drivers", icon: Users },
       ]
     },
-    fleet: {
-      title: "Buses & Staff",
+    routes: {
+      title: "Routes & Stops",
       items: [
-        { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
-        { href: "/staff/fleet/buses", label: t('buses') || "Buses", shortLabel: t('buses') || "Buses", icon: BusFront },
-        { href: "/staff/fleet/crew", label: t('staff') || "Staff", shortLabel: t('staff') || "Staff", icon: Users },
+        { href: "/staff", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/staff/fleet/routes", label: "All Routes", shortLabel: "Routes", icon: Route },
+        { href: "/staff/fleet/routes/stops", label: "Pickup Stops", shortLabel: "Stops", icon: Route },
+        { href: "/staff/fleet/flowchart", label: "Route Map", shortLabel: "Map", icon: GitBranch },
       ]
     },
-    dispatch: {
-      title: "Routes, Trips & Shifts",
+    trips: {
+      title: "Today's Trips",
       items: [
-        { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
-        { href: "/staff/dispatch/trips", label: t('trips') || "Trips", shortLabel: t('trips') || "Trips", icon: Navigation },
-        { href: "/staff/fleet/routes", label: t('routes') || "Routes", shortLabel: t('routes') || "Routes", icon: Route },
-        { href: "/staff/dispatch/demand", label: "Demand", shortLabel: "Demand", icon: BarChart3 },
-        { href: "/staff/fleet/flowchart", label: "Flowchart", shortLabel: "Flowchart", icon: GitBranch },
+        { href: "/staff", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/staff/dispatch/trips", label: "Running Trips", shortLabel: "Trips", icon: Navigation },
+        { href: "/staff/dispatch/demand", label: "Seat Demand", shortLabel: "Demand", icon: BarChart3 },
       ]
     },
     merges: {
-      title: "Route & Bus Merges",
+      title: "Combine Buses",
       items: [
-        { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
-        { href: "/staff/merges", label: "Merges Console", shortLabel: "Merges", icon: GitMerge },
+        { href: "/staff", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/staff/merges", label: "Combine Buses", shortLabel: "Combine", icon: GitMerge },
+      ]
+    },
+    billing: {
+      title: "Bus Fees",
+      items: [
+        { href: "/staff", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/staff/billing/approvals", label: "Approve Payments", shortLabel: "Approvals", icon: ShieldCheck },
+        { href: "/staff/billing", label: "Payment History", shortLabel: "History", icon: CreditCard },
+        { href: "/staff/billing/qr", label: "UPI QR Code", shortLabel: "UPI QR", icon: QrCode },
       ]
     },
     academics: {
-      title: t('studentsRoster') || "Commuters & Academics",
+      title: "Students & Passes",
       items: [
-        { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
-        { href: "/staff/academics/students", label: t('students'), shortLabel: t('students'), icon: GraduationCap },
-        { href: "/staff/academics/reservations", label: t('bookings'), shortLabel: t('bookings'), icon: CalendarCheck },
-        { href: "/staff/academics/classes", label: "Classes", shortLabel: "Classes", icon: BookOpen },
+        { href: "/staff", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/staff/academics/students", label: "Student List", shortLabel: "Students", icon: GraduationCap },
+        { href: "/staff/academics/reservations", label: "Daily Bookings", shortLabel: "Bookings", icon: CalendarCheck },
+        { href: "/staff/academics/classes", label: "Classes & Batches", shortLabel: "Classes", icon: BookOpen },
         { href: "/staff/academics/campuses", label: "Campuses", shortLabel: "Campuses", icon: Building2 },
       ]
     },
     maintenance: {
-      title: t('maintenanceDesk') || "Workshop & Maintenance",
+      title: "Bus Repairs",
       items: [
-        { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
-        { href: "/staff/maintenance", label: t('maintenance'), shortLabel: t('maintenance'), icon: Wrench },
+        { href: "/staff", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/staff/maintenance", label: "Repair Log", shortLabel: "Repairs", icon: Wrench },
       ]
     },
     system: {
-      title: t('staffRbac') || "System & Compliance",
+      title: "Staff & Reports",
       items: [
-        { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
-        { href: "/staff/system/staff", label: t('staff'), shortLabel: t('staff'), icon: Users },
-        { href: "/staff/system/reports", label: t('reports'), shortLabel: t('reports'), icon: FileBarChart },
+        { href: "/staff", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/staff/system/staff", label: "Staff Accounts", shortLabel: "Staff", icon: Users },
+        { href: "/staff/system/reports", label: "Download Reports", shortLabel: "Reports", icon: FileBarChart },
       ]
     }
   };
 
   // 2. Define top-level Hub links (shown when exactly at /staff)
   const topLevelLinks = [
-    { href: "/staff/billing/approvals", label: t('billing') || "Finance", icon: CreditCard },
-    { href: "/staff/fleet/buses", label: "Buses & Staff", icon: BusFront },
-    { href: "/staff/dispatch/trips", label: "Routes & Trips", icon: Navigation },
-    { href: "/staff/merges", label: "Merges", icon: GitMerge },
-    { href: "/staff/academics/students", label: t('students') || "Commuters", icon: GraduationCap },
-    { href: "/staff/maintenance", label: t('maintenance') || "Workshop", icon: Wrench },
-    { href: "/staff/system/reports", label: t('reports') || "System", icon: Shield },
+    { href: "/staff/fleet/buses", label: "Buses", icon: BusFront },
+    { href: "/staff/fleet/routes", label: "Routes", icon: Route },
+    { href: "/staff/dispatch/trips", label: "Today's Trips", icon: Navigation },
+    { href: "/staff/merges", label: "Combine Buses", icon: GitMerge },
+    { href: "/staff/billing/approvals", label: "Bus Fees", icon: CreditCard },
+    { href: "/staff/academics/students", label: "Students", icon: GraduationCap },
+    { href: "/staff/maintenance", label: "Repairs", icon: Wrench },
+    { href: "/staff/system/staff", label: "Staff & Reports", icon: Shield },
   ];
 
   // 3. Determine current context based on URL
   let currentNavLinks = topLevelLinks;
-  let currentTitle = "Staff Operations";
+  let currentTitle = "Transport Operations";
 
   if (pathname.startsWith("/staff/billing")) {
     currentNavLinks = subPortals.billing.items;
     currentTitle = subPortals.billing.title;
   } else if (
-    pathname.startsWith("/staff/dispatch") || 
     pathname.startsWith("/staff/fleet/routes") || 
     pathname.startsWith("/staff/fleet/flowchart")
   ) {
-    currentNavLinks = subPortals.dispatch.items;
-    currentTitle = subPortals.dispatch.title;
+    currentNavLinks = subPortals.routes.items;
+    currentTitle = subPortals.routes.title;
   } else if (pathname.startsWith("/staff/fleet")) {
-    currentNavLinks = subPortals.fleet.items;
-    currentTitle = subPortals.fleet.title;
+    currentNavLinks = subPortals.buses.items;
+    currentTitle = subPortals.buses.title;
+  } else if (pathname.startsWith("/staff/dispatch")) {
+    currentNavLinks = subPortals.trips.items;
+    currentTitle = subPortals.trips.title;
   } else if (pathname.startsWith("/staff/merges")) {
     currentNavLinks = subPortals.merges.items;
     currentTitle = subPortals.merges.title;
