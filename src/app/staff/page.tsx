@@ -5,7 +5,8 @@ import {
   Navigation, 
   GraduationCap, 
   Wrench, 
-  Users 
+  Users,
+  Shield 
 } from "lucide-react";
 import { Metadata } from "next";
 
@@ -28,9 +29,15 @@ const staffModules: HubModule[] = [
   },
   {
     title: "Trips & Dispatch",
-    description: "Manage active trips, assign crew members, and handle trip merges.",
+    description: "Monitor live trips, track service shifts, and coordinate fleet dispatching.",
     icon: Navigation,
     href: "/staff/dispatch/trips"
+  },
+  {
+    title: "Crew & Allocations",
+    description: "Allocate drivers & conductors, optimize route merges, and analyze fleet demand.",
+    icon: Users,
+    href: "/staff/allocations/crew"
   },
   {
     title: "Commuters & Academics",
@@ -47,7 +54,7 @@ const staffModules: HubModule[] = [
   {
     title: "System & Compliance",
     description: "Manage staff directory, review system reports, and update access controls.",
-    icon: Users,
+    icon: Shield,
     href: "/staff/system/staff"
   }
 ];

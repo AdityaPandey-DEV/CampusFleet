@@ -66,9 +66,15 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       items: [
         { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
         { href: "/staff/dispatch/trips", label: t('trips'), shortLabel: t('trips'), icon: Navigation },
-        { href: "/staff/dispatch/crew", label: t('staff'), shortLabel: t('staff'), icon: Users },
-        { href: "/staff/dispatch/merges", label: "Merges", shortLabel: "Merges", icon: GitMerge },
-        { href: "/staff/dispatch/demand", label: "Demand", shortLabel: "Demand", icon: BarChart3 },
+      ]
+    },
+    allocations: {
+      title: "Crew & Allocations",
+      items: [
+        { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
+        { href: "/staff/allocations/crew", label: "Crew", shortLabel: "Crew", icon: Users },
+        { href: "/staff/allocations/merges", label: "Merges", shortLabel: "Merges", icon: GitMerge },
+        { href: "/staff/allocations/demand", label: "Demand", shortLabel: "Demand", icon: BarChart3 },
       ]
     },
     academics: {
@@ -103,6 +109,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     { href: "/staff/billing/approvals", label: t('billing') || "Finance", icon: CreditCard },
     { href: "/staff/fleet/buses", label: t('fleetRoutes') || "Fleet", icon: BusFront },
     { href: "/staff/dispatch/trips", label: t('trips') || "Dispatch", icon: Navigation },
+    { href: "/staff/allocations/crew", label: "Allocations", icon: Users },
     { href: "/staff/academics/students", label: t('students') || "Commuters", icon: GraduationCap },
     { href: "/staff/maintenance", label: t('maintenance') || "Workshop", icon: Wrench },
     { href: "/staff/system/reports", label: t('reports') || "System", icon: Shield },
@@ -121,6 +128,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   } else if (pathname.startsWith("/staff/dispatch")) {
     currentNavLinks = subPortals.dispatch.items;
     currentTitle = subPortals.dispatch.title;
+  } else if (pathname.startsWith("/staff/allocations")) {
+    currentNavLinks = subPortals.allocations.items;
+    currentTitle = subPortals.allocations.title;
   } else if (pathname.startsWith("/staff/academics")) {
     currentNavLinks = subPortals.academics.items;
     currentTitle = subPortals.academics.title;

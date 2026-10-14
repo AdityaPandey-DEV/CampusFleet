@@ -91,6 +91,35 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/staff/dispatch/crew",
+        destination: "/staff/allocations/crew",
+        permanent: true,
+      },
+      {
+        source: "/staff/dispatch/merges",
+        destination: "/staff/allocations/merges",
+        permanent: true,
+      },
+      {
+        source: "/staff/dispatch/demand",
+        destination: "/staff/allocations/demand",
+        permanent: true,
+      },
+      {
+        source: "/staff/dispatch",
+        destination: "/staff/dispatch/trips",
+        permanent: true,
+      },
+      {
+        source: "/staff/allocations",
+        destination: "/staff/allocations/crew",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

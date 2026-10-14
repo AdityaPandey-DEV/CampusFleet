@@ -4,8 +4,8 @@ import StaffMergesView from "@/components/staff/StaffMergesView";
 
 export const dynamic = "force-dynamic";
 
-export default async function StaffDispatchMergesPage() {
-  await getStaffServerData("/staff/dispatch/merges");
+export default async function StaffAllocationsMergesPage() {
+  await getStaffServerData("/staff/allocations/merges");
 
   const [
     { data: dbSuggestions },
