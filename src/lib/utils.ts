@@ -49,18 +49,38 @@ export function formatDate(dateStr?: string): string {
 export function generateSeatLayout(capacity: number, layout: "2x2" | "2x3" | "3x2" | "NONE" | string = "NONE"): string[] {
   if (!capacity || capacity <= 0) return [];
   const seats: string[] = [];
-  const colLetters = layout === "2x3" || layout === "3x2" ? ["A", "B", "C", "D", "E"] : ["A", "B", "C", "D"];
-  const cols = colLetters.length;
-  const rows = Math.ceil(capacity / cols);
+  const is3x2 = layout === "2x3" || layout === "3x2";
+  const regularCols = is3x2 ? ["A", "B", "C", "D", "E"] : ["A", "B", "C", "D"];
+  const cols = regularCols.length;
+
+  // Single row / small capacity (<= cols): standard row without middle seat
+  if (capacity <= cols) {
+    for (let i = 0; i < capacity; i++) {
+      seats.push(`1${regularCols[i]}`);
+    }
+    return seats;
+  }
+
+  // Multi-row coach/bus:
+  // All rows 1 to (N-1) have a middle aisle (A, B and C, D).
+  // The final back row has a continuous bench with a middle seat 'M' spanning across the aisle.
+  const totalRows = Math.max(2, Math.ceil((capacity - 1) / cols));
   let count = 0;
-  for (let r = 1; r <= rows; r++) {
-    for (const col of colLetters) {
+
+  for (let r = 1; r <= totalRows; r++) {
+    const isLastRow = r === totalRows;
+    const rowCols = isLastRow
+      ? (is3x2 ? ["A", "B", "C", "M", "D", "E"] : ["A", "B", "M", "C", "D"])
+      : regularCols;
+
+    for (const col of rowCols) {
       if (count < capacity) {
         seats.push(`${r}${col}`);
         count++;
       }
     }
   }
+
   return seats;
 }
 

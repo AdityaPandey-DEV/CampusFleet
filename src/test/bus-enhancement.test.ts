@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { generateSeatLayout } from "../lib/utils";
 
 // Helper functions that model the business logic enforced in the backend APIs
 
@@ -384,6 +385,45 @@ describe("CampusFleet Enhancements - Core Business Rules", () => {
       // Turn OFF
       stop = toggleMergeStop(stop, false);
       expect(stop.isBusMergeStop).toBe(false);
+    });
+  });
+
+  describe("Real-World Bus Seating Architecture (Rear Bench Middle Seat)", () => {
+    it("generates continuous rear bench with middle seat 'M' across central corridor for 2x2 layout", () => {
+      // 41 seats = 9 rows of 4 seats (36) + 1 rear bench row of 5 seats (10A, 10B, 10M, 10C, 10D)
+      const seats = generateSeatLayout(41, "2x2");
+      expect(seats.length).toBe(41);
+
+      // Row 1 should have regular 4 seats
+      expect(seats.slice(0, 4)).toEqual(["1A", "1B", "1C", "1D"]);
+
+      // Row 9 should have regular 4 seats
+      expect(seats.slice(32, 36)).toEqual(["9A", "9B", "9C", "9D"]);
+
+      // Row 10 (last row) has continuous rear bench with middle seat M
+      expect(seats.slice(36, 41)).toEqual(["10A", "10B", "10M", "10C", "10D"]);
+    });
+
+    it("generates continuous rear bench with middle seat 'M' across central corridor for 3x2 layout", () => {
+      // 46 seats = 8 rows of 5 seats (40) + 1 rear bench row of 6 seats (9A, 9B, 9C, 9M, 9D, 9E)
+      const seats = generateSeatLayout(46, "3x2");
+      expect(seats.length).toBe(46);
+
+      // Row 1 should have 5 seats
+      expect(seats.slice(0, 5)).toEqual(["1A", "1B", "1C", "1D", "1E"]);
+
+      // Row 9 (last row) has continuous rear bench with middle seat 9M between C and D
+      expect(seats.slice(40, 46)).toEqual(["9A", "9B", "9C", "9M", "9D", "9E"]);
+    });
+
+    it("handles single-row vehicles without redundant middle seat", () => {
+      const seats = generateSeatLayout(4, "2x2");
+      expect(seats).toEqual(["1A", "1B", "1C", "1D"]);
+    });
+
+    it("handles zero or invalid capacity cleanly", () => {
+      expect(generateSeatLayout(0, "2x2")).toEqual([]);
+      expect(generateSeatLayout(-5, "NONE")).toEqual([]);
     });
   });
 });

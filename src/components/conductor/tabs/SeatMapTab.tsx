@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { LayoutGrid } from "lucide-react";
 import { Booking, Student, Bus } from "@/lib/types";
+import { generateSeatLayout } from "@/lib/utils";
 
 interface SeatMapTabProps {
   bus?: Bus;
@@ -21,25 +22,89 @@ export function SeatMapTab({
   pendingCount,
   onSelectSeat,
 }: SeatMapTabProps) {
-  const seatGrid = useMemo(() => {
-    const totalRows = Math.ceil((bus?.capacity || 32) / 4);
-    return Array.from({ length: totalRows }, (_, rowIndex) => {
-      const rowNum = rowIndex + 1;
-      return ["A", "B", "C", "D"].map(letter => {
-        const seatCode = `${rowNum}${letter}`;
-        const booking = tripBookings.find(b => b.seatNumber === seatCode);
-        const student = booking ? students.find(s => s.id === booking.studentId || s.userId === booking.studentId) : undefined;
-        return {
-          seatCode,
-          booking,
-          student,
-          isBoarded: booking?.status === "BOARDED",
-          isConfirmed: booking?.status === "CONFIRMED",
-          isWaitlisted: booking?.status === "WAITLISTED",
-        };
-      });
+  const capacity = Number(bus?.capacity || 0);
+  const layout = bus?.seatLayout || "NONE";
+  const is3x2 = layout === "3x2" || layout === "2x3";
+
+  const rows = useMemo(() => {
+    if (!capacity || capacity <= 0) return [];
+    const allGeneratedSeats = generateSeatLayout(capacity, layout);
+    const seatSet = new Set(allGeneratedSeats);
+    const leftCols = is3x2 ? ["A", "B", "C"] : ["A", "B"];
+    const rightCols = is3x2 ? ["D", "E"] : ["C", "D"];
+
+    let maxRow = 0;
+    allGeneratedSeats.forEach((s: string) => {
+      const match = s.match(/^(\d+)/);
+      if (match) {
+        const r = parseInt(match[1], 10);
+        if (r > maxRow) maxRow = r;
+      }
     });
-  }, [bus?.capacity, tripBookings, students]);
+
+    const getSeatInfo = (seatCode: string) => {
+      const booking = tripBookings.find(b => b.seatNumber === seatCode);
+      const student = booking ? students.find(s => s.id === booking.studentId || s.userId === booking.studentId) : undefined;
+      return {
+        seatCode,
+        booking,
+        student,
+        isBoarded: booking?.status === "BOARDED",
+        isConfirmed: booking?.status === "CONFIRMED",
+        isWaitlisted: booking?.status === "WAITLISTED",
+      };
+    };
+
+    return Array.from({ length: maxRow }, (_, rowIndex) => {
+      const rowNum = rowIndex + 1;
+      const isLastRow = rowNum === maxRow && maxRow > 1;
+
+      const left = leftCols.map(col => {
+        const code = `${rowNum}${col}`;
+        return seatSet.has(code) ? getSeatInfo(code) : null;
+      });
+
+      const middle = isLastRow && seatSet.has(`${rowNum}M`)
+        ? getSeatInfo(`${rowNum}M`)
+        : null;
+
+      const right = rightCols.map(col => {
+        const code = `${rowNum}${col}`;
+        return seatSet.has(code) ? getSeatInfo(code) : null;
+      });
+
+      return {
+        rowNum,
+        isLastRow,
+        left,
+        middle,
+        right,
+      };
+    });
+  }, [capacity, layout, is3x2, tripBookings, students]);
+
+  const renderSeatButton = (seatData: {
+    seatCode: string;
+    booking?: Booking;
+    student?: Student;
+    isBoarded?: boolean;
+    isConfirmed?: boolean;
+    isWaitlisted?: boolean;
+  }) => (
+    <button
+      key={seatData.seatCode}
+      onClick={() => onSelectSeat(seatData)}
+      className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all active:scale-95 ${
+        seatData.isBoarded
+          ? "bg-green-500 text-white shadow-md shadow-green-500/20"
+          : seatData.isConfirmed
+          ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+          : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:shadow-sm"
+      }`}
+    >
+      <span>{seatData.seatCode}</span>
+    </button>
+  );
 
   return (
     <div className="bg-white dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl p-5 sm:p-6 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-w-0">
@@ -50,7 +115,7 @@ export function SeatMapTab({
             <span>Interactive Bus Chassis Floorplan</span>
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Visual 2x2 floorplan. Tap any seat to view passenger profile, mark boarded, or scan student ID to assign an empty seat.
+            {layout && layout !== "NONE" ? `${layout} layout` : "Bus floorplan"} with continuous rear bench. Tap any seat to view passenger profile, mark boarded, or scan student ID to assign an empty seat.
           </p>
         </div>
 
@@ -85,68 +150,45 @@ export function SeatMapTab({
 
         {/* Center Aisle Seat Matrix */}
         <div className="space-y-3">
-          {seatGrid.map((row, rIdx) => (
-            <div key={rIdx} className="grid grid-cols-5 gap-2 items-center">
-              {/* Left 2 seats */}
-              <button
-                onClick={() => onSelectSeat(row[0])}
-                className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all active:scale-95 ${
-                  row[0].isBoarded
-                    ? "bg-green-500 text-white shadow-md shadow-green-500/20"
-                    : row[0].isConfirmed
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:shadow-sm"
-                }`}
-              >
-                <span>{row[0].seatCode}</span>
-              </button>
-
-              <button
-                onClick={() => onSelectSeat(row[1])}
-                className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all active:scale-95 ${
-                  row[1].isBoarded
-                    ? "bg-green-500 text-white shadow-md shadow-green-500/20"
-                    : row[1].isConfirmed
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:shadow-sm"
-                }`}
-              >
-                <span>{row[1].seatCode}</span>
-              </button>
-
-              {/* Center Aisle Walkway */}
-              <div className="text-center text-[10px] text-gray-300 dark:text-gray-600 font-mono">
-                ||
-              </div>
-
-              {/* Right 2 seats */}
-              <button
-                onClick={() => onSelectSeat(row[2])}
-                className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all active:scale-95 ${
-                  row[2].isBoarded
-                    ? "bg-green-500 text-white shadow-md shadow-green-500/20"
-                    : row[2].isConfirmed
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:shadow-sm"
-                }`}
-              >
-                <span>{row[2].seatCode}</span>
-              </button>
-
-              <button
-                onClick={() => onSelectSeat(row[3])}
-                className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all active:scale-95 ${
-                  row[3].isBoarded
-                    ? "bg-green-500 text-white shadow-md shadow-green-500/20"
-                    : row[3].isConfirmed
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:shadow-sm"
-                }`}
-              >
-                <span>{row[3].seatCode}</span>
-              </button>
+          {rows.length === 0 ? (
+            <div className="p-8 text-center text-xs text-gray-400 font-mono">
+              No bus capacity configured or available.
             </div>
-          ))}
+          ) : (
+            rows.map((row) => (
+              <div
+                key={row.rowNum}
+                className={`grid ${is3x2 ? "grid-cols-6" : "grid-cols-5"} gap-2 items-center`}
+              >
+                {/* Left seats */}
+                {row.left.map((item, idx) =>
+                  item ? (
+                    renderSeatButton(item)
+                  ) : (
+                    <div key={`empty-left-${idx}`} className="w-full h-9" />
+                  )
+                )}
+
+                {/* Center Aisle Walkway OR Rear Bench Middle Seat */}
+                {row.isLastRow && row.middle ? (
+                  renderSeatButton(row.middle)
+                ) : (
+                  <div className="text-center text-[10px] text-gray-300 dark:text-gray-600 font-mono">
+                    ||
+                  </div>
+                )}
+
+                {/* Right seats */}
+                {row.right.map((item, idx) =>
+                  item ? (
+                    renderSeatButton(item)
+                  ) : (
+                    <div key={`empty-right-${idx}`} className="w-full h-9" />
+                  )
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

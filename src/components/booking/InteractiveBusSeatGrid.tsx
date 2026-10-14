@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Bus, Booking } from "@/lib/types";
 import { generateSeatLayout } from "@/lib/utils";
 import { Check, User, Info, Disc } from "lucide-react";
@@ -36,20 +36,94 @@ export function InteractiveBusSeatGrid({
   const layout = bus.seatLayout || "NONE";
   const capacity = Number(bus.capacity || 0);
   const is3x2 = layout === "3x2" || layout === "2x3";
-  const rowsCount = capacity > 0 ? Math.ceil(capacity / (is3x2 ? 5 : 4)) : 0;
+  const allGeneratedSeats = useMemo(() => generateSeatLayout(capacity, layout), [capacity, layout]);
 
-  // Generate matrix of rows
-  const rows: { leftSeats: string[]; rightSeats: string[] }[] = [];
-  const colLetters = is3x2 ? ["A", "B", "C", "D", "E"] : ["A", "B", "C", "D"];
+  // Generate matrix of rows based on allGeneratedSeats
+  const rows = useMemo(() => {
+    if (!capacity || capacity <= 0) return [];
+    const seatSet = new Set(allGeneratedSeats);
+    const leftCols = is3x2 ? ["A", "B", "C"] : ["A", "B"];
+    const rightCols = is3x2 ? ["D", "E"] : ["C", "D"];
 
-  for (let r = 1; r <= rowsCount; r++) {
-    const leftCols = is3x2 ? ["A", "B"] : ["A", "B"];
-    const rightCols = is3x2 ? ["C", "D", "E"] : ["C", "D"];
+    let maxRow = 0;
+    allGeneratedSeats.forEach((s: string) => {
+      const match = s.match(/^(\d+)/);
+      if (match) {
+        const r = parseInt(match[1], 10);
+        if (r > maxRow) maxRow = r;
+      }
+    });
 
-    const leftSeats = leftCols.map(c => `${r}${c}`);
-    const rightSeats = rightCols.map(c => `${r}${c}`);
-    rows.push({ leftSeats, rightSeats });
-  }
+    const result: {
+      rowNumber: number;
+      isLastRow: boolean;
+      leftSeats: string[];
+      middleSeat: string | null;
+      rightSeats: string[];
+    }[] = [];
+
+    for (let r = 1; r <= maxRow; r++) {
+      const isLastRow = r === maxRow && maxRow > 1;
+      const left = leftCols.map((c) => `${r}${c}`).filter((s) => seatSet.has(s));
+      const right = rightCols.map((c) => `${r}${c}`).filter((s) => seatSet.has(s));
+      const middle = isLastRow && seatSet.has(`${r}M`) ? `${r}M` : null;
+
+      result.push({
+        rowNumber: r,
+        isLastRow,
+        leftSeats: left,
+        middleSeat: middle,
+        rightSeats: right,
+      });
+    }
+
+    return result;
+  }, [allGeneratedSeats, capacity, is3x2]);
+
+  const renderSeatButton = (seatNum: string, seatTypeDescription: string) => {
+    const isOccupied = occupiedSeats.includes(seatNum);
+    const isSelected = selectedSeat === seatNum;
+
+    return (
+      <button
+        key={seatNum}
+        type="button"
+        disabled={isOccupied || disabled}
+        onClick={() => onSelectSeat(seatNum)}
+        title={
+          isOccupied
+            ? `Seat ${seatNum} is already occupied`
+            : `Select Seat ${seatNum} (${seatTypeDescription})`
+        }
+        className={`relative w-11 h-12 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xs transition-all ${
+          isOccupied
+            ? "bg-gray-200 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700/40 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+            : isSelected
+            ? "bg-green-500 text-gray-950 font-black shadow-lg shadow-green-500/30 scale-105 ring-2 ring-green-400"
+            : "bg-white dark:bg-gray-800 border-2 border-green-500/70 text-gray-900 dark:text-gray-100 hover:border-blue-500 hover:scale-105 active:scale-95 shadow-sm"
+        }`}
+      >
+        {/* Seat Top Notch Cushion Effect */}
+        <span
+          className={`absolute top-1 inset-x-2 h-1 rounded-full ${
+            isSelected
+              ? "bg-gray-950/20"
+              : isOccupied
+              ? "bg-gray-300 dark:bg-gray-700"
+              : "bg-green-200 dark:bg-green-800"
+          }`}
+        />
+
+        <span className="mt-1 text-[11px] font-bold">
+          {seatNum}
+        </span>
+
+        {isSelected && (
+          <Check className="w-3 h-3 text-gray-950 font-black stroke-[3]" />
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="flex flex-col items-center select-none">
@@ -79,111 +153,36 @@ export function InteractiveBusSeatGrid({
 
         {/* Seats Cabin Rows */}
         <div className="space-y-3">
-          {rows.map((row, rIdx) => (
-            <div key={rIdx} className="flex items-center justify-between gap-3">
+          {rows.map((row) => (
+            <div key={row.rowNumber} className="flex items-center justify-between gap-3">
               {/* Left Column Seats */}
               <div className="flex items-center gap-2">
-                {row.leftSeats.map((seatNum, sIdx) => {
-                  const isOccupied = occupiedSeats.includes(seatNum);
-                  const isSelected = selectedSeat === seatNum;
-                  const isWindow = sIdx === 0;
-
-                  return (
-                    <button
-                      key={seatNum}
-                      type="button"
-                      disabled={isOccupied || disabled}
-                      onClick={() => onSelectSeat(seatNum)}
-                      title={
-                        isOccupied
-                          ? `Seat ${seatNum} is already occupied`
-                          : `Select Seat ${seatNum} (${isWindow ? "Window" : "Aisle"})`
-                      }
-                      className={`relative w-11 h-12 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xs transition-all ${
-                        isOccupied
-                          ? "bg-gray-200 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700/40 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                          : isSelected
-                          ? "bg-green-500 text-gray-950 font-black shadow-lg shadow-green-500/30 scale-105 ring-2 ring-green-400"
-                          : "bg-white dark:bg-gray-800 border-2 border-green-500/70 text-gray-900 dark:text-gray-100 hover:border-blue-500 hover:scale-105 active:scale-95 shadow-sm"
-                      }`}
-                    >
-                      {/* Seat Top Notch Cushion Effect */}
-                      <span
-                        className={`absolute top-1 inset-x-2 h-1 rounded-full ${
-                          isSelected
-                            ? "bg-gray-950/20"
-                            : isOccupied
-                            ? "bg-gray-300 dark:bg-gray-700"
-                            : "bg-green-200 dark:bg-green-800"
-                        }`}
-                      />
-
-                      <span className="mt-1 text-[11px] font-bold">
-                        {seatNum}
-                      </span>
-
-                      {isSelected && (
-                        <Check className="w-3 h-3 text-gray-950 font-black stroke-[3]" />
-                      )}
-                    </button>
-                  );
-                })}
+                {row.leftSeats.map((seatNum, sIdx) =>
+                  renderSeatButton(seatNum, sIdx === 0 ? "Window" : "Aisle")
+                )}
               </div>
 
-              {/* Central Aisle Space (redBus style) */}
-              <div className="flex-1 flex items-center justify-center">
-                <span className="text-[9px] font-mono uppercase text-gray-300 dark:text-gray-700 tracking-widest">
-                  Aisle
-                </span>
-              </div>
+              {/* Central Aisle Space OR Rear Bench Middle Seat */}
+              {row.isLastRow && row.middleSeat ? (
+                <div className="flex-1 flex items-center justify-center">
+                  {renderSeatButton(row.middleSeat, "Rear Center / Middle")}
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="text-[9px] font-mono uppercase text-gray-300 dark:text-gray-700 tracking-widest">
+                    Aisle
+                  </span>
+                </div>
+              )}
 
               {/* Right Column Seats */}
               <div className="flex items-center gap-2">
-                {row.rightSeats.map((seatNum, sIdx) => {
-                  const isOccupied = occupiedSeats.includes(seatNum);
-                  const isSelected = selectedSeat === seatNum;
-                  const isWindow = sIdx === row.rightSeats.length - 1;
-
-                  return (
-                    <button
-                      key={seatNum}
-                      type="button"
-                      disabled={isOccupied || disabled}
-                      onClick={() => onSelectSeat(seatNum)}
-                      title={
-                        isOccupied
-                          ? `Seat ${seatNum} is already occupied`
-                          : `Select Seat ${seatNum} (${isWindow ? "Window" : "Aisle"})`
-                      }
-                      className={`relative w-11 h-12 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xs transition-all ${
-                        isOccupied
-                          ? "bg-gray-200 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700/40 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                          : isSelected
-                          ? "bg-green-500 text-gray-950 font-black shadow-lg shadow-green-500/30 scale-105 ring-2 ring-green-400"
-                          : "bg-white dark:bg-gray-800 border-2 border-green-500/70 text-gray-900 dark:text-gray-100 hover:border-blue-500 hover:scale-105 active:scale-95 shadow-sm"
-                      }`}
-                    >
-                      {/* Seat Top Notch Cushion Effect */}
-                      <span
-                        className={`absolute top-1 inset-x-2 h-1 rounded-full ${
-                          isSelected
-                            ? "bg-gray-950/20"
-                            : isOccupied
-                            ? "bg-gray-300 dark:bg-gray-700"
-                            : "bg-green-200 dark:bg-green-800"
-                        }`}
-                      />
-
-                      <span className="mt-1 text-[11px] font-bold">
-                        {seatNum}
-                      </span>
-
-                      {isSelected && (
-                        <Check className="w-3 h-3 text-gray-950 font-black stroke-[3]" />
-                      )}
-                    </button>
-                  );
-                })}
+                {row.rightSeats.map((seatNum, sIdx) =>
+                  renderSeatButton(
+                    seatNum,
+                    sIdx === row.rightSeats.length - 1 ? "Window" : "Aisle"
+                  )
+                )}
               </div>
             </div>
           ))}
