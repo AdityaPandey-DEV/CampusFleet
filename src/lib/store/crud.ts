@@ -454,6 +454,7 @@ CampusFleetStore.prototype.createBus = async function (this: CampusFleetStore, b
     await supabase.from("buses").insert({
       id: newBus.id, bus_number: newBus.busNumber, registration_no: newBus.registrationNo,
       model: newBus.model, capacity: newBus.capacity, seat_layout: newBus.seatLayout,
+      total_rows: newBus.totalRows,
       status: newBus.status, gps_device_id: newBus.gpsDeviceId, current_route_id: newBus.currentRouteId,
     });
   } catch (e) { console.warn("DB createBus:", e); }
@@ -470,6 +471,8 @@ CampusFleetStore.prototype.updateBus = async function (this: CampusFleetStore, i
     if (updates.registrationNo) dbUpdates.registration_no = updates.registrationNo;
     if (updates.model) dbUpdates.model = updates.model;
     if (updates.capacity) dbUpdates.capacity = updates.capacity;
+    if (updates.seatLayout) dbUpdates.seat_layout = updates.seatLayout;
+    if (updates.totalRows !== undefined) dbUpdates.total_rows = updates.totalRows;
     if (updates.status) dbUpdates.status = updates.status;
     if (updates.currentRouteId !== undefined) dbUpdates.current_route_id = updates.currentRouteId;
     if (Object.keys(dbUpdates).length > 0) {

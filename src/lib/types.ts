@@ -113,6 +113,7 @@ export interface Bus {
   model: string; // e.g. "Tata Starbus Ultra 40-Seater"
   capacity: number;
   seatLayout: "2x2" | "2x3" | "3x2" | "NONE" | string;
+  totalRows?: number; // Configured length (number of seating rows)
   status: VehicleStatus;
   gpsDeviceId: string;
   insuranceExpiry: string;

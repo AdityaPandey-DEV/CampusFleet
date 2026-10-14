@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
 import { Bus, VehicleStatus, Route, Trip } from "@/lib/types";
+import { parseSeatLayout, calculateBusCapacity } from "@/lib/utils";
 import { BusFront, Plus, Edit2, Trash2, ShieldAlert, CheckCircle2, Wrench, Search, MapPin, Sparkles, RefreshCw, QrCode, X } from "lucide-react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
@@ -33,7 +34,8 @@ export default function StaffBusesView({
     registrationNo: string;
     model: string;
     capacity: number;
-    seatLayout: "2x2" | "3x2" | "2x3" | "NONE" | string;
+    seatLayout: string;
+    totalRows?: number;
     status: VehicleStatus;
     gpsDeviceId: string;
     insuranceExpiry: string;
@@ -44,11 +46,17 @@ export default function StaffBusesView({
     model: "",
     capacity: 0,
     seatLayout: "NONE",
+    totalRows: undefined,
     status: "ACTIVE",
     gpsDeviceId: "",
     insuranceExpiry: "",
     maintenanceDueDate: "",
   });
+
+  const [leftColsCount, setLeftColsCount] = useState<number>(2);
+  const [rightColsCount, setRightColsCount] = useState<number>(2);
+  const [rowsCount, setRowsCount] = useState<number>(10);
+  const [hasRearBench, setHasRearBench] = useState<boolean>(true);
 
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -58,6 +66,51 @@ export default function StaffBusesView({
     });
     return unsub;
   }, []);
+
+  const updateLayoutAndCapacity = (
+    newRows: number,
+    newLeft: number,
+    newRight: number,
+    newRearBench: boolean
+  ) => {
+    setRowsCount(newRows);
+    setLeftColsCount(newLeft);
+    setRightColsCount(newRight);
+    setHasRearBench(newRearBench);
+
+    if (newLeft > 0 && newRight > 0 && newRows > 0) {
+      const layoutStr = `${newLeft}x${newRight}`;
+      const cap = calculateBusCapacity(newRows, layoutStr, newRearBench);
+      setFormData(prev => ({
+        ...prev,
+        seatLayout: layoutStr,
+        totalRows: newRows,
+        capacity: cap,
+      }));
+    }
+  };
+
+  const handleOpenAddModal = () => {
+    setEditingBus(null);
+    setLeftColsCount(2);
+    setRightColsCount(2);
+    setRowsCount(10);
+    setHasRearBench(true);
+    const initialCap = calculateBusCapacity(10, "2x2", true);
+    setFormData({
+      busNumber: "",
+      registrationNo: "",
+      model: "",
+      capacity: initialCap,
+      seatLayout: "2x2",
+      totalRows: 10,
+      status: "ACTIVE",
+      gpsDeviceId: "",
+      insuranceExpiry: "",
+      maintenanceDueDate: "",
+    });
+    setIsAddModalOpen(true);
+  };
 
   const handleCreateOrUpdateBus = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +133,7 @@ export default function StaffBusesView({
       model: "",
       capacity: 0,
       seatLayout: "NONE",
+      totalRows: undefined,
       status: "ACTIVE",
       gpsDeviceId: "",
       insuranceExpiry: "",
@@ -89,17 +143,27 @@ export default function StaffBusesView({
 
   const handleEditClick = (bus: Bus) => {
     setEditingBus(bus);
+    const { left, right } = parseSeatLayout(bus.seatLayout);
+    const l = left > 0 ? left : 2;
+    const r = right > 0 ? right : 2;
+    const derivedRows = bus.totalRows || (bus.capacity > 0 && l + r > 0 ? Math.max(1, Math.ceil((bus.capacity - 1) / (l + r))) : 10);
+    setLeftColsCount(l);
+    setRightColsCount(r);
+    setRowsCount(derivedRows);
+    setHasRearBench(true);
     setFormData({
       busNumber: bus.busNumber,
       registrationNo: bus.registrationNo,
       model: bus.model,
       capacity: bus.capacity,
       seatLayout: bus.seatLayout,
+      totalRows: bus.totalRows || derivedRows,
       status: bus.status,
       gpsDeviceId: bus.gpsDeviceId,
       insuranceExpiry: bus.insuranceExpiry,
       maintenanceDueDate: bus.maintenanceDueDate,
     });
+    setIsAddModalOpen(true);
   };
 
   const handleDeleteBus = async (busId: string, busNumber: string) => {
@@ -139,10 +203,7 @@ export default function StaffBusesView({
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              setEditingBus(null);
-              setIsAddModalOpen(true);
-            }}
+            onClick={handleOpenAddModal}
             className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl flex items-center gap-2 shadow-md shadow-blue-600/20 transition-transform active:scale-95"
           >
             <Plus className="w-4 h-4" />
@@ -182,7 +243,7 @@ export default function StaffBusesView({
             </p>
           </div>
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={handleOpenAddModal}
             className="px-5 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-2xl shadow-lg shadow-blue-600/20"
           >
             + Add First Bus Vehicle
@@ -234,7 +295,8 @@ export default function StaffBusesView({
                   <div>
                     <span className="text-[10px] uppercase text-gray-400 font-bold">Capacity</span>
                     <div className="font-black text-gray-900 dark:text-white font-mono mt-0.5">
-                      {bus.capacity} Seats ({bus.seatLayout})
+                      {bus.capacity} Seats ({bus.seatLayout !== "NONE" ? bus.seatLayout : "Unassigned"}
+                      {bus.totalRows ? ` • ${bus.totalRows} Rows` : ""})
                     </div>
                   </div>
                   <div>
@@ -366,29 +428,122 @@ export default function StaffBusesView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold uppercase tracking-wider text-gray-400">Physical Capacity</label>
-                  <input
-                    type="number"
-                    min={10}
-                    max={70}
-                    value={formData.capacity}
-                    onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) || 40 })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
-                  />
+              {/* Dynamic N x M Gangway Configuration & Chassis Rows */}
+              <div className="p-3.5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-black text-xs uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                    Chassis Length & Seating Grid (N x M)
+                  </label>
+                  <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                    {leftColsCount}x{rightColsCount} ({rowsCount} Rows)
+                  </span>
                 </div>
 
-                <div>
-                  <label className="font-bold uppercase tracking-wider text-gray-400">Seat Layout Grid</label>
-                  <select
-                    value={formData.seatLayout}
-                    onChange={e => setFormData({ ...formData, seatLayout: e.target.value as "2x2" | "3x2" })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
-                  >
-                    <option value="2x2">2+2 Luxury Layout</option>
-                    <option value="3x2">3+2 High Capacity Layout</option>
-                  </select>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="font-bold text-[10px] uppercase text-gray-400">Total Rows</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={35}
+                      value={rowsCount}
+                      onChange={e => {
+                        const val = Math.max(1, parseInt(e.target.value) || 1);
+                        updateLayoutAndCapacity(val, leftColsCount, rightColsCount, hasRearBench);
+                      }}
+                      className="w-full p-2 mt-1 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-center outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-[10px] uppercase text-gray-400">Left Column (N)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={4}
+                      value={leftColsCount}
+                      onChange={e => {
+                        const val = Math.max(1, parseInt(e.target.value) || 1);
+                        updateLayoutAndCapacity(rowsCount, val, rightColsCount, hasRearBench);
+                      }}
+                      className="w-full p-2 mt-1 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-center outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-[10px] uppercase text-gray-400">Right Column (M)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={4}
+                      value={rightColsCount}
+                      onChange={e => {
+                        const val = Math.max(1, parseInt(e.target.value) || 1);
+                        updateLayoutAndCapacity(rowsCount, leftColsCount, val, hasRearBench);
+                      }}
+                      className="w-full p-2 mt-1 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-bold text-center outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Common Presets */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Presets:</span>
+                  {[
+                    { label: "2x2 Standard", l: 2, r: 2 },
+                    { label: "3x2 High Cap", l: 3, r: 2 },
+                    { label: "2x3 High Cap", l: 2, r: 3 },
+                    { label: "1x2 Shuttle", l: 1, r: 2 },
+                    { label: "3x3 Wide-body", l: 3, r: 3 },
+                  ].map(preset => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => updateLayoutAndCapacity(rowsCount, preset.l, preset.r, hasRearBench)}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                        leftColsCount === preset.l && rightColsCount === preset.r
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-200/70 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Rear bench middle seat checkbox */}
+                <label className="flex items-center gap-2 pt-1 text-xs cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={hasRearBench}
+                    onChange={e => updateLayoutAndCapacity(rowsCount, leftColsCount, rightColsCount, e.target.checked)}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300 font-medium text-[11px]">
+                    Continuous Rear Bench (+1 center middle seat across gangway in back row)
+                  </span>
+                </label>
+
+                {/* Live Computed Capacity Banner with optional override */}
+                <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-blue-900 dark:text-blue-300">
+                      Total Physical Capacity:
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={formData.capacity}
+                      onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) || 0 })}
+                      className="ml-2 w-16 p-1 text-center font-mono font-black text-xs text-blue-700 dark:text-blue-300 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-800"
+                    />
+                    <span className="ml-1 text-xs text-blue-700 dark:text-blue-300 font-bold">Seats</span>
+                  </div>
+                  <span className="text-[10px] text-blue-700/80 dark:text-blue-400/80 font-medium">
+                    {rowsCount} rows × {leftColsCount + rightColsCount} cols {hasRearBench && rowsCount > 1 ? "+ 1 rear seat" : ""}
+                  </span>
                 </div>
               </div>
 

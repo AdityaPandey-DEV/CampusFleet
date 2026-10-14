@@ -411,6 +411,7 @@ CampusFleetStore.prototype.syncLiveTransit = async function(this: CampusFleetSto
         model: b.model,
         capacity: b.capacity,
         seatLayout: b.seat_layout || "NONE",
+        totalRows: b.total_rows ? Number(b.total_rows) : undefined,
         status: b.status || "ACTIVE",
         gpsDeviceId: b.gps_device_id,
         insuranceExpiry: b.insurance_expiry,

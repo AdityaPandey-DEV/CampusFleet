@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { LayoutGrid } from "lucide-react";
 import { Booking, Student, Bus } from "@/lib/types";
-import { generateSeatLayout } from "@/lib/utils";
+import { generateSeatLayout, parseSeatLayout } from "@/lib/utils";
 
 interface SeatMapTabProps {
   bus?: Bus;
@@ -24,14 +24,16 @@ export function SeatMapTab({
 }: SeatMapTabProps) {
   const capacity = Number(bus?.capacity || 0);
   const layout = bus?.seatLayout || "NONE";
-  const is3x2 = layout === "3x2" || layout === "2x3";
+  const customRows = bus?.totalRows;
+  const { left: leftCount, right: rightCount } = parseSeatLayout(layout);
+  const leftCols = Array.from({ length: leftCount }, (_, i) => String.fromCharCode(65 + i));
+  const rightCols = Array.from({ length: rightCount }, (_, i) => String.fromCharCode(65 + leftCount + i));
+  const totalGridCols = leftCount > 0 && rightCount > 0 ? leftCount + 1 + rightCount : 0;
 
   const rows = useMemo(() => {
-    if (!capacity || capacity <= 0) return [];
-    const allGeneratedSeats = generateSeatLayout(capacity, layout);
+    if (!capacity || capacity <= 0 || !layout || layout === "NONE" || leftCount <= 0 || rightCount <= 0) return [];
+    const allGeneratedSeats = generateSeatLayout(capacity, layout, customRows);
     const seatSet = new Set(allGeneratedSeats);
-    const leftCols = is3x2 ? ["A", "B", "C"] : ["A", "B"];
-    const rightCols = is3x2 ? ["D", "E"] : ["C", "D"];
 
     let maxRow = 0;
     allGeneratedSeats.forEach((s: string) => {
@@ -81,7 +83,7 @@ export function SeatMapTab({
         right,
       };
     });
-  }, [capacity, layout, is3x2, tripBookings, students]);
+  }, [capacity, layout, customRows, leftCount, rightCount, leftCols, rightCols, tripBookings, students]);
 
   const renderSeatButton = (seatData: {
     seatCode: string;
@@ -152,13 +154,14 @@ export function SeatMapTab({
         <div className="space-y-3">
           {rows.length === 0 ? (
             <div className="p-8 text-center text-xs text-gray-400 font-mono">
-              No bus capacity configured or available.
+              No bus capacity or seat layout configured for this vehicle.
             </div>
           ) : (
             rows.map((row) => (
               <div
                 key={row.rowNum}
-                className={`grid ${is3x2 ? "grid-cols-6" : "grid-cols-5"} gap-2 items-center`}
+                className="grid gap-2 items-center"
+                style={{ gridTemplateColumns: `repeat(${totalGridCols}, minmax(0, 1fr))` }}
               >
                 {/* Left seats */}
                 {row.left.map((item, idx) =>

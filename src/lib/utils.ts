@@ -46,31 +46,88 @@ export function formatDate(dateStr?: string): string {
   }
 }
 
-export function generateSeatLayout(capacity: number, layout: "2x2" | "2x3" | "3x2" | "NONE" | string = "NONE"): string[] {
-  if (!capacity || capacity <= 0) return [];
-  const seats: string[] = [];
-  const is3x2 = layout === "2x3" || layout === "3x2";
-  const regularCols = is3x2 ? ["A", "B", "C", "D", "E"] : ["A", "B", "C", "D"];
+/**
+ * Parses any dynamic "N x M" seating configuration (e.g., "2x2", "3x2", "1x2", "3x3").
+ * Never predicts or assumes demo layouts: returns { left: 0, right: 0 } if "NONE", empty, or unconfigured.
+ */
+export function parseSeatLayout(layoutStr?: string): { left: number; right: number } {
+  if (!layoutStr || layoutStr === "NONE") return { left: 0, right: 0 };
+  const match = layoutStr.match(/^(\d+)\s*[xX+]\s*(\d+)$/);
+  if (match) {
+    const left = parseInt(match[1], 10);
+    const right = parseInt(match[2], 10);
+    if (left > 0 && right > 0) {
+      return { left, right };
+    }
+  }
+  return { left: 0, right: 0 };
+}
+
+/**
+ * Calculates total bus passenger capacity based on number of rows, N x M layout,
+ * and whether a continuous rear bench (middle seat spanning the aisle) is installed.
+ * Returns 0 if layout is "NONE" or unconfigured.
+ */
+export function calculateBusCapacity(
+  totalRows: number,
+  layoutStr: string = "NONE",
+  hasRearMiddleSeat: boolean = true
+): number {
+  if (!totalRows || totalRows <= 0 || !layoutStr || layoutStr === "NONE") return 0;
+  const { left, right } = parseSeatLayout(layoutStr);
+  const cols = left + right;
+  if (cols <= 0) return 0;
+
+  if (totalRows <= 1) {
+    return cols;
+  }
+
+  // (Rows 1 to N-1) * cols + last row (cols + 1 if middle seat present)
+  return (totalRows - 1) * cols + (cols + (hasRearMiddleSeat ? 1 : 0));
+}
+
+/**
+ * Generates seat codes for any dynamic N x M coach layout with continuous rear bench middle seat.
+ * Accepts optional customRows if the physical chassis length/rows is explicitly configured.
+ * Returns empty array [] if layout is "NONE" or unconfigured.
+ */
+export function generateSeatLayout(
+  capacity: number,
+  layout: string = "NONE",
+  customRows?: number
+): string[] {
+  if (!capacity || capacity <= 0 || !layout || layout === "NONE") return [];
+  const { left, right } = parseSeatLayout(layout);
+  if (left <= 0 || right <= 0) return [];
+
+  const leftCols = Array.from({ length: left }, (_, i) => String.fromCharCode(65 + i));
+  const rightCols = Array.from({ length: right }, (_, i) => String.fromCharCode(65 + left + i));
+  const regularCols = [...leftCols, ...rightCols];
   const cols = regularCols.length;
 
   // Single row / small capacity (<= cols): standard row without middle seat
-  if (capacity <= cols) {
+  if (capacity <= cols && (!customRows || customRows <= 1)) {
+    const singleRowSeats: string[] = [];
     for (let i = 0; i < capacity; i++) {
-      seats.push(`1${regularCols[i]}`);
+      singleRowSeats.push(`1${regularCols[i]}`);
     }
-    return seats;
+    return singleRowSeats;
   }
 
   // Multi-row coach/bus:
-  // All rows 1 to (N-1) have a middle aisle (A, B and C, D).
+  // All rows 1 to (N-1) have a middle aisle (leftCols and rightCols).
   // The final back row has a continuous bench with a middle seat 'M' spanning across the aisle.
-  const totalRows = Math.max(2, Math.ceil((capacity - 1) / cols));
+  const totalRows = customRows && customRows > 0
+    ? customRows
+    : Math.max(2, Math.ceil((capacity - 1) / cols));
+
+  const seats: string[] = [];
   let count = 0;
 
   for (let r = 1; r <= totalRows; r++) {
     const isLastRow = r === totalRows;
     const rowCols = isLastRow
-      ? (is3x2 ? ["A", "B", "C", "M", "D", "E"] : ["A", "B", "M", "C", "D"])
+      ? [...leftCols, "M", ...rightCols]
       : regularCols;
 
     for (const col of rowCols) {

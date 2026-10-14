@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateSeatLayout } from "../lib/utils";
+import { generateSeatLayout, parseSeatLayout, calculateBusCapacity } from "../lib/utils";
 
 // Helper functions that model the business logic enforced in the backend APIs
 
@@ -388,10 +388,37 @@ describe("CampusFleet Enhancements - Core Business Rules", () => {
     });
   });
 
-  describe("Real-World Bus Seating Architecture (Rear Bench Middle Seat)", () => {
+  describe("Real-World Bus Seating Architecture (Dynamic N x M & Rear Bench Middle Seat)", () => {
+    it("never assumes 2x2 for NONE, empty, or unconfigured layouts", () => {
+      expect(parseSeatLayout("NONE")).toEqual({ left: 0, right: 0 });
+      expect(parseSeatLayout("")).toEqual({ left: 0, right: 0 });
+      expect(parseSeatLayout(undefined)).toEqual({ left: 0, right: 0 });
+      expect(generateSeatLayout(40, "NONE")).toEqual([]);
+      expect(calculateBusCapacity(10, "NONE", true)).toBe(0);
+    });
+
+    it("parses arbitrary dynamic N x M gangway layouts correctly", () => {
+      expect(parseSeatLayout("1x2")).toEqual({ left: 1, right: 2 });
+      expect(parseSeatLayout("2x3")).toEqual({ left: 2, right: 3 });
+      expect(parseSeatLayout("3x2")).toEqual({ left: 3, right: 2 });
+      expect(parseSeatLayout("3x3")).toEqual({ left: 3, right: 3 });
+      expect(parseSeatLayout("2x2")).toEqual({ left: 2, right: 2 });
+    });
+
+    it("calculates bus capacity accurately based on rows, layout, and rear bench", () => {
+      // 10 rows of 2x2 with rear bench = 9 * 4 + 5 = 41
+      expect(calculateBusCapacity(10, "2x2", true)).toBe(41);
+      // 10 rows of 2x2 without rear bench = 10 * 4 = 40
+      expect(calculateBusCapacity(10, "2x2", false)).toBe(40);
+      // 6 rows of 1x2 shuttle with rear bench = 5 * 3 + 4 = 19
+      expect(calculateBusCapacity(6, "1x2", true)).toBe(19);
+      // 12 rows of 3x2 with rear bench = 11 * 5 + 6 = 61
+      expect(calculateBusCapacity(12, "3x2", true)).toBe(61);
+    });
+
     it("generates continuous rear bench with middle seat 'M' across central corridor for 2x2 layout", () => {
       // 41 seats = 9 rows of 4 seats (36) + 1 rear bench row of 5 seats (10A, 10B, 10M, 10C, 10D)
-      const seats = generateSeatLayout(41, "2x2");
+      const seats = generateSeatLayout(41, "2x2", 10);
       expect(seats.length).toBe(41);
 
       // Row 1 should have regular 4 seats
@@ -404,9 +431,21 @@ describe("CampusFleet Enhancements - Core Business Rules", () => {
       expect(seats.slice(36, 41)).toEqual(["10A", "10B", "10M", "10C", "10D"]);
     });
 
+    it("generates dynamic 1x2 shuttle layout with custom chassis rows", () => {
+      // 1x2 shuttle with 6 rows: 5 rows of 3 (15) + rear row of 4 (6A, 6M, 6B, 6C) = 19 seats
+      const seats = generateSeatLayout(19, "1x2", 6);
+      expect(seats.length).toBe(19);
+
+      // Row 1: 1A, 1B, 1C
+      expect(seats.slice(0, 3)).toEqual(["1A", "1B", "1C"]);
+
+      // Row 6 (last row): 6A, 6M (rear middle), 6B, 6C
+      expect(seats.slice(15, 19)).toEqual(["6A", "6M", "6B", "6C"]);
+    });
+
     it("generates continuous rear bench with middle seat 'M' across central corridor for 3x2 layout", () => {
       // 46 seats = 8 rows of 5 seats (40) + 1 rear bench row of 6 seats (9A, 9B, 9C, 9M, 9D, 9E)
-      const seats = generateSeatLayout(46, "3x2");
+      const seats = generateSeatLayout(46, "3x2", 9);
       expect(seats.length).toBe(46);
 
       // Row 1 should have 5 seats
@@ -417,7 +456,7 @@ describe("CampusFleet Enhancements - Core Business Rules", () => {
     });
 
     it("handles single-row vehicles without redundant middle seat", () => {
-      const seats = generateSeatLayout(4, "2x2");
+      const seats = generateSeatLayout(4, "2x2", 1);
       expect(seats).toEqual(["1A", "1B", "1C", "1D"]);
     });
 

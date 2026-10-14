@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { Bus, Booking } from "@/lib/types";
-import { generateSeatLayout } from "@/lib/utils";
+import { generateSeatLayout, parseSeatLayout } from "@/lib/utils";
 import { Check, User, Info, Disc } from "lucide-react";
 
 interface InteractiveBusSeatGridProps {
@@ -35,15 +35,20 @@ export function InteractiveBusSeatGrid({
 
   const layout = bus.seatLayout || "NONE";
   const capacity = Number(bus.capacity || 0);
-  const is3x2 = layout === "3x2" || layout === "2x3";
-  const allGeneratedSeats = useMemo(() => generateSeatLayout(capacity, layout), [capacity, layout]);
+  const customRows = bus.totalRows;
+  const { left: leftCount, right: rightCount } = parseSeatLayout(layout);
+  const leftCols = Array.from({ length: leftCount }, (_, i) => String.fromCharCode(65 + i));
+  const rightCols = Array.from({ length: rightCount }, (_, i) => String.fromCharCode(65 + leftCount + i));
+
+  const allGeneratedSeats = useMemo(
+    () => generateSeatLayout(capacity, layout, customRows),
+    [capacity, layout, customRows]
+  );
 
   // Generate matrix of rows based on allGeneratedSeats
   const rows = useMemo(() => {
     if (!capacity || capacity <= 0) return [];
     const seatSet = new Set(allGeneratedSeats);
-    const leftCols = is3x2 ? ["A", "B", "C"] : ["A", "B"];
-    const rightCols = is3x2 ? ["D", "E"] : ["C", "D"];
 
     let maxRow = 0;
     allGeneratedSeats.forEach((s: string) => {
@@ -78,7 +83,7 @@ export function InteractiveBusSeatGrid({
     }
 
     return result;
-  }, [allGeneratedSeats, capacity, is3x2]);
+  }, [allGeneratedSeats, capacity, leftCols, rightCols]);
 
   const renderSeatButton = (seatNum: string, seatTypeDescription: string) => {
     const isOccupied = occupiedSeats.includes(seatNum);
