@@ -285,13 +285,6 @@ CampusFleetStore.prototype.syncMasterData = async function(this: CampusFleetStor
         zoneCode: s.zone_code || "ZONE_B",
       }));
 
-      if (this.stops.length > 0 && (!this.liveLocation.busId || this.liveLocation.latitude === 29.2889)) {
-        this.liveLocation = {
-          ...this.liveLocation,
-          latitude: this.stops[0].latitude,
-          longitude: this.stops[0].longitude,
-        };
-      }
     }
 
     // 10. Fetch Subscription Plans

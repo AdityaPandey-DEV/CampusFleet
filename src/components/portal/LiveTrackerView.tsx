@@ -224,25 +224,29 @@ export default function LiveTrackerView({
 
     if (
       liveLocation &&
-      liveLocation.latitude >= 28.9 &&
-      liveLocation.latitude <= 30.5 &&
-      liveLocation.longitude >= 78.5 &&
-      liveLocation.longitude <= 80.5
+      typeof liveLocation.latitude === "number" &&
+      !isNaN(liveLocation.latitude) &&
+      typeof liveLocation.longitude === "number" &&
+      !isNaN(liveLocation.longitude) &&
+      (liveLocation.latitude !== 0 || liveLocation.longitude !== 0)
     ) {
-      return liveLocation;
+      return {
+        ...liveLocation,
+        speedKmh: typeof liveLocation.speedKmh === "number" ? liveLocation.speedKmh : 0,
+      };
     }
 
     const currentStop = currentRouteStops[activeTrip?.currentStopIndex || 0] || routeStartingStop || (stops.length > 0 ? stops[0] : null);
     return {
       busId: assignedBus?.id || "",
       tripId: activeTrip?.id || "",
-      latitude: currentStop?.latitude || (stops.length > 0 ? stops[0].latitude : 29.2889),
-      longitude: currentStop?.longitude || (stops.length > 0 ? stops[0].longitude : 79.4678),
-      speedKmh: isTripInProgress ? (liveLocation?.speedKmh || 30) : 0,
+      latitude: currentStop?.latitude || 0,
+      longitude: currentStop?.longitude || 0,
+      speedKmh: 0,
       headingDeg: liveLocation?.headingDeg || 0,
       lastPingAt: new Date().toISOString(),
-      estimatedArrivalNextStopMins: liveLocation?.estimatedArrivalNextStopMins || 0,
-      delayMinutes: liveLocation?.delayMinutes || 0,
+      estimatedArrivalNextStopMins: 0,
+      delayMinutes: 0,
     };
   }, [isTripInProgress, currentRouteStops, stops, assignedBus?.id, activeTrip?.id, activeTrip?.currentStopIndex, liveLocation]);
 
@@ -254,11 +258,13 @@ export default function LiveTrackerView({
     }
     const busLat = effectiveLiveLocation.latitude;
     const busLon = effectiveLiveLocation.longitude;
+    // For ETA calculation when bus is stopped at a signal/stop (speed = 0), compute travel time using standard corridor cruise estimate
+    const etaDrivingSpeedKmh = effectiveLiveLocation.speedKmh > 5 ? effectiveLiveLocation.speedKmh : 30;
     return calculateETA(
       busLat,
       busLon,
       pickupStop,
-      effectiveLiveLocation.speedKmh || 30,
+      etaDrivingSpeedKmh,
       effectiveLiveLocation.delayMinutes || 0
     );
   }, [isTripInProgress, effectiveLiveLocation, pickupStop]);

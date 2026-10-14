@@ -45,8 +45,8 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 export const INITIAL_LIVE_LOCATION: LiveBusLocation = {
   busId: "",
   tripId: "",
-  latitude: 29.2889, // Lamachaur Terminal (Default Corridor Starting Point)
-  longitude: 79.4678,
+  latitude: 0,
+  longitude: 0,
   speedKmh: 0,
   headingDeg: 0,
   lastPingAt: new Date().toISOString(),

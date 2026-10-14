@@ -256,14 +256,14 @@ export function computeFleetBusMarkers(
       // Case 2: IN TRANSIT — moving with driver coordinates or live corridor telemetry
       const isLiveDriverPingForThisBus =
         liveTelematics.busId === bus.id &&
-        liveTelematics.latitude >= 28.9 &&
-        liveTelematics.latitude <= 30.5;
+        typeof liveTelematics.latitude === "number" &&
+        typeof liveTelematics.longitude === "number";
 
       if (isLiveDriverPingForThisBus) {
         latitude = liveTelematics.latitude;
         longitude = liveTelematics.longitude;
-        speedKmh = liveTelematics.speedKmh ?? 32;
-        headingDeg = liveTelematics.headingDeg || 45;
+        speedKmh = typeof liveTelematics.speedKmh === "number" ? liveTelematics.speedKmh : 0;
+        headingDeg = liveTelematics.headingDeg || 0;
         statusText = `In Transit • Moving with Driver GPS (${speedKmh} km/h)`;
       } else {
         // Distribute along route corridor stops with realistic staggered progress
@@ -274,9 +274,9 @@ export function computeFleetBusMarkers(
         const interp = interpolateRouteProgress(routeStops, progress);
         latitude = interp.latitude;
         longitude = interp.longitude;
-        speedKmh = 28 + (busIdx % 14);
+        speedKmh = 0;
         headingDeg = interp.headingDeg;
-        statusText = `In Transit • Live Corridor Telemetry (${speedKmh} km/h)`;
+        statusText = `In Transit • En Route (Awaiting Hardware Telemetry Ping)`;
       }
     } else {
       // Case 3: Standby — stationed at designated starting point

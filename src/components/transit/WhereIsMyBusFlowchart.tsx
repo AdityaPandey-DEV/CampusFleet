@@ -107,7 +107,7 @@ export function WhereIsMyBusFlowchart({
   }, [stops]);
 
   // Live speed & delay
-  const liveSpeed = Math.round(busLocation?.speedKmh ?? (currentIndex === 0 ? 0 : 32));
+  const liveSpeed = Math.round(busLocation?.speedKmh ?? 0);
   const delayMinutes = busLocation?.delayMinutes ?? 0;
   const isDelayed = delayMinutes > 2;
 

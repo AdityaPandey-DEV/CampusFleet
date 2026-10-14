@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
@@ -107,28 +107,36 @@ export default function DriverConsoleView({
   }, [route, tripBookings, bus]);
 
   const [gpsAccuracyMeters, setGpsAccuracyMeters] = useState<number | null>(null);
-  const [gpsStatusText, setGpsStatusText] = useState<string>("Hardware GPS Standby");
+  const [gpsStatusText, setGpsStatusText] = useState<string>("Initializing GPS Sensor...");
+  const [gpsPermissionState, setGpsPermissionState] = useState<"prompt" | "granted" | "denied" | "unsupported">("prompt");
+  const [hasRealGpsLock, setHasRealGpsLock] = useState(false);
+  const realDeviceGpsRef = useRef<{
+    latitude: number;
+    longitude: number;
+    speedKmh: number;
+    headingDeg: number;
+    accuracy: number;
+  } | null>(null);
 
-  // Stream real device GPS coordinates when broadcasting and trip is active
-  useEffect(() => {
-    if (!isBroadcasting || activeTrip?.status !== "IN_PROGRESS") {
-      setGpsStatusText(activeTrip?.status !== "IN_PROGRESS" ? "Trip Standby" : "Broadcasting Paused");
-      return;
-    }
-
+  // Actively request real device GPS sensor permission
+  const requestGpsPermission = useCallback(() => {
     if (typeof window === "undefined" || !("geolocation" in navigator)) {
       setGpsStatusText("Hardware GPS Sensor Unavailable");
+      setGpsPermissionState("unsupported");
       return;
     }
 
-    setGpsStatusText("Acquiring Hardware Satellite Lock...");
-
-    const watchId = navigator.geolocation.watchPosition(
+    setGpsStatusText("Requesting Device Location Permission...");
+    navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude, speed, heading, accuracy } = pos.coords;
         const speedKmh = speed != null && !isNaN(speed) && speed >= 0 ? Math.round(speed * 3.6) : 0;
+        const headingDeg = heading && !isNaN(heading) ? heading : 0;
+        setGpsPermissionState("granted");
         setGpsAccuracyMeters(Math.round(accuracy));
-        setGpsStatusText(`Device GPS Live (±${Math.round(accuracy)}m)`);
+        setGpsStatusText(`Device GPS Locked (±${Math.round(accuracy)}m)`);
+        setHasRealGpsLock(true);
+        realDeviceGpsRef.current = { latitude, longitude, speedKmh, headingDeg, accuracy };
 
         store.updateLiveLocation({
           busId: bus?.id,
@@ -136,17 +144,88 @@ export default function DriverConsoleView({
           latitude,
           longitude,
           speedKmh,
-          headingDeg: heading && !isNaN(heading) ? heading : 0,
+          headingDeg,
           currentStopId: route?.stops?.[activeTrip?.currentStopIndex || 0]?.stopId,
         });
       },
       (err) => {
-        console.warn("Hardware GPS sensor notice:", err);
-        setGpsStatusText(err.code === 1 ? "Location Permission Required" : "Searching GPS Satellite Signal");
+        console.warn("Hardware GPS sensor permission notice:", err);
+        if (err.code === 1) {
+          setGpsPermissionState("denied");
+          setGpsStatusText("Location Permission Denied");
+        } else if (err.code === 2) {
+          setGpsStatusText("Searching GPS Satellite Signal");
+        } else {
+          setGpsStatusText("GPS Request Timed Out");
+        }
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 3000,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  }, [bus?.id, activeTrip?.id, route?.stops, activeTrip?.currentStopIndex]);
+
+  // Request browser location permission on mount
+  useEffect(() => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      setGpsPermissionState("unsupported");
+      setGpsStatusText("Hardware GPS Sensor Unavailable");
+      return;
+    }
+
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: "geolocation" as PermissionName }).then((res) => {
+        setGpsPermissionState(res.state as any);
+        res.onchange = () => {
+          setGpsPermissionState(res.state as any);
+        };
+      }).catch(() => {});
+    }
+
+    requestGpsPermission();
+  }, [requestGpsPermission]);
+
+  // Continuous real-time GPS streaming via hardware sensor
+  useEffect(() => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, speed, heading, accuracy } = pos.coords;
+        const speedKmh = speed != null && !isNaN(speed) && speed >= 0 ? Math.round(speed * 3.6) : 0;
+        const headingDeg = heading && !isNaN(heading) ? heading : 0;
+        setGpsPermissionState("granted");
+        setGpsAccuracyMeters(Math.round(accuracy));
+        setGpsStatusText(isBroadcasting ? `Live Hardware Telemetry (±${Math.round(accuracy)}m)` : `Paused (±${Math.round(accuracy)}m)`);
+        setHasRealGpsLock(true);
+        realDeviceGpsRef.current = { latitude, longitude, speedKmh, headingDeg, accuracy };
+
+        if (isBroadcasting) {
+          store.updateLiveLocation({
+            busId: bus?.id,
+            tripId: activeTrip?.id,
+            latitude,
+            longitude,
+            speedKmh,
+            headingDeg,
+            currentStopId: route?.stops?.[activeTrip?.currentStopIndex || 0]?.stopId,
+          });
+        }
+      },
+      (err) => {
+        console.warn("Hardware GPS sensor watch notice:", err);
+        if (err.code === 1) {
+          setGpsPermissionState("denied");
+          setGpsStatusText("Location Permission Denied");
+        } else {
+          setGpsStatusText("Searching GPS Satellite Signal");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 2000,
         timeout: 15000,
       }
     );
@@ -154,12 +233,13 @@ export default function DriverConsoleView({
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [isBroadcasting, activeTrip?.status, activeTrip?.id, bus?.id, route?.stops, activeTrip?.currentStopIndex]);
+  }, [isBroadcasting, bus?.id, activeTrip?.id, route?.stops, activeTrip?.currentStopIndex]);
 
   const handleStartTrip = async () => {
     if (!activeTrip) return;
     const startedAt = new Date().toISOString();
     const startingStop = route?.stops?.[0]?.stop;
+    const realGps = realDeviceGpsRef.current;
 
     setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, status: "IN_PROGRESS", startedAt, currentStopIndex: 0 } : t));
 
@@ -172,10 +252,10 @@ export default function DriverConsoleView({
     store.updateLiveLocation({
       busId: bus?.id,
       tripId: activeTrip?.id,
-      latitude: startingStop?.latitude || liveLocation.latitude,
-      longitude: startingStop?.longitude || liveLocation.longitude,
-      speedKmh: 0,
-      headingDeg: 0,
+      latitude: realGps ? realGps.latitude : (startingStop?.latitude || liveLocation.latitude),
+      longitude: realGps ? realGps.longitude : (startingStop?.longitude || liveLocation.longitude),
+      speedKmh: realGps ? realGps.speedKmh : 0,
+      headingDeg: realGps ? realGps.headingDeg : 0,
       delayMinutes: 0,
       currentStopId: startingStop?.id,
     });
@@ -223,6 +303,7 @@ export default function DriverConsoleView({
     if (!activeTrip || !route?.stops) return;
     const currentIdx = activeTrip.currentStopIndex || 0;
     const currentStop = route.stops[currentIdx]?.stop;
+    const realGps = realDeviceGpsRef.current;
 
     // In Express Direct mode, once the last booked passenger stop is passed, jump straight to Campus
     if (directExpressResult.isExpressDirect && currentStop?.id === directExpressResult.lastPassengerStop?.id) {
@@ -235,11 +316,11 @@ export default function DriverConsoleView({
       store.updateLiveLocation({
         busId: bus?.id,
         tripId: activeTrip?.id,
-        latitude: campusStop?.latitude || liveLocation.latitude,
-        longitude: campusStop?.longitude || liveLocation.longitude,
+        latitude: realGps ? realGps.latitude : (campusStop?.latitude || liveLocation.latitude),
+        longitude: realGps ? realGps.longitude : (campusStop?.longitude || liveLocation.longitude),
         currentStopId: route.stops[campusIdx].stopId,
-        estimatedArrivalNextStopMins: 2,
-        speedKmh: 35,
+        estimatedArrivalNextStopMins: 0,
+        speedKmh: realGps ? realGps.speedKmh : 0,
       });
 
       setToastMessage(`⚡ Express Non-Stop: Arrived directly at ${campusStop.name}`);
@@ -257,11 +338,11 @@ export default function DriverConsoleView({
       store.updateLiveLocation({
         busId: bus?.id,
         tripId: activeTrip?.id,
-        latitude: nextStop?.latitude || liveLocation.latitude,
-        longitude: nextStop?.longitude || liveLocation.longitude,
+        latitude: realGps ? realGps.latitude : (nextStop?.latitude || liveLocation.latitude),
+        longitude: realGps ? realGps.longitude : (nextStop?.longitude || liveLocation.longitude),
         currentStopId: route.stops[nextIdx].stopId,
-        estimatedArrivalNextStopMins: 4,
-        speedKmh: 28,
+        estimatedArrivalNextStopMins: 0,
+        speedKmh: realGps ? realGps.speedKmh : 0,
       });
 
       setToastMessage(`✓ Arrived at ${nextStop.name}`);
@@ -390,12 +471,12 @@ export default function DriverConsoleView({
 
           {/* Shift Selector if multiple trips assigned */}
           {eligibleTrips.length > 1 && (
-            <div className="flex items-center justify-between pt-1 pb-1 border-b border-gray-100 dark:border-gray-800">
-              <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Scheduled Run:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-1 pb-1 border-b border-gray-100 dark:border-gray-800">
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 shrink-0">Scheduled Run:</span>
               <select
                 value={activeTrip?.id}
                 onChange={(e) => setSelectedTripId(e.target.value)}
-                className="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white outline-none cursor-pointer"
+                className="w-full sm:w-auto max-w-full text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white outline-none cursor-pointer truncate"
               >
                 {eligibleTrips.map(t => (
                   <option key={t.id} value={t.id}>
@@ -462,34 +543,81 @@ export default function DriverConsoleView({
         </div>
 
         {/* GPS Live Telematics Broadcaster Card */}
-        <div className="bg-white dark:bg-gray-900/80 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm dark:shadow-xl gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={`p-3 rounded-2xl flex-shrink-0 ${isBroadcasting ? "bg-green-100 dark:bg-green-950/80 text-green-700 dark:text-green-400 ring-2 ring-green-500/30" : "bg-gray-100 dark:bg-gray-800 text-gray-400"}`}>
-              <Radio className={`w-5 h-5 ${isBroadcasting && activeTrip?.status === "IN_PROGRESS" ? "animate-pulse" : ""}`} />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-gray-900 dark:text-white truncate">Hardware GPS Telemetry</span>
-                {gpsAccuracyMeters !== null && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
-                    ±{gpsAccuracyMeters}m
-                  </span>
-                )}
+        <div className="bg-white dark:bg-gray-900/80 rounded-3xl p-4 sm:p-5 border border-gray-200 dark:border-gray-800 space-y-3.5 shadow-sm dark:shadow-xl">
+          {/* Header Row: Title, Satellite Lock badge, and Broadcast Toggle */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={`p-2.5 rounded-2xl flex-shrink-0 ${
+                hasRealGpsLock && isBroadcasting
+                  ? "bg-green-100 dark:bg-green-950/80 text-green-700 dark:text-green-400 ring-2 ring-green-500/30"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-400"
+              }`}>
+                <Radio className={`w-4 h-4 ${hasRealGpsLock && isBroadcasting ? "animate-pulse" : ""}`} />
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
-                {liveLocation.latitude.toFixed(4)}, {liveLocation.longitude.toFixed(4)} • {liveLocation.speedKmh} km/h • {gpsStatusText}
+              <div className="min-w-0">
+                <div className="font-black text-xs sm:text-sm text-gray-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                  <span>Hardware GPS Telemetry</span>
+                  {gpsAccuracyMeters !== null && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
+                      ±{gpsAccuracyMeters}m
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    hasRealGpsLock ? "bg-green-500" : gpsPermissionState === "denied" ? "bg-red-500" : "bg-yellow-500 animate-pulse"
+                  }`} />
+                  <span>{gpsStatusText}</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsBroadcasting(!isBroadcasting)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-colors flex-shrink-0 cursor-pointer ${
+                isBroadcasting ? "bg-green-600 hover:bg-green-500 text-white" : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              }`}
+            >
+              {isBroadcasting ? "Broadcasting" : "Paused"}
+            </button>
+          </div>
+
+          {/* Real-time Hardware Metrics Grid */}
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100 dark:border-gray-800/80 text-xs">
+            <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <div className="text-[10px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400">Sensor Coordinates</div>
+              <div className="font-mono font-bold text-xs text-gray-900 dark:text-gray-100 break-all mt-0.5">
+                {hasRealGpsLock
+                  ? `${(realDeviceGpsRef.current?.latitude ?? liveLocation.latitude).toFixed(5)}, ${(realDeviceGpsRef.current?.longitude ?? liveLocation.longitude).toFixed(5)}`
+                  : "Awaiting GPS Fix"}
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <div className="text-[10px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400">Hardware Speed</div>
+              <div className="font-mono font-bold text-xs text-gray-900 dark:text-gray-100 mt-0.5 flex items-baseline gap-1">
+                <span className="text-sm font-black text-blue-600 dark:text-blue-400">
+                  {hasRealGpsLock ? (realDeviceGpsRef.current?.speedKmh ?? 0) : 0}
+                </span>
+                <span className="text-[10px] text-gray-500 font-semibold">km/h</span>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={() => setIsBroadcasting(!isBroadcasting)}
-            className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-colors flex-shrink-0 cursor-pointer ${
-              isBroadcasting ? "bg-green-600 text-white" : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-            }`}
-          >
-            {isBroadcasting ? "Broadcasting" : "Paused"}
-          </button>
+          {/* Action button if permission is denied or pending */}
+          {gpsPermissionState !== "granted" && (
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={requestGpsPermission}
+                className="w-full py-2.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{gpsPermissionState === "denied" ? "Location Permission Blocked - Tap to Retry" : "Tap to Grant Location Permission"}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Route Station Progression Checklist */}

@@ -78,7 +78,7 @@ export async function GET() {
         routeCode: route.code,
         routeName: route.name,
         direction: route.direction || "HOME_TO_CAMPUS",
-        totalDistanceKm: route.total_distance_km || 25,
+        totalDistanceKm: Number(route.total_distance_km ?? 0),
         registeredStudents: routeStudents.length,
         paidStudents: paidStudents.length,
         activeBookings: routeBookings.length,

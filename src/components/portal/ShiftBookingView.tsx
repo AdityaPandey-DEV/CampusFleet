@@ -504,10 +504,13 @@ export default function ShiftBookingView({
                             const userLat = position.coords.latitude;
                             const userLon = position.coords.longitude;
                             const liveLoc = store.getLiveLocation();
-                            const busLat = liveLoc?.latitude || 29.2889; // Default bounds
-                            const busLon = liveLoc?.longitude || 79.4678;
+                            if (!liveLoc || !liveLoc.latitude || !liveLoc.longitude) {
+                              setIsBookingLoading(false);
+                              alert("Live bus location is currently unavailable. Please ask the driver to begin broadcasting.");
+                              return;
+                            }
 
-                            const distanceKm = calculateHaversineDistanceKm(userLat, userLon, busLat, busLon);
+                            const distanceKm = calculateHaversineDistanceKm(userLat, userLon, liveLoc.latitude, liveLoc.longitude);
                             setIsBookingLoading(false);
                             
                             if (distanceKm > 0.2) {

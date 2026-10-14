@@ -188,29 +188,35 @@ CampusFleetStore.prototype.getLiveLocationForTrip = function (this: CampusFleetS
     };
   }
 
-  // If trip is in progress, check if current liveLocation is valid within Uttarakhand corridor
+  // If trip is in progress, use real-time liveLocation from device hardware
   if (
     this.liveLocation &&
-    this.liveLocation.latitude >= 28.9 &&
-    this.liveLocation.latitude <= 30.5 &&
-    this.liveLocation.longitude >= 78.5 &&
-    this.liveLocation.longitude <= 80.5
+    typeof this.liveLocation.latitude === "number" &&
+    !isNaN(this.liveLocation.latitude) &&
+    typeof this.liveLocation.longitude === "number" &&
+    !isNaN(this.liveLocation.longitude) &&
+    (this.liveLocation.latitude !== 0 || this.liveLocation.longitude !== 0)
   ) {
-    return this.liveLocation;
+    return {
+      ...this.liveLocation,
+      busId: trip?.busId || this.liveLocation.busId,
+      tripId: trip?.id || this.liveLocation.tripId,
+      speedKmh: typeof this.liveLocation.speedKmh === "number" ? this.liveLocation.speedKmh : 0,
+    };
   }
 
-  // Fallback if trip in progress but location invalid/out of bounds: snap to route stop
+  // Fallback if trip in progress but location not yet received from device: use current route stop with real 0 km/h
   const currentStop = (route?.stops && route.stops[trip?.currentStopIndex || 0]?.stop) || startingStop;
   return {
     busId: trip?.busId || this.liveLocation.busId,
     tripId: trip?.id || this.liveLocation.tripId,
-    latitude: currentStop?.latitude || 29.2889,
-    longitude: currentStop?.longitude || 79.4678,
-    speedKmh: isTripInProgress ? (this.liveLocation.speedKmh || 25) : 0,
-    headingDeg: this.liveLocation.headingDeg || 0,
+    latitude: currentStop?.latitude || 0,
+    longitude: currentStop?.longitude || 0,
+    speedKmh: 0,
+    headingDeg: 0,
     lastPingAt: new Date().toISOString(),
-    estimatedArrivalNextStopMins: this.liveLocation.estimatedArrivalNextStopMins || 0,
-    delayMinutes: this.liveLocation.delayMinutes || 0,
+    estimatedArrivalNextStopMins: 0,
+    delayMinutes: 0,
   };
 };
 
