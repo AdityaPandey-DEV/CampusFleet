@@ -417,6 +417,11 @@ export default function StaffCrewAllocationView({
                             <span>{bus?.busNumber || "Bus TBA"}</span>
                           </div>
                           <div className="text-[10px] font-mono text-gray-400">{trip.tripCode}</div>
+                          {store.isTripSpecial(trip) && (
+                            <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                              🔒 Special Restricted Run
+                            </span>
+                          )}
                         </td>
 
                         <td className="p-3.5">

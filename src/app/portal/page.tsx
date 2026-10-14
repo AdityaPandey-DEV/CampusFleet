@@ -22,6 +22,7 @@ export default async function StudentPortalPage() {
     { data: dbTrips },
     { data: dbBookings },
     { data: dbStaff },
+    { data: dbAllocations },
   ] = await Promise.all([
     supabaseAdmin.from("students_full").select("*").or(`user_id.eq.${session.userId},id.eq.${(session as any).studentId || 'null'}`),
     supabaseAdmin.from("buses").select("*"),
@@ -33,6 +34,8 @@ export default async function StudentPortalPage() {
     supabaseAdmin.from("bookings_full").select("*").eq("student_id", session.userId).order("created_at", { ascending: false }).limit(50),
     // Security Fix: Students do not need to download the entire staff directory.
     Promise.resolve({ data: [] }),
+    // Fetch special shift allocations for the student
+    supabaseAdmin.from("special_shift_allocations").select("*").or(`student_id.eq.${session.userId},student_id.eq.${(session as any).studentId || 'null'}`),
   ]);
 
   const students: Student[] = (dbStudents || []).map((s: any) => ({
@@ -137,6 +140,8 @@ export default async function StudentPortalPage() {
     delayMinutes: Number(t.delay_minutes || 0),
     manifestLocked: Boolean(t.manifest_locked),
     currentStopIndex: Number(t.current_stop_index || 0),
+    isSpecial: Boolean(t.is_special),
+    facilityType: t.facility_type || (Boolean(t.is_special) ? "PLACEMENT_DRIVE" : "REGULAR"),
   }));
 
   const bookings: Booking[] = (dbBookings || []).map((b: any) => ({
@@ -168,13 +173,32 @@ export default async function StudentPortalPage() {
     isActive: st.is_active ?? true,
   }));
 
+  // Filter special trips & shifts: strictly restricted to allocated students only
+  const studentAllocations = (dbAllocations || []).filter((a: any) =>
+    a.student_id === currentStudent?.id || a.student_id === session.userId
+  );
+  const allocatedShiftIds = new Set(studentAllocations.map((a: any) => a.shift_id));
+  const allocatedTripIds = new Set(studentAllocations.map((a: any) => a.trip_id).filter(Boolean));
+
+  const visibleShifts = shifts.filter(sh => !sh.isSpecial || allocatedShiftIds.has(sh.id));
+
+  const visibleTrips = trips.filter(t => {
+    const isSpecialTrip = t.isSpecial || t.facilityType === "PLACEMENT_DRIVE" || t.facilityType === "EVENT";
+    const shift = shifts.find(sh => sh.id === t.shiftId);
+    const isSpecialShift = shift && (shift.isSpecial || shift.name?.toLowerCase().includes("special"));
+    if (isSpecialTrip || isSpecialShift) {
+      return allocatedShiftIds.has(t.shiftId) || (t.id && allocatedTripIds.has(t.id));
+    }
+    return true;
+  });
+
   return (
     <UnifiedCommuteHub
       initialUser={session}
       initialStudents={students}
       initialBuses={buses}
-      initialTrips={trips}
-      initialShifts={shifts}
+      initialTrips={visibleTrips}
+      initialShifts={visibleShifts}
       initialStops={stops}
       initialBookings={bookings}
       initialStaff={staff}

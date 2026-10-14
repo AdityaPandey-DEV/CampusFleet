@@ -143,6 +143,14 @@ export default function DigitalPassView({
   const shift = shifts.find(sh => sh.id === trip?.shiftId) || shifts[0];
   const stop = stops.find(st => st.id === (activeBooking?.boardingStopId || activeStudent?.primaryStopId)) || stops[0];
   const driver = staff.find(s => s.id === trip?.driverId);
+
+  // Special shifts are strictly restricted to allocated students
+  const visibleShifts = useMemo(() => {
+    return shifts.filter(sh => {
+      if (!sh.isSpecial) return true;
+      return store.isStudentAllocatedForShift(activeStudent?.id || "", sh.id);
+    });
+  }, [shifts, activeStudent?.id]);
   const conductor = staff.find(s => s.id === trip?.conductorId);
 
   const isConfirmed = activeBooking?.status === "CONFIRMED";
@@ -199,6 +207,13 @@ export default function DigitalPassView({
     setIsBookingShiftId(shiftId);
 
     try {
+      const shiftObj = shifts.find(s => s.id === shiftId);
+      if (shiftObj && shiftObj.isSpecial && !store.isStudentAllocatedForShift(activeStudent.id, shiftId)) {
+        setQuickBookingError("This special run is restricted exclusively to allocated students.");
+        setIsBookingShiftId(null);
+        return;
+      }
+
       let targetTrip = trips.find(
         t => t.shiftId === shiftId && (
           (activeStudent.primaryRouteId && t.routeId === activeStudent.primaryRouteId) ||
@@ -210,6 +225,12 @@ export default function DigitalPassView({
       }
       if (!targetTrip) {
         setQuickBookingError("No scheduled bus trip found for this shift. Please contact transport admin.");
+        return;
+      }
+
+      if (store.isTripSpecial(targetTrip) && !store.isTripVisibleToUser(targetTrip, currentUser, activeStudent.id)) {
+        setQuickBookingError("This special trip is restricted exclusively to allocated students.");
+        setIsBookingShiftId(null);
         return;
       }
 
@@ -515,7 +536,7 @@ export default function DigitalPassView({
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {shifts.map((shiftItem) => {
+            {visibleShifts.map((shiftItem) => {
               const isBookingThis = isBookingShiftId === shiftItem.id;
               return (
                 <div

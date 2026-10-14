@@ -82,24 +82,40 @@ export function CrewBusSelectorModal({
   );
 
   // Group bus entries with their corresponding trip & route
-  const busEntries = buses.map((bus) => {
-    // Find active trip or scheduled trip
-    const activeTrip =
-      trips.find((t) => t.busId === bus.id && t.status === "IN_PROGRESS") ||
-      trips.find((t) => t.busId === bus.id && t.status === "SCHEDULED") ||
-      trips.find((t) => t.busId === bus.id && t.status !== "COMPLETED") ||
-      trips.find((t) => t.busId === bus.id);
+  const busEntries = buses
+    .map((bus) => {
+      // Find active trip or scheduled trip
+      const activeTrip =
+        trips.find((t) => t.busId === bus.id && t.status === "IN_PROGRESS") ||
+        trips.find((t) => t.busId === bus.id && t.status === "SCHEDULED") ||
+        trips.find((t) => t.busId === bus.id && t.status !== "COMPLETED") ||
+        trips.find((t) => t.busId === bus.id);
 
-    const route = routes.find((r) => r.id === (activeTrip?.routeId || bus.currentRouteId));
-    const shift = shifts.find((s) => s.id === activeTrip?.shiftId);
+      const route = routes.find((r) => r.id === (activeTrip?.routeId || bus.currentRouteId));
+      const shift = shifts.find((s) => s.id === activeTrip?.shiftId);
 
-    return {
-      bus,
-      trip: activeTrip,
-      route,
-      shift,
-    };
-  });
+      return {
+        bus,
+        trip: activeTrip,
+        route,
+        shift,
+      };
+    })
+    .filter(({ trip }) => {
+      if (!trip) return true;
+      if (store.isTripSpecial(trip)) {
+        const user = currentUser || store.getCurrentUser();
+        const userId = user?.id;
+        if (role === "driver") {
+          return Boolean(userId && trip.driverId === userId);
+        }
+        if (role === "conductor") {
+          return Boolean(userId && (trip.conductorId === userId || trip.conductorId === user?.fullName));
+        }
+        return false;
+      }
+      return true;
+    });
 
   const filteredEntries = busEntries.filter(({ bus, route }) => {
     const q = searchQuery.toLowerCase();
@@ -232,6 +248,18 @@ export function CrewBusSelectorModal({
         trips.find((t) => t.busId === matchedBus.id && t.status === "IN_PROGRESS") ||
         trips.find((t) => t.busId === matchedBus.id && t.status === "SCHEDULED") ||
         trips.find((t) => t.busId === matchedBus.id);
+
+      if (activeTrip && store.isTripSpecial(activeTrip)) {
+        const isAllocated =
+          role === "driver"
+            ? Boolean(user?.id && activeTrip.driverId === user.id)
+            : Boolean(user?.id && (activeTrip.conductorId === user.id || activeTrip.conductorId === user.fullName));
+
+        if (!isAllocated) {
+          setCameraError("Access Restricted: This vehicle is operating an exclusive special transit run. You are not allocated as crew for this run.");
+          return;
+        }
+      }
 
       const res = await store.recordUserAttendance({
         userId,

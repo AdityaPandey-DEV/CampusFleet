@@ -50,7 +50,33 @@ export async function GET(req: NextRequest) {
     const { data: rawTrips, error: tripsErr } = await tripsQuery;
     if (tripsErr) throw tripsErr;
 
-    const trips = rawTrips || [];
+    // Filter special trips & shifts: strictly restricted to allocated students only
+    const studentIdParam = searchParams.get("studentId");
+    let allocatedShiftIds = new Set<string>();
+    let allocatedTripIds = new Set<string>();
+
+    if (studentIdParam) {
+      const { data: allocations } = await supabaseAdmin
+        .from("special_shift_allocations")
+        .select("shift_id, trip_id")
+        .eq("student_id", studentIdParam);
+      if (allocations) {
+        for (const a of allocations) {
+          if (a.shift_id) allocatedShiftIds.add(a.shift_id);
+          if (a.trip_id) allocatedTripIds.add(a.trip_id);
+        }
+      }
+    }
+
+    const trips = (rawTrips || []).filter((t: any) => {
+      const isTripSpec = t.is_special || t.facility_type === "PLACEMENT_DRIVE" || t.facility_type === "EVENT";
+      const isShiftSpec = t.shifts && (t.shifts.is_special || t.shifts.is_placement || t.shifts.name?.toLowerCase().includes("special"));
+      if (isTripSpec || isShiftSpec) {
+        if (!studentIdParam) return false;
+        return allocatedShiftIds.has(t.shift_id) || allocatedTripIds.has(t.id);
+      }
+      return true;
+    });
 
     // 4. Deduplicate by physical bus (1 entry per physical bus)
     // Always prioritize IN_PROGRESS over SCHEDULED
@@ -198,6 +224,23 @@ export async function POST(req: NextRequest) {
 
     if (!trip || !trip.buses) {
       return NextResponse.json({ success: false, message: "Trip or bus not found." }, { status: 404 });
+    }
+
+    const isTripSpecial = trip.is_special || trip.facility_type === "PLACEMENT_DRIVE" || trip.facility_type === "EVENT";
+    if (isTripSpecial) {
+      const { data: allocation } = await supabaseAdmin
+        .from("special_shift_allocations")
+        .select("id")
+        .eq("student_id", student.id)
+        .or(`shift_id.eq.${trip.shift_id},trip_id.eq.${trip.id}`)
+        .maybeSingle();
+
+      if (!allocation) {
+        return NextResponse.json(
+          { success: false, code: "SPECIAL_SHIFT_RESTRICTED", message: "This special bus/trip is restricted exclusively to allocated students." },
+          { status: 403 }
+        );
+      }
     }
 
     const bus = trip.buses;

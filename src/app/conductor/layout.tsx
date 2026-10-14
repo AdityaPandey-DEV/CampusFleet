@@ -64,6 +64,8 @@ export default async function ConductorLayout({
     startedAt: t.started_at,
     completedAt: t.completed_at,
     currentStopIndex: t.current_stop_index || 0,
+    isSpecial: Boolean(t.is_special),
+    facilityType: t.facility_type || (Boolean(t.is_special) ? "PLACEMENT_DRIVE" : "REGULAR"),
   }));
 
   const buses: Bus[] = (dbBuses || []).map((b: any) => ({
@@ -131,13 +133,34 @@ export default async function ConductorLayout({
     startTime: sh.start_time ? sh.start_time.substring(0, 5) : "",
     endTime: sh.end_time ? sh.end_time.substring(0, 5) : "",
     bookingCutoffMins: Number(sh.booking_cutoff_minutes || 0),
+    isSpecial: Boolean(sh.is_special),
   }));
+
+  const userRole = (session.role as string) || "";
+  const isStaffOrAdmin = userRole === "admin" || userRole === "staff" || userRole === "transport_manager";
+  const visibleTrips = trips.filter(t => {
+    const isSpecialTrip = t.isSpecial || t.facilityType === "PLACEMENT_DRIVE" || t.facilityType === "EVENT";
+    const shift = shifts.find(s => s.id === t.shiftId);
+    const isSpecialShift = shift && (shift.isSpecial || shift.name?.toLowerCase().includes("special"));
+    if (isSpecialTrip || isSpecialShift) {
+      if (isStaffOrAdmin) return true;
+      return Boolean(
+        session.userId &&
+        (t.conductorId === session.userId ||
+         t.conductorId === (session as any).id ||
+         t.conductorId === (session as any).employeeId ||
+         t.conductorId === (session as any).name ||
+         t.conductorId === (session as any).fullName)
+      );
+    }
+    return true;
+  });
 
   // 5. Render the interactive client cockpit island with pre-baked server data
   return (
     <ConductorProvider
       initialUser={session}
-      initialTrips={trips}
+      initialTrips={visibleTrips}
       initialBuses={buses}
       initialRoutes={routes}
       initialBookings={bookings}

@@ -121,6 +121,8 @@ export default async function DriverPage() {
     startedAt: t.started_at,
     completedAt: t.completed_at,
     currentStopIndex: t.current_stop_index || 0,
+    isSpecial: Boolean(t.is_special),
+    facilityType: t.facility_type || (Boolean(t.is_special) ? "PLACEMENT_DRIVE" : "REGULAR"),
   }));
 
   const buses: Bus[] = (dbBuses || []).map((b: any) => ({
@@ -153,10 +155,24 @@ export default async function DriverPage() {
     createdAt: b.created_at || new Date().toISOString(),
   }));
 
+  const userRole = (session.role as string) || "";
+  const isStaffOrAdmin = userRole === "admin" || userRole === "staff" || userRole === "transport_manager";
+  const visibleTrips = trips.filter(t => {
+    const isSpecialTrip = t.isSpecial || t.facilityType === "PLACEMENT_DRIVE" || t.facilityType === "EVENT";
+    if (isSpecialTrip) {
+      if (isStaffOrAdmin) return true;
+      return Boolean(
+        session.userId &&
+        (t.driverId === session.userId || t.driverId === (session as any).id || t.driverId === (session as any).employeeId)
+      );
+    }
+    return true;
+  });
+
   return (
     <DriverConsoleView
       initialUser={session}
-      initialTrips={trips}
+      initialTrips={visibleTrips}
       initialBuses={buses}
       initialRoutes={routes}
       initialBookings={bookings}

@@ -83,14 +83,18 @@ export default function CommuteBusSelector({
       ) || initialStudent
     : initialStudent;
 
+  const visibleShifts = useMemo(() => {
+    return store.getVisibleShiftsForStudent(activeStudent?.id);
+  }, [shifts, activeStudent]);
+
   // Auto-select next shift on load
   useEffect(() => {
-    if (nextShift && shifts.some(s => s.id === nextShift.id)) {
+    if (nextShift && visibleShifts.some(s => s.id === nextShift.id)) {
       setSelectedShiftId(nextShift.id);
-    } else if (shifts.length > 0 && !selectedShiftId) {
-      setSelectedShiftId(shifts[0].id);
+    } else if (visibleShifts.length > 0 && (!selectedShiftId || !visibleShifts.some(s => s.id === selectedShiftId))) {
+      setSelectedShiftId(visibleShifts[0].id);
     }
-  }, [nextShift, shifts]);
+  }, [nextShift, visibleShifts, selectedShiftId]);
 
   // Auto-select primary stop
   useEffect(() => {
@@ -101,20 +105,22 @@ export default function CommuteBusSelector({
     }
   }, [activeStudent, selectedStopId, stops]);
 
-  // Trips & Buses for the selected shift
+  // Trips & Buses for the selected shift (restricted to visible trips for this user)
   const shiftTrips = useMemo(() => {
-    const todayMatches = trips.filter(
+    const visibleTrips = trips.filter(t => store.isTripVisibleToUser(t, currentUser, activeStudent?.id));
+
+    const todayMatches = visibleTrips.filter(
       t => t.shiftId === selectedShiftId && t.tripDate === todayStr && t.status !== "CANCELLED"
     );
     if (todayMatches.length > 0) return todayMatches;
 
-    const scheduledMatches = trips.filter(
+    const scheduledMatches = visibleTrips.filter(
       t => t.shiftId === selectedShiftId && t.status === "SCHEDULED"
     );
     if (scheduledMatches.length > 0) return scheduledMatches;
 
-    return trips.filter(t => t.shiftId === selectedShiftId);
-  }, [trips, selectedShiftId, todayStr]);
+    return visibleTrips.filter(t => t.shiftId === selectedShiftId);
+  }, [trips, selectedShiftId, todayStr, currentUser, activeStudent]);
 
   const shiftBuses = useMemo(() => {
     return buses.filter(b => shiftTrips.some(t => {
@@ -173,7 +179,7 @@ export default function CommuteBusSelector({
             <p className="text-sm text-gray-500">Choose your required commute shift for today.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {shifts.map(shift => (
+             {visibleShifts.map(shift => (
                <div key={shift.id} onClick={() => handleShiftClick(shift)} className="p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-blue-500 transition-all duration-300">
                  <div className="flex items-center justify-between mb-4">
                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400">

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { store } from "../lib/store";
-import { Shift, Student } from "../lib/types";
+import { Shift, Student, Trip } from "../lib/types";
 
 describe("Special Shift & Placement Facility Student Allocation Tests", () => {
   const regularMorningShift: Shift = {
@@ -165,5 +165,72 @@ describe("Special Shift & Placement Facility Student Allocation Tests", () => {
     const visibleForStudent1 = store.getVisibleShiftsForStudent(mockStudent1.id);
     expect(visibleForStudent1.length).toBe(2);
     expect(visibleForStudent1.map(s => s.id)).toEqual(["shift-1", "shift-2"]);
+  });
+
+  it("hides special trips from all unallocated students, drivers, and conductors", async () => {
+    const regularTrip: Trip = {
+      id: "trip-reg-1",
+      tripCode: "TRIP-REG-01",
+      routeId: "route-1",
+      busId: "bus-1",
+      shiftId: "shift-1",
+      driverId: "driver-1",
+      conductorId: "conductor-1",
+      tripDate: "2026-10-15",
+      status: "SCHEDULED",
+      delayMinutes: 0,
+      manifestLocked: false,
+      currentStopIndex: 0,
+      isSpecial: false,
+    };
+
+    const specialTrip: Trip = {
+      id: "trip-placement-1",
+      tripCode: "TRIP-SPECIAL-PLACEMENT",
+      routeId: "route-special",
+      busId: "bus-special",
+      shiftId: "shift-placement",
+      driverId: "driver-special",
+      conductorId: "conductor-special",
+      tripDate: "2026-10-15",
+      status: "SCHEDULED",
+      delayMinutes: 0,
+      manifestLocked: false,
+      currentStopIndex: 0,
+      isSpecial: true,
+      facilityType: "PLACEMENT_DRIVE",
+    };
+
+    (store as any).trips = [regularTrip, specialTrip];
+
+    // 1. Unallocated Student (mockStudent1) should only see regular trip
+    const tripsForStudent1 = store.getVisibleTripsForUser({ role: "student", id: mockStudent1.id }, mockStudent1.id);
+    expect(tripsForStudent1.map(t => t.id)).toEqual(["trip-reg-1"]);
+    expect(tripsForStudent1.map(t => t.id)).not.toContain("trip-placement-1");
+
+    // 2. Unallocated Driver (driver-other) should only see regular trip
+    const tripsForOtherDriver = store.getVisibleTripsForUser({ role: "driver", id: "driver-other" });
+    expect(tripsForOtherDriver.map(t => t.id)).toEqual(["trip-reg-1"]);
+
+    // 3. Allocated Driver (driver-special) sees the special trip
+    const tripsForSpecialDriver = store.getVisibleTripsForUser({ role: "driver", id: "driver-special" });
+    expect(tripsForSpecialDriver.map(t => t.id)).toContain("trip-placement-1");
+
+    // 4. Unallocated Conductor (conductor-other) should only see regular trip
+    const tripsForOtherConductor = store.getVisibleTripsForUser({ role: "conductor", id: "conductor-other" });
+    expect(tripsForOtherConductor.map(t => t.id)).toEqual(["trip-reg-1"]);
+
+    // 5. Allocated Conductor (conductor-special) sees the special trip
+    const tripsForSpecialConductor = store.getVisibleTripsForUser({ role: "conductor", id: "conductor-special" });
+    expect(tripsForSpecialConductor.map(t => t.id)).toContain("trip-placement-1");
+
+    // 6. Allocate mockStudent1 to special placement shift -> now mockStudent1 can see special trip!
+    await store.allocateStudentToSpecialShift("shift-placement", mockStudent1.id, "trip-placement-1");
+    const tripsForAllocatedStudent1 = store.getVisibleTripsForUser({ role: "student", id: mockStudent1.id }, mockStudent1.id);
+    expect(tripsForAllocatedStudent1.map(t => t.id)).toContain("trip-placement-1");
+
+    // 7. mockStudent2 remains unallocated -> still CANNOT see special trip!
+    const tripsForStudent2 = store.getVisibleTripsForUser({ role: "student", id: mockStudent2.id }, mockStudent2.id);
+    expect(tripsForStudent2.map(t => t.id)).not.toContain("trip-placement-1");
   });
 });

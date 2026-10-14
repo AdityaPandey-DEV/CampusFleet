@@ -244,27 +244,37 @@ export default function ShiftBookingView({
   }, [activeStep, router]);
 
   const todayStr = currentDate;
-  const selectedShift = shifts.find(s => s.id === selectedShiftId) || shifts[0];
+
+  // Special Facility Access Control: Only allocated students see special placement/event shifts
+  const visibleShifts = useMemo(() => {
+    if (!activeStudent) return shifts.filter(s => !s.isSpecial);
+    const allocatedShiftIds = new Set(store.getAllocatedShiftIdsForStudent(activeStudent.id));
+    return shifts.filter(s => !s.isSpecial || allocatedShiftIds.has(s.id));
+  }, [shifts, activeStudent]);
+
+  const selectedShift = visibleShifts.find(s => s.id === selectedShiftId) || visibleShifts[0];
   const shiftStatus = selectedShift ? getShiftStatus(selectedShift) : null;
   const isCutoffPassed = shiftStatus ? !shiftStatus.isBookingOpen : false;
 
-  // All trips & buses belonging to current selected shift, strictly scoped to today's schedule
+  // All trips & buses belonging to current selected shift, strictly scoped to today's schedule and user visibility
   const shiftTrips = useMemo(() => {
+    const visibleTrips = trips.filter(t => store.isTripVisibleToUser(t, currentUser, activeStudent?.id));
+
     // 1. Strict priority: trips for current shift and today's date
-    const todayMatches = trips.filter(
+    const todayMatches = visibleTrips.filter(
       t => t.shiftId === selectedShiftId && t.tripDate === todayStr && t.status !== "CANCELLED"
     );
     if (todayMatches.length > 0) return todayMatches;
 
     // 2. Upcoming scheduled trips for this shift
-    const scheduledMatches = trips.filter(
+    const scheduledMatches = visibleTrips.filter(
       t => t.shiftId === selectedShiftId && t.status === "SCHEDULED"
     );
     if (scheduledMatches.length > 0) return scheduledMatches;
 
     // 3. Fallback to any trip belonging to this shift
-    return trips.filter(t => t.shiftId === selectedShiftId);
-  }, [trips, selectedShiftId, todayStr]);
+    return visibleTrips.filter(t => t.shiftId === selectedShiftId);
+  }, [trips, selectedShiftId, todayStr, currentUser, activeStudent]);
 
   const shiftBuses = useMemo(() => {
     return buses.filter(b => shiftTrips.some(t => t.busId === b.id));
@@ -367,13 +377,6 @@ export default function ShiftBookingView({
     if (!selectedStopId) return [];
     return store.getBusesForStop(selectedStopId);
   }, [selectedStopId]);
-
-  // Special Facility Access Control: Only allocated students see special placement/event shifts
-  const visibleShifts = useMemo(() => {
-    if (!activeStudent) return shifts.filter(s => !s.isSpecial);
-    const allocatedShiftIds = new Set(store.getAllocatedShiftIdsForStudent(activeStudent.id));
-    return shifts.filter(s => !s.isSpecial || allocatedShiftIds.has(s.id));
-  }, [shifts, activeStudent]);
 
   useEffect(() => {
     if (visibleShifts.length > 0 && !visibleShifts.some(s => s.id === selectedShiftId)) {

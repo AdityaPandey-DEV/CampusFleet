@@ -92,16 +92,24 @@ export default function DriverConsoleView({
   const [isCrewSelectorOpen, setIsCrewSelectorOpen] = useState(false);
   const [selectorTab, setSelectorTab] = useState<"CARDS" | "SCANNER">("CARDS");
 
-  const myAssignedTrips = trips.filter(t => 
+  // Special trips are strictly restricted to their allocated driver
+  const visibleTripsForDriver = trips.filter(t => {
+    if (store.isTripSpecial(t)) {
+      return Boolean(currentUser?.id && t.driverId === currentUser.id);
+    }
+    return true;
+  });
+
+  const myAssignedTrips = visibleTripsForDriver.filter(t => 
     Boolean(currentUser?.id && t.driverId === currentUser.id)
   );
   // Filter out ancient completed trips; prioritize non-completed runs
-  const activeOrScheduledTrips = trips.filter(t => t.status !== "COMPLETED");
+  const activeOrScheduledTrips = visibleTripsForDriver.filter(t => t.status !== "COMPLETED");
   const eligibleTrips = myAssignedTrips.length > 0 
     ? myAssignedTrips 
     : activeOrScheduledTrips.length > 0 
     ? activeOrScheduledTrips 
-    : trips;
+    : visibleTripsForDriver;
   const [selectedTripId, setSelectedTripId] = useState<string>(() => eligibleTrips[0]?.id || "");
 
   useEffect(() => {
@@ -937,7 +945,7 @@ export default function DriverConsoleView({
           if (tripId) {
             setSelectedTripId(tripId);
           } else {
-            const match = trips.find(t => t.busId === busId && t.status !== "COMPLETED") || trips.find(t => t.busId === busId);
+            const match = visibleTripsForDriver.find(t => t.busId === busId && t.status !== "COMPLETED") || visibleTripsForDriver.find(t => t.busId === busId);
             if (match) setSelectedTripId(match.id);
           }
           setToastMessage("✓ Duty active! Bus claimed and attendance recorded.");

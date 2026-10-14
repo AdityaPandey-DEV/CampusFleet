@@ -21,9 +21,13 @@ declare module "./_base" {
     getAllocatedShiftIdsForStudent(studentId: string): string[];
     isStudentAllocatedForShift(studentId: string, shiftId: string): boolean;
     getVisibleShiftsForStudent(studentId?: string): Shift[];
-    getTrips(): Trip[];
-    getTodayTrips(): Trip[];
-    getTripsByDate(dateStr: string): Trip[];
+    isTripSpecial(trip: Trip): boolean;
+    isTripVisibleToUser(trip: Trip, user?: any, studentId?: string): boolean;
+    getVisibleTripsForUser(user?: any, studentId?: string): Trip[];
+    getAllTrips(): Trip[];
+    getTrips(user?: any, studentId?: string): Trip[];
+    getTodayTrips(user?: any, studentId?: string): Trip[];
+    getTripsByDate(dateStr: string, user?: any, studentId?: string): Trip[];
     getTodayBookings(): Booking[];
     getStudents(): Student[];
     setStudents(students: Student[]): void;
@@ -84,16 +88,100 @@ CampusFleetStore.prototype.getVisibleShiftsForStudent = function (this: CampusFl
   return this.shifts.filter(sh => !sh.isSpecial || allocatedShiftIds.has(sh.id));
 };
 
-CampusFleetStore.prototype.getTrips = function (this: CampusFleetStore) { return this.trips; };
-CampusFleetStore.prototype.getTodayTrips = function (this: CampusFleetStore) {
+CampusFleetStore.prototype.isTripSpecial = function (this: CampusFleetStore, trip: Trip): boolean {
+  if (!trip) return false;
+  if (trip.isSpecial) return true;
+  if (trip.facilityType === "PLACEMENT_DRIVE" || trip.facilityType === "EVENT") return true;
+  const shift = this.shifts.find(s => s.id === trip.shiftId);
+  if (shift && (shift.isSpecial || shift.isPlacement || shift.name?.toLowerCase().includes("special"))) {
+    return true;
+  }
+  return false;
+};
+
+CampusFleetStore.prototype.isTripVisibleToUser = function (
+  this: CampusFleetStore,
+  trip: Trip,
+  user?: any,
+  studentId?: string
+): boolean {
+  if (!this.isTripSpecial(trip)) {
+    return true; // Regular non-special trips are open to all
+  }
+
+  // It's a special trip!
+  const currentUser = user || this.currentUser;
+  const role = currentUser?.role || currentUser?.userRole;
+
+  // 1. Staff / Admin / Transport Manager has oversight dispatch access
+  if (role === "admin" || role === "transport_manager" || role === "staff" || role === "supervisor") {
+    return true;
+  }
+
+  // 2. Driver check
+  if (role === "driver") {
+    const driverId = currentUser?.id || currentUser?.userId;
+    return Boolean(driverId && trip.driverId === driverId);
+  }
+
+  // 3. Conductor check
+  if (role === "conductor") {
+    const conductorId = currentUser?.id || currentUser?.userId;
+    return Boolean(conductorId && (trip.conductorId === conductorId || trip.conductorId === currentUser?.fullName));
+  }
+
+  // 4. Student check
+  const resolvedStudentId =
+    studentId ||
+    currentUser?.studentId ||
+    (role === "student" ? currentUser?.id : undefined) ||
+    this.students.find(s => s.userId === currentUser?.id || s.email === currentUser?.email)?.id;
+
+  if (resolvedStudentId) {
+    return this.specialShiftAllocations.some(
+      (a) =>
+        a.studentId === resolvedStudentId &&
+        (a.shiftId === trip.shiftId || (a.tripId && a.tripId === trip.id))
+    );
+  }
+
+  // Any unallocated user cannot view special trips
+  return false;
+};
+
+CampusFleetStore.prototype.getVisibleTripsForUser = function (
+  this: CampusFleetStore,
+  user?: any,
+  studentId?: string
+): Trip[] {
+  const currentUser = user || this.currentUser;
+  return this.trips.filter((trip) => this.isTripVisibleToUser(trip, currentUser, studentId));
+};
+
+CampusFleetStore.prototype.getAllTrips = function (this: CampusFleetStore): Trip[] {
+  return this.trips;
+};
+
+CampusFleetStore.prototype.getTrips = function (this: CampusFleetStore, user?: any, studentId?: string): Trip[] {
+  const currentUser = user || this.currentUser;
+  if (currentUser || studentId) {
+    return this.getVisibleTripsForUser(currentUser, studentId);
+  }
+  // When no user context exists, hide special trips by default
+  return this.trips.filter((t) => !this.isTripSpecial(t));
+};
+
+CampusFleetStore.prototype.getTodayTrips = function (this: CampusFleetStore, user?: any, studentId?: string) {
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
   const todayStr = new Date(now.getTime() + istOffset).toISOString().split("T")[0];
-  const todayTrips = this.trips.filter(t => t.tripDate === todayStr);
-  return todayTrips.length > 0 ? todayTrips : this.trips;
+  const visible = this.getTrips(user, studentId);
+  const todayTrips = visible.filter(t => t.tripDate === todayStr);
+  return todayTrips.length > 0 ? todayTrips : visible;
 };
-CampusFleetStore.prototype.getTripsByDate = function (this: CampusFleetStore, dateStr: string) {
-  return this.trips.filter(t => t.tripDate === dateStr);
+
+CampusFleetStore.prototype.getTripsByDate = function (this: CampusFleetStore, dateStr: string, user?: any, studentId?: string) {
+  return this.getTrips(user, studentId).filter(t => t.tripDate === dateStr);
 };
 CampusFleetStore.prototype.getTodayBookings = function (this: CampusFleetStore) {
   const now = new Date();

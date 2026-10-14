@@ -202,6 +202,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Bus vehicle not allocated for this trip." }, { status: 400 });
     }
 
+    // Special Trip & Shift Allocation Security Check
+    const isSpecialTrip = Boolean(
+      trip.is_special ||
+      trip.facility_type === "PLACEMENT_DRIVE" ||
+      trip.facility_type === "EVENT" ||
+      shift?.is_special ||
+      shift?.name?.toLowerCase().includes("special")
+    );
+
+    if (isSpecialTrip) {
+      const { data: specialAlloc } = await supabaseAdmin
+        .from("special_shift_allocations")
+        .select("id")
+        .or(`student_id.eq.${student.id},student_id.eq.stud-${student.id}`)
+        .or(`shift_id.eq.${trip.shift_id},trip_id.eq.${trip.id}`)
+        .limit(1);
+
+      if (!specialAlloc || specialAlloc.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: "SPECIAL_SHIFT_RESTRICTED",
+            message: "Access Restricted: This special placement/event transit run is reserved exclusively for allocated students.",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // 4. Booking Cutoff & Manifest Lock Check
     if (trip.manifest_locked) {
       return NextResponse.json(

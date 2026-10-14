@@ -73,15 +73,24 @@ export function ConductorProvider({
     return unsub;
   }, []);
 
-  const myTrips = trips.filter(
+  // Special trips are strictly restricted to their allocated conductor
+  const visibleTripsForConductor = trips.filter(t => {
+    if (store.isTripSpecial(t)) {
+      return Boolean(
+        currentUser?.id &&
+        (t.conductorId === currentUser.id || t.conductorId === currentUser.fullName)
+      );
+    }
+    return true;
+  });
+
+  const myTrips = visibleTripsForConductor.filter(
     t => 
       t.conductorId === currentUser?.id || 
-      t.conductorId === currentUser?.fullName ||
-      t.driverId === currentUser?.id ||
-      t.driverId === currentUser?.fullName
+      t.conductorId === currentUser?.fullName
   );
 
-  const activeTrip = trips.find(t => t.id === selectedTripId) || myTrips.find(t => t.id === selectedTripId) || myTrips[0] || trips[0];
+  const activeTrip = visibleTripsForConductor.find(t => t.id === selectedTripId) || myTrips.find(t => t.id === selectedTripId) || myTrips[0] || visibleTripsForConductor[0];
   const bus = buses.find(b => b.id === activeTrip?.busId) || buses[0];
   const route = routes.find(r => r.id === activeTrip?.routeId);
   const shift = shifts.find(sh => sh.id === activeTrip?.shiftId);
@@ -150,7 +159,7 @@ export function ConductorProvider({
     <ConductorContext.Provider
       value={{
         currentUser,
-        trips, buses, students, bookings, stops, routes, shifts, attendanceRecords,
+        trips: visibleTripsForConductor, buses, students, bookings, stops, routes, shifts, attendanceRecords,
         myTrips, activeTrip, bus, route, shift, tripBookings,
         totalConfirmed, boardedCount, pendingCount, waitlistCount, absentCount, roamingCount,
         selectedTripId, setSelectedTripId, showToast

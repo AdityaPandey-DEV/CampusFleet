@@ -52,8 +52,26 @@ export default function RunningLatePage() {
       // Bypass store and check for active trips directly to ensure real-time radar
       let currentActiveTrips: any[] = [];
       try {
-        const { data } = await supabase.from('trips').select('id, bus_id, status').eq('status', 'IN_PROGRESS');
-        if (data) currentActiveTrips = data;
+        const { data } = await supabase
+          .from('trips')
+          .select('id, bus_id, status, shift_id, is_special, facility_type, driver_id, conductor_id')
+          .eq('status', 'IN_PROGRESS');
+        if (data) {
+          const user = store.getCurrentUser();
+          currentActiveTrips = data.filter((t: any) => {
+            const tripObj: any = {
+              id: t.id,
+              busId: t.bus_id,
+              shiftId: t.shift_id,
+              status: t.status,
+              isSpecial: Boolean(t.is_special),
+              facilityType: t.facility_type,
+              driverId: t.driver_id,
+              conductorId: t.conductor_id,
+            };
+            return store.isTripVisibleToUser(tripObj, user);
+          });
+        }
       } catch (e) {}
 
       if (isMounted) setActiveTripsLive(currentActiveTrips);
