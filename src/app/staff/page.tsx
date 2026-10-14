@@ -21,7 +21,7 @@ const staffModules: HubModule[] = [
     href: "/staff/billing/approvals"
   },
   {
-    title: "Fleet & Corridors",
+    title: "Buses & Corridors",
     description: "Monitor real-time bus locations, manage routes, and view corridor analytics.",
     icon: BusFront,
     href: "/staff/fleet/buses"

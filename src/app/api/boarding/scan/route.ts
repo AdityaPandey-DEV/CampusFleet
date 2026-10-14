@@ -40,23 +40,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Query Student from Database
-    const { data: studentsFound, error: studentErr } = await supabaseAdmin
-      .from("students")
+    // 2. Query Student from Database view (with verified official photo)
+    let { data: studentsFound, error: studentErr } = await supabaseAdmin
+      .from("students_full")
       .select("id, full_name, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status, primary_route_id, primary_stop_id")
       .or(`id.eq.${searchId},user_id.eq.${searchId}`)
       .limit(1);
 
-    const student = studentsFound?.[0];
+    let student = studentsFound?.[0];
 
     if (studentErr || !student) {
       // Maybe the searchId was an old booking code? Let's check bookings just in case for backward compatibility
       const { data: oldBooking } = await supabaseAdmin.from("bookings").select("student_id").eq("booking_code", searchId).limit(1);
       if (oldBooking && oldBooking.length > 0) {
-          const { data: st } = await supabaseAdmin.from("students").select("id, full_name, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status, primary_route_id, primary_stop_id").eq("id", oldBooking[0].student_id).limit(1);
+          const { data: st } = await supabaseAdmin.from("students_full").select("id, full_name, email, phone, class_id, class_name, transport_access_suspended, photo_url, department, semester, payment_status, primary_route_id, primary_stop_id").eq("id", oldBooking[0].student_id).limit(1);
           if (st && st[0]) {
-              // Proceed with st[0]
-              Object.assign(student || {}, st[0]); // Need to hack this for TypeScript logic in a script, let's just write cleaner logic
+              student = st[0];
           }
       }
       
@@ -69,6 +68,7 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedStudentId = student.id;
+    const officialPhotoUrl = student.photo_url || null;
 
     // 3. Query Trip and Bus Capacity
     if (!tripId) {
@@ -107,13 +107,13 @@ export async function POST(req: NextRequest) {
           student: {
             id: student.id,
             fullName: student.full_name,
-            photoUrl: student.photo_url,
+            photoUrl: officialPhotoUrl,
             department: student.department,
             semester: student.semester,
             className: student.class_name,
           },
           studentName: student.full_name,
-          photoUrl: student.photo_url,
+          photoUrl: officialPhotoUrl,
           boardedAt: existingAttendance[0].timestamp,
         },
         { status: 409 }
@@ -226,7 +226,7 @@ export async function POST(req: NextRequest) {
         student: {
           id: student.id,
           fullName: student.full_name,
-          photoUrl: student.photo_url,
+          photoUrl: officialPhotoUrl,
           department: student.department,
           semester: student.semester,
           className: student.class_name,
@@ -301,7 +301,7 @@ export async function POST(req: NextRequest) {
         student: {
           id: student.id,
           fullName: student.full_name,
-          photoUrl: student.photo_url,
+          photoUrl: officialPhotoUrl,
           className: student.class_name,
         },
         booking: {

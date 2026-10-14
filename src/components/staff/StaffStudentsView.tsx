@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { store } from "@/lib/store";
 import { Student } from "@/lib/types";
 import {
@@ -15,6 +15,7 @@ import {
   Edit2,
   X,
   AlertCircle,
+  AlertTriangle,
   Camera,
   Upload,
   Lock,
@@ -193,7 +194,17 @@ export default function StaffStudentsView({
     }
   };
 
-  const filteredStudents = students.filter(
+  const uniqueStudents = useMemo(() => {
+    const map = new Map<string, Student>();
+    for (const s of students) {
+      if (s.id && !map.has(s.id)) {
+        map.set(s.id, s);
+      }
+    }
+    return Array.from(map.values());
+  }, [students]);
+
+  const filteredStudents = uniqueStudents.filter(
     (s) =>
       s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -253,22 +264,30 @@ export default function StaffStudentsView({
               {filteredStudents.map((s) => {
                 const stop = stops.find((st) => st.id === s.primaryStopId);
                 const isSuspended = s.transportAccessSuspended;
+                const hasValidPhoto = Boolean(s.photoUrl && s.photoUrl.trim() !== "");
 
                 return (
                   <tr key={s.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
                     <td className="p-3.5">
-                      <div className="relative w-9 h-11 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
-                        {s.photoUrl ? (
+                      <div className="relative w-10 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                        {hasValidPhoto ? (
                           <img
                             src={s.photoUrl}
                             alt={s.fullName}
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <User className="w-4 h-4 text-gray-400" />
+                          <div
+                            onClick={() => handleOpenPhotoModal(s)}
+                            className="w-full h-full flex flex-col items-center justify-center bg-red-50 dark:bg-red-950/40 text-red-500 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors p-1"
+                            title="Compulsory photo missing! Click to upload student photo."
+                          >
+                            <AlertTriangle className="w-4 h-4 text-red-500" />
+                            <span className="text-[6px] font-black uppercase text-red-600 dark:text-red-400 mt-0.5 tracking-tighter">Missing</span>
+                          </div>
                         )}
-                        {s.photoUrl && (
-                          <div className="absolute bottom-0 right-0 bg-green-500 text-white p-0.5 rounded-tl">
+                        {hasValidPhoto && (
+                          <div className="absolute bottom-0 right-0 bg-green-500 text-white p-0.5 rounded-tl" title="Official Photo Verified">
                             <Lock className="w-2 h-2" />
                           </div>
                         )}
@@ -313,19 +332,31 @@ export default function StaffStudentsView({
                       </div>
                     </td>
                     <td className="p-3.5">
-                      <span className="px-2.5 py-0.5 rounded-full bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 text-[10px] font-bold border border-green-300 dark:border-green-800">
-                        ACTIVE PASS
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="px-2.5 py-0.5 rounded-full bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 text-[10px] font-bold border border-green-300 dark:border-green-800">
+                          {isSuspended ? "SUSPENDED" : "ACTIVE PASS"}
+                        </span>
+                        {!hasValidPhoto && (
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 text-[9px] font-extrabold border border-red-300 dark:border-red-800 flex items-center gap-1">
+                            <AlertTriangle className="w-2.5 h-2.5 text-red-500" />
+                            <span>Photo Missing</span>
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenPhotoModal(s)}
-                          className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 flex items-center gap-1 transition-colors"
+                          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors ${
+                            !hasValidPhoto
+                              ? "bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse hover:bg-amber-200"
+                              : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700"
+                          }`}
                           title="Staff Photo Update (Anti-Fraud Override)"
                         >
-                          <Camera className="w-3.5 h-3.5 text-green-500" />
-                          <span>Photo</span>
+                          <Camera className={`w-3.5 h-3.5 ${!hasValidPhoto ? "text-amber-600 dark:text-amber-400" : "text-green-500"}`} />
+                          <span>{!hasValidPhoto ? "Upload Photo" : "Photo"}</span>
                         </button>
                         <button
                           onClick={() => handleToggleSuspension(s)}

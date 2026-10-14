@@ -33,7 +33,7 @@ export async function getStaffServerData(redirectPath: string = "/staff") {
     supabaseAdmin.from("routes").select("*"),
     supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
     supabaseAdmin.from("stops").select("*"),
-    supabaseAdmin.from("students").select("*"),
+    supabaseAdmin.from("students_full").select("*"),
     supabaseAdmin.from("staff").select("*"),
     supabaseAdmin.from("users").select("id, full_name, email, role, phone"),
     supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
@@ -117,7 +117,15 @@ export async function getStaffServerData(redirectPath: string = "/staff") {
     currentRouteId: b.current_route_id,
   }));
 
-  const students: Student[] = (dbStudents || []).map((s: any) => ({
+  // Deduplicate students by id
+  const studentMap = new Map<string, any>();
+  for (const s of dbStudents || []) {
+    if (s.id && !studentMap.has(s.id)) {
+      studentMap.set(s.id, s);
+    }
+  }
+
+  const students: Student[] = Array.from(studentMap.values()).map((s: any) => ({
     id: s.id,
     userId: s.user_id,
     fullName: s.full_name || s.name || "",
@@ -147,7 +155,7 @@ export async function getStaffServerData(redirectPath: string = "/staff") {
     id: sh.id,
     name: sh.name,
     shiftType: sh.type,
-    direction: sh.direction,
+    direction: sh.direction || (sh.type === "MORNING" ? "HOME_TO_CAMPUS" : "CAMPUS_TO_HOME"),
     startTime: sh.start_time ? sh.start_time.slice(0, 5) : "",
     endTime: sh.end_time ? sh.end_time.slice(0, 5) : "",
     bookingCutoffMins: Number(sh.booking_cutoff_minutes || 0),

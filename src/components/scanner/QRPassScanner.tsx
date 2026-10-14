@@ -825,15 +825,18 @@ export function QRPassScanner({
                     alt={pendingVerification.student.fullName}
                     className="w-28 h-36 sm:w-32 sm:h-40 object-cover rounded-2xl border-2 border-green-400/80 shadow-lg bg-gray-950"
                   />
-                  <div className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full bg-green-600 text-[9px] font-black text-white uppercase tracking-wider shadow">
-                    Official Photo
+                  <div className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full bg-green-600 text-[9px] font-black text-white uppercase tracking-wider shadow flex items-center gap-1">
+                    <ShieldCheck className="w-2.5 h-2.5" />
+                    <span>Official ID Photo</span>
                   </div>
                 </div>
               ) : (
-                <div className="w-28 h-36 sm:w-32 sm:h-40 rounded-2xl border-2 border-dashed border-gray-700 bg-gray-950 flex flex-col items-center justify-center text-gray-500 p-2 text-center">
-                  <User className="w-10 h-10 mb-1 text-gray-600" />
-                  <span className="text-[10px] font-bold">No Photo Uploaded</span>
-                  <span className="text-[8px] text-gray-600">Pending Student Submission</span>
+                <div className="w-28 h-36 sm:w-32 sm:h-40 rounded-2xl border-2 border-dashed border-red-500/80 bg-red-950/40 flex flex-col items-center justify-center text-red-400 p-2 text-center">
+                  <ShieldAlert className="w-9 h-9 mb-1 text-red-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase text-red-300">Photo Missing</span>
+                  <span className="text-[8px] text-red-400/90 font-bold mt-1 leading-tight">
+                    Inspect Physical College ID
+                  </span>
                 </div>
               )}
             </div>
@@ -870,9 +873,17 @@ export function QRPassScanner({
                 </div>
               </div>
 
-              <p className="text-[11px] text-yellow-300/90 font-medium flex items-center justify-center sm:justify-start gap-1.5 pt-1">
+              <p className={`text-[11px] font-medium flex items-center justify-center sm:justify-start gap-1.5 pt-1 ${
+                pendingVerification.student.photoUrl
+                  ? "text-yellow-300/90"
+                  : "text-red-400 font-bold"
+              }`}>
                 <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 text-yellow-400" />
-                <span>Confirm commuter face matches the official registered passport photo before boarding.</span>
+                <span>
+                  {pendingVerification.student.photoUrl
+                    ? "Conductor: Confirm commuter face matches official registered passport photo before boarding."
+                    : "⚠️ COMPULSORY PHOTO MISSING: Demand physical institutional ID card & verify student face before boarding."}
+                </span>
               </p>
             </div>
           </div>
@@ -886,7 +897,13 @@ export function QRPassScanner({
               className="w-full py-3.5 px-3 rounded-2xl bg-green-500 hover:bg-green-400  text-gray-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-green-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{isProcessing ? "Processing..." : "Confirm & In Bus"}</span>
+              <span>
+                {isProcessing
+                  ? "Processing..."
+                  : pendingVerification.student.photoUrl
+                  ? "Confirm & Board ✓"
+                  : "Verify Physical ID & Board ✓"}
+              </span>
             </button>
 
             <button

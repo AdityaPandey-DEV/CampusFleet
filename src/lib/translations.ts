@@ -128,7 +128,7 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
     dragDrop: "Drag & drop or click to select",
     selectFile: "Select File",
     overview: "Overview",
-    fleetRoutes: "Fleet & Routes",
+    fleetRoutes: "Buses & Corridors",
     tripsShifts: "Trips & Shifts",
     studentsRoster: "Students & Roster",
     reportsExports: "Reports & Exports",

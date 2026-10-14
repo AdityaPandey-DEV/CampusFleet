@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Users, MapPin, CheckCircle2, XCircle, Footprints, FileText } from "lucide-react";
+import { Search, Users, MapPin, CheckCircle2, XCircle, Footprints, FileText, AlertTriangle, ShieldCheck } from "lucide-react";
 import { Booking, Student, Stop, Bus } from "@/lib/types";
 
 interface ManifestTabProps {
@@ -175,6 +175,21 @@ export function ManifestTab({
                   >
                     {b.seatNumber || `WL-${b.waitlistPosition}`}
                   </div>
+
+                  {/* Student ID Photo for Conductor Visual Validation */}
+                  {s?.photoUrl ? (
+                    <div className="relative w-10 h-12 rounded-xl overflow-hidden border-2 border-green-500/80 bg-gray-950 flex-shrink-0 shadow-xs" title="Official Passport Photo Verified">
+                      <img src={s.photoUrl} alt={s.fullName} className="w-full h-full object-cover" />
+                      <div className="absolute bottom-0 inset-x-0 bg-green-600/90 text-[7px] text-white font-black text-center py-0.5 uppercase tracking-tighter">
+                        Photo OK
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-10 h-12 rounded-xl border border-dashed border-red-400 dark:border-red-800 bg-red-50 dark:bg-red-950/40 flex flex-col items-center justify-center text-red-500 flex-shrink-0 p-0.5 text-center" title="No Official Photo Uploaded - Conductor must inspect physical ID!">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span className="text-[6px] font-black uppercase tracking-tighter text-red-600 dark:text-red-400 leading-none mt-0.5">Check ID</span>
+                    </div>
+                  )}
 
                   <div className="min-w-0">
                     <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 flex-wrap">

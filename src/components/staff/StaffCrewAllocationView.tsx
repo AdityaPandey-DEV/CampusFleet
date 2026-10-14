@@ -159,10 +159,11 @@ export default function StaffCrewAllocationView({
   // Filtered Trips for selected date
   const filteredTrips = useMemo(() => {
     return trips.filter((t) => {
-      if (crewDate && t.tripDate && t.tripDate !== crewDate) return false;
       const shift = shifts.find(s => s.id === t.shiftId);
-      if (shiftFilter === "MORNING" && shift?.direction !== "HOME_TO_CAMPUS") return false;
-      if (shiftFilter === "EVENING" && shift?.direction !== "CAMPUS_TO_HOME") return false;
+      const isMorning = shift?.shiftType === "MORNING" || shift?.direction === "HOME_TO_CAMPUS" || Boolean(t.tripCode && t.tripCode.includes("-M-"));
+      const isEvening = shift?.shiftType === "EVENING" || shift?.direction === "CAMPUS_TO_HOME" || Boolean(t.tripCode && t.tripCode.includes("-E-"));
+      if (shiftFilter === "MORNING" && !isMorning) return false;
+      if (shiftFilter === "EVENING" && !isEvening) return false;
       if (!crewSearchQuery.trim()) return true;
       const q = crewSearchQuery.toLowerCase();
       const bus = buses.find((b) => b.id === t.busId);
@@ -426,10 +427,19 @@ export default function StaffCrewAllocationView({
 
                         <td className="p-3.5">
                           <div className="font-bold text-gray-800 dark:text-gray-200">{route?.name || "Route TBA"}</div>
-                          <div className="text-[10px] text-gray-400 font-mono">
+                          <div className="text-[10px] font-mono mt-0.5">
                             {(() => {
                               const shift = shifts.find(s => s.id === trip.shiftId);
-                              return shift?.direction === "HOME_TO_CAMPUS" ? "Morning Inbound" : "Evening Return";
+                              const isMorning = shift?.shiftType === "MORNING" || shift?.direction === "HOME_TO_CAMPUS" || Boolean(trip.tripCode && trip.tripCode.includes("-M-"));
+                              return isMorning ? (
+                                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
+                                  <span>🌅</span> Morning Inbound (07:30 AM)
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold">
+                                  <span>🌆</span> Evening Return (04:30 PM)
+                                </span>
+                              );
                             })()}
                           </div>
                         </td>

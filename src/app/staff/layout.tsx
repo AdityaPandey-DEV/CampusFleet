@@ -53,7 +53,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       ]
     },
     fleet: {
-      title: t('fleetRoutes') || "Fleet & Corridors",
+      title: t('fleetRoutes') || "Buses & Corridors",
       items: [
         { href: "/staff", label: "← " + t('hub'), shortLabel: t('hub'), icon: Home },
         { href: "/staff/fleet/buses", label: t('buses'), shortLabel: t('buses'), icon: BusFront },
