@@ -51,6 +51,7 @@ declare module "./_base" {
     // Trips
     assignTripCrew(tripId: string, driverId: string, conductorId: string): Promise<void>;
     createTrip(tripData: Omit<Trip, "id">): Promise<Trip>;
+    updateTrip(tripId: string, updates: Partial<Trip>): Promise<void>;
     deleteTrip(tripId: string): Promise<void>;
     lockTripManifest(tripId: string): Trip | undefined;
     // Telematics & Vehicle Issues
@@ -1005,6 +1006,28 @@ CampusFleetStore.prototype.lockTripManifest = function (this: CampusFleetStore, 
   this.trips = this.trips.map(t => (t.id === tripId ? updatedTrip : t));
   this.notify();
   return updatedTrip;
+};
+
+CampusFleetStore.prototype.updateTrip = async function (this: CampusFleetStore, tripId: string, updates: Partial<Trip>) {
+  this.trips = this.trips.map(t => (t.id === tripId ? { ...t, ...updates } : t));
+  this.notify();
+
+  try {
+    const dbUpdates: Record<string, any> = {};
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.startedAt !== undefined) dbUpdates.started_at = updates.startedAt;
+    if (updates.completedAt !== undefined) dbUpdates.completed_at = updates.completedAt;
+    if (updates.currentStopIndex !== undefined) dbUpdates.current_stop_index = updates.currentStopIndex;
+    if (updates.delayMinutes !== undefined) dbUpdates.delay_minutes = updates.delayMinutes;
+    if (updates.driverId !== undefined) dbUpdates.driver_id = updates.driverId;
+    if (updates.conductorId !== undefined) dbUpdates.conductor_id = updates.conductorId;
+
+    if (Object.keys(dbUpdates).length > 0) {
+      await supabase.from("trips").update(dbUpdates).eq("id", tripId);
+    }
+  } catch (e) {
+    console.warn("DB updateTrip error:", e);
+  }
 };
 
 // ── Telematics & Vehicle Issues ─────────────────────────────────────────────

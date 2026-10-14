@@ -194,7 +194,7 @@ export async function middleware(req: NextRequest) {
     transport_manager: ["/admin", "/staff"],
     staff: ["/staff"],
     supervisor: ["/staff"],
-    driver: ["/driver"],
+    driver: ["/driver", "/conductor"],
     conductor: ["/conductor"],
     teacher: ["/teacher"],
   };

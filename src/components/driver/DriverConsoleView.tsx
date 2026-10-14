@@ -83,10 +83,20 @@ export default function DriverConsoleView({
     return unsub;
   }, [initialTrips, initialBuses, initialRoutes, initialBookings, initialStops, trips.length, buses.length, routes.length, bookings.length, stops.length]);
 
-  const activeTrip = trips.find(t => 
+  const myAssignedTrips = trips.filter(t => 
     (currentUser?.id && t.driverId === currentUser.id) || 
     (currentUser?.staffId && t.driverId === currentUser.staffId)
-  ) || trips[0];
+  );
+  const eligibleTrips = myAssignedTrips.length > 0 ? myAssignedTrips : trips;
+  const [selectedTripId, setSelectedTripId] = useState<string>(() => eligibleTrips[0]?.id || "");
+
+  useEffect(() => {
+    if (eligibleTrips.length > 0 && (!selectedTripId || !eligibleTrips.some(t => t.id === selectedTripId))) {
+      setSelectedTripId(eligibleTrips[0].id);
+    }
+  }, [eligibleTrips, selectedTripId]);
+
+  const activeTrip = eligibleTrips.find(t => t.id === selectedTripId) || eligibleTrips[0];
   const bus = buses.find(b => b.id === activeTrip?.busId) || buses[0];
   const route = routes.find(r => r.id === activeTrip?.routeId) || routes[0];
   const tripBookings = bookings.filter(b => b.tripId === activeTrip?.id);
@@ -96,50 +106,79 @@ export default function DriverConsoleView({
     return computeDirectExpressRoute(route, tripBookings, bus?.capacity || 32);
   }, [route, tripBookings, bus]);
 
-  // Simulate periodic GPS coordinate update when broadcasting is on
+  const [gpsAccuracyMeters, setGpsAccuracyMeters] = useState<number | null>(null);
+  const [gpsStatusText, setGpsStatusText] = useState<string>("Hardware GPS Standby");
+
+  // Stream real device GPS coordinates when broadcasting and trip is active
   useEffect(() => {
-    if (!isBroadcasting || activeTrip?.status !== "IN_PROGRESS") return;
+    if (!isBroadcasting || activeTrip?.status !== "IN_PROGRESS") {
+      setGpsStatusText(activeTrip?.status !== "IN_PROGRESS" ? "Trip Standby" : "Broadcasting Paused");
+      return;
+    }
 
-    const interval = setInterval(() => {
-      const latDelta = (Math.random() - 0.3) * 0.001;
-      const speed = Math.floor(25 + Math.random() * 20);
-      store.updateLiveLocation({
-        busId: bus?.id,
-        tripId: activeTrip?.id,
-        latitude: liveLocation.latitude + latDelta,
-        speedKmh: speed,
-      });
-    }, 10000);
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      setGpsStatusText("Hardware GPS Sensor Unavailable");
+      return;
+    }
 
-    return () => clearInterval(interval);
-  }, [isBroadcasting, activeTrip?.status, activeTrip?.id, bus?.id, liveLocation.latitude]);
+    setGpsStatusText("Acquiring Hardware Satellite Lock...");
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, speed, heading, accuracy } = pos.coords;
+        const speedKmh = speed != null && !isNaN(speed) && speed >= 0 ? Math.round(speed * 3.6) : 0;
+        setGpsAccuracyMeters(Math.round(accuracy));
+        setGpsStatusText(`Device GPS Live (±${Math.round(accuracy)}m)`);
+
+        store.updateLiveLocation({
+          busId: bus?.id,
+          tripId: activeTrip?.id,
+          latitude,
+          longitude,
+          speedKmh,
+          headingDeg: heading && !isNaN(heading) ? heading : 0,
+          currentStopId: route?.stops?.[activeTrip?.currentStopIndex || 0]?.stopId,
+        });
+      },
+      (err) => {
+        console.warn("Hardware GPS sensor notice:", err);
+        setGpsStatusText(err.code === 1 ? "Location Permission Required" : "Searching GPS Satellite Signal");
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 3000,
+        timeout: 15000,
+      }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [isBroadcasting, activeTrip?.status, activeTrip?.id, bus?.id, route?.stops, activeTrip?.currentStopIndex]);
 
   const handleStartTrip = async () => {
     if (!activeTrip) return;
-    activeTrip.status = "IN_PROGRESS";
-    activeTrip.startedAt = new Date().toISOString();
+    const startedAt = new Date().toISOString();
     const startingStop = route?.stops?.[0]?.stop;
+
+    setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, status: "IN_PROGRESS", startedAt, currentStopIndex: 0 } : t));
+
+    await store.updateTrip(activeTrip.id, {
+      status: "IN_PROGRESS",
+      startedAt,
+      currentStopIndex: 0,
+    });
+
     store.updateLiveLocation({
       busId: bus?.id,
       tripId: activeTrip?.id,
-      latitude: startingStop?.latitude || 29.2889,
-      longitude: startingStop?.longitude || 79.4678,
-      speedKmh: 25,
-      headingDeg: 135,
+      latitude: startingStop?.latitude || liveLocation.latitude,
+      longitude: startingStop?.longitude || liveLocation.longitude,
+      speedKmh: 0,
+      headingDeg: 0,
       delayMinutes: 0,
       currentStopId: startingStop?.id,
     });
-
-    // Milestone persistence in PostgreSQL (Single Source of Truth)
-    try {
-      await supabase.from("trips").update({
-        status: "IN_PROGRESS",
-        started_at: activeTrip.startedAt,
-        current_stop_index: 0,
-      }).eq("id", activeTrip.id);
-    } catch (err) {
-      console.warn("DB trip start milestone:", err);
-    }
 
     setToastMessage("✓ Trip started! GPS coordinates broadcasting live to commuters.");
     setTimeout(() => setToastMessage(null), 3500);
@@ -148,13 +187,21 @@ export default function DriverConsoleView({
   const handleEndTrip = async () => {
     if (!activeTrip) return;
     if (confirm("Are you sure you want to end this trip?")) {
-      activeTrip.status = "COMPLETED";
-      activeTrip.completedAt = new Date().toISOString();
+      const completedAt = new Date().toISOString();
+
+      setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, status: "COMPLETED", completedAt } : t));
+
+      await store.updateTrip(activeTrip.id, {
+        status: "COMPLETED",
+        completedAt,
+      });
+
       const campusOrEndStop =
         route?.stops?.[route.stops.length - 1]?.stop ||
         store.getStops().find((s) => s.name.toLowerCase().includes("campus terminal")) ||
         store.getStops().find((s) => s.campus && s.name.toLowerCase().includes("campus")) ||
         store.getStops()[0];
+
       if (campusOrEndStop) {
         store.updateLiveLocation({
           busId: bus?.id,
@@ -165,16 +212,6 @@ export default function DriverConsoleView({
           headingDeg: 0,
           delayMinutes: 0,
         });
-      }
-
-      // Milestone persistence in PostgreSQL
-      try {
-        await supabase.from("trips").update({
-          status: "COMPLETED",
-          completed_at: activeTrip.completedAt,
-        }).eq("id", activeTrip.id);
-      } catch (err) {
-        console.warn("DB trip end milestone:", err);
       }
 
       setToastMessage("✓ Trip completed successfully.");
@@ -190,8 +227,11 @@ export default function DriverConsoleView({
     // In Express Direct mode, once the last booked passenger stop is passed, jump straight to Campus
     if (directExpressResult.isExpressDirect && currentStop?.id === directExpressResult.lastPassengerStop?.id) {
       const campusIdx = route.stops.length - 1;
-      activeTrip.currentStopIndex = campusIdx;
       const campusStop = route.stops[campusIdx].stop;
+
+      setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, currentStopIndex: campusIdx } : t));
+      await store.updateTrip(activeTrip.id, { currentStopIndex: campusIdx });
+
       store.updateLiveLocation({
         busId: bus?.id,
         tripId: activeTrip?.id,
@@ -202,14 +242,6 @@ export default function DriverConsoleView({
         speedKmh: 35,
       });
 
-      try {
-        await supabase.from("trips").update({
-          current_stop_index: campusIdx,
-        }).eq("id", activeTrip.id);
-      } catch (err) {
-        console.warn("DB trip advance milestone:", err);
-      }
-
       setToastMessage(`⚡ Express Non-Stop: Arrived directly at ${campusStop.name}`);
       setTimeout(() => setToastMessage(null), 3500);
       return;
@@ -217,8 +249,11 @@ export default function DriverConsoleView({
 
     const nextIdx = currentIdx + 1;
     if (nextIdx < route.stops.length) {
-      activeTrip.currentStopIndex = nextIdx;
       const nextStop = route.stops[nextIdx].stop;
+
+      setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, currentStopIndex: nextIdx } : t));
+      await store.updateTrip(activeTrip.id, { currentStopIndex: nextIdx });
+
       store.updateLiveLocation({
         busId: bus?.id,
         tripId: activeTrip?.id,
@@ -229,14 +264,6 @@ export default function DriverConsoleView({
         speedKmh: 28,
       });
 
-      try {
-        await supabase.from("trips").update({
-          current_stop_index: nextIdx,
-        }).eq("id", activeTrip.id);
-      } catch (err) {
-        console.warn("DB trip advance milestone:", err);
-      }
-
       setToastMessage(`✓ Arrived at ${nextStop.name}`);
       setTimeout(() => setToastMessage(null), 3000);
     }
@@ -244,13 +271,14 @@ export default function DriverConsoleView({
 
   const handleReportIncident = async () => {
     if (!selectedIncident || !bus) return;
+    const driverName = currentUser?.fullName ? `${currentUser.fullName} (Driver)` : "Assigned Fleet Driver";
     await store.addVehicleIssue({
       busId: bus.id,
       busNumber: bus.busNumber,
-      reportedBy: "Rajesh Kumar (Driver)",
+      reportedBy: driverName,
       issueType: selectedIncident as any,
       severity: selectedIncident === "BREAKDOWN" || selectedIncident === "EMERGENCY" ? "HIGH" : "MEDIUM",
-      description: incidentNotes || `Driver reported ${selectedIncident} during trip.`,
+      description: incidentNotes || `${driverName} reported ${selectedIncident} during trip.`,
     });
     setToastMessage(`✓ Incident [${selectedIncident}] logged with Transport Dispatch & Database!`);
     setIsIncidentModalOpen(false);
@@ -360,6 +388,24 @@ export default function DriverConsoleView({
             </div>
           </div>
 
+          {/* Shift Selector if multiple trips assigned */}
+          {eligibleTrips.length > 1 && (
+            <div className="flex items-center justify-between pt-1 pb-1 border-b border-gray-100 dark:border-gray-800">
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Scheduled Run:</span>
+              <select
+                value={activeTrip?.id}
+                onChange={(e) => setSelectedTripId(e.target.value)}
+                className="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white outline-none cursor-pointer"
+              >
+                {eligibleTrips.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.tripCode} ({t.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <div className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">{route?.name || "Campus Shuttle Route"}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5">
@@ -419,12 +465,19 @@ export default function DriverConsoleView({
         <div className="bg-white dark:bg-gray-900/80 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm dark:shadow-xl gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className={`p-3 rounded-2xl flex-shrink-0 ${isBroadcasting ? "bg-green-100 dark:bg-green-950/80 text-green-700 dark:text-green-400 ring-2 ring-green-500/30" : "bg-gray-100 dark:bg-gray-800 text-gray-400"}`}>
-              <Radio className={`w-5 h-5 ${isBroadcasting ? "animate-pulse" : ""}`} />
+              <Radio className={`w-5 h-5 ${isBroadcasting && activeTrip?.status === "IN_PROGRESS" ? "animate-pulse" : ""}`} />
             </div>
             <div className="min-w-0">
-              <div className="font-bold text-sm text-gray-900 dark:text-white truncate">GPS Telemetry Stream</div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-gray-900 dark:text-white truncate">Hardware GPS Telemetry</span>
+                {gpsAccuracyMeters !== null && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
+                    ±{gpsAccuracyMeters}m
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
-                {liveLocation.latitude.toFixed(4)}, {liveLocation.longitude.toFixed(4)} • {liveLocation.speedKmh} km/h
+                {liveLocation.latitude.toFixed(4)}, {liveLocation.longitude.toFixed(4)} • {liveLocation.speedKmh} km/h • {gpsStatusText}
               </div>
             </div>
           </div>
