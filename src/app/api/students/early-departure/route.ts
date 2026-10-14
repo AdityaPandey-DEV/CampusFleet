@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isStaffOrAdmin = ["admin", "staff", "teacher", "transport_manager"].includes(session.role);
+    const isStaffOrAdmin = ["admin", "transport_admin", "teacher", "transport_manager"].includes(session.role);
     const targetStudentId = (!isStaffOrAdmin)
       ? (session.studentId || session.userId)
       : (studentId || session.studentId || session.userId);

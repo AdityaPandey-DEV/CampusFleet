@@ -219,9 +219,8 @@ export default function LoginPage() {
         } else if (
           authUser.role === "driver" ||
           authUser.role === "conductor" ||
-          authUser.role === "staff" ||
+          authUser.role === "transport_admin" ||
           authUser.role === "transport_manager" ||
-          authUser.role === "supervisor" ||
           authUser.role === "teacher"
         ) {
           setAuthStep("SUCCESS");

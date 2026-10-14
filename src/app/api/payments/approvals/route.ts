@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const session = await getSessionFromRequest(request);
   const isStaffOrAdmin =
     session &&
-    ["admin", "staff", "transport_manager", "supervisor"].includes(session.role);
+    ["admin", "transport_admin", "transport_manager"].includes(session.role);
 
   // Allow students to query their own submissions (filtered below)
   if (!session) {
@@ -87,10 +87,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const allowedRoles = ["admin", "staff", "transport_manager", "supervisor"];
+  const allowedRoles = ["admin", "transport_admin", "transport_manager"];
   if (!allowedRoles.includes(session.role)) {
     return NextResponse.json(
-      { success: false, error: "Only staff and administrators can approve payments." },
+      { success: false, error: "Only transport staff and administrators can approve payments." },
       { status: 403 }
     );
   }

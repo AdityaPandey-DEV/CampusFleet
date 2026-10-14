@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1b. Cloudflare Security Audit: Strict IDOR Guard
-    const isStaffOrAdmin = ["admin", "staff", "transport_manager", "supervisor"].includes(session.role);
+    const isStaffOrAdmin = ["admin", "transport_admin", "transport_manager"].includes(session.role);
     if (!isStaffOrAdmin) {
       const matchesSession =
         student.user_id === session.userId ||

@@ -33,6 +33,7 @@ import {
   Smartphone,
   Globe,
   ExternalLink,
+  Navigation,
 } from "lucide-react";
 
 export interface NavLinkItem {
@@ -105,14 +106,24 @@ const ROLE_PORTALS: RolePortalOption[] = [
     description: "Fleet command, routes, crew scheduling & finance reports",
   },
   {
-    role: "staff",
-    label: "Staff Operations Console",
-    shortLabel: "Staff Ops",
-    path: "/staff",
+    role: "transport_admin",
+    label: "Transport Admin Desk",
+    shortLabel: "Transport Admin",
+    path: "/transport-admin",
     icon: Building2,
     color: "text-blue-500",
     gradient: "bg-blue-600 ",
-    description: "Fee approvals, payment QR generator, audits & shuttle merges",
+    description: "Fee approvals, student passes, staff accounts & workshop repairs",
+  },
+  {
+    role: "transport_manager",
+    label: "Transport Manager Console",
+    shortLabel: "Transport Manager",
+    path: "/transport-manager",
+    icon: Navigation,
+    color: "text-amber-500",
+    gradient: "bg-amber-600 ",
+    description: "Bus fleet, routes, stops, demand & combine buses (merges)",
   },
   {
     role: "driver",
@@ -193,7 +204,6 @@ export function UnifiedAppHeader({
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com").toLowerCase();
   const isActualAdmin =
     userAccountRole === "admin" ||
-    userAccountRole === "transport_manager" ||
     currentUser?.email?.toLowerCase() === adminEmail;
 
   // Real authenticated student identity matching
@@ -208,13 +218,26 @@ export function UnifiedAppHeader({
 
   // Strict role-based portal switching
   const allowedPortals = ROLE_PORTALS.filter(opt => {
-    if (isActualAdmin) return opt.role === "admin" || opt.role === "staff";
-    if (userAccountRole === "conductor") return opt.role === "conductor";
-    if (userAccountRole === "driver") return opt.role === "driver" || opt.role === "conductor";
-    if (userAccountRole === "staff" || userAccountRole === "supervisor") return opt.role === "staff";
-    if (userAccountRole === "teacher") return opt.role === "teacher";
-    if (userAccountRole === "student") return opt.role === "student";
-    return false;
+    if (isActualAdmin) {
+      return opt.role === "admin" || opt.role === "transport_admin" || opt.role === "transport_manager";
+    }
+    const currentRole = (userAccountRole || "student") as string;
+    switch (currentRole) {
+      case "transport_admin":
+        return opt.role === "transport_admin" || opt.role === "transport_manager";
+      case "transport_manager":
+        return opt.role === "transport_manager";
+      case "conductor":
+        return opt.role === "conductor";
+      case "driver":
+        return opt.role === "driver" || opt.role === "conductor";
+      case "teacher":
+        return opt.role === "teacher";
+      case "student":
+        return opt.role === "student";
+      default:
+        return opt.role === "student";
+    }
   });
 
   const currentPortalConfig =
@@ -237,16 +260,17 @@ export function UnifiedAppHeader({
   const getRoleBadgeClasses = (r: string) => {
     switch (r) {
       case "admin":
-      case "transport_manager":
         return "bg-yellow-100 dark:bg-yellow-950/60 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800";
+      case "transport_admin":
+        return "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+      case "transport_manager":
+        return "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800";
       case "teacher":
         return "bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800";
       case "driver":
         return "bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800";
       case "conductor":
         return "bg-pink-100 dark:bg-pink-950/60 text-pink-800 dark:text-pink-300 border-pink-200 dark:border-pink-800";
-      case "staff":
-        return "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800";
       default:
         return "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800";
     }
@@ -288,7 +312,7 @@ export function UnifiedAppHeader({
           icon: BusFront,
         };
       }
-      if (portalViewRole === "staff") {
+      if (portalViewRole === "transport_admin") {
         return isActualAdmin
           ? {
               label: "Master Admin Console",
@@ -297,11 +321,19 @@ export function UnifiedAppHeader({
               icon: LayoutDashboard,
             }
           : {
-              label: "Student & Mobility Portal",
-              href: "/portal",
-              subtitle: "Student bookings & digital pass status",
-              icon: GraduationCap,
+              label: "Transport Manager Console",
+              href: "/transport-manager",
+              subtitle: "Buses, routes, trips & combine buses",
+              icon: Navigation,
             };
+      }
+      if (portalViewRole === "transport_manager") {
+        return {
+          label: "Transport Admin Desk",
+          href: "/transport-admin",
+          subtitle: "Fee approvals, student passes & desk ops",
+          icon: Building2,
+        };
       }
       if (portalViewRole === "student" && pathname !== "/portal/tracker") {
         return {

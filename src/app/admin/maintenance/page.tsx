@@ -19,7 +19,7 @@ export default async function MaintenanceDeskPage() {
     redirect("/login?redirect=/admin/maintenance");
   }
 
-  if (session.role !== "admin" && session.role !== "transport_manager" && session.role !== "staff") {
+  if (session.role !== "admin" && session.role !== "transport_manager" && session.role !== "transport_admin") {
     redirect("/portal");
   }
 

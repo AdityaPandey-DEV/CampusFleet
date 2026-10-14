@@ -94,43 +94,38 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: "/staff/dispatch/crew",
-        destination: "/staff/fleet/crew",
+        source: "/admin/staff",
+        destination: "/admin/users",
         permanent: true,
       },
       {
-        source: "/staff/allocations/crew",
-        destination: "/staff/fleet/crew",
+        source: "/transport-admin/system/staff",
+        destination: "/transport-admin/system/users",
         permanent: true,
       },
       {
-        source: "/staff/dispatch/merges",
-        destination: "/staff/merges",
+        source: "/staff/:path*",
+        destination: "/transport-admin/:path*",
         permanent: true,
       },
       {
-        source: "/staff/allocations/merges",
-        destination: "/staff/merges",
+        source: "/staff",
+        destination: "/transport-admin",
         permanent: true,
       },
       {
-        source: "/staff/allocations/demand",
-        destination: "/staff/dispatch/demand",
+        source: "/transport-head/:path*",
+        destination: "/transport-manager/:path*",
         permanent: true,
       },
       {
-        source: "/staff/allocations",
-        destination: "/staff/fleet/crew",
+        source: "/transport-head",
+        destination: "/transport-manager",
         permanent: true,
       },
       {
-        source: "/staff/dispatch",
-        destination: "/staff/dispatch/trips",
-        permanent: true,
-      },
-      {
-        source: "/staff/fleet",
-        destination: "/staff/fleet/buses",
+        source: "/transport",
+        destination: "/transport-manager",
         permanent: true,
       },
     ];

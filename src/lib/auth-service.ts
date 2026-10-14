@@ -111,10 +111,10 @@ class AuthService {
     switch (role) {
       case "admin":
         return "/admin";
-      case "staff":
+      case "transport_admin":
+        return "/transport-admin";
       case "transport_manager":
-      case "supervisor":
-        return "/staff";
+        return "/transport-manager";
       case "driver":
         return "/driver";
       case "conductor":

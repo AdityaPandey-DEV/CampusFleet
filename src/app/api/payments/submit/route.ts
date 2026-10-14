@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     // ── Ownership Check ───────────────────────────────────────────────
     // Verify the caller owns this student record (unless staff/admin)
-    const isStaffOrAdmin = ["admin", "staff", "transport_manager", "supervisor"].includes(session.role);
+    const isStaffOrAdmin = ["admin", "transport_admin", "transport_manager"].includes(session.role);
     if (!isStaffOrAdmin) {
       const { data: studentRecord } = await supabaseAdmin
         .from("students")

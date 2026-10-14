@@ -13,6 +13,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Home,
+  Compass,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -28,24 +29,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return unsub;
   }, []);
 
-  // Access Barrier: Only Admin (and transport_manager) can access the Admin Portal
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "transport_manager";
+  // Access Barrier: Only Master Admin can access the Admin Portal
+  const isAdmin = currentUser?.role === "admin";
   if (currentUser && !isAdmin) {
     const role = currentUser.role;
-    const isStaff = role === "staff";
+    const isTransportAdmin = role === "transport_admin";
+    const isTransportManager = role === "transport_manager";
     const isDriver = role === "driver";
     const isConductor = role === "conductor";
 
-    const targetPortal = isStaff
-      ? "/staff"
+    const targetPortal = isTransportAdmin
+      ? "/transport-admin"
+      : isTransportManager
+      ? "/transport-manager"
       : isDriver
       ? "/driver"
       : isConductor
       ? "/conductor"
       : "/portal";
 
-    const targetLabel = isStaff
-      ? "Go to Staff Operations Panel"
+    const targetLabel = isTransportAdmin
+      ? "Go to Transport Admin Desk"
+      : isTransportManager
+      ? "Go to Transport Manager Console"
       : isDriver
       ? "Go to Driver Cockpit"
       : isConductor
@@ -60,8 +66,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <h2 className="text-xl font-black">Access Restricted</h2>
           <p className="text-xs text-gray-300">
-            {isStaff
-              ? "Staff members cannot access the Master Admin Console. Staff operations are managed in the Staff Operations Panel."
+            {isTransportAdmin
+              ? "Transport Admin officers cannot access the Master Admin Console. Administrative tasks are managed in the Transport Admin Desk."
+              : isTransportManager
+              ? "Transport Managers cannot access the Master Admin Console. Fleet tasks are managed in the Transport Manager Console."
               : isDriver
               ? "Drivers cannot access the Master Admin Console. Please navigate to the Driver Telematics Console."
               : isConductor
@@ -89,23 +97,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { href: "/admin", label: "← Hub", shortLabel: "Hub", icon: Home },
         { href: "/admin/maintenance", label: "Workshop", shortLabel: "Workshop", icon: Wrench },
-        { href: "/staff", label: "Staff Panel", shortLabel: "Staff Ops", icon: ShieldCheck },
+        { href: "/transport-admin", label: "Transport Admin", shortLabel: "Admin Desk", icon: ShieldCheck },
+        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Fleet Ops", icon: Compass },
       ]
     },
-    staff: {
-      title: "Staff & RBAC",
+    users: {
+      title: "Accounts & Roles",
       items: [
         { href: "/admin", label: "← Hub", shortLabel: "Hub", icon: Home },
-        { href: "/admin/staff", label: "Staff Directory", shortLabel: "Staff", icon: Users },
-        { href: "/staff", label: "Staff Panel", shortLabel: "Staff Ops", icon: ShieldCheck },
+        { href: "/admin/users", label: "User Accounts", shortLabel: "Users", icon: Users },
+        { href: "/transport-admin", label: "Transport Admin", shortLabel: "Admin Desk", icon: ShieldCheck },
+        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Fleet Ops", icon: Compass },
       ]
     }
   };
 
   const topLevelLinks = [
     { href: "/admin/maintenance", label: "Maintenance", icon: Wrench },
-    { href: "/admin/staff", label: "Staff & RBAC", icon: Users },
-    { href: "/staff", label: "Staff Panel", icon: ShieldCheck },
+    { href: "/admin/users", label: "Accounts & Roles", icon: Users },
+    { href: "/transport-admin", label: "Transport Admin", icon: ShieldCheck },
+    { href: "/transport-manager", label: "Transport Manager", icon: Compass },
   ];
 
   let currentNavLinks = topLevelLinks;
@@ -114,9 +125,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (pathname.startsWith("/admin/maintenance")) {
     currentNavLinks = subPortals.maintenance.items;
     currentTitle = subPortals.maintenance.title;
-  } else if (pathname.startsWith("/admin/staff")) {
-    currentNavLinks = subPortals.staff.items;
-    currentTitle = subPortals.staff.title;
+  } else if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/staff")) {
+    currentNavLinks = subPortals.users.items;
+    currentTitle = subPortals.users.title;
   }
 
   return (

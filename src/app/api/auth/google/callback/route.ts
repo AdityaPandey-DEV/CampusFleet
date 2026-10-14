@@ -127,9 +127,8 @@ export async function GET(req: NextRequest) {
       case "admin": redirectPath = "/admin"; break;
       case "driver": redirectPath = "/driver"; break;
       case "conductor": redirectPath = "/conductor"; break;
-      case "staff":
-      case "transport_manager":
-      case "supervisor": redirectPath = "/staff"; break;
+      case "transport_admin": redirectPath = "/transport-admin"; break;
+      case "transport_manager": redirectPath = "/transport-manager"; break;
       case "teacher": redirectPath = "/teacher"; break;
       default: redirectPath = "/portal";
     }

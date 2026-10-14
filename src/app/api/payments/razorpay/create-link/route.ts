@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const amountInPaise = Math.round(amountToPay * 100);
 
     // Verify ownership
-    const isStaffOrAdmin = ["admin", "staff", "transport_manager", "supervisor"].includes(session.role);
+    const isStaffOrAdmin = ["admin", "transport_admin", "transport_manager"].includes(session.role);
     if (!isStaffOrAdmin) {
       if (!studentRecord || studentRecord.user_id !== session.userId) {
         return NextResponse.json(

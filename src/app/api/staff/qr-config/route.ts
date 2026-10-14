@@ -79,11 +79,11 @@ export async function POST(req: NextRequest) {
 
     // Log institutional audit
     await supabaseAdmin.from("audit_logs").insert({
-      user_role: "staff",
+      user_role: "transport_admin",
       action: "UPDATE_PAYMENT_QR_CONFIG",
       entity: "SystemConfig",
       entity_id: "payment_qr_config",
-      reason: `Staff updated payment QR / UPI VPA to ${newConfig.upi_id}`,
+      reason: `Transport Admin updated payment QR / UPI VPA to ${newConfig.upi_id}`,
       new_value: newConfig,
     });
 

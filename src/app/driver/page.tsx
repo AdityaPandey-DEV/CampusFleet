@@ -22,7 +22,7 @@ export default async function DriverPage() {
 
   // 2. Strict Role Authorization check:
   // If not driver, conductor, staff, or admin, route to student portal
-  if (session.role !== "driver" && session.role !== "admin" && session.role !== "staff" && session.role !== "conductor") {
+  if (session.role !== "driver" && session.role !== "admin" && session.role !== "transport_admin" && session.role !== "transport_manager" && session.role !== "conductor") {
     redirect("/portal");
   }
 
@@ -156,7 +156,7 @@ export default async function DriverPage() {
   }));
 
   const userRole = (session.role as string) || "";
-  const isStaffOrAdmin = userRole === "admin" || userRole === "staff" || userRole === "transport_manager";
+  const isStaffOrAdmin = userRole === "admin" || userRole === "transport_admin" || userRole === "transport_manager";
   const visibleTrips = trips.filter(t => {
     const isSpecialTrip = t.isSpecial || t.facilityType === "PLACEMENT_DRIVE" || t.facilityType === "EVENT";
     if (isSpecialTrip) {

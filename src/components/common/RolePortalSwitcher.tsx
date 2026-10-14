@@ -15,6 +15,7 @@ import {
   BookOpen,
   ArrowRight,
   Building2,
+  Compass,
 } from "lucide-react";
 
 interface RolePortalOption {
@@ -53,16 +54,25 @@ const PORTAL_OPTIONS: RolePortalOption[] = [
     path: "/admin",
     icon: LayoutDashboard,
     color: "bg-yellow-600  text-yellow-400",
-    description: "Fleet CRUD, live dispatch, telemetry logs, and financial reports",
+    description: "Master college control, global audit logs, and institutional settings",
   },
   {
-    role: "staff",
-    label: "Staff Operations Console",
-    shortLabel: "Staff Ops",
-    path: "/staff",
+    role: "transport_admin",
+    label: "Transport Admin Desk",
+    shortLabel: "Transport Admin",
+    path: "/transport-admin",
     icon: Building2,
     color: "bg-blue-600  text-blue-400",
-    description: "Payment QR manager, fee approvals, Excel audit export, route demand & bus merge optimizer",
+    description: "Bus fees, student passes, staff accounts, and workshop repairs",
+  },
+  {
+    role: "transport_manager",
+    label: "Transport Manager Console",
+    shortLabel: "Transport Manager",
+    path: "/transport-manager",
+    icon: Compass,
+    color: "bg-amber-600  text-amber-400",
+    description: "Buses, routes & stops, passenger demand, and combine buses",
   },
   {
     role: "driver",
@@ -113,22 +123,25 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
   }, []);
 
   const userRole = currentUser?.role || "student";
-  const isAdmin = userRole === "admin" || userRole === "transport_manager";
+  const isAdmin = userRole === "admin";
+  const isTransportAdmin = userRole === "transport_admin";
+  const isTransportManager = userRole === "transport_manager";
   const isTeacher = userRole === "teacher";
-  const isStaff = userRole === "staff";
   const isDriver = userRole === "driver";
   const isConductor = userRole === "conductor";
 
   // Strict Hierarchy Filter:
-  // Admin: Can ONLY access Admin and Staff panel
-  // Staff: Staff Operations Console only
+  // Admin: Can access Admin, Transport Admin, and Transport Manager
+  // Transport Admin: Can access Transport Admin and Transport Manager
+  // Transport Manager: Transport Manager console only
   // Driver: Driver Console & Conductor Console (backup)
   // Conductor: Conductor Console only
   // Teacher: Teacher Desk only
   // Student: Student Portal only
   const allowedOptions = PORTAL_OPTIONS.filter(opt => {
-    if (isAdmin) return opt.role === "admin" || opt.role === "staff";
-    if (isStaff) return opt.role === "staff";
+    if (isAdmin) return opt.role === "admin" || opt.role === "transport_admin" || opt.role === "transport_manager";
+    if (isTransportAdmin) return opt.role === "transport_admin" || opt.role === "transport_manager";
+    if (isTransportManager) return opt.role === "transport_manager";
     if (isDriver) return opt.role === "driver" || opt.role === "conductor";
     if (isConductor) return opt.role === "conductor";
     if (isTeacher) return opt.role === "teacher";

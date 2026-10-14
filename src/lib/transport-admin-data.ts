@@ -1,0 +1,295 @@
+import { getSession } from "@/lib/jwt";
+import { redirect } from "next/navigation";
+import { supabaseAdmin } from "@/lib/supabaseClient";
+import type { Route, Bus, Stop, Student, Trip, Booking, Staff, UserAccount, Campus, ClassItem, Shift, TripDirection } from "@/lib/types";
+
+export async function getStaffServerData(redirectPath: string = "/transport-admin") {
+  const session = await getSession();
+
+  if (!session) {
+    redirect(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+  }
+
+  if (session.role !== "transport_admin" && session.role !== "admin" && session.role !== "transport_manager") {
+    redirect(session.role === "driver" ? "/driver" : session.role === "conductor" ? "/conductor" : "/portal");
+  }
+
+  const [
+    { data: dbTrips },
+    { data: dbBuses },
+    { data: dbRoutes },
+    { data: dbBookings },
+    { data: dbStops },
+    { data: dbStudents },
+    { data: dbStaff },
+    { data: dbUsers },
+    { data: dbRouteStops },
+    { data: dbCampuses },
+    { data: dbClasses },
+    { data: dbShifts },
+  ] = await Promise.all([
+    supabaseAdmin.from("trips").select("*").order("trip_code"),
+    supabaseAdmin.from("buses").select("*"),
+    supabaseAdmin.from("routes").select("*"),
+    supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
+    supabaseAdmin.from("stops").select("*"),
+    supabaseAdmin.from("students_full").select("*"),
+    supabaseAdmin.from("staff").select("*"),
+    supabaseAdmin.from("users").select("id, full_name, email, role, phone"),
+    supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
+    supabaseAdmin.from("campuses").select("*"),
+    supabaseAdmin.from("classes").select("*"),
+    supabaseAdmin.from("shifts").select("*"),
+  ]);
+
+  const stops: Stop[] = (dbStops || []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    code: s.code,
+    latitude: Number(s.latitude),
+    longitude: Number(s.longitude),
+    landmark: s.landmark,
+    geofenceRadiusMeters: Number(s.geofence_radius),
+    campusId: s.campus_id || s.campus,
+    campus: s.campus,
+    isBusMergeStop: Boolean(s.is_bus_merge_stop),
+    zoneCode: s.zone_code,
+  }));
+
+  const stopMap = new Map(stops.map((s) => [s.id, s]));
+
+  const routes: Route[] = (dbRoutes || []).map((r: any) => {
+    let routeStops = (dbRouteStops || [])
+      .filter((rs: any) => rs.route_id === r.id && stopMap.has(rs.stop_id))
+      .sort((a: any, b: any) => (a.stop_order ?? a.stop_sequence ?? 0) - (b.stop_order ?? b.stop_sequence ?? 0))
+      .map((rs: any) => ({
+        stopId: rs.stop_id,
+        stopOrder: rs.stop_order || rs.stop_sequence || 0,
+        stopSequence: rs.stop_order || rs.stop_sequence || 0,
+        arrivalOffsetMinutes: rs.arrival_offset_minutes || 0,
+        bufferTimeMinutes: rs.buffer_time_minutes || 0,
+        stop: stopMap.get(rs.stop_id)!,
+      }));
+
+    if (routeStops.length === 0 && Array.isArray(r.stops_data) && r.stops_data.length > 0) {
+      routeStops = r.stops_data
+        .map((rs: any, idx: number) => {
+          const stopId = rs.stopId || rs.id || rs.stop?.id;
+          const stopObj = stopMap.get(stopId) || rs.stop;
+          if (!stopObj) return null;
+          return {
+            stopId: stopObj.id || stopId,
+            stopOrder: rs.stopOrder || idx + 1,
+            stopSequence: rs.stopOrder || idx + 1,
+            arrivalOffsetMinutes: Number(rs.arrivalOffsetMinutes),
+            bufferTimeMinutes: Number(rs.bufferTimeMinutes),
+            stop: stopObj,
+          };
+        })
+        .filter(Boolean) as any[];
+    }
+
+    return {
+      id: r.id,
+      code: r.code,
+      name: r.name,
+      description: r.description,
+      direction: r.direction,
+      color: r.color,
+      totalDistanceKm: Number(r.total_distance_km),
+      estimatedDurationMins: Number(r.estimated_duration_mins),
+      isActive: Boolean(r.is_active),
+      stops: routeStops,
+    };
+  });
+
+  const buses: Bus[] = (dbBuses || []).map((b: any) => ({
+    id: b.id,
+    busNumber: b.bus_number,
+    registrationNo: b.registration_no || b.bus_number,
+    model: b.model || "",
+    capacity: Number(b.capacity || 0),
+    seatLayout: (b.seat_layout as any) || "NONE",
+    status: b.status || "ACTIVE",
+    gpsDeviceId: b.gps_device_id || "",
+    insuranceExpiry: b.insurance_expiry || "",
+    maintenanceDueDate: b.maintenance_due_date || "",
+    currentRouteId: b.current_route_id,
+  }));
+
+  // Deduplicate students by id
+  const studentMap = new Map<string, any>();
+  for (const s of dbStudents || []) {
+    if (s.id && !studentMap.has(s.id)) {
+      studentMap.set(s.id, s);
+    }
+  }
+
+  const students: Student[] = Array.from(studentMap.values()).map((s: any) => ({
+    id: s.id,
+    userId: s.user_id,
+    fullName: s.full_name || s.name || "",
+    email: s.email || "",
+    phone: s.phone,
+    department: s.department || "",
+    semester: s.semester ? String(s.semester) : "",
+    zoneCode: s.zone_code,
+    primaryStopId: s.primary_stop_id,
+    primaryRouteId: s.primary_route_id,
+    campusId: s.campus_id,
+    campus: s.campus,
+    emergencyContact: s.emergency_contact || null,
+    transportAccessSuspended: Boolean(s.transport_access_suspended),
+    hasActiveSubscription: Boolean(s.has_active_subscription),
+    subscriptionExpiryDate: s.subscription_expiry_date,
+    paymentStatus: s.payment_status,
+    totalFeeDue: Number(s.total_fee_due || 0),
+    totalFeePaid: Number(s.total_fee_paid || 0),
+    photoUrl: s.photo_url || "",
+    photoLocked: Boolean(s.photo_locked),
+  }));
+
+  const shiftMap = new Map((dbShifts || []).map((s: any) => [s.id, s]));
+
+  const shifts: Shift[] = (dbShifts || []).map((sh: any) => ({
+    id: sh.id,
+    name: sh.name,
+    shiftType: sh.type,
+    direction: sh.direction || (sh.type === "MORNING" ? "HOME_TO_CAMPUS" : "CAMPUS_TO_HOME"),
+    startTime: sh.start_time ? sh.start_time.slice(0, 5) : "",
+    endTime: sh.end_time ? sh.end_time.slice(0, 5) : "",
+    bookingCutoffMins: Number(sh.booking_cutoff_minutes || 0),
+    isSpecial: Boolean(sh.is_special),
+  }));
+
+  const trips: Trip[] = (dbTrips || []).map((t: any) => {
+    const shift = shiftMap.get(t.shift_id);
+    const isEvening =
+      (t.trip_code && t.trip_code.includes("-E-")) ||
+      t.shift_id === "shift-2" ||
+      t.shift_id === "shift-evening" ||
+      shift?.type === "EVENING";
+    const isC2C =
+      (t.trip_code && (t.trip_code.includes("C2C") || t.trip_code.includes("DDN"))) ||
+      Boolean(t.is_special) ||
+      Boolean(shift?.is_special);
+    const direction: TripDirection = isEvening
+      ? "CAMPUS_TO_HOME"
+      : isC2C
+        ? "CAMPUS_TO_CAMPUS"
+        : (shift?.direction || t.direction || "HOME_TO_CAMPUS");
+
+    return {
+      id: t.id,
+      tripCode: t.trip_code || "",
+      routeId: t.route_id || "",
+      busId: t.bus_id || "",
+      shiftId: t.shift_id || "",
+      driverId: t.driver_id || "",
+      conductorId: t.conductor_id || "",
+      tripDate: t.trip_date || (t.created_at ? t.created_at.split("T")[0] : ""),
+      status: t.status,
+      startedAt: t.started_at,
+      completedAt: t.completed_at,
+      delayMinutes: Number(t.delay_minutes || 0),
+      manifestLocked: Boolean(t.manifest_locked),
+      manifestLockedAt: t.manifest_locked_at,
+      currentStopIndex: Number(t.current_stop_index || 0),
+      direction,
+      scheduleType: t.schedule_type || "EVERY_DAY",
+      customDays: t.custom_days,
+      departureTime: shift?.start_time ? shift.start_time.slice(0, 5) : (t.departure_time ? t.departure_time.slice(0, 5) : ""),
+      arrivalTime: shift?.end_time ? shift.end_time.slice(0, 5) : (t.arrival_time ? t.arrival_time.slice(0, 5) : ""),
+      isSpecial: isC2C,
+      facilityType: t.facility_type || (isC2C ? "PLACEMENT_DRIVE" : "REGULAR"),
+    };
+  });
+
+  const bookings: Booking[] = (dbBookings || []).map((b: any) => ({
+    id: b.id,
+    bookingCode: b.booking_code || b.booking_ref || "",
+    bookingRef: b.booking_ref || "",
+    studentId: b.student_id,
+    tripId: b.trip_id,
+    busId: b.bus_id || "",
+    seatNumber: b.seat_number || "",
+    bookingDate: b.booking_date || (b.created_at ? b.created_at.split("T")[0] : ""),
+    boardingStopId: b.boarding_stop_id,
+    boardingStopName: b.boarding_stop_name || "",
+    scheduledBoardingTime: b.scheduled_boarding_time || "",
+    actualBoardingTime: b.actual_boarding_time,
+    status: b.status,
+    fareCharged: Number(b.fare_charged || 0),
+    paidWithPass: Boolean(b.paid_with_pass),
+    qrToken: b.qr_token || "",
+    verifiedByConductor: Boolean(b.verified_by_conductor),
+    verifiedAt: b.verified_at,
+    isSpecialShift: Boolean(b.is_special_shift),
+    createdAt: b.created_at || new Date().toISOString(),
+  }));
+
+  const staff: Staff[] = (dbStaff || []).map((st: any) => ({
+    id: st.id,
+    userId: st.user_id,
+    employeeCode: st.employee_code || st.employee_id || "",
+    fullName: st.full_name || st.name || "",
+    email: st.email || "",
+    phone: st.phone || null,
+    category: st.category as any,
+    rank: st.rank as any,
+    role: st.role as any,
+    permissions: st.permissions || [],
+    licenseNo: st.license_no || st.license_number,
+    isActive: Boolean(st.is_active ?? true),
+  }));
+
+  const users: UserAccount[] = (dbUsers || []).map((u: any) => ({
+    id: u.id,
+    fullName: u.full_name || "",
+    email: u.email || "",
+    role: (u.role || "student") as any,
+    phone: u.phone,
+    provider: "email",
+    createdAt: u.created_at || new Date().toISOString(),
+  }));
+
+  const campuses: Campus[] = (dbCampuses || []).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    code: c.code,
+    address: c.address,
+    city: c.city,
+    latitude: Number(c.latitude),
+    longitude: Number(c.longitude),
+    geofenceRadiusMeters: Number(c.geofence_radius || 0),
+    isPrimary: Boolean(c.is_primary),
+  }));
+
+  const classes: ClassItem[] = (dbClasses || []).map((cl: any) => ({
+    id: cl.id,
+    name: cl.name,
+    course: cl.course || cl.name || "",
+    department: cl.department,
+    semester: cl.semester,
+    year: cl.year || "",
+    section: cl.section || "",
+    isActive: cl.is_active ?? true,
+    studentCount: 0,
+    createdAt: cl.created_at,
+  }));
+
+  return {
+    session,
+    stops,
+    routes,
+    buses,
+    students,
+    trips,
+    bookings,
+    staff,
+    users,
+    campuses,
+    classes,
+    shifts,
+  };
+}

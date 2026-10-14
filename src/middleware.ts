@@ -15,7 +15,8 @@ import { verifyToken, COOKIE_NAME } from "@/lib/jwt";
 const PROTECTED_PREFIXES = [
   "/portal",
   "/admin",
-  "/staff",
+  "/transport-admin",
+  "/transport-manager",
   "/driver",
   "/conductor",
   "/teacher",
@@ -38,10 +39,10 @@ function getTargetRouteForRole(role?: string): string {
   switch (role) {
     case "admin":
       return "/admin";
-    case "staff":
+    case "transport_admin":
+      return "/transport-admin";
     case "transport_manager":
-    case "supervisor":
-      return "/staff";
+      return "/transport-manager";
     case "driver":
       return "/driver";
     case "conductor":
@@ -103,6 +104,20 @@ export async function middleware(req: NextRequest) {
     (pathname.includes(".") && !pathname.startsWith("/api"))
   ) {
     return NextResponse.next();
+  }
+
+  // ── Permanent Migration Redirects (Staff -> Transport Admin, Transport Head -> Transport Manager) ──
+  if (pathname === "/staff" || pathname.startsWith("/staff/")) {
+    const newPath = pathname.replace(/^\/staff/, "/transport-admin");
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = newPath;
+    return NextResponse.redirect(redirectUrl, { status: 301 });
+  }
+  if (pathname === "/transport-head" || pathname.startsWith("/transport-head/")) {
+    const newPath = pathname.replace(/^\/transport-head/, "/transport-manager");
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = newPath;
+    return NextResponse.redirect(redirectUrl, { status: 301 });
   }
 
   // ── Auth callback routes must COMPLETELY bypass middleware ──────────
@@ -187,13 +202,16 @@ export async function middleware(req: NextRequest) {
   // This catches stale JWT sessions after an admin role change.
   const correctPortal = getTargetRouteForRole(session.role);
 
-  // Portals each role is allowed to access (admin/transport_manager can view staff portal too)
+  // Portals each role is allowed to access
+  // Hierarchy:
+  // - Admin can access Admin, Transport Admin (staff), and Transport Head
+  // - Transport Admin (staff) can access Transport Admin and Transport Head
+  // - Transport Head can access Transport Head
   const allowedPortalsForRole: Record<string, string[]> = {
     student: ["/portal"],
-    admin: ["/admin", "/staff"],           // Admin can switch to Staff Ops console
-    transport_manager: ["/admin", "/staff"],
-    staff: ["/staff"],
-    supervisor: ["/staff"],
+    admin: ["/admin", "/transport-admin", "/transport-manager"],
+    transport_admin: ["/transport-admin", "/transport-manager"],
+    transport_manager: ["/transport-manager"],
     driver: ["/driver", "/conductor"],
     conductor: ["/conductor"],
     teacher: ["/teacher"],
@@ -202,7 +220,15 @@ export async function middleware(req: NextRequest) {
   const myAllowedPortals = allowedPortalsForRole[session.role] || ["/portal"];
 
   // Check if they're on a portal that is NOT in their allowed list
-  const allPortals = ["/portal", "/admin", "/staff", "/driver", "/conductor", "/teacher"];
+  const allPortals = [
+    "/portal",
+    "/admin",
+    "/transport-admin",
+    "/transport-manager",
+    "/driver",
+    "/conductor",
+    "/teacher"
+  ];
   const isOnWrongPortal = allPortals
     .filter(p => !myAllowedPortals.includes(p))
     .some(p => pathname === p || pathname.startsWith(p + "/"));

@@ -30,14 +30,23 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
   const isAuthorizedConductor = currentUser?.role === "conductor" || currentUser?.role === "driver";
   if (currentUser && !isAuthorizedConductor) {
     const role = currentUser.role;
-    const isAdmin = role === "admin" || role === "transport_manager";
-    const isStaff = role === "staff";
+    const isAdmin = role === "admin";
+    const isTransportAdmin = role === "transport_admin";
+    const isTransportManager = role === "transport_manager";
 
-    const targetPortal = isAdmin ? "/admin" : isStaff ? "/staff" : "/portal";
+    const targetPortal = isAdmin
+      ? "/admin"
+      : isTransportAdmin
+      ? "/transport-admin"
+      : isTransportManager
+      ? "/transport-manager"
+      : "/portal";
     const targetLabel = isAdmin
       ? "Return to Admin Operations Center"
-      : isStaff
-      ? "Return to Staff Operations Panel"
+      : isTransportAdmin
+      ? "Return to Transport Admin Desk"
+      : isTransportManager
+      ? "Return to Transport Manager Console"
       : "Go to Student Portal";
 
     return (
@@ -50,9 +59,11 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
             <h2 className="text-xl font-black">Access Restricted</h2>
             <p className="text-xs text-gray-300">
               {isAdmin
-                ? "Administrators are restricted from the Conductor Console. Admin and Staff can manage operations in Admin Hub or Staff Ops."
-                : isStaff
-                ? "Staff members are restricted from the Conductor Console. Please return to the Staff Operations Panel."
+                ? "Administrators are restricted from the Conductor Console. Please return to the Admin Operations Center."
+                : isTransportAdmin
+                ? "Transport Admin officers are restricted from the Conductor Console. Please return to the Transport Admin Desk."
+                : isTransportManager
+                ? "Transport Managers are restricted from the Conductor Console. Please return to the Transport Manager Console."
                 : "Ticketing & optical manifest authorization required to access the Conductor Console."}
             </p>
             <div className="pt-2">

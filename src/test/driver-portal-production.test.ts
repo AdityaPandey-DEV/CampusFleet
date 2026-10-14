@@ -14,10 +14,9 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
     // Replicates the middleware allowed portals matrix
     const allowedPortalsForRole: Record<string, string[]> = {
       student: ["/portal"],
-      admin: ["/admin", "/staff"],
-      transport_manager: ["/admin", "/staff"],
-      staff: ["/staff"],
-      supervisor: ["/staff"],
+      admin: ["/admin", "/transport-admin", "/transport-manager"],
+      transport_admin: ["/transport-admin", "/transport-manager"],
+      transport_manager: ["/transport-manager"],
       driver: ["/driver", "/conductor"],
       conductor: ["/conductor"],
       teacher: ["/teacher"],
@@ -36,9 +35,9 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
       expect(isPortalAllowed("driver", "/conductor/scanner")).toBe(true);
     });
 
-    it("should strictly prohibit drivers from accessing Admin, Staff, or Student portal", () => {
+    it("should strictly prohibit drivers from accessing Admin, Transport Admin, or Student portal", () => {
       expect(isPortalAllowed("driver", "/admin")).toBe(false);
-      expect(isPortalAllowed("driver", "/staff")).toBe(false);
+      expect(isPortalAllowed("driver", "/transport-admin")).toBe(false);
       expect(isPortalAllowed("driver", "/portal")).toBe(false);
     });
 
@@ -47,8 +46,8 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
       expect(isPortalAllowed("conductor", "/conductor")).toBe(true);
     });
 
-    it("should prohibit staff and students from accessing Driver Console", () => {
-      expect(isPortalAllowed("staff", "/driver")).toBe(false);
+    it("should prohibit transport_admin and students from accessing Driver Console", () => {
+      expect(isPortalAllowed("transport_admin", "/driver")).toBe(false);
       expect(isPortalAllowed("student", "/driver")).toBe(false);
     });
   });

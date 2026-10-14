@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager" && session.role !== "staff")) {
+    if (!session || (session.role !== "admin" && session.role !== "transport_manager" && session.role !== "transport_admin")) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 403 });
     }
 

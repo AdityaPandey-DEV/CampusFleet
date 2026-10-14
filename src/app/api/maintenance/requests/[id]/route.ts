@@ -16,7 +16,7 @@ export async function PATCH(
       );
     }
 
-    const allowedRoles = ["admin", "transport_manager", "staff"];
+    const allowedRoles = ["admin", "transport_manager", "transport_admin"];
     if (!allowedRoles.includes(session.role)) {
       return NextResponse.json(
         { success: false, message: "Insufficient permissions." },

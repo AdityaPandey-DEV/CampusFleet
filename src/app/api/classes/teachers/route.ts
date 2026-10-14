@@ -8,7 +8,7 @@ export async function GET() {
     const { data: teachers, error } = await supabaseAdmin
       .from("users")
       .select("id, full_name, email, role, phone")
-      .in("role", ["teacher", "admin", "staff", "transport_manager"])
+      .in("role", ["teacher", "admin", "transport_admin", "transport_manager"])
       .order("full_name", { ascending: true });
 
     if (error) throw error;

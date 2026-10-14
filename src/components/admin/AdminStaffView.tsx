@@ -71,9 +71,10 @@ export default function AdminStaffView({
     return unsub;
   }, [initialUsers]);
 
-  const adminCount = users.filter(u => u.role === "admin" || u.role === "transport_manager").length;
+  const adminCount = users.filter(u => u.role === "admin").length;
+  const transportManagerCount = users.filter(u => u.role === "transport_manager").length;
+  const transportAdminCount = users.filter(u => u.role === "transport_admin").length;
   const teacherCount = users.filter(u => u.role === "teacher").length;
-  const staffCount = users.filter(u => u.role === "staff" || u.role === "supervisor").length;
   const conductorCount = users.filter(u => u.role === "conductor").length;
   const driverCount = users.filter(u => u.role === "driver").length;
   const studentCount = users.filter(u => u.role === "student").length;
@@ -85,9 +86,7 @@ export default function AdminStaffView({
       (u.phone && u.phone.includes(searchQuery));
     const matchesRole =
       roleFilter === "ALL" ||
-      u.role === roleFilter ||
-      (roleFilter === "admin" && u.role === "transport_manager") ||
-      (roleFilter === "staff" && u.role === "supervisor");
+      u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
@@ -190,36 +189,41 @@ export default function AdminStaffView({
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
       case "admin":
-      case "transport_manager":
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/60">
             <Shield className="w-3.5 h-3.5" />
             Administrator
           </span>
         );
-      case "teacher":
+      case "transport_manager":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">
+            <Briefcase className="w-3.5 h-3.5" />
+            Transport Manager
+          </span>
+        );
+      case "transport_admin":
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Transport Admin
+          </span>
+        );
+      case "teacher":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
             <BookOpen className="w-3.5 h-3.5" />
             Teacher / Faculty
           </span>
         );
-      case "staff":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
-            <Briefcase className="w-3.5 h-3.5" />
-            Transport Staff
-          </span>
-        );
       case "driver":
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
             <BusFront className="w-3.5 h-3.5" />
             Fleet Driver
           </span>
         );
       case "conductor":
-      case "supervisor":
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-pink-50 dark:bg-pink-950/60 text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-800/60">
             <ShieldCheck className="w-3.5 h-3.5" />
@@ -238,9 +242,10 @@ export default function AdminStaffView({
 
   const getAvatarBg = (name: string, role: UserRole) => {
     if (role === "admin") return "bg-red-500 text-white";
-    if (role === "teacher") return "bg-blue-600 text-white";
-    if (role === "staff") return "bg-blue-600 text-white";
-    if (role === "driver") return "bg-blue-600 text-white";
+    if (role === "transport_manager") return "bg-purple-600 text-white";
+    if (role === "transport_admin") return "bg-blue-600 text-white";
+    if (role === "teacher") return "bg-emerald-600 text-white";
+    if (role === "driver") return "bg-amber-600 text-white";
     if (role === "conductor") return "bg-pink-600 text-white";
     const colors = ["bg-green-500", "bg-green-500", "bg-blue-500", "bg-blue-500"];
     const charCode = name.charCodeAt(0) || 0;
@@ -257,54 +262,62 @@ export default function AdminStaffView({
         </div>
       )}
 
-      {/* Top 6 Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Top 7 Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
         {/* Administrator */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
-          <div className="text-3xl font-black text-red-600 dark:text-red-400">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
+          <div className="text-2xl font-black text-red-600 dark:text-red-400">
             {adminCount}
           </div>
-          <div className="text-xs font-bold text-gray-500">Administrator</div>
+          <div className="text-[11px] font-bold text-gray-500">Administrator</div>
         </div>
 
-        {/* Teacher / Faculty */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
-          <div className="text-3xl font-black text-blue-600 dark:text-blue-400">
-            {teacherCount}
+        {/* Transport Manager */}
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
+          <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
+            {transportManagerCount}
           </div>
-          <div className="text-xs font-bold text-gray-500">Teacher / Faculty</div>
+          <div className="text-[11px] font-bold text-gray-500">Transport Manager</div>
         </div>
 
-        {/* Transport Staff */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
-          <div className="text-3xl font-black text-blue-600 dark:text-blue-400">
-            {staffCount}
+        {/* Transport Admin */}
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
+          <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
+            {transportAdminCount}
           </div>
-          <div className="text-xs font-bold text-gray-500">Transport Staff</div>
-        </div>
-
-        {/* Conductor */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
-          <div className="text-3xl font-black text-pink-600 dark:text-pink-400">
-            {conductorCount}
-          </div>
-          <div className="text-xs font-bold text-gray-500">Conductor</div>
+          <div className="text-[11px] font-bold text-gray-500">Transport Admin</div>
         </div>
 
         {/* Fleet Driver */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
-          <div className="text-3xl font-black text-blue-600 dark:text-blue-400">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
+          <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
             {driverCount}
           </div>
-          <div className="text-xs font-bold text-gray-500">Fleet Driver</div>
+          <div className="text-[11px] font-bold text-gray-500">Fleet Driver</div>
+        </div>
+
+        {/* Conductor */}
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
+          <div className="text-2xl font-black text-pink-600 dark:text-pink-400">
+            {conductorCount}
+          </div>
+          <div className="text-[11px] font-bold text-gray-500">Conductor</div>
+        </div>
+
+        {/* Teacher / Faculty */}
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+            {teacherCount}
+          </div>
+          <div className="text-[11px] font-bold text-gray-500">Teacher / Faculty</div>
         </div>
 
         {/* Student Commuter */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
-          <div className="text-3xl font-black text-green-600 dark:text-green-400">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center text-center space-y-1">
+          <div className="text-2xl font-black text-green-600 dark:text-green-400">
             {studentCount}
           </div>
-          <div className="text-xs font-bold text-gray-500">Student Commuter</div>
+          <div className="text-[11px] font-bold text-gray-500">Student Commuter</div>
         </div>
       </div>
 
@@ -329,10 +342,11 @@ export default function AdminStaffView({
           >
             <option value="ALL">All Roles ({users.length})</option>
             <option value="admin">Administrator ({adminCount})</option>
-            <option value="teacher">Teacher / Faculty ({teacherCount})</option>
-            <option value="staff">Transport Staff ({staffCount})</option>
-            <option value="conductor">Conductor ({conductorCount})</option>
+            <option value="transport_manager">Transport Manager ({transportManagerCount})</option>
+            <option value="transport_admin">Transport Admin ({transportAdminCount})</option>
             <option value="driver">Fleet Driver ({driverCount})</option>
+            <option value="conductor">Conductor ({conductorCount})</option>
+            <option value="teacher">Teacher / Faculty ({teacherCount})</option>
             <option value="student">Student Commuter ({studentCount})</option>
           </select>
 
@@ -426,7 +440,7 @@ export default function AdminStaffView({
                       <td className="py-4 px-6 text-right">
                         <select
                           disabled={updatingUserId === user.id}
-                          value={user.role === "transport_manager" ? "admin" : user.role === "supervisor" ? "staff" : user.role}
+                          value={user.role}
                           onChange={e =>
                             handleRoleChange(user.id, e.target.value as UserRole, user.fullName)
                           }
@@ -434,7 +448,8 @@ export default function AdminStaffView({
                         >
                           <option value="student">Student Commuter</option>
                           <option value="teacher">Teacher / Faculty</option>
-                          <option value="staff">Transport Staff</option>
+                          <option value="transport_admin">Transport Admin</option>
+                          <option value="transport_manager">Transport Manager</option>
                           <option value="conductor">Conductor</option>
                           <option value="driver">Fleet Driver</option>
                           {isAdmin && <option value="admin">Administrator</option>}
@@ -507,7 +522,8 @@ export default function AdminStaffView({
                     >
                       <option value="student">Student Commuter</option>
                       <option value="teacher">Teacher / Faculty</option>
-                      <option value="staff">Transport Staff</option>
+                      <option value="transport_admin">Transport Admin</option>
+                      <option value="transport_manager">Transport Manager</option>
                       <option value="conductor">Conductor</option>
                       <option value="driver">Fleet Driver</option>
                       {isAdmin && <option value="admin">Administrator</option>}

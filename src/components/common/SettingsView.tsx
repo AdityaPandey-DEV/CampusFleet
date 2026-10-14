@@ -469,13 +469,15 @@ export function SettingsView() {
               </>
             )}
 
-            {(["admin", "staff", "driver", "conductor", "teacher"].includes(currentUser?.role || "")) && (
+            {(["admin", "transport_admin", "transport_manager", "driver", "conductor", "teacher"].includes(currentUser?.role || "")) && (
               <>
                 <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">
                   {currentUser?.role === "conductor" ? "Conductor Details" : 
                    currentUser?.role === "driver" ? "Driver Details" : 
-                   "Staff Details"}
+                   currentUser?.role === "teacher" ? "Faculty Details" :
+                   currentUser?.role === "transport_manager" ? "Transport Manager Details" :
+                   "Transport Admin Details"}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">

@@ -114,7 +114,7 @@ CampusFleetStore.prototype.isTripVisibleToUser = function (
   const role = currentUser?.role || currentUser?.userRole;
 
   // 1. Staff / Admin / Transport Manager has oversight dispatch access
-  if (role === "admin" || role === "transport_manager" || role === "staff" || role === "supervisor") {
+  if (role === "admin" || role === "transport_manager" || role === "transport_admin") {
     return true;
   }
 

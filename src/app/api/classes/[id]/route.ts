@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const classId = params.id;
-    const isElevated = session.role === "admin" || session.role === "transport_manager" || session.role === "staff";
+    const isElevated = session.role === "admin" || session.role === "transport_manager" || session.role === "transport_admin";
     const isTeacher = session.role === "teacher" || session.role === "faculty";
 
     if (!isElevated) {

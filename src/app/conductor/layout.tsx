@@ -26,7 +26,7 @@ export default async function ConductorLayout({
   }
 
   // 2. Strict Role Authorization (Conductor, Driver, Staff, Admin allowed per qualification matrix)
-  if (session.role !== "conductor" && session.role !== "driver" && session.role !== "admin" && session.role !== "staff") {
+  if (session.role !== "conductor" && session.role !== "driver" && session.role !== "admin" && session.role !== "transport_admin" && session.role !== "transport_manager") {
     redirect("/portal");
   }
 
@@ -137,7 +137,7 @@ export default async function ConductorLayout({
   }));
 
   const userRole = (session.role as string) || "";
-  const isStaffOrAdmin = userRole === "admin" || userRole === "staff" || userRole === "transport_manager";
+  const isStaffOrAdmin = userRole === "admin" || userRole === "transport_admin" || userRole === "transport_manager";
   const visibleTrips = trips.filter(t => {
     const isSpecialTrip = t.isSpecial || t.facilityType === "PLACEMENT_DRIVE" || t.facilityType === "EVENT";
     const shift = shifts.find(s => s.id === t.shiftId);
