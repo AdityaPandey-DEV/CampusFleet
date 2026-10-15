@@ -46,7 +46,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         { href: "/transport-admin/billing/approvals", label: "Approve Payments", shortLabel: "Approvals", icon: ShieldCheck },
         { href: "/transport-admin/billing", label: "Payment History", shortLabel: "History", icon: CreditCard },
         { href: "/transport-admin/billing/qr", label: "UPI QR Code", shortLabel: "UPI QR", icon: QrCode },
-        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
       ]
     },
     academics: {
@@ -57,7 +56,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         { href: "/transport-admin/academics/reservations", label: "Daily Bookings", shortLabel: "Bookings", icon: CalendarCheck },
         { href: "/transport-admin/academics/classes", label: "Classes & Batches", shortLabel: "Classes", icon: BookOpen },
         { href: "/transport-admin/academics/campuses", label: "Campuses", shortLabel: "Campuses", icon: Building2 },
-        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
       ]
     },
     maintenance: {
@@ -65,17 +63,13 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       items: [
         { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
         { href: "/transport-admin/maintenance", label: "Repair Log", shortLabel: "Repairs", icon: Wrench },
-        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
       ]
     },
     buses: {
       title: "Bus Fleet",
       items: [
         { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
-        { href: "/transport-admin/buses", label: "All Buses", shortLabel: "Buses", icon: BusFront },
-        { href: "/transport-admin/routes", label: "Routes & Stops", shortLabel: "Routes", icon: Route },
-        { href: "/transport-admin/maintenance", label: "Bus Repairs", shortLabel: "Repairs", icon: Wrench },
-        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
+        { href: "/transport-admin/buses", label: "Bus Fleet", shortLabel: "Buses", icon: BusFront },
       ]
     },
     routes: {
@@ -85,9 +79,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         { href: "/transport-admin/routes", label: "All Corridors", shortLabel: "Routes", icon: Route },
         { href: "/transport-admin/routes/stops", label: "Bus Stops", shortLabel: "Stops", icon: MapPin },
         { href: "/transport-admin/routes/locations", label: "Campuses", shortLabel: "Campuses", icon: Building2 },
-        { href: "/transport-admin/buses", label: "Bus Fleet", shortLabel: "Buses", icon: BusFront },
-        { href: "/transport-admin/trips", label: "Today's Trips", shortLabel: "Trips", icon: Navigation },
-        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
       ]
     },
     trips: {
@@ -95,9 +86,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       items: [
         { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
         { href: "/transport-admin/trips", label: "Today's Trips", shortLabel: "Trips", icon: Navigation },
-        { href: "/transport-admin/routes", label: "Routes & Stops", shortLabel: "Routes", icon: Route },
-        { href: "/transport-admin/buses", label: "Bus Fleet", shortLabel: "Buses", icon: BusFront },
-        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
       ]
     },
     system: {
@@ -106,7 +94,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
         { href: "/transport-admin/system/users", label: "User Accounts", shortLabel: "Users", icon: Users },
         { href: "/transport-admin/system/reports", label: "Download Reports", shortLabel: "Reports", icon: FileBarChart },
-        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
       ]
     }
   };

@@ -11,6 +11,8 @@ import {
   BarChart3,
   GitMerge,
   Home,
+  Users,
+  GitBranch,
 } from "lucide-react";
 
 export default function TransportManagerLayout({ children }: { children: React.ReactNode }) {
@@ -24,27 +26,81 @@ export default function TransportManagerLayout({ children }: { children: React.R
     return unsub;
   }, []);
 
-  const navLinks = [
-    { href: "/transport-manager", label: "← Hub", shortLabel: "Hub", icon: Home },
-    { href: "/transport-manager/drivers", label: "Assign Drivers", shortLabel: "Drivers", icon: BusFront },
+  // 1. Define sub-portal link definitions for each Transport Manager card
+  const subPortals = {
+    trips: {
+      title: "Today's Trips",
+      subtitle: "Live Shift Dispatch & Flowchart",
+      items: [
+        { href: "/transport-manager", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/transport-manager/trips", label: "Shift Dispatch", shortLabel: "Dispatch", icon: Navigation },
+        { href: "/transport-manager/flowchart", label: "Route Flowchart", shortLabel: "Flowchart", icon: GitBranch },
+      ],
+    },
+    drivers: {
+      title: "Assign Drivers",
+      subtitle: "Crew Dispatch & Role Qualifications",
+      items: [
+        { href: "/transport-manager", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/transport-manager/drivers", label: "Crew Assignment", shortLabel: "Drivers", icon: Users },
+      ],
+    },
+    demand: {
+      title: "Passenger Demand",
+      subtitle: "Route Seat Demand & Sizing Analytics",
+      items: [
+        { href: "/transport-manager", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/transport-manager/demand", label: "Route Demand", shortLabel: "Demand", icon: BarChart3 },
+      ],
+    },
+    combine: {
+      title: "Combine Buses",
+      subtitle: "Dynamic Progressive Bus Dispatch",
+      items: [
+        { href: "/transport-manager", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/transport-manager/combine-buses", label: "Combine Buses", shortLabel: "Combine", icon: GitMerge },
+      ],
+    },
+  };
+
+  // 2. Hub top-level navigation (shown when at /transport-manager)
+  const hubLinks = [
+    { href: "/transport-manager/drivers", label: "Assign Drivers", shortLabel: "Drivers", icon: Users },
     { href: "/transport-manager/trips", label: "Today's Trips", shortLabel: "Trips", icon: Navigation },
     { href: "/transport-manager/demand", label: "Passenger Demand", shortLabel: "Demand", icon: BarChart3 },
     { href: "/transport-manager/combine-buses", label: "Combine Buses", shortLabel: "Combine", icon: GitMerge },
   ];
 
+  // 3. Determine active sub-portal navigation based on pathname
+  let currentNavLinks = hubLinks;
   let currentTitle = "Transport Manager Logistics";
-  if (pathname.includes("/drivers")) currentTitle = "Assign Drivers";
-  else if (pathname.includes("/trips")) currentTitle = "Today's Trips";
-  else if (pathname.includes("/demand")) currentTitle = "Passenger Demand";
-  else if (pathname.includes("/combine-buses")) currentTitle = "Combine Buses";
+  let currentSubtitle = "Fleet Logistics & Bus Operations";
+
+  if (pathname.startsWith("/transport-manager/trips") || pathname.startsWith("/transport-manager/flowchart")) {
+    currentNavLinks = subPortals.trips.items;
+    currentTitle = subPortals.trips.title;
+    currentSubtitle = subPortals.trips.subtitle;
+  } else if (pathname.startsWith("/transport-manager/drivers")) {
+    currentNavLinks = subPortals.drivers.items;
+    currentTitle = subPortals.drivers.title;
+    currentSubtitle = subPortals.drivers.subtitle;
+  } else if (pathname.startsWith("/transport-manager/demand")) {
+    currentNavLinks = subPortals.demand.items;
+    currentTitle = subPortals.demand.title;
+    currentSubtitle = subPortals.demand.subtitle;
+  } else if (pathname.startsWith("/transport-manager/combine-buses")) {
+    currentNavLinks = subPortals.combine.items;
+    currentTitle = subPortals.combine.title;
+    currentSubtitle = subPortals.combine.subtitle;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col pb-20 md:pb-6 overflow-x-hidden transition-colors">
       <UnifiedAppHeader
         role="transport_manager"
         portalTitle={currentTitle}
-        portalSubtitle="Fleet Logistics & Bus Operations"
-        navLinks={navLinks}
+        portalSubtitle={currentSubtitle}
+        navLinks={currentNavLinks}
         mobilePrimaryAction={{
           label: "Transport Admin Desk",
           href: "/transport-admin",
@@ -57,7 +113,8 @@ export default function TransportManagerLayout({ children }: { children: React.R
         {children}
       </main>
 
-      <MobileBottomNav navItems={navLinks} />
+      <MobileBottomNav navItems={currentNavLinks} />
     </div>
   );
 }
+
