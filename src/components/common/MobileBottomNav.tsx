@@ -38,7 +38,8 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
       { href: "/portal/payments", label: "Activate Transit Pass", icon: CreditCard },
     ];
 
-  const itemsToRender = navItems.length > 0 ? navItems : defaultNavItems;
+  const rawItems = navItems.length > 0 ? navItems : defaultNavItems;
+  const itemsToRender = rawItems.slice(0, 5);
 
   return (
     <nav

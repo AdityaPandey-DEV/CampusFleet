@@ -137,8 +137,10 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     currentTitle = subPortals.system.title;
   }
 
+  const isHubRoot = pathname === "/transport-admin";
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col pb-20 md:pb-6 overflow-x-hidden transition-colors">
+    <div className={`min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col ${isHubRoot ? "pb-6" : "pb-20 md:pb-6"} overflow-x-hidden transition-colors`}>
       
       <UnifiedAppHeader
         role="transport_admin"
@@ -158,10 +160,13 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         {children}
       </main>
 
-      <MobileBottomNav 
-        isPaymentApproved={true} 
-        navItems={currentNavLinks} 
-      />
+      {/* Show sleek bottom navigation dock only when inside a desk sub-portal */}
+      {!isHubRoot && (
+        <MobileBottomNav 
+          isPaymentApproved={true} 
+          navItems={currentNavLinks} 
+        />
+      )}
     </div>
   );
 }
