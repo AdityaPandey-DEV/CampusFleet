@@ -21,6 +21,7 @@ import {
   Lock,
 } from "lucide-react";
 import type { Stop, Route, Guardian } from "@/lib/types";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 
 export interface StaffStudentsProps {
   initialStudents?: Student[];
@@ -272,8 +273,15 @@ export default function StaffStudentsView({
                       <div className="relative w-10 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
                         {hasValidPhoto ? (
                           <img
-                            src={s.photoUrl}
+                            src={getSafePhotoUrl(s.photoUrl)}
                             alt={s.fullName}
+                            crossOrigin="anonymous"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              if (s?.photoUrl && e.currentTarget.src !== s.photoUrl) {
+                                e.currentTarget.src = s.photoUrl;
+                              }
+                            }}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -482,8 +490,15 @@ export default function StaffStudentsView({
               <div className="flex flex-col items-center justify-center gap-3 p-4 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl bg-gray-50/50 dark:bg-gray-800/40">
                 {newStaffPhotoUrl ? (
                   <img
-                    src={newStaffPhotoUrl}
+                    src={getSafePhotoUrl(newStaffPhotoUrl)}
                     alt="New Photo Preview"
+                    crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      if (newStaffPhotoUrl && e.currentTarget.src !== newStaffPhotoUrl) {
+                        e.currentTarget.src = newStaffPhotoUrl;
+                      }
+                    }}
                     className="w-24 h-32 object-cover rounded-xl border-2 border-green-500 shadow-md bg-white dark:bg-gray-900"
                   />
                 ) : (

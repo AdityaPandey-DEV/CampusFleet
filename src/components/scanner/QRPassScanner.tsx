@@ -23,6 +23,7 @@ import {
   BadgeCheck,
   Footprints,
 } from "lucide-react";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 import jsQR from "jsqr";
 
 interface QRPassScannerProps {
@@ -821,8 +822,15 @@ export function QRPassScanner({
               {pendingVerification.student.photoUrl ? (
                 <div className="relative group">
                   <img
-                    src={pendingVerification.student.photoUrl}
+                    src={getSafePhotoUrl(pendingVerification.student.photoUrl)}
                     alt={pendingVerification.student.fullName}
+                    crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      if (pendingVerification?.student?.photoUrl && e.currentTarget.src !== pendingVerification.student.photoUrl) {
+                        e.currentTarget.src = pendingVerification.student.photoUrl;
+                      }
+                    }}
                     className="w-28 h-36 sm:w-32 sm:h-40 object-cover rounded-2xl border-2 border-green-400/80 shadow-lg bg-gray-950"
                   />
                   <div className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full bg-green-600 text-[9px] font-black text-white uppercase tracking-wider shadow flex items-center gap-1">
@@ -982,8 +990,15 @@ export function QRPassScanner({
                   {lastResult.photoUrl ? (
                     <div className="relative flex-shrink-0">
                       <img
-                        src={lastResult.photoUrl}
+                        src={getSafePhotoUrl(lastResult.photoUrl)}
                         alt={lastResult.studentName}
+                        crossOrigin="anonymous"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          if (lastResult?.photoUrl && e.currentTarget.src !== lastResult.photoUrl) {
+                            e.currentTarget.src = lastResult.photoUrl;
+                          }
+                        }}
                         className="w-14 h-18 sm:w-16 sm:h-20 object-cover rounded-xl border-2 border-yellow-500 shadow-md bg-gray-900"
                       />
                       <div className="absolute -bottom-1.5 inset-x-0 mx-auto w-max px-1.5 py-0.5 rounded-full bg-yellow-600 text-[8px] font-black text-white uppercase tracking-wider shadow">

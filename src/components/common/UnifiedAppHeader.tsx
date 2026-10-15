@@ -7,6 +7,7 @@ import { store } from "@/lib/store";
 import { authService } from "@/lib/auth-service";
 import { UserRole } from "@/lib/types";
 import { useTheme } from "./ThemeProvider";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 import {
   BusFront,
   GraduationCap,
@@ -414,7 +415,19 @@ export function UnifiedAppHeader({
               <div className="flex items-center gap-4">
                 <Link href={`/${pathname.split('/')[1] === 'portal' ? 'portal' : (currentUser.role || 'portal')}/settings`} title="Open Settings" className="block w-9 h-9 rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
                   {(userPhotoUrl || activeStudent?.photoUrl) ? (
-                    <img src={userPhotoUrl || activeStudent?.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    <img
+                      src={getSafePhotoUrl(userPhotoUrl || activeStudent?.photoUrl)}
+                      alt="Avatar"
+                      crossOrigin="anonymous"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const fallback = userPhotoUrl || activeStudent?.photoUrl;
+                        if (fallback && e.currentTarget.src !== fallback) {
+                          e.currentTarget.src = fallback;
+                        }
+                      }}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="w-full h-full bg-yellow-100 text-yellow-600 flex items-center justify-center font-bold text-sm">
                       {initials}
@@ -502,7 +515,19 @@ export function UnifiedAppHeader({
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
                   {(userPhotoUrl || activeStudent?.photoUrl) ? (
-                    <img src={userPhotoUrl || activeStudent?.photoUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+                    <img
+                      src={getSafePhotoUrl(userPhotoUrl || activeStudent?.photoUrl)}
+                      alt="Avatar"
+                      crossOrigin="anonymous"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const fallback = userPhotoUrl || activeStudent?.photoUrl;
+                        if (fallback && e.currentTarget.src !== fallback) {
+                          e.currentTarget.src = fallback;
+                        }
+                      }}
+                      className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                    />
                   ) : (
                     <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-200 text-yellow-600 flex items-center justify-center font-bold text-sm">
                       {initials}

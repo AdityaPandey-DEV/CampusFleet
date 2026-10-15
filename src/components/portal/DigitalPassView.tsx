@@ -27,8 +27,9 @@ import {
   X,
   RefreshCw,
   Camera,
-  User
+  User,
 } from "lucide-react";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 import type { Student, Bus, Trip, Shift, Stop, Booking, Staff } from "@/lib/types";
 
 export interface DigitalPassProps {
@@ -430,10 +431,25 @@ export default function DigitalPassView({
 
             {/* Bottom Passenger Meta Strip */}
             <div className="p-5 flex items-center justify-between gap-3 text-xs bg-white dark:bg-gray-900">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center font-bold text-xs">
-                  <User className="w-4 h-4" />
-                </div>
+              <div className="flex items-center gap-3">
+                {activeStudent.photoUrl ? (
+                  <img
+                    src={getSafePhotoUrl(activeStudent.photoUrl)}
+                    alt={activeStudent.fullName}
+                    crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      if (activeStudent.photoUrl && e.currentTarget.src !== activeStudent.photoUrl) {
+                        e.currentTarget.src = activeStudent.photoUrl;
+                      }
+                    }}
+                    className="w-10 h-12 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shadow-xs flex-shrink-0 bg-gray-100 dark:bg-gray-800"
+                  />
+                ) : (
+                  <div className="w-10 h-12 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                    <User className="w-5 h-5" />
+                  </div>
+                )}
                 <div>
                   <div className="font-bold text-gray-900 dark:text-white">
                     {activeStudent.fullName}
@@ -623,15 +639,36 @@ export default function DigitalPassView({
           </button>
 
           <div className="max-w-xs w-full bg-white p-6 rounded-3xl text-center space-y-4 shadow-2xl">
-            <div className="text-gray-900 space-y-0.5">
+            <div className="text-gray-900 space-y-1">
               <div className="text-xs font-black uppercase text-blue-600 tracking-wider">
                 {bus?.busNumber || "NONE"}
               </div>
-              <div className="text-2xl font-black font-mono">
-                {isStandingPassenger ? "PASSENGER: STAND" : `SEAT: ${activeBooking.seatNumber || "NONE"}`}
-              </div>
-              <div className="text-xs font-bold text-gray-500">
-                {activeStudent?.fullName} • {stop?.name}
+              <div className="flex items-center justify-center gap-3 py-1">
+                {activeStudent?.photoUrl ? (
+                  <img
+                    src={getSafePhotoUrl(activeStudent.photoUrl)}
+                    alt={activeStudent.fullName}
+                    crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      if (activeStudent.photoUrl && e.currentTarget.src !== activeStudent.photoUrl) {
+                        e.currentTarget.src = activeStudent.photoUrl;
+                      }
+                    }}
+                    className="w-12 h-14 object-cover rounded-xl border border-gray-300 shadow-sm"
+                  />
+                ) : null}
+                <div className="text-left">
+                  <div className="text-2xl font-black font-mono leading-none">
+                    {isStandingPassenger ? "STAND" : `SEAT ${activeBooking.seatNumber || "NONE"}`}
+                  </div>
+                  <div className="text-xs font-bold text-gray-800 mt-1">
+                    {activeStudent?.fullName}
+                  </div>
+                  <div className="text-[10px] text-gray-500 font-medium">
+                    {stop?.name}
+                  </div>
+                </div>
               </div>
             </div>
 

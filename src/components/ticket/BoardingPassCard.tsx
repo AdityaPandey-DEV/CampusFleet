@@ -7,6 +7,7 @@ import { Booking, Student, Bus, Stop, Shift, Trip } from "@/lib/types";
 import { formatTime, formatDate } from "@/lib/utils";
 import { store } from "@/lib/store";
 import { BusFront, Clock, User, ShieldCheck, Download, Share2, AlertCircle } from "lucide-react";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 
 interface BoardingPassCardProps {
   booking?: Booking;
@@ -121,8 +122,15 @@ export function BoardingPassCard({
           <div className="col-span-2 flex items-center gap-3">
             {student?.photoUrl ? (
               <img
-                src={student.photoUrl}
+                src={getSafePhotoUrl(student.photoUrl)}
                 alt={student.fullName}
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  if (student?.photoUrl && e.currentTarget.src !== student.photoUrl) {
+                    e.currentTarget.src = student.photoUrl;
+                  }
+                }}
                 className="w-12 h-14 object-cover rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs flex-shrink-0 bg-gray-100 dark:bg-gray-800"
               />
             ) : (

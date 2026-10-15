@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Search, Users, MapPin, CheckCircle2, XCircle, Footprints, FileText, AlertTriangle, ShieldCheck } from "lucide-react";
 import { Booking, Student, Stop, Bus } from "@/lib/types";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 
 interface ManifestTabProps {
   tripBookings: Booking[];
@@ -179,7 +180,18 @@ export function ManifestTab({
                   {/* Student ID Photo for Conductor Visual Validation */}
                   {s?.photoUrl ? (
                     <div className="relative w-10 h-12 rounded-xl overflow-hidden border-2 border-green-500/80 bg-gray-950 flex-shrink-0 shadow-xs" title="Official Passport Photo Verified">
-                      <img src={s.photoUrl} alt={s.fullName} className="w-full h-full object-cover" />
+                      <img
+                        src={getSafePhotoUrl(s.photoUrl)}
+                        alt={s.fullName}
+                        crossOrigin="anonymous"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          if (s?.photoUrl && e.currentTarget.src !== s.photoUrl) {
+                            e.currentTarget.src = s.photoUrl;
+                          }
+                        }}
+                        className="w-full h-full object-cover"
+                      />
                       <div className="absolute bottom-0 inset-x-0 bg-green-600/90 text-[7px] text-white font-black text-center py-0.5 uppercase tracking-tighter">
                         Photo OK
                       </div>
