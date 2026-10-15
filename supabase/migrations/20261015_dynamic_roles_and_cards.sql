@@ -51,17 +51,21 @@ ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_role_check;
 
 -- 6. Zero-Touch Seed: Functional System Cards
 INSERT INTO public.system_cards (key, title, description, icon, route, category, sort_order) VALUES
-('role_manager', 'Role & Access Manager', 'Manage staff accounts, assign roles, and configure hierarchy flowchart.', 'ShieldCheck', '/role-manager', 'Administration', 1),
-('users',        'User Accounts',         'Search, add, and manage user accounts and login access.',                  'Users',       '/role-manager/users', 'Administration', 2),
-('hierarchy',    'Role Hierarchy Tree',   'Interactive visual flowchart of reporting and access hierarchy.',           'GitFork',     '/role-manager/hierarchy', 'Administration', 3),
-('buses',        'Bus Fleet',             'Manage buses, registrations, seat layouts, and print seat QRs.',              'BusFront',    '/transport-admin/buses', 'Fleet Logistics', 4),
-('routes',       'Routes & Stops',        'Manage corridors, bus stops, pickup timings, and route maps.',               'Route',       '/transport-manager/routes', 'Fleet Logistics', 5),
-('trips',        'Today''s Trips',        'Monitor live departures, dispatch trips, and combine buses.',                 'Navigation',  '/transport-manager/trips', 'Fleet Logistics', 6),
-('drivers',      'Assign Drivers',        'Assign drivers and conductors to specific buses and shifts.',                'UserCheck',   '/transport-manager/drivers', 'Fleet Logistics', 7),
-('billing',      'Bus Fees',              'Approve student payment receipts, manage fee balances, and UPI QR.',          'CreditCard',  '/transport-admin/billing/approvals', 'Finance & Accounts', 8),
-('students',     'Students & Passes',     'Search student directory, verify passes, and manage classes.',                'GraduationCap','/transport-admin/academics/students', 'Academics & Safety', 9),
-('maintenance',  'Bus Repairs',           'Track workshop maintenance, engine servicing, and repair logs.',             'Wrench',      '/transport-admin/maintenance', 'Fleet Logistics', 10),
-('reports',      'Staff & Reports',       'Attendance logs, driver manifests, and audit reports.',                      'FileText',    '/transport-admin/system/reports', 'Administration', 11)
+('role_manager',  'Role & Access Manager', 'Manage staff accounts, assign roles, and configure hierarchy flowchart.', 'ShieldCheck', '/role-manager', 'Administration', 1),
+('users',         'User Accounts',         'Search, add, and manage user accounts and login access.',                  'Users',       '/cards/users', 'Administration', 2),
+('hierarchy',     'Role Hierarchy Tree',   'Interactive visual flowchart of reporting and access hierarchy.',           'GitFork',     '/cards/hierarchy', 'Administration', 3),
+('buses',         'Bus Fleet',             'Manage buses, registrations, seat layouts, and print seat QRs.',              'BusFront',    '/cards/buses', 'Fleet Logistics', 4),
+('routes',        'Routes & Stops',        'Manage corridors, bus stops, pickup timings, and route maps.',               'Route',       '/cards/routes', 'Fleet Logistics', 5),
+('trips',         'Today''s Trips',        'Monitor live departures, dispatch trips, and combine buses.',                 'Navigation',  '/cards/trips', 'Fleet Logistics', 6),
+('drivers',       'Assign Drivers',        'Assign drivers and conductors to specific buses and shifts.',                'UserCheck',   '/cards/drivers', 'Fleet Logistics', 7),
+('combine_buses', 'Combine Buses',         'Merge low-occupancy routes to optimize fleet fuel and driver hours.',         'GitMerge',    '/cards/combine-buses', 'Fleet Logistics', 8),
+('demand',        'Demand Analytics',      'Predictive passenger demand patterns and stop congestion heatmaps.',          'BarChart2',   '/cards/demand', 'Fleet Logistics', 9),
+('billing',       'Bus Fees',              'Approve student payment receipts, manage fee balances, and UPI QR.',          'CreditCard',  '/cards/billing/approvals', 'Finance & Accounts', 10),
+('students',      'Students & Passes',     'Search student directory, verify passes, and manage classes.',                'GraduationCap','/cards/academics/students', 'Academics & Safety', 11),
+('maintenance',   'Bus Repairs',           'Track workshop maintenance, engine servicing, and repair logs.',             'Wrench',      '/cards/maintenance', 'Fleet Logistics', 12),
+('reports',       'Staff & Reports',       'Attendance logs, driver manifests, and audit reports.',                      'FileText',    '/cards/system/reports', 'Administration', 13),
+('flowchart',     'Operational Flowchart', 'End-to-end operational dispatch workflow and dispatch sequence.',            'Workflow',    '/cards/flowchart', 'Administration', 14),
+('settings',      'Desk Settings',         'Manage preferences, notifications, and profile details.',                     'Settings',    '/cards/settings', 'Administration', 15)
 ON CONFLICT (key) DO UPDATE SET 
   title = EXCLUDED.title,
   description = EXCLUDED.description,
@@ -71,15 +75,16 @@ ON CONFLICT (key) DO UPDATE SET
   sort_order = EXCLUDED.sort_order;
 
 -- 7. Zero-Touch Seed: Default System Roles with Tree Hierarchy and Portal Presentation
+-- Only core governance roles (admin, role_manager) are flagged as system protected
 INSERT INTO public.system_roles (key, name, description, parent_role_key, hierarchy_level, portal_path, short_label, icon, color, gradient, is_system) VALUES
 ('admin',             'Super Administrator', 'Full master control over institution, settings, and role management', NULL,              1, '/admin',             'Admin Ops',        'LayoutDashboard', 'text-yellow-500', 'bg-yellow-600', TRUE),
 ('role_manager',      'Role & Access Manager','Configures role hierarchy, assigns cards, and manages staff',       'admin',           2, '/role-manager',      'Role Manager',     'ShieldCheck',     'text-indigo-500', 'bg-indigo-600', TRUE),
-('transport_admin',   'Transport Admin',     'Oversees bus fleet, fee desks, student passes, and repairs',         'role_manager',    3, '/transport-admin',   'Transport Admin',  'Building2',       'text-blue-500',   'bg-blue-600',   TRUE),
-('transport_manager', 'Transport Manager',   'Manages live operations, routes, drivers, and daily trips',          'transport_admin', 4, '/transport-manager', 'Transport Manager','Navigation',      'text-amber-500',  'bg-amber-600',  TRUE),
-('driver',            'Driver',              'Operational telematics and route progression HUD',                   'transport_manager', 5, '/driver',            'Driver HUD',       'BusFront',        'text-green-500',  'bg-green-600',  TRUE),
-('conductor',         'Conductor',           'Optical QR passenger manifest verification scanner',                 'transport_manager', 5, '/conductor',         'Conductor',        'FileCheck2',      'text-pink-500',   'bg-pink-600',   TRUE),
-('teacher',           'Teacher',             'Classroom attendance and student transit status',                    'transport_admin', 4, '/teacher',           'Teacher',          'BookOpen',        'text-green-500',  'bg-green-600',  TRUE),
-('student',           'Student',             'Student mobility pass, reservations, and live tracking',             NULL,              6, '/portal',            'Student',          'GraduationCap',   'text-blue-500',   'bg-blue-600',   TRUE)
+('transport_admin',   'Transport Admin',     'Oversees bus fleet, fee desks, student passes, and repairs',         'role_manager',    3, '/transport-admin',   'Transport Admin',  'Building2',       'text-blue-500',   'bg-blue-600',   FALSE),
+('transport_manager', 'Transport Manager',   'Manages live operations, routes, drivers, and daily trips',          'transport_admin', 4, '/transport-manager', 'Transport Manager','Navigation',      'text-amber-500',  'bg-amber-600',  FALSE),
+('driver',            'Driver',              'Operational telematics and route progression HUD',                   'transport_manager', 5, '/driver',            'Driver HUD',       'BusFront',        'text-green-500',  'bg-green-600',  FALSE),
+('conductor',         'Conductor',           'Optical QR passenger manifest verification scanner',                 'transport_manager', 5, '/conductor',         'Conductor',        'FileCheck2',      'text-pink-500',   'bg-pink-600',   FALSE),
+('teacher',           'Teacher',             'Classroom attendance and student transit status',                    'transport_admin', 4, '/teacher',           'Teacher',          'BookOpen',        'text-green-500',  'bg-green-600',  FALSE),
+('student',           'Student',             'Student mobility pass, reservations, and live tracking',             NULL,              6, '/portal',            'Student',          'GraduationCap',   'text-blue-500',   'bg-blue-600',   FALSE)
 ON CONFLICT (key) DO UPDATE SET
   name = EXCLUDED.name,
   description = EXCLUDED.description,
@@ -89,27 +94,25 @@ ON CONFLICT (key) DO UPDATE SET
   short_label = EXCLUDED.short_label,
   icon = EXCLUDED.icon,
   color = EXCLUDED.color,
-  gradient = EXCLUDED.gradient;
+  gradient = EXCLUDED.gradient,
+  is_system = EXCLUDED.is_system;
 
 -- 8. Zero-Touch Seed: Direct Role-to-Card Bindings
--- Note: Parent roles automatically inherit all cards of child roles via the application hierarchy resolver!
 INSERT INTO public.role_cards (role_key, card_key) VALUES
--- Role Manager directly gets governance cards
 ('role_manager', 'role_manager'),
 ('role_manager', 'users'),
 ('role_manager', 'hierarchy'),
-
--- Transport Admin directly gets desk cards
 ('transport_admin', 'buses'),
 ('transport_admin', 'billing'),
 ('transport_admin', 'students'),
 ('transport_admin', 'maintenance'),
 ('transport_admin', 'reports'),
-
--- Transport Manager directly gets live operational cards
 ('transport_manager', 'drivers'),
 ('transport_manager', 'routes'),
-('transport_manager', 'trips')
+('transport_manager', 'trips'),
+('transport_manager', 'combine_buses'),
+('transport_manager', 'demand'),
+('transport_manager', 'flowchart')
 ON CONFLICT DO NOTHING;
 
 -- 9. Zero-Touch Seed: Default Super Admin User (if none exists)

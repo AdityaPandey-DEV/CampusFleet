@@ -80,32 +80,36 @@ export async function ensureDatabaseBootstrapped(): Promise<void> {
       return; // Already bootstrapped or table not available
     }
 
-    // Seed cards in DB
+    // Seed cards in DB with unified /cards canonical routes
     const seedCards = [
-      { key: "role_manager", title: "Role & Access Manager", description: "Manage staff accounts, assign roles, and configure hierarchy flowchart.", icon: "ShieldCheck", route: "/role-manager", category: "Administration", sort_order: 1 },
-      { key: "users", title: "User Accounts", description: "Search, add, and manage user accounts and login access.", icon: "Users", route: "/role-manager/users", category: "Administration", sort_order: 2 },
-      { key: "hierarchy", title: "Role Hierarchy Tree", description: "Interactive visual flowchart of reporting and access hierarchy.", icon: "GitFork", route: "/role-manager/hierarchy", category: "Administration", sort_order: 3 },
-      { key: "buses", title: "Bus Fleet", description: "Manage buses, registrations, seat layouts, and print seat QRs.", icon: "BusFront", route: "/transport-admin/buses", category: "Fleet Logistics", sort_order: 4 },
-      { key: "routes", title: "Routes & Stops", description: "Manage corridors, bus stops, pickup timings, and route maps.", icon: "Route", route: "/transport-manager/routes", category: "Fleet Logistics", sort_order: 5 },
-      { key: "trips", title: "Today's Trips", description: "Monitor live departures, dispatch trips, and combine buses.", icon: "Navigation", route: "/transport-manager/trips", category: "Fleet Logistics", sort_order: 6 },
-      { key: "drivers", title: "Assign Drivers", description: "Assign drivers and conductors to specific buses and shifts.", icon: "UserCheck", route: "/transport-manager/drivers", category: "Fleet Logistics", sort_order: 7 },
-      { key: "billing", title: "Bus Fees", description: "Approve student payment receipts, manage fee balances, and UPI QR.", icon: "CreditCard", route: "/transport-admin/billing/approvals", category: "Finance & Accounts", sort_order: 8 },
-      { key: "students", title: "Students & Passes", description: "Search student directory, verify passes, and manage classes.", icon: "GraduationCap", route: "/transport-admin/academics/students", category: "Academics & Safety", sort_order: 9 },
-      { key: "maintenance", title: "Bus Repairs", description: "Track workshop maintenance, engine servicing, and repair logs.", icon: "Wrench", route: "/transport-admin/maintenance", category: "Fleet Logistics", sort_order: 10 },
-      { key: "reports", title: "Staff & Reports", description: "Attendance logs, driver manifests, and audit reports.", icon: "FileText", route: "/transport-admin/system/reports", category: "Administration", sort_order: 11 },
+      { key: "role_manager",  title: "Role & Access Manager", description: "Manage staff accounts, assign roles, and configure hierarchy flowchart.", icon: "ShieldCheck", route: "/role-manager", category: "Administration", sort_order: 1 },
+      { key: "users",         title: "User Accounts",         description: "Search, add, and manage user accounts and login access.", icon: "Users", route: "/cards/users", category: "Administration", sort_order: 2 },
+      { key: "hierarchy",     title: "Role Hierarchy Tree",   description: "Interactive visual flowchart of reporting and access hierarchy.", icon: "GitFork", route: "/cards/hierarchy", category: "Administration", sort_order: 3 },
+      { key: "buses",         title: "Bus Fleet",             description: "Manage buses, registrations, seat layouts, and print seat QRs.", icon: "BusFront", route: "/cards/buses", category: "Fleet Logistics", sort_order: 4 },
+      { key: "routes",        title: "Routes & Stops",        description: "Manage corridors, bus stops, pickup timings, and route maps.", icon: "Route", route: "/cards/routes", category: "Fleet Logistics", sort_order: 5 },
+      { key: "trips",         title: "Today's Trips",        description: "Monitor live departures, dispatch trips, and combine buses.", icon: "Navigation", route: "/cards/trips", category: "Fleet Logistics", sort_order: 6 },
+      { key: "drivers",       title: "Assign Drivers",        description: "Assign drivers and conductors to specific buses and shifts.", icon: "UserCheck", route: "/cards/drivers", category: "Fleet Logistics", sort_order: 7 },
+      { key: "combine_buses", title: "Combine Buses",         description: "Merge low-occupancy routes to optimize fleet fuel and driver hours.", icon: "GitMerge", route: "/cards/combine-buses", category: "Fleet Logistics", sort_order: 8 },
+      { key: "demand",        title: "Demand Analytics",      description: "Predictive passenger demand patterns and stop congestion heatmaps.", icon: "BarChart2", route: "/cards/demand", category: "Fleet Logistics", sort_order: 9 },
+      { key: "billing",       title: "Bus Fees",              description: "Approve student payment receipts, manage fee balances, and UPI QR.", icon: "CreditCard", route: "/cards/billing/approvals", category: "Finance & Accounts", sort_order: 10 },
+      { key: "students",      title: "Students & Passes",     description: "Search student directory, verify passes, and manage classes.", icon: "GraduationCap", route: "/cards/academics/students", category: "Academics & Safety", sort_order: 11 },
+      { key: "maintenance",   title: "Bus Repairs",           description: "Track workshop maintenance, engine servicing, and repair logs.", icon: "Wrench", route: "/cards/maintenance", category: "Fleet Logistics", sort_order: 12 },
+      { key: "reports",       title: "Staff & Reports",       description: "Attendance logs, driver manifests, and audit reports.", icon: "FileText", route: "/cards/system/reports", category: "Administration", sort_order: 13 },
+      { key: "flowchart",     title: "Operational Flowchart", description: "End-to-end operational dispatch workflow and dispatch sequence.", icon: "Workflow", route: "/cards/flowchart", category: "Administration", sort_order: 14 },
+      { key: "settings",      title: "Desk Settings",         description: "Manage preferences, notifications, and profile details.", icon: "Settings", route: "/cards/settings", category: "Administration", sort_order: 15 }
     ];
     await supabaseAdmin.from("system_cards").upsert(seedCards, { onConflict: "key" });
 
-    // Seed roles in DB
+    // Seed roles in DB (Only core admin and role_manager are immutable system roles)
     const seedRoles = [
-      { key: "admin", name: "Super Administrator", description: "Full master control over institution, settings, and role management", parent_role_key: null, hierarchy_level: 1, is_system: true },
-      { key: "role_manager", name: "Role & Access Manager", description: "Configures role hierarchy, assigns cards, and manages staff", parent_role_key: "admin", hierarchy_level: 2, is_system: true },
-      { key: "transport_admin", name: "Transport Admin", description: "Oversees bus fleet, fee desks, student passes, and repairs", parent_role_key: "role_manager", hierarchy_level: 3, is_system: true },
-      { key: "transport_manager", name: "Transport Manager", description: "Manages live operations, routes, drivers, and daily trips", parent_role_key: "transport_admin", hierarchy_level: 4, is_system: true },
-      { key: "driver", name: "Driver", description: "Operational telematics and route progression HUD", parent_role_key: "transport_manager", hierarchy_level: 5, is_system: true },
-      { key: "conductor", name: "Conductor", description: "Optical QR passenger manifest verification scanner", parent_role_key: "transport_manager", hierarchy_level: 5, is_system: true },
-      { key: "teacher", name: "Teacher", description: "Classroom attendance and student transit status", parent_role_key: "transport_admin", hierarchy_level: 4, is_system: true },
-      { key: "student", name: "Student", description: "Student mobility pass, reservations, and live tracking", parent_role_key: null, hierarchy_level: 6, is_system: true },
+      { key: "admin",             name: "Super Administrator",   description: "Full master control over institution, settings, and role management", parent_role_key: null,              hierarchy_level: 1, portal_path: "/admin",             is_system: true },
+      { key: "role_manager",      name: "Role & Access Manager", description: "Configures role hierarchy, assigns cards, and manages staff",       parent_role_key: "admin",           hierarchy_level: 2, portal_path: "/role-manager",      is_system: true },
+      { key: "transport_admin",   name: "Transport Admin",       description: "Oversees bus fleet, fee desks, student passes, and repairs",         parent_role_key: "role_manager",    hierarchy_level: 3, portal_path: "/transport-admin",   is_system: false },
+      { key: "transport_manager", name: "Transport Manager",     description: "Manages live operations, routes, drivers, and daily trips",          parent_role_key: "transport_admin", hierarchy_level: 4, portal_path: "/transport-manager", is_system: false },
+      { key: "driver",            name: "Driver",                description: "Operational telematics and route progression HUD",                   parent_role_key: "transport_manager", hierarchy_level: 5, portal_path: "/driver",            is_system: false },
+      { key: "conductor",         name: "Conductor",             description: "Optical QR passenger manifest verification scanner",                 parent_role_key: "transport_manager", hierarchy_level: 5, portal_path: "/conductor",         is_system: false },
+      { key: "teacher",           name: "Teacher",               description: "Classroom attendance and student transit status",                    parent_role_key: "transport_admin", hierarchy_level: 4, portal_path: "/teacher",           is_system: false },
+      { key: "student",           name: "Student",               description: "Student mobility pass, reservations, and live tracking",             parent_role_key: null,              hierarchy_level: 6, portal_path: "/portal",            is_system: false },
     ];
     await supabaseAdmin.from("system_roles").upsert(seedRoles, { onConflict: "key" });
 
@@ -122,6 +126,9 @@ export async function ensureDatabaseBootstrapped(): Promise<void> {
       { role_key: "transport_manager", card_key: "drivers" },
       { role_key: "transport_manager", card_key: "routes" },
       { role_key: "transport_manager", card_key: "trips" },
+      { role_key: "transport_manager", card_key: "combine_buses" },
+      { role_key: "transport_manager", card_key: "demand" },
+      { role_key: "transport_manager", card_key: "flowchart" },
     ];
     await supabaseAdmin.from("role_cards").upsert(seedRoleCards, { onConflict: "role_key,card_key" });
 
