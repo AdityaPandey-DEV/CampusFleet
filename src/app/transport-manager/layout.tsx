@@ -30,11 +30,10 @@ export default function TransportManagerLayout({ children }: { children: React.R
   const subPortals = {
     trips: {
       title: "Today's Trips",
-      subtitle: "Live Shift Dispatch & Flowchart",
+      subtitle: "Corridor Flowchart & Stop Bus Allocation",
       items: [
         { href: "/transport-manager", label: "← Hub", shortLabel: "Hub", icon: Home },
-        { href: "/transport-manager/trips", label: "Shift Dispatch", shortLabel: "Dispatch", icon: Navigation },
-        { href: "/transport-manager/flowchart", label: "Route Flowchart", shortLabel: "Flowchart", icon: GitBranch },
+        { href: "/transport-manager/trips", label: "Today's Trips", shortLabel: "Trips", icon: Navigation },
       ],
     },
     drivers: {

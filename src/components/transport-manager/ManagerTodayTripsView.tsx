@@ -3,32 +3,26 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { store } from "@/lib/store";
 import { getTodayIST } from "@/lib/time-manager";
-import { formatTime } from "@/lib/utils";
 import {
   Navigation,
   BusFront,
   Users,
   Clock,
-  ArrowRight,
   CheckCircle2,
-  AlertCircle,
+  AlertTriangle,
   Search,
-  Check,
   X,
-  Phone,
-  Sparkles,
-  MoveRight,
-  ChevronRight,
-  ShieldAlert,
-  Shuffle,
+  Trash2,
   Sun,
   Moon,
-  Calendar,
+  ChevronDown,
   Layers,
   MapPin,
-  Building2,
+  ArrowRight,
+  ShieldAlert,
+  Sparkles,
 } from "lucide-react";
-import type { Trip, Bus, Route, Shift, Staff, Booking, TripDirection } from "@/lib/types";
+import type { Trip, Bus, Route, Shift, Staff, Booking } from "@/lib/types";
 
 interface ManagerTodayTripsViewProps {
   initialTrips?: Trip[];
@@ -39,13 +33,22 @@ interface ManagerTodayTripsViewProps {
   initialBookings?: Booking[];
 }
 
+interface ReassignmentPending {
+  bus: Bus;
+  oldTrip: Trip;
+  oldStopName: string;
+  oldRouteName: string;
+  newRoute: Route;
+  newStopIndex: number;
+  newStopName: string;
+}
+
 export default function ManagerTodayTripsView({
   initialTrips = [],
   initialBuses = [],
   initialRoutes = [],
   initialShifts = [],
   initialStaff = [],
-  initialBookings = [],
 }: ManagerTodayTripsViewProps) {
   // 1. Reactive state initialized with server data and store
   const [trips, setTrips] = useState<Trip[]>(() =>
@@ -78,7 +81,7 @@ export default function ManagerTodayTripsView({
 
   const todayDate = useMemo(() => getTodayIST(), []);
 
-  // Format today's human readable date: e.g. "Thursday, Oct 15"
+  // Format today's human-readable date: e.g. "Thursday, Oct 15"
   const formattedTodayDate = useMemo(() => {
     try {
       const [year, month, day] = todayDate.split("-").map(Number);
@@ -94,39 +97,36 @@ export default function ManagerTodayTripsView({
   }, [todayDate]);
 
   // Determine current active shift based on local hour
-  const defaultShiftType = useMemo<"MORNING" | "EVENING" | "ALL">(() => {
+  const defaultShiftType = useMemo<"MORNING" | "EVENING">(() => {
     const currentHour = new Date().getHours();
-    if (currentHour >= 5 && currentHour < 12) return "MORNING";
-    if (currentHour >= 12 && currentHour < 21) return "EVENING";
-    return "ALL";
+    return currentHour >= 12 ? "EVENING" : "MORNING";
   }, []);
 
-  const [selectedShiftFilter, setSelectedShiftFilter] = useState<"MORNING" | "EVENING" | "ALL">(
+  const [selectedShiftFilter, setSelectedShiftFilter] = useState<"MORNING" | "EVENING">(
     defaultShiftType
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRouteFilter, setSelectedRouteFilter] = useState<string>("ALL");
 
-  // Drag and Drop state
-  const [draggedBusId, setDraggedBusId] = useState<string | null>(null);
-  const [dragOverRouteId, setDragOverRouteId] = useState<string | null>(null);
+  // Reassignment Confirmation Modal State
+  const [pendingReassignment, setPendingReassignment] = useState<ReassignmentPending | null>(null);
 
-  // Mobile Tap-to-Swap modal state
-  const [modalSwapTarget, setModalSwapTarget] = useState<{
-    routeId: string;
+  // Delete Bus Confirmation Modal State
+  const [pendingDelete, setPendingDelete] = useState<{
+    tripId: string;
+    busNumber: string;
+    stopName: string;
     routeName: string;
-    shiftId: string;
-    currentBusId?: string;
-    tripId?: string;
   } | null>(null);
 
-  // Success toast notification
+  // Toast Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // 2. Identify all Morning and Evening shifts
+  // 2. Identify Morning and Evening shifts
   const morningShifts = useMemo(
     () =>
       shifts.filter(
@@ -149,40 +149,62 @@ export default function ManagerTodayTripsView({
     [shifts]
   );
 
-  // Active shifts to display based on filter
-  const activeDisplayShifts = useMemo(() => {
+  // Active shift ID
+  const activeShiftId = useMemo(() => {
     if (selectedShiftFilter === "MORNING") {
-      return morningShifts.length > 0 ? morningShifts : shifts.slice(0, 1);
+      return morningShifts[0]?.id || shifts[0]?.id || "shift-morning";
     }
-    if (selectedShiftFilter === "EVENING") {
-      return eveningShifts.length > 0 ? eveningShifts : shifts.slice(1, 2);
-    }
-    return shifts;
+    return eveningShifts[0]?.id || shifts[1]?.id || shifts[0]?.id || "shift-evening";
   }, [selectedShiftFilter, morningShifts, eveningShifts, shifts]);
 
-  const activeShiftId = activeDisplayShifts[0]?.id || shifts[0]?.id || "shift-morning";
-
-  // 3. Map Today's Trips for the active shift & date
+  // 3. Filter Trips for today & active shift
   const todayShiftTrips = useMemo(() => {
     return trips.filter((t) => t.tripDate === todayDate && t.shiftId === activeShiftId);
   }, [trips, todayDate, activeShiftId]);
 
-  // Bus Lookup Map
+  // Lookup maps
   const busMap = useMemo(() => new Map(buses.map((b) => [b.id, b])), [buses]);
+  const staffMap = useMemo(() => new Map(staff.map((s) => [s.id, s])), [staff]);
 
-  // Route assignment map: routeId -> Trip
-  const routeTripMap = useMemo(() => {
-    const map = new Map<string, Trip>();
+  // Map of routeId -> Trip[] for active shift
+  const routeTripsMap = useMemo(() => {
+    const map = new Map<string, Trip[]>();
     for (const t of todayShiftTrips) {
-      map.set(t.routeId, t);
+      const list = map.get(t.routeId) || [];
+      list.push(t);
+      map.set(t.routeId, list);
     }
     return map;
   }, [todayShiftTrips]);
 
-  // Drivers and conductors lookup
-  const staffMap = useMemo(() => new Map(staff.map((s) => [s.id, s])), [staff]);
+  // Global Bus Allocation Map: busId -> { trip, route, stopName, stopIndex }
+  const busAllocationMap = useMemo(() => {
+    const map = new Map<
+      string,
+      { trip: Trip; route: Route; stopName: string; stopIndex: number }
+    >();
 
-  // Available buses calculation (not yet assigned in today's active shift)
+    for (const t of todayShiftTrips) {
+      if (!t.busId) continue;
+      const r = routes.find((route) => route.id === t.routeId);
+      if (!r) continue;
+
+      const stopIdx = t.currentStopIndex ?? 0;
+      const stopObj = r.stops?.[stopIdx]?.stop;
+      const stopName = stopObj?.name || r.stops?.[0]?.stop?.name || "Origin Stop";
+
+      map.set(t.busId, {
+        trip: t,
+        route: r,
+        stopName,
+        stopIndex: stopIdx,
+      });
+    }
+
+    return map;
+  }, [todayShiftTrips, routes]);
+
+  // Operational buses counts
   const assignedBusIds = useMemo(() => {
     const ids = new Set<string>();
     for (const t of todayShiftTrips) {
@@ -195,58 +217,134 @@ export default function ManagerTodayTripsView({
     return buses.filter((b) => !assignedBusIds.has(b.id) && b.status !== "MAINTENANCE");
   }, [buses, assignedBusIds]);
 
-  // Filtered routes based on search
+  // Filtered corridors list
   const filteredRoutes = useMemo(() => {
-    if (!searchQuery.trim()) return routes;
-    const q = searchQuery.toLowerCase().trim();
-    return routes.filter((r) => {
-      const busAssigned = routeTripMap.get(r.id)?.busId;
-      const bus = busAssigned ? busMap.get(busAssigned) : null;
-      return (
-        r.name.toLowerCase().includes(q) ||
-        r.code.toLowerCase().includes(q) ||
-        (bus && (bus.busNumber.toLowerCase().includes(q) || bus.registrationNo.toLowerCase().includes(q)))
-      );
-    });
-  }, [routes, searchQuery, routeTripMap, busMap]);
+    let result = routes;
 
-  // Handler: Assign or Swap Bus for Route on Today's Date
-  const handleAssignBusToRoute = async (routeId: string, busId: string) => {
-    const route = routes.find((r) => r.id === routeId);
-    const bus = buses.find((b) => b.id === busId);
-    if (!route || !bus) return;
+    if (selectedRouteFilter !== "ALL") {
+      result = result.filter((r) => r.id === selectedRouteFilter);
+    }
 
-    // Find existing trip for today & this shift
-    const existingTrip = routeTripMap.get(routeId);
-
-    if (existingTrip) {
-      // Update existing trip with new bus
-      await store.updateTrip(existingTrip.id, { busId });
-    } else {
-      // Create new trip record for today
-      const defaultShift = shifts.find((s) => s.id === activeShiftId) || shifts[0];
-      await store.createTrip({
-        tripCode: `${route.code}-${todayDate.replace(/-/g, "").slice(4)}-${defaultShift?.shiftType?.[0] || "M"}`,
-        routeId: route.id,
-        busId: bus.id,
-        shiftId: activeShiftId,
-        driverId: staff.find((s) => s.role === "driver")?.id || "",
-        conductorId: staff.find((s) => s.role === "conductor")?.id || "",
-        tripDate: todayDate,
-        status: "SCHEDULED",
-        delayMinutes: 0,
-        manifestLocked: false,
-        currentStopIndex: 0,
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter((r) => {
+        const matchesName = r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q);
+        const matchesStop = (r.stops || []).some(
+          (rs) => rs.stop?.name?.toLowerCase().includes(q) || rs.stop?.code?.toLowerCase().includes(q)
+        );
+        const assignedBuses = (routeTripsMap.get(r.id) || [])
+          .map((t) => (t.busId ? busMap.get(t.busId) : null))
+          .filter(Boolean);
+        const matchesBus = assignedBuses.some(
+          (b) =>
+            b?.busNumber.toLowerCase().includes(q) || b?.registrationNo.toLowerCase().includes(q)
+        );
+        return matchesName || matchesStop || matchesBus;
       });
     }
 
-    // Also update bus current route for active fleet tracking
+    return result;
+  }, [routes, selectedRouteFilter, searchQuery, routeTripsMap, busMap]);
+
+  // ── Handler: Directly Assign an Available Bus to a Stop ───────────────────
+  const executeAssignBusToStop = async (route: Route, stopIndex: number, bus: Bus) => {
+    const shiftCode = selectedShiftFilter === "MORNING" ? "M" : "E";
+    const busSuffix = bus.busNumber.replace(/[^0-9]/g, "") || "B";
+    const tripCode = `TRIP-${route.code.replace(/[^A-Za-z0-9]/g, "")}-${shiftCode}-${busSuffix}-${todayDate.replace(/-/g, "").slice(4)}`;
+
+    await store.createTrip({
+      tripCode,
+      routeId: route.id,
+      busId: bus.id,
+      shiftId: activeShiftId,
+      driverId: staff.find((s) => s.role === "driver")?.id || "",
+      conductorId: staff.find((s) => s.role === "conductor")?.id || "",
+      tripDate: todayDate,
+      status: "SCHEDULED",
+      delayMinutes: 0,
+      manifestLocked: false,
+      currentStopIndex: stopIndex,
+    });
+
     await store.allocateBusToRoute(bus.id, route.id);
 
-    showToast(`✓ Bus ${bus.busNumber} (${bus.registrationNo}) assigned to ${route.name}`);
-    setModalSwapTarget(null);
-    setDraggedBusId(null);
-    setDragOverRouteId(null);
+    const stopName = route.stops?.[stopIndex]?.stop?.name || `Stop #${stopIndex + 1}`;
+    showToast(`✓ Bus ${bus.busNumber} assigned to start at ${stopName}!`);
+  };
+
+  // ── Handler: When Manager Selects a Bus from the Dropdown ─────────────────
+  const handleSelectBusForStop = (
+    route: Route,
+    stopIndex: number,
+    stopName: string,
+    selectedBusId: string
+  ) => {
+    if (!selectedBusId) return;
+
+    const bus = busMap.get(selectedBusId);
+    if (!bus) return;
+
+    const existingAllocation = busAllocationMap.get(selectedBusId);
+
+    if (existingAllocation) {
+      if (existingAllocation.route?.id === route.id && existingAllocation.stopIndex === stopIndex) {
+        // Already at this exact stop, no action needed
+        return;
+      }
+
+      // Already allocated elsewhere -> Show Reassignment Confirmation Modal
+      setPendingReassignment({
+        bus,
+        oldTrip: existingAllocation.trip,
+        oldStopName: existingAllocation.stopName,
+        oldRouteName: existingAllocation.route?.name || "Another Corridor",
+        newRoute: route,
+        newStopIndex: stopIndex,
+        newStopName: stopName,
+      });
+    } else {
+      // Unassigned available bus -> Directly allocate
+      executeAssignBusToStop(route, stopIndex, bus);
+    }
+  };
+
+  // ── Handler: Confirm Reassignment from Old Stop to New Stop ───────────────
+  const handleConfirmReassignment = async () => {
+    if (!pendingReassignment) return;
+
+    const { bus, oldTrip, oldStopName, newRoute, newStopIndex, newStopName } = pendingReassignment;
+
+    try {
+      // 1. Delete old trip allocation
+      await store.deleteTrip(oldTrip.id);
+
+      // 2. Create new trip starting from the new stop
+      await executeAssignBusToStop(newRoute, newStopIndex, bus);
+
+      showToast(`✓ Bus ${bus.busNumber} moved from ${oldStopName} to ${newStopName}!`);
+    } catch (err: any) {
+      console.error("Reassignment error:", err);
+      showToast(`✕ Reassignment failed: ${err.message}`);
+    } finally {
+      setPendingReassignment(null);
+    }
+  };
+
+  // ── Handler: Confirm Deleting / Unassigning Bus from Stop ──────────────────
+  const handleConfirmDeleteBus = async () => {
+    if (!pendingDelete) return;
+
+    const { tripId, busNumber, stopName } = pendingDelete;
+
+    try {
+      await store.deleteTrip(tripId);
+      showToast(`✓ Bus ${busNumber} removed from ${stopName} and returned to yard.`);
+    } catch (err: any) {
+      console.error("Delete error:", err);
+      showToast(`✕ Failed to remove bus: ${err.message}`);
+    } finally {
+      setPendingDelete(null);
+    }
   };
 
   return (
@@ -259,27 +357,27 @@ export default function ManagerTodayTripsView({
         </div>
       )}
 
-      {/* ── Header: Shift & Today Date Bar (Mobile-Optimized) ──────────── */}
+      {/* ── Shift & Operational Header ────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live Operations
+              Live Fleet Dispatch
             </span>
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
               📅 {formattedTodayDate}
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-1">
-            Today&apos;s Trips & Route Flowchart
+            Today&apos;s Corridor & Stop Bus Allocation
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            Tap or drag any bus to assign it to today&apos;s shift routes.
+            Assign multiple buses per corridor starting from any intermediate sub-stop.
           </p>
         </div>
 
-        {/* Shift Selector Pills (Large Touch Targets for Handheld Mobile) */}
+        {/* Shift Switcher Toggle */}
         <div className="flex items-center bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 w-full sm:w-auto">
           <button
             onClick={() => setSelectedShiftFilter("MORNING")}
@@ -307,389 +405,448 @@ export default function ManagerTodayTripsView({
         </div>
       </div>
 
-      {/* ── Operational KPI Summary Strip ───────────────────────────────── */}
+      {/* ── Fleet KPI Summary Strip ───────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm">
-          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Routes</div>
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Corridors</div>
           <div className="text-2xl font-black text-gray-900 dark:text-white mt-1">{routes.length}</div>
-          <div className="text-[11px] text-gray-400 mt-0.5">Active corridors</div>
+          <div className="text-[11px] text-gray-400 mt-0.5">Active routes in transit</div>
         </div>
 
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm">
           <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-            Buses Assigned
+            Buses Allocated
           </div>
           <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
-            {assignedBusIds.size} / {routes.length}
+            {assignedBusIds.size}
           </div>
-          <div className="text-[11px] text-gray-400 mt-0.5">Ready for dispatch</div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm">
-          <div className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-            Unassigned Routes
-          </div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">
-            {Math.max(0, routes.length - assignedBusIds.size)}
-          </div>
-          <div className="text-[11px] text-gray-400 mt-0.5">Needs a bus</div>
+          <div className="text-[11px] text-gray-400 mt-0.5">Operating on today&apos;s shift</div>
         </div>
 
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm">
           <div className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-            Yard Standby
+            Available in Yard
           </div>
           <div className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
             {availableBuses.length}
           </div>
-          <div className="text-[11px] text-gray-400 mt-0.5">Available in depot</div>
+          <div className="text-[11px] text-gray-400 mt-0.5">Ready for deployment</div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm">
+          <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+            Active Trips
+          </div>
+          <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
+            {todayShiftTrips.length}
+          </div>
+          <div className="text-[11px] text-gray-400 mt-0.5">Scheduled services</div>
         </div>
       </div>
 
-      {/* ── Bus Yard / Available Fleet Tray (Drag Source) ──────────────── */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-900/90 border border-blue-200/70 dark:border-gray-800 rounded-3xl p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <BusFront className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-sm sm:text-base font-extrabold text-gray-900 dark:text-white">
-              Available Fleet Yard ({availableBuses.length} Standby Buses)
-            </h2>
-          </div>
-          <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950 px-2.5 py-1 rounded-full hidden sm:inline">
-            Drag bus chip or tap on route below
-          </span>
+      {/* ── Search & Corridor Selection Bar ───────────────────────────── */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-4 shadow-sm space-y-3">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search corridor name, code, stop, or bus number..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-11 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-2xl text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        {availableBuses.length === 0 ? (
-          <div className="py-4 text-center text-xs text-gray-500 font-medium">
-            All active buses have been assigned to routes for this shift.
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-thin">
-            {availableBuses.map((bus) => (
-              <div
-                key={bus.id}
-                draggable
-                onDragStart={(e) => {
-                  setDraggedBusId(bus.id);
-                  e.dataTransfer.setData("text/plain", bus.id);
-                }}
-                onDragEnd={() => setDraggedBusId(null)}
-                className={`flex-shrink-0 cursor-grab active:cursor-grabbing bg-white dark:bg-gray-800 border-2 rounded-2xl p-2.5 sm:p-3 shadow-sm hover:shadow-md transition-all flex items-center gap-2.5 select-none ${
-                  draggedBusId === bus.id
-                    ? "border-blue-500 scale-95 opacity-50"
-                    : "border-gray-200 dark:border-gray-700 hover:border-blue-400"
+        {/* Corridor Quick Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+          <button
+            onClick={() => setSelectedRouteFilter("ALL")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              selectedRouteFilter === "ALL"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+            }`}
+          >
+            All Corridors ({routes.length})
+          </button>
+          {routes.map((r) => {
+            const corridorTrips = routeTripsMap.get(r.id) || [];
+            const isSelected = selectedRouteFilter === r.id;
+
+            return (
+              <button
+                key={r.id}
+                onClick={() => setSelectedRouteFilter(r.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
-                <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-xs">
-                  {bus.busNumber.replace(/[^0-9]/g, "") || "B"}
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                    <span>{bus.busNumber}</span>
-                    <span className="text-[10px] text-gray-400 font-normal">({bus.capacity} seats)</span>
-                  </div>
-                  <div className="text-[10px] text-gray-500 font-mono tracking-tight">
-                    {bus.registrationNo}
-                  </div>
-                </div>
-              </div>
-            ))}
+                <span>{r.code}</span>
+                {corridorTrips.length > 0 && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      isSelected
+                        ? "bg-blue-700 text-white"
+                        : "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
+                    }`}
+                  >
+                    {corridorTrips.length} bus
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Main Vertical Corridor & Stop-by-Stop List ────────────────── */}
+      <div className="space-y-6">
+        {filteredRoutes.length === 0 ? (
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-12 text-center text-gray-400">
+            <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+            <p className="font-semibold text-sm">No corridors match your search.</p>
           </div>
-        )}
-      </div>
+        ) : (
+          filteredRoutes.map((route) => {
+            const corridorTrips = routeTripsMap.get(route.id) || [];
+            const stops = route.stops || [];
 
-      {/* ── Search Bar ─────────────────────────────────────────────────── */}
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search route name, stop, or assigned bus..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* ── Routes Flowchart & Bus Allocation Board ─────────────────────── */}
-      <div className="space-y-4">
-        {filteredRoutes.map((route) => {
-          const trip = routeTripMap.get(route.id);
-          const assignedBus = trip?.busId ? busMap.get(trip.busId) : null;
-          const assignedDriver = trip?.driverId ? staffMap.get(trip.driverId) : null;
-          const assignedConductor = trip?.conductorId ? staffMap.get(trip.conductorId) : null;
-
-          const isDropTargetActive = dragOverRouteId === route.id;
-
-          // Ordered stops progression
-          const routeStops = (route.stops || []).slice(0, 5); // display up to 5 key stops for flowchart
-
-          return (
-            <div
-              key={route.id}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOverRouteId(route.id);
-              }}
-              onDragLeave={() => setDragOverRouteId(null)}
-              onDrop={(e) => {
-                e.preventDefault();
-                const busId = e.dataTransfer.getData("text/plain") || draggedBusId;
-                if (busId) {
-                  handleAssignBusToRoute(route.id, busId);
-                }
-              }}
-              className={`bg-white dark:bg-gray-900 border rounded-3xl p-4 sm:p-6 shadow-sm transition-all duration-200 relative overflow-hidden ${
-                isDropTargetActive
-                  ? "border-blue-500 ring-4 ring-blue-500/20 bg-blue-50/30 dark:bg-blue-950/20 scale-[1.01]"
-                  : "border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
-              }`}
-            >
-              {/* Route Top Color Bar */}
+            return (
               <div
-                className="absolute top-0 left-0 right-0 h-1.5 w-full"
-                style={{ backgroundColor: route.color || "#3b82f6" }}
-              />
+                key={route.id}
+                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden"
+              >
+                {/* Corridor Top Color Bar */}
+                <div
+                  className="absolute top-0 left-0 right-0 h-1.5 w-full"
+                  style={{ backgroundColor: route.color || "#3b82f6" }}
+                />
 
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                {/* 1. Route Details & Timing */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span
-                      className="px-2.5 py-0.5 rounded-lg text-xs font-black text-white"
-                      style={{ backgroundColor: route.color || "#3b82f6" }}
-                    >
-                      {route.code}
-                    </span>
-                    <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">
-                      {route.name}
-                    </h3>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                      {selectedShiftFilter === "MORNING"
-                        ? "🌅 Morning Service"
-                        : selectedShiftFilter === "EVENING"
-                        ? "🌆 Evening Service"
-                        : "All Shifts"}
-                    </span>
+                {/* 1. Corridor Header Name & Summary */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-gray-100 dark:border-gray-800">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className="px-2.5 py-0.5 rounded-lg text-xs font-black text-white"
+                        style={{ backgroundColor: route.color || "#3b82f6" }}
+                      >
+                        {route.code}
+                      </span>
+                      <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">
+                        {route.name}
+                      </h2>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2 flex-wrap">
+                      <span>{stops.length} Sequential Stops</span>
+                      <span>•</span>
+                      <span>{route.totalDistanceKm || 25} km corridor</span>
+                      <span>•</span>
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">
+                        {selectedShiftFilter === "MORNING" ? "🌅 Morning Pickup" : "🌆 Evening Drop"}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {route.stops?.length || 0} Total Bus Stops along corridor
-                  </p>
+
+                  {/* Summary of Allocated Buses */}
+                  <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                    {corridorTrips.length === 0 ? (
+                      <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        0 Buses Allocated (Select a bus below)
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                        <BusFront className="w-3.5 h-3.5" />
+                        <span>
+                          {corridorTrips.length} Bus{corridorTrips.length > 1 ? "es" : ""} Assigned to this corridor
+                        </span>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {/* 2. Assigned Bus Box (Drop Target & Mobile Tap Target) */}
-                <div className="flex items-center gap-2 self-start lg:self-auto w-full lg:w-auto">
-                  {assignedBus ? (
-                    <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-3 w-full lg:w-auto">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black text-sm flex-shrink-0 shadow-sm">
-                        {assignedBus.busNumber.replace(/[^0-9]/g, "") || "B"}
-                      </div>
-                      <div className="flex-1 min-w-[120px]">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-bold text-gray-900 dark:text-white">
-                            {assignedBus.busNumber}
-                          </span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
-                            Assigned
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-gray-500 font-mono">
-                          {assignedBus.registrationNo} • {assignedBus.capacity} Seats
-                        </div>
-                      </div>
-
-                      {/* Tap to Swap Bus Button */}
-                      <button
-                        onClick={() =>
-                          setModalSwapTarget({
-                            routeId: route.id,
-                            routeName: route.name,
-                            shiftId: activeShiftId,
-                            currentBusId: assignedBus.id,
-                            tripId: trip?.id,
-                          })
-                        }
-                        className="px-3 py-2 bg-white dark:bg-gray-800 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 flex-shrink-0"
-                      >
-                        <Shuffle className="w-3.5 h-3.5" />
-                        <span>Swap Bus</span>
-                      </button>
+                {/* 2. Vertical Stops Sequence Flowchart */}
+                <div className="pt-6">
+                  {stops.length === 0 ? (
+                    <div className="text-xs text-gray-400 italic py-4">
+                      No stops configured for this corridor.
                     </div>
                   ) : (
-                    <button
-                      onClick={() =>
-                        setModalSwapTarget({
-                          routeId: route.id,
-                          routeName: route.name,
-                          shiftId: activeShiftId,
-                        })
-                      }
-                      className="w-full lg:w-auto flex items-center justify-center gap-2.5 px-5 py-3 border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-950/60 rounded-2xl text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-bold transition-all"
-                    >
-                      <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      <span>No Bus Assigned (Tap to Assign Bus)</span>
-                    </button>
-                  )}
-                </div>
-              </div>
+                    <div className="relative pl-6 sm:pl-8 space-y-6">
+                      {/* Vertical Connecting Timeline Bar */}
+                      <div className="absolute left-2.5 sm:left-3.5 top-4 bottom-6 w-0.5 bg-blue-300 dark:bg-blue-800" />
 
-              {/* ── 3. Step-by-Step Route Flowchart Progression ────────── */}
-              <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800/60">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                    <Navigation className="w-3 h-3 text-blue-500" />
-                    Route Stop Sequence Flowchart
-                  </span>
-                  {assignedDriver && (
-                    <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
-                      Driver: <strong className="text-gray-900 dark:text-white">{assignedDriver.fullName}</strong>
-                    </span>
-                  )}
-                </div>
+                      {stops.map((rs, stopIndex) => {
+                        const stopId = rs.stopId || rs.stop?.id || `stop-${stopIndex}`;
+                        const stopName = rs.stop?.name || `Stop #${stopIndex + 1}`;
+                        const isFirstStop = stopIndex === 0;
+                        const isLastStop = stopIndex === stops.length - 1;
 
-                {/* Horizontal scrollable flowchart steps */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                  {routeStops.length === 0 ? (
-                    <div className="text-xs text-gray-400 italic">No stops configured for this corridor.</div>
-                  ) : (
-                    routeStops.map((rs, index) => {
-                      const isFirst = index === 0;
-                      const isLast = index === routeStops.length - 1;
+                        // Identify all trips/buses starting from this exact stop
+                        const allocatedStopTrips = corridorTrips.filter(
+                          (t) => (t.currentStopIndex ?? 0) === stopIndex && t.busId
+                        );
 
-                      return (
-                        <React.Fragment key={rs.stopId}>
-                          <div className="flex-shrink-0 flex items-center gap-2 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3 py-2 min-w-[140px]">
+                        return (
+                          <div key={stopId} className="relative group">
+                            {/* Stop Node Icon / Number Pin */}
                             <div
-                              className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
-                                isFirst
-                                  ? "bg-blue-600 text-white"
-                                  : isLast
-                                  ? "bg-emerald-600 text-white"
-                                  : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                              className={`absolute -left-6 sm:-left-8 top-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-mono font-black text-xs text-white shadow-md z-10 transition-transform ${
+                                isFirstStop
+                                  ? "bg-green-600 ring-4 ring-green-100 dark:ring-green-950"
+                                  : isLastStop
+                                  ? "bg-indigo-600 ring-4 ring-indigo-100 dark:ring-indigo-950"
+                                  : "bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-950"
                               }`}
                             >
-                              {index + 1}
+                              {stopIndex + 1}
                             </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                {rs.stop?.name || `Stop #${index + 1}`}
+
+                            {/* Stop Card */}
+                            <div className="bg-gray-50/80 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/80 rounded-2xl p-4 sm:p-5 transition-all hover:border-blue-400 dark:hover:border-blue-600 space-y-3">
+                              {/* Stop Title & Meta */}
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="font-black text-sm sm:text-base text-gray-900 dark:text-white">
+                                      {stopName}
+                                    </h3>
+                                    {isFirstStop && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300">
+                                        Route Origin
+                                      </span>
+                                    )}
+                                    {isLastStop && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300">
+                                        Campus Terminus
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-0.5">
+                                    <span>
+                                      Stop #{stopIndex + 1} of {stops.length}
+                                    </span>
+                                    <span>•</span>
+                                    <span>+{rs.arrivalOffsetMinutes || stopIndex * 8}m offset</span>
+                                    {rs.stop?.landmark && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{rs.stop.landmark}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-[10px] text-gray-400 font-mono">
-                                +{rs.arrivalOffsetMinutes || 0}m offset
+
+                              {/* Allocated Buses with Delete Button */}
+                              {allocatedStopTrips.length > 0 && (
+                                <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700/60">
+                                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                                    <BusFront className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                    <span>Buses Starting from this stop ({allocatedStopTrips.length}):</span>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {allocatedStopTrips.map((t) => {
+                                      const bus = busMap.get(t.busId);
+                                      if (!bus) return null;
+                                      const driver = t.driverId ? staffMap.get(t.driverId) : null;
+
+                                      return (
+                                        <div
+                                          key={t.id}
+                                          className="flex items-center justify-between gap-3 bg-white dark:bg-gray-850 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/80 shadow-sm"
+                                        >
+                                          <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-black text-xs flex-shrink-0">
+                                              {bus.busNumber.replace(/[^0-9]/g, "") || "B"}
+                                            </div>
+                                            <div className="min-w-0">
+                                              <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                                {bus.busNumber}
+                                              </div>
+                                              <div className="text-[10px] text-gray-500 font-mono truncate">
+                                                {bus.registrationNo} • {bus.capacity} Seats
+                                                {driver ? ` • Driver: ${driver.fullName}` : ""}
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Delete / Remove Button */}
+                                          <button
+                                            onClick={() =>
+                                              setPendingDelete({
+                                                tripId: t.id,
+                                                busNumber: bus.busNumber,
+                                                stopName,
+                                                routeName: route.name,
+                                              })
+                                            }
+                                            className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/60 transition-colors flex-shrink-0"
+                                            title="Remove bus from this stop"
+                                            aria-label="Remove bus from this stop"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Searchable Bus Assignment Dropdown */}
+                              <div className="pt-2">
+                                <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-300 mb-1">
+                                  + Assign / Allocate Bus to this Stop:
+                                </label>
+                                <div className="relative">
+                                  <select
+                                    defaultValue=""
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val) {
+                                        handleSelectBusForStop(route, stopIndex, stopName, val);
+                                        // Reset select to default
+                                        e.target.value = "";
+                                      }
+                                    }}
+                                    className="w-full appearance-none bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer shadow-sm pr-9"
+                                  >
+                                    <option value="" disabled>
+                                      Select an existing fleet bus to assign to {stopName}...
+                                    </option>
+                                    {buses
+                                      .filter((b) => b.status !== "MAINTENANCE")
+                                      .map((b) => {
+                                        const alloc = busAllocationMap.get(b.id);
+                                        const isAssignedHere =
+                                          alloc &&
+                                          alloc.route?.id === route.id &&
+                                          alloc.stopIndex === stopIndex;
+
+                                        return (
+                                          <option key={b.id} value={b.id} disabled={isAssignedHere}>
+                                            {b.busNumber} ({b.registrationNo}) {
+                                              isAssignedHere
+                                                ? "— [✓ Already assigned here]"
+                                                : alloc
+                                                ? `— [Assigned to ${alloc.stopName} (${alloc.route?.code || "Other"})]`
+                                                : `— [${b.capacity} Seats • Available in Yard]`
+                                            }
+                                          </option>
+                                        );
+                                      })}
+                                  </select>
+                                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                </div>
                               </div>
                             </div>
                           </div>
-
-                          {!isLast && (
-                            <MoveRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
-                          )}
-                        </React.Fragment>
-                      );
-                    })
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
-      {/* ── Mobile One-Tap Bus Selector Bottom Sheet Modal ─────────────── */}
-      {modalSwapTarget && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
+      {/* ── Confirmation Modal: Reassign Bus to Different Stop ────────── */}
+      {pendingReassignment && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 max-w-md w-full rounded-3xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
               <div>
-                <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">
-                  Assign Bus for Today
+                <h3 className="text-base font-black text-gray-900 dark:text-white">
+                  Confirm Bus Reassignment
                 </h3>
-                <p className="text-xs text-gray-500 font-medium">
-                  {modalSwapTarget.routeName}
+                <p className="text-xs text-gray-500">
+                  {pendingReassignment.bus.busNumber} ({pendingReassignment.bus.registrationNo})
                 </p>
               </div>
-              <button
-                onClick={() => setModalSwapTarget(null)}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
 
-            {/* Modal Bus List */}
-            <div className="flex-1 overflow-y-auto py-3 space-y-2 mt-2">
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                Select Fleet Bus:
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 text-xs space-y-2 text-amber-900 dark:text-amber-200">
+              <p>
+                <strong>{pendingReassignment.bus.busNumber}</strong> is currently assigned to start at:
+              </p>
+              <div className="font-bold text-amber-950 dark:text-amber-100 bg-white/70 dark:bg-gray-900/60 p-2 rounded-xl border border-amber-300 dark:border-amber-800">
+                📍 {pendingReassignment.oldStopName} ({pendingReassignment.oldRouteName})
               </div>
-
-              {buses
-                .filter((b) => b.status !== "MAINTENANCE")
-                .map((b) => {
-                  const isCurrentlyAssigned = modalSwapTarget.currentBusId === b.id;
-                  const isAssignedElsewhere =
-                    assignedBusIds.has(b.id) && !isCurrentlyAssigned;
-
-                  return (
-                    <button
-                      key={b.id}
-                      onClick={() => handleAssignBusToRoute(modalSwapTarget.routeId, b.id)}
-                      className={`w-full text-left p-3 rounded-2xl border transition-all flex items-center justify-between ${
-                        isCurrentlyAssigned
-                          ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-100 font-bold"
-                          : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:border-blue-400 text-gray-900 dark:text-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs ${
-                            isCurrentlyAssigned
-                              ? "bg-blue-600 text-white"
-                              : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                          }`}
-                        >
-                          {b.busNumber.replace(/[^0-9]/g, "") || "B"}
-                        </div>
-                        <div>
-                          <div className="text-sm font-bold">{b.busNumber}</div>
-                          <div className="text-xs text-gray-400 font-mono">
-                            {b.registrationNo} • {b.capacity} Seats
-                          </div>
-                        </div>
-                      </div>
-
-                      {isCurrentlyAssigned ? (
-                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                          <Check className="w-4 h-4" /> Current
-                        </span>
-                      ) : isAssignedElsewhere ? (
-                        <span className="text-[11px] font-semibold text-amber-600 bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 rounded-md">
-                          Reassign
-                        </span>
-                      ) : (
-                        <span className="text-[11px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md">
-                          Available
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+              <p className="pt-1">
+                Do you want to <strong>remove</strong> it from {pendingReassignment.oldStopName} and <strong>reassign</strong> it to start at:
+              </p>
+              <div className="font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 p-2 rounded-xl border border-emerald-300 dark:border-emerald-800">
+                📍 {pendingReassignment.newStopName} ({pendingReassignment.newRoute.name})
+              </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-3 pt-2">
               <button
-                onClick={() => setModalSwapTarget(null)}
-                className="w-full py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold text-sm rounded-xl transition-all"
+                onClick={() => setPendingReassignment(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 Cancel
+              </button>
+              <button
+                onClick={handleConfirmReassignment}
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all"
+              >
+                Confirm & Reassign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirmation Modal: Delete / Remove Bus from Stop ──────────── */}
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 max-w-sm w-full rounded-3xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-gray-900 dark:text-white">
+                  Remove Bus from Stop?
+                </h3>
+                <p className="text-xs text-gray-500">Return to fleet yard</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-600 dark:text-gray-300">
+              Are you sure you want to remove <strong>{pendingDelete.busNumber}</strong> from{" "}
+              <strong>{pendingDelete.stopName}</strong>? The bus will become available in the yard.
+            </p>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => setPendingDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Keep Bus
+              </button>
+              <button
+                onClick={handleConfirmDeleteBus}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md shadow-red-500/20 transition-all"
+              >
+                Yes, Remove Bus
               </button>
             </div>
           </div>
