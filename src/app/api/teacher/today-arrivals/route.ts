@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSession } from "@/lib/jwt";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const teacherId = searchParams.get("teacherId") || session?.id;
     const classIdParam = searchParams.get("classId");
-    const isElevated = session?.role === "admin" || session?.role === "transport_manager";
+    const isElevated = await isRoleAuthorized(session?.role, undefined, 4);
 
     // 1. Determine authorized class IDs
     let authorizedClassIds: string[] = [];

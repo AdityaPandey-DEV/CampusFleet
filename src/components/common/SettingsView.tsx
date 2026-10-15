@@ -513,7 +513,7 @@ export function SettingsView() {
                       placeholder="E.g. Senior"
                     />
                   </div>
-                  {Boolean(profileForm.licenseNo || (currentUser as any)?.licenseNumber || currentUser?.role === "driver") && (
+                  {Boolean(profileForm.licenseNo || (currentUser as any)?.licenseNumber || currentUser?.role === "driver" || (currentUser as any)?.role?.includes("driver")) && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">License Number</label>
                       <input 
@@ -525,7 +525,7 @@ export function SettingsView() {
                       />
                     </div>
                   )}
-                  {Boolean((currentUser as any)?.assignedBus || currentUser?.role === "conductor") && (
+                  {Boolean((currentUser as any)?.assignedBus || currentUser?.role === "conductor" || (currentUser as any)?.role?.includes("conductor")) && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Assigned Bus / Duty</label>
                       <input 

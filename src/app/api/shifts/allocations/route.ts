@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSession } from "@/lib/jwt";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 export const dynamic = "force-dynamic";
 
@@ -56,9 +57,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    const canManageAllocations = session && (await isRoleAuthorized(session.role, "trips", 4));
+    if (!canManageAllocations) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized: Admin privileges required to allocate special shift facilities" },
+        { success: false, error: "Unauthorized: Dispatch management privileges required to allocate special shift facilities" },
         { status: 403 }
       );
     }
@@ -112,9 +114,10 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    const canManageAllocations = session && (await isRoleAuthorized(session.role, "trips", 4));
+    if (!canManageAllocations) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized: Admin privileges required" },
+        { success: false, error: "Unauthorized: Dispatch management privileges required" },
         { status: 403 }
       );
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSessionFromRequest } from "@/lib/jwt";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 // POST /api/bookings/cancel
 export async function POST(req: NextRequest) {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1b. Cloudflare Security Audit: Booking Ownership Check
-    const isStaffOrAdmin = ["admin", "transport_admin", "transport_manager"].includes(session.role);
+    const isStaffOrAdmin = await isRoleAuthorized(session.role, "billing", 4);
     if (!isStaffOrAdmin) {
       const isDirectMatch =
         booking.student_id === session.userId ||

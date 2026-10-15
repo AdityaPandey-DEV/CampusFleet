@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSession } from "@/lib/jwt";
 import type { Shift, ShiftType } from "@/lib/types";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 import { cacheGet, cacheSet, cacheDel } from "@/lib/redis";
 
@@ -62,9 +63,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    const canManageShifts = session && (await isRoleAuthorized(session.role, "trips", 4));
+    if (!canManageShifts) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized. Admin privileges required." },
+        { success: false, error: "Unauthorized. Dispatch management privileges required." },
         { status: 403 }
       );
     }
@@ -138,9 +140,10 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    const canManageShifts = session && (await isRoleAuthorized(session.role, "trips", 4));
+    if (!canManageShifts) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized. Admin privileges required." },
+        { success: false, error: "Unauthorized. Dispatch management privileges required." },
         { status: 403 }
       );
     }
@@ -200,9 +203,10 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    const canManageShifts = session && (await isRoleAuthorized(session.role, "trips", 4));
+    if (!canManageShifts) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized. Admin privileges required." },
+        { success: false, error: "Unauthorized. Dispatch management privileges required." },
         { status: 403 }
       );
     }

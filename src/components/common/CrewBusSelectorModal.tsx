@@ -25,7 +25,7 @@ import {
 interface CrewBusSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  role: "driver" | "conductor";
+  role: string;
   initialTab?: "CARDS" | "SCANNER";
   currentUser?: any;
   currentTripId?: string;
@@ -106,13 +106,11 @@ export function CrewBusSelectorModal({
       if (store.isTripSpecial(trip)) {
         const user = currentUser || store.getCurrentUser();
         const userId = user?.id;
-        if (role === "driver") {
+        const isDriver = role === "driver" || role.includes("driver");
+        if (isDriver) {
           return Boolean(userId && trip.driverId === userId);
         }
-        if (role === "conductor") {
-          return Boolean(userId && (trip.conductorId === userId || trip.conductorId === user?.fullName));
-        }
-        return false;
+        return Boolean(userId && (trip.conductorId === userId || trip.conductorId === user?.fullName || trip.driverId === userId));
       }
       return true;
     });
@@ -199,7 +197,8 @@ export function CrewBusSelectorModal({
   const handleSelectBusCard = async (bus: Bus, trip?: Trip) => {
     const user = currentUser || store.getCurrentUser();
     const userId = user?.id || `user-${role}`;
-    const userName = user?.fullName || (role === "driver" ? "Bus Driver" : "Bus Conductor");
+    const roleTitle = role.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const userName = user?.fullName || `Bus ${roleTitle}`;
 
     // Record attendance via card selection
     const res = await store.recordUserAttendance({
@@ -242,7 +241,8 @@ export function CrewBusSelectorModal({
 
       const user = currentUser || store.getCurrentUser();
       const userId = user?.id || `user-${role}`;
-      const userName = user?.fullName || (role === "driver" ? "Bus Driver" : "Bus Conductor");
+      const roleTitle = role.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const userName = user?.fullName || `Bus ${roleTitle}`;
 
       const activeTrip =
         trips.find((t) => t.busId === matchedBus.id && t.status === "IN_PROGRESS") ||
@@ -250,8 +250,9 @@ export function CrewBusSelectorModal({
         trips.find((t) => t.busId === matchedBus.id);
 
       if (activeTrip && store.isTripSpecial(activeTrip)) {
+        const isDriver = role === "driver" || role.includes("driver");
         const isAllocated =
-          role === "driver"
+          isDriver
             ? Boolean(user?.id && activeTrip.driverId === user.id)
             : Boolean(user?.id && (activeTrip.conductorId === user.id || activeTrip.conductorId === user.fullName));
 
@@ -507,9 +508,9 @@ export function CrewBusSelectorModal({
                       <span>
                         {isCurrentActive
                           ? "✓ Currently Operating"
-                          : role === "driver"
+                          : role.includes("driver")
                           ? "Drive This Bus"
-                          : "Conduct This Bus"}
+                          : `Operate as ${role.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}`}
                       </span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>

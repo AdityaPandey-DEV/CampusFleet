@@ -30,8 +30,8 @@ export function resolveHierarchyInheritance(
   const allCardKeys = allCards.map((c) => c.key);
 
   return roles.map((role) => {
-    // Admin has master access to all cards across the system
-    if (role.key === "admin") {
+    // Super Administrator / Level 1 has master access to all cards across the system
+    if (role.hierarchyLevel === 1 || role.key === "admin") {
       return {
         ...role,
         inheritedCards: allCardKeys.filter((k) => !role.directCards.includes(k)),
@@ -211,7 +211,7 @@ export async function getRolesWithHierarchy(): Promise<SystemRoleDefinition[]> {
     description: r.description || undefined,
     parentRoleKey: r.parent_role_key || null,
     hierarchyLevel: r.hierarchy_level || 1,
-    portalPath: r.portal_path || (r.key === "admin" ? "/admin" : r.key === "role_manager" ? "/role-manager" : "/portal"),
+    portalPath: r.portal_path || `/${r.key.replace(/_/g, "-")}`,
     shortLabel: r.short_label || r.name,
     icon: r.icon || "ShieldCheck",
     color: r.color || "text-blue-500",
@@ -225,18 +225,44 @@ export async function getRolesWithHierarchy(): Promise<SystemRoleDefinition[]> {
 }
 
 /**
+ * Dynamic permission check against database:
+ * Checks whether a role has permission to access a specific system card or minimum hierarchy level.
+ */
+export async function isRoleAuthorized(
+  roleKey: string | null | undefined,
+  requiredCardKey?: string,
+  maxHierarchyLevel: number = 4
+): Promise<boolean> {
+  if (!roleKey) return false;
+  const roles = await getRolesWithHierarchy();
+  const roleDef = roles.find((r) => r.key === roleKey);
+  if (!roleDef) return false;
+
+  // Root level / super admin has all rights
+  if (roleDef.hierarchyLevel === 1 || roleDef.key === "admin") return true;
+
+  // Check card capability if specified
+  if (requiredCardKey) {
+    return (roleDef.allEffectiveCards || []).includes(requiredCardKey);
+  }
+
+  // Hierarchy check: level <= maxHierarchyLevel (default 4 includes admin, role_manager, transport_admin, transport_manager)
+  return (roleDef.hierarchyLevel ?? 99) <= maxHierarchyLevel;
+}
+
+/**
  * Get all cards accessible by a specific user from database.
  */
 export async function getUserAllowedCards(user: UserAccount | null | undefined): Promise<SystemCard[]> {
   if (!user) return [];
   const allCards = await getSystemCards();
 
-  if (user.role === "admin") {
-    return allCards;
-  }
-
   const roles = await getRolesWithHierarchy();
   const userRole = roles.find((r) => r.key === user.role);
+
+  if (user.role === "admin" || userRole?.hierarchyLevel === 1) {
+    return allCards;
+  }
 
   const allowedKeys = new Set<string>([
     ...(userRole?.allEffectiveCards || []),

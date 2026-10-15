@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { signToken, createSessionCookie, COOKIE_NAME } from "@/lib/jwt";
 import { findOrCreateUser } from "@/lib/account-service";
+import { supabaseAdmin } from "@/lib/supabaseClient";
 
 // Allowed redirect origins (prevent open redirect attacks)
 const ALLOWED_ORIGINS = [
@@ -121,16 +122,20 @@ export async function GET(req: NextRequest) {
       avatarUrl: user.avatar_url || avatarUrl,
     });
 
-    // 5. Determine redirect based on role
-    let redirectPath = "/portal";
-    switch (user.role) {
-      case "admin": redirectPath = "/admin"; break;
-      case "driver": redirectPath = "/driver"; break;
-      case "conductor": redirectPath = "/conductor"; break;
-      case "transport_admin": redirectPath = "/transport-admin"; break;
-      case "transport_manager": redirectPath = "/transport-manager"; break;
-      case "teacher": redirectPath = "/teacher"; break;
-      default: redirectPath = "/portal";
+    // 5. Determine redirect dynamically from system_roles table in database
+    let redirectPath = `/${user.role.toLowerCase().replace(/_/g, "-")}`;
+    try {
+      const { data: roleData } = await supabaseAdmin
+        .from("system_roles")
+        .select("portal_path")
+        .eq("key", user.role)
+        .maybeSingle();
+
+      if (roleData?.portal_path) {
+        redirectPath = roleData.portal_path;
+      }
+    } catch (err) {
+      console.warn("Dynamic role portal path lookup failed, using fallback:", err);
     }
 
     // ── Set cookie via redirect response ──────────────────────────────

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSession } from "@/lib/jwt";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isStaffOrAdmin = ["admin", "transport_admin", "teacher", "transport_manager"].includes(session.role);
+    const isStaffOrAdmin = await isRoleAuthorized(session.role, undefined, 4);
     const targetStudentId = (!isStaffOrAdmin)
       ? (session.studentId || session.userId)
       : (studentId || session.studentId || session.userId);

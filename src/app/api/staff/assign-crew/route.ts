@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (driverId) {
       const driverRecord = findPersonnel(driverId);
       if (driverRecord) {
-        if (driverRecord.role === "conductor") {
+        if (driverRecord.role.includes("conductor") && !driverRecord.role.includes("driver")) {
           return NextResponse.json(
             {
               success: false,
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           );
         }
-        if (driverRecord.role !== "driver") {
+        if (!driverRecord.role.includes("driver")) {
           return NextResponse.json(
             {
               success: false,
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (conductorId) {
       const conductorRecord = findPersonnel(conductorId);
       if (conductorRecord) {
-        if (conductorRecord.role !== "conductor" && conductorRecord.role !== "driver") {
+        if (!conductorRecord.role.includes("conductor") && !conductorRecord.role.includes("driver")) {
           return NextResponse.json(
             {
               success: false,

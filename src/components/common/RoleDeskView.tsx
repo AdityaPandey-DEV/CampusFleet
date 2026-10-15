@@ -30,14 +30,11 @@ export async function RoleDeskView({ roleKey }: RoleDeskViewProps) {
   // Cards map
   const cardMap = new Map(allCards.map((c) => [c.key, c]));
 
-  // For Admin role: Admin only gets cards directly assigned to Admin in the database (e.g. Role Manager card)
-  // For other roles: Get their effective cards (direct + inherited from descendants)
+  // Use all effective cards (direct assignments + hierarchical inheritance from descendants)
   const allowedCardKeys =
-    roleDef.key === "admin"
-      ? (roleDef.directCards && roleDef.directCards.length > 0)
-        ? roleDef.directCards
-        : ["role_manager"]
-      : (roleDef.allEffectiveCards || []);
+    roleDef.allEffectiveCards && roleDef.allEffectiveCards.length > 0
+      ? roleDef.allEffectiveCards
+      : (roleDef.directCards || []);
 
   const roleSlug = roleDef.portalPath ? roleDef.portalPath.replace(/^\//, "") : roleDef.key.replace(/_/g, "-");
 

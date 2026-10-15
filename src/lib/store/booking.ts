@@ -163,7 +163,7 @@ CampusFleetStore.prototype.recordUserAttendance = async function (
   const resolvedUserName =
     userName ||
     this.currentUser?.fullName ||
-    (userRole === "driver" ? "Bus Driver" : userRole === "conductor" ? "Bus Conductor" : "Passenger");
+    `Bus ${userRole.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}`;
 
   // Create attendance record
   const newRecord: AttendanceRecord = {
@@ -186,9 +186,9 @@ CampusFleetStore.prototype.recordUserAttendance = async function (
 
   // If trip exists and role is driver/conductor, update trip crew
   if (resolvedTrip) {
-    if (userRole === "driver") {
+    if (userRole.includes("driver")) {
       resolvedTrip.driverId = userId;
-    } else if (userRole === "conductor") {
+    } else if (userRole.includes("conductor")) {
       resolvedTrip.conductorId = userId;
     }
   }

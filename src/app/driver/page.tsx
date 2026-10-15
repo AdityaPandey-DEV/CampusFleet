@@ -4,6 +4,8 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 import DriverConsoleView from "@/components/driver/DriverConsoleView";
 import type { Trip, Bus, Route, Booking, Stop } from "@/lib/types";
 
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -20,10 +22,10 @@ export default async function DriverPage() {
     redirect("/login?redirect=/driver");
   }
 
-  // 2. Strict Role Authorization check:
-  // If not driver, conductor, staff, or admin, route to student portal
-  if (session.role !== "driver" && session.role !== "admin" && session.role !== "transport_admin" && session.role !== "transport_manager" && session.role !== "conductor") {
-    redirect("/portal");
+  // 2. Dynamic Role Authorization check
+  const isAuthorized = await isRoleAuthorized(session.role, undefined, 5);
+  if (!isAuthorized) {
+    redirect(session.portalPath || "/portal");
   }
 
   // 3. Direct Server-Side Database Queries
@@ -155,8 +157,7 @@ export default async function DriverPage() {
     createdAt: b.created_at || new Date().toISOString(),
   }));
 
-  const userRole = (session.role as string) || "";
-  const isStaffOrAdmin = userRole === "admin" || userRole === "transport_admin" || userRole === "transport_manager";
+  const isStaffOrAdmin = await isRoleAuthorized(session.role, undefined, 4);
   const visibleTrips = trips.filter(t => {
     const isSpecialTrip = t.isSpecial || t.facilityType === "PLACEMENT_DRIVE" || t.facilityType === "EVENT";
     if (isSpecialTrip) {

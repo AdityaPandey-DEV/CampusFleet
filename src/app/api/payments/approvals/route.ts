@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSessionFromRequest } from "@/lib/jwt";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 /**
  * GET /api/payments/approvals
@@ -10,8 +11,7 @@ import { getSessionFromRequest } from "@/lib/jwt";
 export async function GET(request: NextRequest) {
   const session = await getSessionFromRequest(request);
   const isStaffOrAdmin =
-    session &&
-    ["admin", "transport_admin", "transport_manager"].includes(session.role);
+    session && (await isRoleAuthorized(session.role, "billing", 4));
 
   // Allow students to query their own submissions (filtered below)
   if (!session) {
@@ -87,10 +87,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const allowedRoles = ["admin", "transport_admin", "transport_manager"];
-  if (!allowedRoles.includes(session.role)) {
+  const canApprove = await isRoleAuthorized(session.role, "billing", 4);
+  if (!canApprove) {
     return NextResponse.json(
-      { success: false, error: "Only transport staff and administrators can approve payments." },
+      { success: false, error: "Only authorized transport staff and administrators can review payments." },
       { status: 403 }
     );
   }

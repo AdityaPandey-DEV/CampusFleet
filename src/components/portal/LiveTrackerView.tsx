@@ -151,7 +151,7 @@ export default function LiveTrackerView({
   const assignedDriver = store.getStaff().find((s) => s.id === activeTrip?.driverId);
   const shifts = store.getShifts();
   const activeShift = shifts.find((s) => s.id === activeTrip?.shiftId);
-  const driver = staff.find(s => s.id === activeTrip?.driverId || s.role === "driver");
+  const driver = staff.find(s => s.id === activeTrip?.driverId || s.role?.includes("driver"));
 
   const currentRouteStops = useMemo(() => {
     if (assignedRoute?.stops && assignedRoute.stops.length > 0) {

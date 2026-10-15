@@ -56,10 +56,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager" && session.role !== "transport_admin")) {
+    const canManageZones = session && (await isRoleAuthorized(session.role, "routes", 4));
+    if (!canManageZones) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 403 });
     }
 

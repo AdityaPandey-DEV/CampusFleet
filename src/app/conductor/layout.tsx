@@ -5,6 +5,8 @@ import ConductorLayoutClient from "@/components/conductor/ConductorLayoutClient"
 import { ConductorProvider } from "@/components/conductor/ConductorContext";
 import type { Trip, Bus, Route, Booking, Stop, Shift } from "@/lib/types";
 
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -25,9 +27,10 @@ export default async function ConductorLayout({
     redirect("/login?redirect=/conductor");
   }
 
-  // 2. Strict Role Authorization (Disallow commuters without operations privileges)
+  // 2. Dynamic Role Authorization (Disallow commuters without operations privileges)
   const userPortal = session.portalPath || "/portal";
-  if (userPortal === "/portal" && session.role !== "conductor" && session.role !== "admin" && session.role !== "transport_manager") {
+  const isAuthorized = await isRoleAuthorized(session.role, undefined, 5);
+  if (!isAuthorized && userPortal === "/portal") {
     redirect(userPortal);
   }
 
@@ -137,8 +140,7 @@ export default async function ConductorLayout({
     isSpecial: Boolean(sh.is_special),
   }));
 
-  const userRole = (session.role as string) || "";
-  const isStaffOrAdmin = userRole === "admin" || userRole === "transport_admin" || userRole === "transport_manager";
+  const isStaffOrAdmin = await isRoleAuthorized(session.role, undefined, 4);
   const visibleTrips = trips.filter(t => {
     const isSpecialTrip = t.isSpecial || t.facilityType === "PLACEMENT_DRIVE" || t.facilityType === "EVENT";
     const shift = shifts.find(s => s.id === t.shiftId);

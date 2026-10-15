@@ -84,19 +84,19 @@ export default function TransportManagerCrewView({
   const eligibleDrivers = useMemo(() => {
     const map = new Map<string, { id: string; name: string; phone: string; license?: string; role: string; employeeCode?: string }>();
     staff
-      .filter((s) => s.role === "driver")
+      .filter((s) => s.role.includes("driver"))
       .forEach((s) => {
         map.set(s.id, {
           id: s.id,
           name: s.fullName,
           phone: s.phone || "—",
           license: s.licenseNo || "HMV-COMMERCIAL",
-          role: "driver",
+          role: s.role,
           employeeCode: s.employeeCode,
         });
       });
     users
-      .filter((u) => u.role === "driver")
+      .filter((u) => u.role.includes("driver"))
       .forEach((u) => {
         if (!map.has(u.id)) {
           map.set(u.id, {
@@ -104,7 +104,7 @@ export default function TransportManagerCrewView({
             name: u.fullName,
             phone: u.phone || "—",
             license: "HMV-COMMERCIAL",
-            role: "driver",
+            role: u.role,
           });
         }
       });
@@ -115,39 +115,39 @@ export default function TransportManagerCrewView({
   const eligibleConductors = useMemo(() => {
     const map = new Map<string, { id: string; name: string; phone: string; role: string; isActingDriver?: boolean; employeeCode?: string }>();
     staff
-      .filter((s) => s.role === "conductor")
+      .filter((s) => s.role.includes("conductor"))
       .forEach((s) => {
         map.set(s.id, {
           id: s.id,
           name: s.fullName,
           phone: s.phone || "—",
-          role: "conductor",
+          role: s.role,
           isActingDriver: false,
           employeeCode: s.employeeCode,
         });
       });
     users
-      .filter((u) => u.role === "conductor")
+      .filter((u) => u.role.includes("conductor"))
       .forEach((u) => {
         if (!map.has(u.id)) {
           map.set(u.id, {
             id: u.id,
             name: u.fullName,
             phone: u.phone || "—",
-            role: "conductor",
+            role: u.role,
             isActingDriver: false,
           });
         }
       });
     staff
-      .filter((s) => s.role === "driver")
+      .filter((s) => s.role.includes("driver"))
       .forEach((s) => {
         if (!map.has(s.id)) {
           map.set(s.id, {
             id: s.id,
             name: `${s.fullName} (Qualified Driver)`,
             phone: s.phone || "—",
-            role: "driver",
+            role: s.role,
             isActingDriver: true,
             employeeCode: s.employeeCode,
           });
@@ -179,8 +179,8 @@ export default function TransportManagerCrewView({
   const crewDutyRecords = useMemo(() => {
     return attendanceRecords.filter(
       (a) =>
-        a.userRole === "driver" ||
-        a.userRole === "conductor" ||
+        a.userRole?.includes("driver") ||
+        a.userRole?.includes("conductor") ||
         a.signatureToken?.startsWith("DUTY-") ||
         a.method === "BUS_QR_SCAN"
     );
@@ -584,7 +584,7 @@ export default function TransportManagerCrewView({
                           </div>
                           <span
                             className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider mt-0.5 ${
-                              record.userRole === "driver"
+                              record.userRole?.includes("driver")
                                 ? "bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300"
                                 : "bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300"
                             }`}

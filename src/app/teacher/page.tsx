@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import TeacherConsoleView, { TodayArrival, TeacherClass } from "@/components/teacher/TeacherConsoleView";
 
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -20,7 +22,7 @@ export default async function TeacherPage() {
     redirect("/login?redirect=/teacher");
   }
 
-  const isElevated = session.role === "admin" || session.role === "transport_manager";
+  const isElevated = await isRoleAuthorized(session.role, undefined, 4);
 
   // 2. Fetch allocated classes for this teacher from class_teachers
   let allocatedClasses: any[] = [];

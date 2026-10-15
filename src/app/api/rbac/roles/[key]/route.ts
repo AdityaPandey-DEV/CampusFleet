@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/jwt";
-import { updateSystemRole, deleteSystemRole } from "@/modules/rbac/rbac-service";
+import { updateSystemRole, deleteSystemRole, isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +10,9 @@ export async function PUT(
 ) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "role_manager")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const canManageRoles = session && (await isRoleAuthorized(session.role, "role_manager", 2));
+    if (!canManageRoles) {
+      return NextResponse.json({ error: "Unauthorized: Insufficient role management privileges." }, { status: 403 });
     }
 
     const roleKey = params.key;
@@ -22,8 +23,9 @@ export async function PUT(
       return NextResponse.json({ error: "Role name is required." }, { status: 400 });
     }
 
-    // Role Manager cannot modify the admin role
-    if (roleKey === "admin" && session.role !== "admin") {
+    // Only Super Administrator (Level 1) can modify the admin role
+    const isSuperAdmin = await isRoleAuthorized(session.role, undefined, 1);
+    if (roleKey === "admin" && !isSuperAdmin) {
       return NextResponse.json({ error: "Cannot modify the Super Administrator role." }, { status: 403 });
     }
 
@@ -56,8 +58,9 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "role_manager")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const canManageRoles = session && (await isRoleAuthorized(session.role, "role_manager", 2));
+    if (!canManageRoles) {
+      return NextResponse.json({ error: "Unauthorized: Insufficient role management privileges." }, { status: 403 });
     }
 
     const roleKey = params.key;

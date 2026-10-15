@@ -114,27 +114,27 @@ CampusFleetStore.prototype.isTripVisibleToUser = function (
   const role = currentUser?.role || currentUser?.userRole;
 
   // 1. Staff / Admin / Management has oversight dispatch access
-  if (role && role !== "driver" && role !== "conductor" && role !== "student") {
+  if (role && !role.includes("driver") && !role.includes("conductor") && role !== "student" && role !== "portal") {
     return true;
   }
 
   // 2. Driver check
-  if (role === "driver") {
+  if (role.includes("driver")) {
     const driverId = currentUser?.id || currentUser?.userId;
     return Boolean(driverId && trip.driverId === driverId);
   }
 
   // 3. Conductor check
-  if (role === "conductor") {
+  if (role.includes("conductor")) {
     const conductorId = currentUser?.id || currentUser?.userId;
     return Boolean(conductorId && (trip.conductorId === conductorId || trip.conductorId === currentUser?.fullName));
   }
 
-  // 4. Student check
+  // 4. Commuter / Student check
   const resolvedStudentId =
     studentId ||
     currentUser?.studentId ||
-    (role === "student" ? currentUser?.id : undefined) ||
+    ((role === "student" || role === "portal") ? currentUser?.id : undefined) ||
     this.students.find(s => s.userId === currentUser?.id || s.email === currentUser?.email)?.id;
 
   if (resolvedStudentId) {

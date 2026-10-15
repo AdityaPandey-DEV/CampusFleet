@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import type { Route, Bus, Stop, Student, Trip, Booking, Staff, UserAccount, Campus, ClassItem, Shift, TripDirection } from "@/lib/types";
 
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
+
 export async function getStaffServerData(redirectPath: string = "/transport-admin") {
   const session = await getSession();
 
@@ -12,7 +14,8 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
 
   // Disallow commuters without operations privileges
   const userPortal = session.portalPath || "/portal";
-  if (userPortal === "/portal" && session.role !== "admin" && session.role !== "role_manager" && session.role !== "transport_admin" && session.role !== "transport_manager") {
+  const isAuthorized = await isRoleAuthorized(session.role, undefined, 4);
+  if (userPortal === "/portal" && !isAuthorized) {
     redirect(userPortal);
   }
 

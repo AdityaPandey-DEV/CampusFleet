@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSession } from "@/lib/jwt";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 export const dynamic = "force-dynamic";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager" && session.role !== "transport_admin")) {
+    const canManageZones = session && (await isRoleAuthorized(session.role, "routes", 4));
+    if (!canManageZones) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 403 });
     }
 
@@ -92,7 +94,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    const canManageZones = session && (await isRoleAuthorized(session.role, "routes", 4));
+    if (!canManageZones) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 403 });
     }
 

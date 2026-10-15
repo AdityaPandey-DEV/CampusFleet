@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSession } from "@/lib/jwt";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const isElevated = session.role === "admin" || session.role === "transport_manager";
-    const isTeacher = session.role === "teacher" || session.role === "faculty";
+    const isElevated = await isRoleAuthorized(session.role, undefined, 4);
+    const isTeacher = session.role === "teacher" || session.role === "faculty" || session.role.includes("teacher");
 
     if (!isElevated && !isTeacher) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
@@ -93,8 +94,8 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const isElevated = session.role === "admin" || session.role === "transport_manager";
-    const isTeacher = session.role === "teacher" || session.role === "faculty";
+    const isElevated = await isRoleAuthorized(session.role, undefined, 4);
+    const isTeacher = session.role === "teacher" || session.role === "faculty" || session.role.includes("teacher");
 
     if (!isElevated && !isTeacher) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });

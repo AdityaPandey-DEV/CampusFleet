@@ -2,19 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSessionFromRequest, signToken } from "@/lib/jwt";
 
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
+
 export const dynamic = "force-dynamic";
 
 const COOKIE_NAME = "campusfleet_session";
 
 /**
  * POST /api/admin/update-role
- * Allows Admin or Transport Manager to change any user's role (teacher, staff, driver, admin, etc.)
+ * Allows elevated staff to change a user's role
  */
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
-      return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
+    const authorized = session && (await isRoleAuthorized(session.role, "users", 4));
+    if (!authorized) {
+      return NextResponse.json({ error: "Unauthorized: User management privileges required" }, { status: 403 });
     }
 
     const { userId, role } = await req.json();
@@ -22,9 +25,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing userId or role" }, { status: 400 });
     }
 
-    const validRoles = ["admin", "student", "driver", "conductor", "transport_manager", "transport_admin", "teacher"];
-    if (!validRoles.includes(role)) {
-      return NextResponse.json({ error: "Invalid role specified" }, { status: 400 });
+    // Dynamic valid roles validation directly against system_roles table in database
+    const { data: dbRoles } = await supabaseAdmin.from("system_roles").select("key");
+    const validRoleKeys = (dbRoles || []).map((r: any) => r.key);
+    if (validRoleKeys.length > 0 && !validRoleKeys.includes(role)) {
+      return NextResponse.json({ error: `Invalid role specified. Allowed roles: ${validRoleKeys.join(", ")}` }, { status: 400 });
+    }
+
+    // Only Super Administrator (Level 1) can assign Level 1 admin role
+    const isSuperAdmin = await isRoleAuthorized(session.role, undefined, 1);
+    if (role === "admin" && !isSuperAdmin) {
+      return NextResponse.json({ error: "Only Super Administrators can assign the Administrator role." }, { status: 403 });
     }
 
     // 1. Try updating by id

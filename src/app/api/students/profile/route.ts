@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSessionFromRequest } from "@/lib/jwt";
 import { cacheSet } from "@/lib/redis";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     const cleanEmail = (session.email || "").toLowerCase().trim();
     const userId = session.userId;
     // Cloudflare Security Audit: Only verified session role can perform administrative updates
-    const isStaffOrAdmin = ["admin", "transport_admin", "transport_manager"].includes(session.role);
+    const isStaffOrAdmin = await isRoleAuthorized(session.role, "students", 4);
 
     // 1. Check if student already exists by user_id or email and inspect photo/campus lock status
     let existingStudentId: string | null = null;

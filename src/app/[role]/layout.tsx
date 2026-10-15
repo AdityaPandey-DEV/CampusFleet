@@ -12,13 +12,14 @@ export default function DynamicRoleLayout({
   params: { role: string };
 }) {
   const roleSlug = params?.role || "portal";
+  const normalizedRole = roleSlug.toLowerCase().replace(/-/g, "_");
   const roleTitle = roleSlug.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-black font-sans pb-16">
       <UnifiedAppHeader
-        role={roleSlug}
-        portalTitle={`${roleTitle} Console`}
+        role={normalizedRole}
+        portalTitle={`${roleTitle}`}
         portalSubtitle="Dynamic Role Operations Desk"
       />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

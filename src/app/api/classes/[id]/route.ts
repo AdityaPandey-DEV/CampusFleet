@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSession } from "@/lib/jwt";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -67,8 +68,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const classId = params.id;
-    const isElevated = session.role === "admin" || session.role === "transport_manager" || session.role === "transport_admin";
-    const isTeacher = session.role === "teacher" || session.role === "faculty";
+    const isElevated = await isRoleAuthorized(session.role, undefined, 4);
+    const isTeacher = session.role === "teacher" || session.role === "faculty" || session.role.includes("teacher");
 
     if (!isElevated) {
       if (!isTeacher) {

@@ -98,7 +98,8 @@ CampusFleetStore.prototype.initStudentPaymentSync = function (this: CampusFleetS
 
   const syncStudentStatus = async () => {
     const user = this.currentUser;
-    if (!user || user.role !== "student") return;
+    const isCommuter = user && (user.role === "student" || user.role === "portal" || Boolean(user.studentId));
+    if (!user || !isCommuter) return;
 
     try {
       const res = await fetch(`/api/students/me?_t=${Date.now()}`, { credentials: "include", cache: "no-store" });
@@ -500,10 +501,13 @@ CampusFleetStore.prototype.syncLiveTransit = async function(this: CampusFleetSto
 
 CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore) {
   try {
+    const role = this.currentUser?.role || "";
     const isBasicUser =
-      this.currentUser?.role === "student" ||
-      this.currentUser?.role === "driver" ||
-      this.currentUser?.role === "conductor";
+      role === "student" ||
+      role === "portal" ||
+      role.includes("driver") ||
+      role.includes("conductor") ||
+      Boolean(this.currentUser?.studentId);
 
     // 4.1 Fetch Special Shift Allocations
     const { data: dbAllocations } = await supabase.from("special_shift_allocations").select("*");
@@ -522,7 +526,7 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
     if (isBasicUser) {
       // Ensure we load the single active student profile to prevent layout redirects
       const activeStudentUser = this.currentUser;
-      if (activeStudentUser && activeStudentUser.role === "student") {
+      if (activeStudentUser && (activeStudentUser.role === "student" || activeStudentUser.role === "portal" || Boolean(activeStudentUser.studentId))) {
         let profile = this.students.find(
           s => s.userId === activeStudentUser.id || s.email?.toLowerCase() === activeStudentUser.email?.toLowerCase()
         );
@@ -631,7 +635,7 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
     // But ONLY merge fields that the server might not provide (e.g. temporary local state)
     // NEVER overwrite paymentStatus, hasActiveSubscription, or expiry dates from the server!
     const activeStudentUser = this.currentUser;
-    if (activeStudentUser && activeStudentUser.role === "student") {
+    if (activeStudentUser && (activeStudentUser.role === "student" || activeStudentUser.role === "portal" || Boolean(activeStudentUser.studentId))) {
       const existingProfile = this.students.find(
         s => s.userId === activeStudentUser.id || s.email?.toLowerCase() === activeStudentUser.email?.toLowerCase()
       );

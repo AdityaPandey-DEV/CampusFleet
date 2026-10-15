@@ -146,8 +146,8 @@ export default function StaffFlowchartView({
     setAssignBusFormData({
       busId: buses[0]?.id || "",
       departureTime: "07:20",
-      driverId: staff.find((s) => s.role === "driver")?.id || "",
-      conductorId: staff.find((s) => s.role === "conductor")?.id || "",
+      driverId: staff.find((s) => s.role.includes("driver"))?.id || "",
+      conductorId: staff.find((s) => s.role.includes("conductor"))?.id || "",
     });
     setAssignFlowchartError(null);
     setIsAssignBusModalOpen(true);
@@ -488,7 +488,7 @@ export default function StaffFlowchartView({
                 >
                   <option value="">— Select Driver —</option>
                   {staff
-                    .filter((s) => s.role === "driver")
+                    .filter((s) => s.role.includes("driver"))
                     .map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.fullName} ({d.licenseNo || "Commercial HMV"})
@@ -508,7 +508,7 @@ export default function StaffFlowchartView({
                 >
                   <option value="">— Select Conductor —</option>
                   {staff
-                    .filter((s) => s.role === "conductor" || s.role === "driver")
+                    .filter((s) => s.role.includes("conductor") || s.role.includes("driver"))
                     .map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.fullName}

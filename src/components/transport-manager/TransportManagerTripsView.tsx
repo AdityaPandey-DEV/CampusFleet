@@ -129,8 +129,8 @@ export default function TransportManagerTripsView({
         routeId: routes[0]?.id || "",
         busId: activeBus?.id || "",
         shiftId: shifts[0]?.id || "",
-        driverId: staff.find((s) => s.role === "driver")?.id || "",
-        conductorId: staff.find((s) => s.role === "conductor")?.id || "",
+        driverId: staff.find((s) => s.role.includes("driver"))?.id || "",
+        conductorId: staff.find((s) => s.role.includes("conductor"))?.id || "",
       }));
     }
   }, [routes, buses, shifts, staff, newTrip.routeId]);
@@ -1000,7 +1000,7 @@ export default function TransportManagerTripsView({
                 >
                   <option value="">-- Select Driver (Can assign later) --</option>
                   {staff
-                    .filter((s) => s.role === "driver")
+                    .filter((s) => s.role.includes("driver"))
                     .map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.fullName} ({d.phone})
@@ -1020,7 +1020,7 @@ export default function TransportManagerTripsView({
                 >
                   <option value="">-- Select Conductor (Can assign later) --</option>
                   {staff
-                    .filter((s) => s.role === "conductor" || s.role === "driver")
+                    .filter((s) => s.role.includes("conductor") || s.role.includes("driver"))
                     .map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.fullName} ({c.phone})

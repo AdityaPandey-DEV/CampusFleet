@@ -116,8 +116,8 @@ export async function executeDailyRollover(
       .from("staff")
       .select("id, full_name, role, is_active");
 
-    const drivers = (staffList || []).filter((s) => s.role === "driver" || s.role === "transport_staff");
-    const conductors = (staffList || []).filter((s) => s.role === "conductor" || s.role === "transport_staff");
+    const drivers = (staffList || []).filter((s) => s.role?.includes("driver") || s.role === "transport_staff");
+    const conductors = (staffList || []).filter((s) => s.role?.includes("conductor") || s.role?.includes("driver") || s.role === "transport_staff");
 
     // Filter shifts to daily operational ones (Morning and Evening)
     const dailyShifts = (shifts || []).filter(

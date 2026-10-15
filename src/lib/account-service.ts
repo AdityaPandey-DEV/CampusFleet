@@ -116,7 +116,22 @@ export async function findOrCreateUser({
   }
 
   // 2. First-time sign-in: automatically create user account
-  const role = adminEmail && cleanEmail === adminEmail ? "admin" : "student";
+  let defaultRole = "student";
+  if (adminEmail && cleanEmail === adminEmail) {
+    defaultRole = "admin";
+  } else {
+    try {
+      const { data: defaultRoleRow } = await supabaseAdmin
+        .from("system_roles")
+        .select("key")
+        .eq("portal_path", "/portal")
+        .order("hierarchy_level", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (defaultRoleRow?.key) defaultRole = defaultRoleRow.key;
+    } catch {}
+  }
+  const role = defaultRole;
   const userId = crypto.randomUUID();
   const realName =
     fullName?.trim() ||
@@ -127,7 +142,7 @@ export async function findOrCreateUser({
 
   // Check if a pre-existing student record already exists in database for this email
   let existingStudentForNewUser: any = null;
-  if (role === "student") {
+  if (role === "student" || role === defaultRole) {
     const { data: matchedStudents } = await supabaseAdmin
       .from("students")
       .select("id, user_id, campus_id, campus, full_name, phone, photo_url")

@@ -139,7 +139,7 @@ export function UnifiedAppHeader({
             role: r.key,
             label: r.name,
             shortLabel: r.shortLabel || r.name,
-            path: r.portalPath || (r.key === "admin" ? "/admin" : r.key === "role_manager" ? "/role-manager" : "/transport-admin"),
+            path: r.portalPath || `/${r.key.replace(/_/g, "-")}`,
             icon: getCardIcon(r.icon || "ShieldCheck"),
             color: r.color || "text-blue-500",
             gradient: r.gradient || "bg-blue-600 ",
@@ -152,7 +152,7 @@ export function UnifiedAppHeader({
       .catch(() => {});
   }, []);
 
-  const portalViewRole = role || currentUser?.role || "student";
+  const portalViewRole = role || currentUser?.role || (dynamicRolePortals[0]?.role || "student");
   const userAccountRole = currentUser?.role || portalViewRole;
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com").toLowerCase();
   const isActualAdmin =
@@ -170,7 +170,7 @@ export function UnifiedAppHeader({
     : null;
 
   // Pure dynamic hierarchy resolution from database (Zero hardcoded roles!)
-  const effectiveUserRole = isActualAdmin ? "admin" : (userAccountRole || "student") as string;
+  const effectiveUserRole = isActualAdmin ? "admin" : (userAccountRole as string);
   const accessibleRoles = useMemo(() => {
     const allowed = new Set<string>([effectiveUserRole]);
     let expanded = true;
@@ -188,11 +188,19 @@ export function UnifiedAppHeader({
 
   const allowedPortals = dynamicRolePortals.filter(opt => accessibleRoles.has(opt.role));
 
+  const normalizedPortalViewRole = String(portalViewRole).toLowerCase().replace(/-/g, "_");
+
   const currentPortalConfig =
-    dynamicRolePortals.find(p => p.role === portalViewRole) || {
+    dynamicRolePortals.find(p => 
+      p.role === portalViewRole || 
+      p.role === normalizedPortalViewRole ||
+      (p.path && (pathname === p.path || pathname.startsWith(p.path + "/")))
+    ) || {
       role: portalViewRole,
-      label: portalTitle || "CampusFleet Portal",
-      shortLabel: "Portal",
+      label: portalTitle || "CampusFleet Desk",
+      shortLabel: portalTitle 
+        ? portalTitle.replace(/\s+(Desk|Console|Portal)$/i, "") 
+        : (portalViewRole ? String(portalViewRole).replace(/[-_]/g, " ").toUpperCase() : "DESK"),
       path: pathname,
       icon: getCardIcon("Compass"),
       color: "text-blue-500",
@@ -214,23 +222,38 @@ export function UnifiedAppHeader({
     router.push(opt.path);
   };
 
-  const getRoleBadgeClasses = (r: string) => {
-    switch (r) {
-      case "admin":
-        return "bg-yellow-100 dark:bg-yellow-950/60 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800";
-      case "transport_admin":
-        return "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800";
-      case "transport_manager":
-        return "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800";
-      case "teacher":
-        return "bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800";
-      case "driver":
-        return "bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800";
-      case "conductor":
-        return "bg-pink-100 dark:bg-pink-950/60 text-pink-800 dark:text-pink-300 border-pink-200 dark:border-pink-800";
-      default:
-        return "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+  const getRoleBadgeClasses = (roleKey: string) => {
+    const portal = dynamicRolePortals.find(
+      p => p.role === roleKey || p.role === roleKey?.replace(/-/g, "_")
+    );
+    const colorStr = portal?.color || "";
+    if (colorStr.includes("yellow") || colorStr.includes("amber")) {
+      return "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800";
     }
+    if (colorStr.includes("indigo") || colorStr.includes("purple") || colorStr.includes("violet")) {
+      return "bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800";
+    }
+    if (colorStr.includes("green") || colorStr.includes("emerald")) {
+      return "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+    }
+    if (colorStr.includes("pink") || colorStr.includes("rose")) {
+      return "bg-pink-100 dark:bg-pink-950/60 text-pink-800 dark:text-pink-300 border-pink-200 dark:border-pink-800";
+    }
+    if (colorStr.includes("blue") || colorStr.includes("sky") || colorStr.includes("cyan")) {
+      return "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+    }
+    // Dynamic fallback hash palette for custom database roles:
+    const palettes = [
+      "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+      "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+      "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+      "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+      "bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+    ];
+    let hash = 0;
+    const key = roleKey || "";
+    for (let i = 0; i < key.length; i++) hash = (hash << 5) - hash + key.charCodeAt(i);
+    return palettes[Math.abs(hash) % palettes.length];
   };
 
   const initials = currentUser?.fullName
@@ -245,59 +268,23 @@ export function UnifiedAppHeader({
   const resolvedMobileAction =
     mobilePrimaryAction ||
     (() => {
-      if (portalViewRole === "teacher") {
-        return {
-          label: "Student & Mobility Portal",
-          href: "/portal",
-          subtitle: "Bus routes, stops, schedules & student passes",
-          icon: GraduationCap,
-        };
-      }
-      if (portalViewRole === "driver") {
-        return {
-          label: "Conductor Manifest Console",
-          href: "/conductor",
-          subtitle: "Passenger QR verification & manifest",
-          icon: FileCheck2,
-        };
-      }
-      if (portalViewRole === "conductor") {
-        return {
-          label: "Driver Telematics HUD",
-          href: "/driver",
-          subtitle: "Live vehicle telemetry & trip dashboard",
-          icon: BusFront,
-        };
-      }
-      if (portalViewRole === "transport_admin") {
-        return isActualAdmin
-          ? {
-              label: "Master Admin Console",
-              href: "/admin",
-              subtitle: "Fleet command, routes, crew & settings",
-              icon: LayoutDashboard,
-            }
-          : {
-              label: "Transport Manager Console",
-              href: "/transport-manager",
-              subtitle: "Buses, routes, trips & combine buses",
-              icon: Navigation,
-            };
-      }
-      if (portalViewRole === "transport_manager") {
-        return {
-          label: "Transport Admin Desk",
-          href: "/transport-admin",
-          subtitle: "Fee approvals, student passes & desk ops",
-          icon: Building2,
-        };
-      }
-      if ((portalViewRole === "student" || pathname.startsWith("/portal")) && pathname !== "/portal/tracker") {
+      // Dynamic GPS Tracker shortcut for portal / commuter path
+      if (pathname.startsWith("/portal") && pathname !== "/portal/tracker") {
         return {
           label: "Live GPS Bus Radar",
           href: "/portal/tracker",
           subtitle: "Real-time transit tracker & telemetry",
           icon: Radio,
+        };
+      }
+      // If user has other accessible portals from database hierarchy, offer quick-switch to alternate portal
+      const alternatePortal = allowedPortals.find(p => p.path !== pathname && !pathname.startsWith(p.path));
+      if (alternatePortal) {
+        return {
+          label: alternatePortal.label,
+          href: alternatePortal.path,
+          subtitle: alternatePortal.description || `Switch to ${alternatePortal.label}`,
+          icon: alternatePortal.icon,
         };
       }
       return null;

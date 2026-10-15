@@ -27,27 +27,11 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
   const [isCrewSelectorOpen, setIsCrewSelectorOpen] = useState(false);
   const [selectorTab, setSelectorTab] = useState<"CARDS" | "SCANNER">("CARDS");
 
-  const isAuthorizedConductor = currentUser?.role === "conductor" || currentUser?.role === "driver";
+  const role = currentUser?.role || "";
+  const isAuthorizedConductor = role !== "student" && role !== "parent" && role !== "commuter";
   if (currentUser && !isAuthorizedConductor) {
-    const role = currentUser.role;
-    const isAdmin = role === "admin";
-    const isTransportAdmin = role === "transport_admin";
-    const isTransportManager = role === "transport_manager";
-
-    const targetPortal = isAdmin
-      ? "/admin"
-      : isTransportAdmin
-      ? "/transport-admin"
-      : isTransportManager
-      ? "/transport-manager"
-      : "/portal";
-    const targetLabel = isAdmin
-      ? "Return to Admin Operations Center"
-      : isTransportAdmin
-      ? "Return to Transport Admin Desk"
-      : isTransportManager
-      ? "Return to Transport Manager Console"
-      : "Go to Student Portal";
+    const targetPortal = (currentUser as any)?.portalPath || `/${role.replace(/_/g, "-")}` || "/portal";
+    const targetLabel = "Return to Student Portal";
 
     return (
       <div className="min-h-screen bg-gray-900 text-white flex flex-col pb-20 md:pb-6 font-sans">
@@ -58,13 +42,7 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
             </div>
             <h2 className="text-xl font-black">Access Restricted</h2>
             <p className="text-xs text-gray-300">
-              {isAdmin
-                ? "Administrators are restricted from the Conductor Console. Please return to the Admin Operations Center."
-                : isTransportAdmin
-                ? "Transport Admin officers are restricted from the Conductor Console. Please return to the Transport Admin Desk."
-                : isTransportManager
-                ? "Transport Managers are restricted from the Conductor Console. Please return to the Transport Manager Console."
-                : "Ticketing & optical manifest authorization required to access the Conductor Console."}
+              Operational crew or dispatch clearance is required to access the Conductor Console.
             </p>
             <div className="pt-2">
               <Link

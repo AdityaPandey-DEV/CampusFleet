@@ -171,8 +171,8 @@ export function computeFleetBusMarkers(
     const activeTrip = inProgressTrip || busTrips[0];
 
     // 3. Find driver and conductor
-    const driver = staff.find((s) => s.id === activeTrip?.driverId || s.role === "driver");
-    const conductor = staff.find((s) => s.id === activeTrip?.conductorId || s.role === "conductor");
+    const driver = staff.find((s) => s.id === activeTrip?.driverId || s.role?.includes("driver"));
+    const conductor = staff.find((s) => s.id === activeTrip?.conductorId || s.role?.includes("conductor"));
 
     // 4. Resolve Route Stops sequence
     let routeStops: Stop[] = [];

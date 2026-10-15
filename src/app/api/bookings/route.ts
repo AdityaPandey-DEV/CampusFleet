@@ -4,6 +4,7 @@ import { getSessionFromRequest } from "@/lib/jwt";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
 import { isTripCutoffPassed, getTodayIST } from "@/lib/time-manager";
 import { generateSeatLayout } from "@/lib/utils";
+import { isRoleAuthorized } from "@/modules/rbac/rbac-service";
 
 // GET /api/bookings?tripId=...&shiftId=...&studentId=...&date=...
 export async function GET(req: NextRequest) {
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1b. Cloudflare Security Audit: Strict IDOR Guard
-    const isStaffOrAdmin = ["admin", "transport_admin", "transport_manager"].includes(session.role);
+    const isStaffOrAdmin = await isRoleAuthorized(session.role, "billing", 4);
     if (!isStaffOrAdmin) {
       const matchesSession =
         student.user_id === session.userId ||

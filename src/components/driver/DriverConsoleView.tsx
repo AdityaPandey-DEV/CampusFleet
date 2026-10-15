@@ -492,32 +492,12 @@ export default function DriverConsoleView({
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Access Barrier: Admin and Staff can only access Admin & Staff panels; Conductor cannot access Driver
-  if (currentUser && currentUser.role !== "driver") {
-    const role = currentUser.role;
-    const isAdmin = role === "admin";
-    const isTransportAdmin = role === "transport_admin";
-    const isTransportManager = role === "transport_manager";
-    const isConductor = role === "conductor";
-
-    const targetPortal = isAdmin
-      ? "/admin"
-      : isTransportAdmin
-      ? "/transport-admin"
-      : isTransportManager
-      ? "/transport-manager"
-      : isConductor
-      ? "/conductor"
-      : "/portal";
-    const targetLabel = isAdmin
-      ? "Return to Admin Operations Center"
-      : isTransportAdmin
-      ? "Return to Transport Admin Desk"
-      : isTransportManager
-      ? "Return to Transport Manager Console"
-      : isConductor
-      ? "Go to Conductor Console"
-      : "Go to Student Portal";
+  // Access Barrier: Only operational users can access Driver Console
+  const userRole = currentUser?.role || "";
+  const isAuthorizedDriver = userRole !== "student" && userRole !== "parent" && userRole !== "commuter";
+  if (currentUser && !isAuthorizedDriver) {
+    const targetPortal = (currentUser as any)?.portalPath || `/${userRole.replace(/_/g, "-")}` || "/portal";
+    const targetLabel = "Return to Student Portal";
 
     const driverNavLinks = [
       { href: "/driver", label: "Driver Console", icon: BusFront },
@@ -532,15 +512,7 @@ export default function DriverConsoleView({
             </div>
             <h2 className="text-xl font-black">Access Restricted</h2>
             <p className="text-xs text-gray-300">
-              {isAdmin
-                ? "Administrators are restricted from the Driver Console. Commercial heavy vehicle driving qualifications are required."
-                : isTransportAdmin
-                ? "Transport Admin officers are restricted from the Driver Console. Administrative tasks are managed in the Transport Admin Desk."
-                : isTransportManager
-                ? "Transport Managers are restricted from the Driver Console. Fleet operations are managed in the Transport Manager Console."
-                : isConductor
-                ? "Conductors are restricted from viewing the Driver Console. Commercial heavy vehicle driving qualifications are required."
-                : "Commercial heavy vehicle driving credentials required to operate the Driver Telematics Cockpit."}
+              Commercial heavy vehicle driving credentials required to operate the Driver Telematics Cockpit.
             </p>
             <div className="pt-2">
               <Link
