@@ -46,5 +46,7 @@ scripts/slide_renders/
 scripts/analyze_ss.js
 scripts/ss_analysis.json
 campus fleet ss/
+campus fleet ss.zip
+*.traineddata
 *.pptx
 *.pdf
