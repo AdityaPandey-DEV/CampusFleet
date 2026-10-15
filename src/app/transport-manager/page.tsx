@@ -2,7 +2,7 @@ import { HubDashboardView, HubModule } from "@/components/common/HubDashboardVie
 import { 
   BusFront,
   Users,
-  Navigation, 
+  Navigation,
   BarChart3,
   GitMerge,
   Building2

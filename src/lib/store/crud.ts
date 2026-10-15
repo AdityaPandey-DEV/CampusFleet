@@ -1024,6 +1024,7 @@ CampusFleetStore.prototype.updateTrip = async function (this: CampusFleetStore, 
     if (updates.delayMinutes !== undefined) dbUpdates.delay_minutes = updates.delayMinutes;
     if (updates.driverId !== undefined) dbUpdates.driver_id = updates.driverId;
     if (updates.conductorId !== undefined) dbUpdates.conductor_id = updates.conductorId;
+    if (updates.busId !== undefined) dbUpdates.bus_id = updates.busId;
 
     if (Object.keys(dbUpdates).length > 0) {
       await supabase.from("trips").update(dbUpdates).eq("id", tripId);

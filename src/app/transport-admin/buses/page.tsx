@@ -1,5 +1,5 @@
 import { getStaffServerData } from "@/lib/transport-admin-data";
-import TransportManagerBusesView from "@/components/transport-manager/TransportManagerBusesView";
+import TransportAdminBusesView from "@/components/transport-admin/TransportAdminBusesView";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export default async function TransportAdminBusesPage() {
   const data = await getStaffServerData("/transport-admin/buses");
 
   return (
-    <TransportManagerBusesView
+    <TransportAdminBusesView
       initialBuses={data.buses}
       initialRoutes={data.routes}
       initialTrips={data.trips}

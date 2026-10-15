@@ -8,17 +8,17 @@ import { BusFront, Plus, Edit2, Trash2, ShieldAlert, CheckCircle2, Wrench, Searc
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 
-export interface TransportManagerBusesProps {
+export interface TransportAdminBusesProps {
   initialBuses?: Bus[];
   initialRoutes?: Route[];
   initialTrips?: Trip[];
 }
 
-export default function TransportManagerBusesView({
+export default function TransportAdminBusesView({
   initialBuses = [],
   initialRoutes = [],
   initialTrips = [],
-}: TransportManagerBusesProps = {}) {
+}: TransportAdminBusesProps = {}) {
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
   const [routes, setRoutes] = useState<Route[]>(() => initialRoutes.length > 0 ? initialRoutes : store.getRoutes());
   const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());

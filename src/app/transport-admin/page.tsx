@@ -6,7 +6,8 @@ import {
   Wrench, 
   Shield, 
   BusFront,
-  Route
+  Route,
+  Navigation
 } from "lucide-react";
 import { Metadata } from "next";
 
@@ -32,6 +33,12 @@ const staffModules: HubModule[] = [
     description: "Manage bus corridors, pickup points, stop timings, and route geometry.",
     icon: Route,
     href: "/transport-admin/routes"
+  },
+  {
+    title: "Today's Trips",
+    description: "Monitor running morning and evening trips, track delays, and review halts.",
+    icon: Navigation,
+    href: "/transport-admin/trips"
   },
   {
     title: "Bus Fees",

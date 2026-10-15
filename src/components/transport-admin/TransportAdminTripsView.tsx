@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import type { Trip, Bus, Route, Shift, Staff, Booking, TripDirection, TripScheduleType, Student, SpecialShiftAllocation } from "@/lib/types";
 
-export interface TransportManagerTripsProps {
+export interface TransportAdminTripsProps {
   initialTrips?: Trip[];
   initialBuses?: Bus[];
   initialRoutes?: Route[];
@@ -53,14 +53,14 @@ const TIME_PRESETS: Record<TripDirection, string[]> = {
   CAMPUS_TO_CAMPUS: ["09:00", "11:30", "13:45", "15:30", "17:15"],
 };
 
-export default function TransportManagerTripsView({
+export default function TransportAdminTripsView({
   initialTrips = [],
   initialBuses = [],
   initialRoutes = [],
   initialShifts = [],
   initialStaff = [],
   initialBookings = [],
-}: TransportManagerTripsProps = {}) {
+}: TransportAdminTripsProps = {}) {
   const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
   const [routes, setRoutes] = useState<Route[]>(() => initialRoutes.length > 0 ? initialRoutes : store.getRoutes());

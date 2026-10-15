@@ -21,7 +21,8 @@ import {
   Compass,
   BusFront,
   Route,
-  MapPin
+  MapPin,
+  Navigation
 } from "lucide-react";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -85,6 +86,17 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         { href: "/transport-admin/routes/stops", label: "Bus Stops", shortLabel: "Stops", icon: MapPin },
         { href: "/transport-admin/routes/locations", label: "Campuses", shortLabel: "Campuses", icon: Building2 },
         { href: "/transport-admin/buses", label: "Bus Fleet", shortLabel: "Buses", icon: BusFront },
+        { href: "/transport-admin/trips", label: "Today's Trips", shortLabel: "Trips", icon: Navigation },
+        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
+      ]
+    },
+    trips: {
+      title: "Today's Trips",
+      items: [
+        { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/transport-admin/trips", label: "Today's Trips", shortLabel: "Trips", icon: Navigation },
+        { href: "/transport-admin/routes", label: "Routes & Stops", shortLabel: "Routes", icon: Route },
+        { href: "/transport-admin/buses", label: "Bus Fleet", shortLabel: "Buses", icon: BusFront },
         { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
       ]
     },
@@ -104,6 +116,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     { href: "/transport-manager", label: "Transport Manager", icon: Compass },
     { href: "/transport-admin/buses", label: "Bus Fleet", icon: BusFront },
     { href: "/transport-admin/routes", label: "Routes & Stops", icon: Route },
+    { href: "/transport-admin/trips", label: "Today's Trips", icon: Navigation },
     { href: "/transport-admin/billing/approvals", label: "Bus Fees", icon: CreditCard },
     { href: "/transport-admin/academics/students", label: "Students", icon: GraduationCap },
     { href: "/transport-admin/maintenance", label: "Repairs", icon: Wrench },
@@ -120,6 +133,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   } else if (pathname.startsWith("/transport-admin/routes")) {
     currentNavLinks = subPortals.routes.items;
     currentTitle = subPortals.routes.title;
+  } else if (pathname.startsWith("/transport-admin/trips")) {
+    currentNavLinks = subPortals.trips.items;
+    currentTitle = subPortals.trips.title;
   } else if (pathname.startsWith("/transport-admin/billing")) {
     currentNavLinks = subPortals.billing.items;
     currentTitle = subPortals.billing.title;
