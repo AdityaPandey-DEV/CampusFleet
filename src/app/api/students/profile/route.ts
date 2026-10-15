@@ -102,11 +102,6 @@ export async function POST(req: NextRequest) {
       campus: effectiveCampus,
       department: (department || "").trim() || null,
       semester: (semester || "").trim() || null,
-      year_num: (() => {
-        const sem = (semester || "").trim().replace(/\D/g, ""); // Extract number
-        if (!sem) return null;
-        return String(Math.ceil(Number(sem) / 2));
-      })(),
       zone_code: zoneCode || null,
       primary_stop_id: primaryStopId || null,
       emergency_contact: emergencyContact || null,
@@ -118,6 +113,8 @@ export async function POST(req: NextRequest) {
       finalPhotoUrl = body.photoUrl;
       // Only lock photo if student already has an approved subscription
       finalPhotoLocked = hasActiveSubscription;
+      studentData.photo_url = finalPhotoUrl;
+      studentData.photo_locked = finalPhotoLocked;
     }
 
     if (validClassId) {

@@ -256,23 +256,24 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
       totalFeeDue: zoneFee,
       totalFeePaid: 0,
       photoUrl: profileData.photoUrl || "",
-      photoLocked: Boolean(profileData.photoUrl && profileData.photoUrl.trim() !== ""),
+      photoLocked: false,
     };
     this.students.push(student);
   }
 
-  // Anti-fraud guardrail: if photo is already locked and caller is not staff, deny photo overwrite
+  // Anti-fraud guardrail: if student has active/approved subscription and photo is locked, deny overwrite unless staff
+  const isApproved = student.paymentStatus === "APPROVED" || Boolean(student.hasActiveSubscription);
   let targetPhotoUrl = student.photoUrl;
-  let targetPhotoLocked = student.photoLocked;
+  let targetPhotoLocked = Boolean(isApproved && student.photoLocked);
   if (profileData.photoUrl && profileData.photoUrl !== student.photoUrl) {
-    if (student.photoLocked && !profileData.performedByStaff) {
+    if (targetPhotoLocked && !profileData.performedByStaff) {
       return {
         success: false,
-        message: "Official identity photo is locked. Only campus transport staff can update your verification photo.",
+        message: "Official identity photo is locked after payment approval. Only campus transport staff can update your verification photo.",
       };
     }
     targetPhotoUrl = profileData.photoUrl;
-    targetPhotoLocked = true;
+    targetPhotoLocked = isApproved;
   }
 
   // Recompute fee if zone changed, otherwise preserve existing fee/payment state
@@ -336,7 +337,7 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
   // Persist via Server API (using supabaseAdmin for guaranteed privileges)
   try {
     if (typeof window !== "undefined") {
-      await fetch("/api/students/profile", {
+      const res = await fetch("/api/students/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -356,8 +357,14 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
           performedByStaff: profileData.performedByStaff || false,
         }),
       });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        console.error("API /api/students/profile failed:", errJson);
+        return { success: false, message: errJson?.error || "Failed to save profile to database." };
+      }
     }
-  } catch (apiErr) {
+  } catch (apiErr: any) {
     console.warn("API /api/students/profile error:", apiErr);
   }
 
@@ -383,6 +390,8 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
       payment_status: updatedStudent.paymentStatus || "UNPAID",
       total_fee_due: updatedStudent.totalFeeDue || 12000,
       total_fee_paid: updatedStudent.totalFeePaid || 0,
+      photo_url: updatedStudent.photoUrl || null,
+      photo_locked: updatedStudent.photoLocked || false,
     });
 
     if (updatedStudent.userId) {

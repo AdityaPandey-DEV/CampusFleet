@@ -102,6 +102,9 @@ export async function DELETE(req: NextRequest) {
 
     await Promise.allSettled(userQueries);
 
+    // Delete user from institutional users table
+    await supabaseAdmin.from("users").delete().eq("id", session.userId);
+
     // 3. Delete user from Supabase Auth
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(session.userId);
 

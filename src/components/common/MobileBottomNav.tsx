@@ -27,6 +27,11 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: MobileBottomNavProps) {
   const pathname = usePathname();
 
+  // On onboarding page, hide bottom dock so user completes profile setup without distraction or form bypass
+  if (pathname === "/portal/onboarding") {
+    return null;
+  }
+
   // If no dynamic items provided, default to the student navigation logic
   const defaultNavItems: MobileBottomNavItem[] = isPaymentApproved
     ? [

@@ -85,6 +85,8 @@ export default function StudentOnboardingPage() {
   const [emergencyPhone, setEmergencyPhone] = useState("");
   const [emergencyRel, setEmergencyRel] = useState("Parent / Guardian");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [localPreviewUrl, setLocalPreviewUrl] = useState("");
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const isPassApproved = isStudentSubscriptionActive(activeStudent);
@@ -151,6 +153,15 @@ export default function StudentOnboardingPage() {
         };
         reader.onerror = () => reject(new Error("Failed to read file"));
       });
+
+      // 1.5. Set local preview immediately so the user never experiences broken preview while waiting for upload
+      try {
+        const objectUrl = URL.createObjectURL(compressedFile);
+        setLocalPreviewUrl(objectUrl);
+        setImageLoadFailed(false);
+      } catch (err) {
+        console.warn("Local object URL creation failed", err);
+      }
 
       // 2. Upload compressed image
       const formData = new FormData();
@@ -418,10 +429,28 @@ export default function StudentOnboardingPage() {
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
                 {/* Photo Preview Thumbnail */}
                 <div className="flex-shrink-0">
-                  {photoUrl ? (
+                  {(localPreviewUrl || photoUrl) && !imageLoadFailed ? (
+                    <img
+                      src={
+                        localPreviewUrl ||
+                        (photoUrl.startsWith("http")
+                          ? `/api/photo-proxy?url=${encodeURIComponent(photoUrl)}`
+                          : photoUrl)
+                      }
+                      alt="Passport Photo Preview"
+                      crossOrigin="anonymous"
+                      referrerPolicy="no-referrer"
+                      onError={() => {
+                        setImageLoadFailed(true);
+                      }}
+                      className="w-24 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-950"
+                    />
+                  ) : photoUrl && imageLoadFailed ? (
                     <img
                       src={photoUrl}
                       alt="Passport Photo Preview"
+                      crossOrigin="anonymous"
+                      referrerPolicy="no-referrer"
                       className="w-24 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-950"
                     />
                   ) : (
@@ -457,10 +486,14 @@ export default function StudentOnboardingPage() {
                             className="hidden"
                           />
                         </label>
-                        {photoUrl && !isUploadingPhoto && (
+                        {(photoUrl || localPreviewUrl) && !isUploadingPhoto && (
                           <button
                             type="button"
-                            onClick={() => setPhotoUrl("")}
+                            onClick={() => {
+                              setPhotoUrl("");
+                              setLocalPreviewUrl("");
+                              setImageLoadFailed(false);
+                            }}
                             className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-medium px-3 py-2 transition-colors"
                           >
                             Clear
