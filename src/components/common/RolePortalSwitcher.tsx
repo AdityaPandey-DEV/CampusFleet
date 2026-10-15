@@ -1,24 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { store } from "@/lib/store";
-import { authService } from "@/lib/auth-service";
 import { UserRole } from "@/lib/types";
-import {
-  LayoutDashboard,
-  GraduationCap,
-  BusFront,
-  FileCheck2,
-  ChevronDown,
-  ShieldCheck,
-  BookOpen,
-  ArrowRight,
-  Building2,
-  Compass,
-} from "lucide-react";
+import { getCardIcon } from "@/modules";
+import { ChevronDown } from "lucide-react";
 
-interface RolePortalOption {
+export interface RolePortalOption {
   role: UserRole;
   label: string;
   shortLabel: string;
@@ -26,73 +15,8 @@ interface RolePortalOption {
   icon: any;
   color: string;
   description: string;
+  parentRoleKey?: string | null;
 }
-
-const PORTAL_OPTIONS: RolePortalOption[] = [
-  {
-    role: "student",
-    label: "Student & Mobility Portal",
-    shortLabel: "Student Hub",
-    path: "/portal",
-    icon: GraduationCap,
-    color: "bg-blue-600  text-blue-400",
-    description: "Seat reservations, live tracking, and digital QR boarding pass",
-  },
-  {
-    role: "teacher",
-    label: "Teacher Attendance Desk",
-    shortLabel: "Teacher Desk",
-    path: "/teacher",
-    icon: BookOpen,
-    color: "bg-green-600  text-green-400",
-    description: "Assigned classes, student roster, and live today's bus arrivals",
-  },
-  {
-    role: "admin",
-    label: "Admin Operations Center",
-    shortLabel: "Admin Ops",
-    path: "/admin",
-    icon: LayoutDashboard,
-    color: "bg-yellow-600  text-yellow-400",
-    description: "Master college control, global audit logs, and institutional settings",
-  },
-  {
-    role: "transport_admin",
-    label: "Transport Admin Desk",
-    shortLabel: "Transport Admin",
-    path: "/transport-admin",
-    icon: Building2,
-    color: "bg-blue-600  text-blue-400",
-    description: "Bus fees, student passes, staff accounts, and workshop repairs",
-  },
-  {
-    role: "transport_manager",
-    label: "Transport Manager Console",
-    shortLabel: "Transport Manager",
-    path: "/transport-manager",
-    icon: Compass,
-    color: "bg-amber-600  text-amber-400",
-    description: "Buses, routes & stops, passenger demand, and combine buses",
-  },
-  {
-    role: "driver",
-    label: "Driver Telematics Console",
-    shortLabel: "Driver HUD",
-    path: "/driver",
-    icon: BusFront,
-    color: "bg-green-600  text-green-400",
-    description: "GPS telemetry beacon, route progression checklist, and SOS",
-  },
-  {
-    role: "conductor",
-    label: "Conductor Manifest Console",
-    shortLabel: "Conductor",
-    path: "/conductor",
-    icon: FileCheck2,
-    color: "bg-pink-600  text-pink-400",
-    description: "High-speed optical QR radar passenger validation & real-time manifest",
-  },
-];
 
 interface RolePortalSwitcherProps {
   align?: "left" | "right" | "auto";
@@ -103,6 +27,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
+  const [portalOptions, setPortalOptions] = useState<RolePortalOption[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -122,32 +47,46 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const userRole = currentUser?.role || "student";
-  const isAdmin = userRole === "admin";
-  const isTransportAdmin = userRole === "transport_admin";
-  const isTransportManager = userRole === "transport_manager";
-  const isTeacher = userRole === "teacher";
-  const isDriver = userRole === "driver";
-  const isConductor = userRole === "conductor";
+  // Fetch all role portal definitions directly from database
+  useEffect(() => {
+    fetch("/api/rbac/roles")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.roles && Array.isArray(data.roles) && data.roles.length > 0) {
+          const dynamicOptions: RolePortalOption[] = data.roles.map((r: any) => ({
+            role: r.key,
+            label: r.name,
+            shortLabel: r.shortLabel || r.name,
+            path: r.portalPath || (r.key === "admin" ? "/admin" : r.key === "role_manager" ? "/role-manager" : "/transport-admin"),
+            icon: getCardIcon(r.icon || "ShieldCheck"),
+            color: r.color || "bg-blue-600  text-blue-400",
+            description: r.description || "",
+            parentRoleKey: r.parentRoleKey || null,
+          }));
+          setPortalOptions(dynamicOptions);
+        }
+      })
+      .catch((err) => console.error("Failed to load portal roles:", err));
+  }, []);
 
-  // Strict Hierarchy Filter:
-  // Admin: Can access Admin, Transport Admin, and Transport Manager
-  // Transport Admin: Can access Transport Admin and Transport Manager
-  // Transport Manager: Transport Manager console only
-  // Driver: Driver Console & Conductor Console (backup)
-  // Conductor: Conductor Console only
-  // Teacher: Teacher Desk only
-  // Student: Student Portal only
-  const allowedOptions = PORTAL_OPTIONS.filter(opt => {
-    if (isAdmin) return opt.role === "admin" || opt.role === "transport_admin" || opt.role === "transport_manager";
-    if (isTransportAdmin) return opt.role === "transport_admin" || opt.role === "transport_manager";
-    if (isTransportManager) return opt.role === "transport_manager";
-    if (isDriver) return opt.role === "driver" || opt.role === "conductor";
-    if (isConductor) return opt.role === "conductor";
-    if (isTeacher) return opt.role === "teacher";
-    if (userRole === "student") return opt.role === "student";
-    return false;
-  });
+  // Pure dynamic hierarchy resolution from database (Zero hardcoded role strings!)
+  const userRole = (currentUser?.role || "student") as string;
+  const accessibleRoles = useMemo(() => {
+    const allowed = new Set<string>([userRole]);
+    let expanded = true;
+    while (expanded) {
+      expanded = false;
+      for (const opt of portalOptions) {
+        if (opt.parentRoleKey && allowed.has(opt.parentRoleKey) && !allowed.has(opt.role)) {
+          allowed.add(opt.role);
+          expanded = true;
+        }
+      }
+    }
+    return allowed;
+  }, [userRole, portalOptions]);
+
+  const allowedOptions = portalOptions.filter((opt) => accessibleRoles.has(opt.role));
 
   // If user has only 1 portal option or none, do not show switcher
   if (allowedOptions.length <= 1) {
@@ -156,7 +95,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
 
   // Match current portal option based on pathname
   const currentOption =
-    allowedOptions.find(opt => {
+    allowedOptions.find((opt) => {
       if (opt.path === "/admin") return pathname.startsWith("/admin");
       if (opt.path === "/portal") return pathname.startsWith("/portal");
       return pathname.startsWith(opt.path);
@@ -180,7 +119,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
     <div className="relative inline-block" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gray-100 dark:bg-gray-800  hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300/80 dark:border-gray-700/80 text-xs font-bold text-gray-800 dark:text-gray-200 shadow-sm transition-all active:scale-95 group"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300/80 dark:border-gray-700/80 text-xs font-bold text-gray-800 dark:text-gray-200 shadow-sm transition-all active:scale-95 group"
         title="Switch Portal & Active Role"
       >
         <div className="w-5 h-5 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
@@ -197,7 +136,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <div>
               <div className="text-[10px] uppercase font-bold tracking-wider text-gray-400">
-                {isAdmin ? "Admin & Staff Switcher" : "Staff Console Switcher"}
+                Switch Portal & Desk
               </div>
               <div className="text-xs font-bold text-gray-700 dark:text-gray-300">
                 {currentUser?.fullName || "Active Session"}
@@ -209,7 +148,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
           </div>
 
           <div className="space-y-1 pt-1">
-            {allowedOptions.map(opt => {
+            {allowedOptions.map((opt) => {
               const Icon = opt.icon;
               const isCurrent = opt.path === currentOption.path;
 
@@ -223,7 +162,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
                       : "hover:bg-gray-100 dark:hover:bg-gray-800/80 border border-transparent"
                   }`}
                 >
-                  <div className={`p-2 rounded-xl  ${opt.color} text-white flex-shrink-0 mt-0.5`}>
+                  <div className={`p-2 rounded-xl ${opt.color} text-white flex-shrink-0 mt-0.5`}>
                     <Icon className="w-4 h-4" />
                   </div>
 

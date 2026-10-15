@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { store } from "@/lib/store";
 import { authService } from "@/lib/auth-service";
 import { UserRole } from "@/lib/types";
 import { useTheme } from "./ThemeProvider";
+import { getCardIcon } from "@/modules";
 import {
   BusFront,
   GraduationCap,
@@ -72,80 +73,8 @@ interface RolePortalOption {
   color: string;
   gradient: string;
   description: string;
+  parentRoleKey?: string | null;
 }
-
-const ROLE_PORTALS: RolePortalOption[] = [
-  {
-    role: "student",
-    label: "Student & Mobility Portal",
-    shortLabel: "Student",
-    path: "/portal",
-    icon: GraduationCap,
-    color: "text-blue-500",
-    gradient: "bg-blue-600 ",
-    description: "Seat bookings, live bus GPS tracking & digital QR pass",
-  },
-  {
-    role: "teacher",
-    label: "Teacher Attendance Desk",
-    shortLabel: "Teacher",
-    path: "/teacher",
-    icon: BookOpen,
-    color: "text-green-500",
-    gradient: "bg-green-600 ",
-    description: "Real-time today's student arrivals and class roster verification",
-  },
-  {
-    role: "admin",
-    label: "Admin Operations Center",
-    shortLabel: "Admin Ops",
-    path: "/admin",
-    icon: LayoutDashboard,
-    color: "text-yellow-500",
-    gradient: "bg-yellow-600 ",
-    description: "Fleet command, routes, crew scheduling & finance reports",
-  },
-  {
-    role: "transport_admin",
-    label: "Transport Admin Desk",
-    shortLabel: "Transport Admin",
-    path: "/transport-admin",
-    icon: Building2,
-    color: "text-blue-500",
-    gradient: "bg-blue-600 ",
-    description: "Fee approvals, student passes, staff accounts & workshop repairs",
-  },
-  {
-    role: "transport_manager",
-    label: "Transport Manager Console",
-    shortLabel: "Transport Manager",
-    path: "/transport-manager",
-    icon: Navigation,
-    color: "text-amber-500",
-    gradient: "bg-amber-600 ",
-    description: "Bus fleet, routes, stops, demand & combine buses (merges)",
-  },
-  {
-    role: "driver",
-    label: "Driver Telematics Console",
-    shortLabel: "Driver HUD",
-    path: "/driver",
-    icon: BusFront,
-    color: "text-green-500",
-    gradient: "bg-green-600 ",
-    description: "Live GPS broadcast, stop progression checklist & incident alerts",
-  },
-  {
-    role: "conductor",
-    label: "Conductor Manifest Console",
-    shortLabel: "Conductor",
-    path: "/conductor",
-    icon: FileCheck2,
-    color: "text-pink-500",
-    gradient: "bg-pink-600 ",
-    description: "High-speed optical QR boarding scanner & passenger radar",
-  },
-];
 
 export function UnifiedAppHeader({
   role,
@@ -199,6 +128,30 @@ export function UnifiedAppHeader({
     setIsProfileOpen(false);
   }, [pathname]);
 
+  const [dynamicRolePortals, setDynamicRolePortals] = useState<RolePortalOption[]>([]);
+
+  useEffect(() => {
+    fetch("/api/rbac/roles")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.roles && Array.isArray(data.roles) && data.roles.length > 0) {
+          const mapped: RolePortalOption[] = data.roles.map((r: any) => ({
+            role: r.key,
+            label: r.name,
+            shortLabel: r.shortLabel || r.name,
+            path: r.portalPath || (r.key === "admin" ? "/admin" : r.key === "role_manager" ? "/role-manager" : "/transport-admin"),
+            icon: getCardIcon(r.icon || "ShieldCheck"),
+            color: r.color || "text-blue-500",
+            gradient: r.gradient || "bg-blue-600 ",
+            description: r.description || "",
+            parentRoleKey: r.parentRoleKey || null,
+          }));
+          setDynamicRolePortals(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const portalViewRole = role || currentUser?.role || "student";
   const userAccountRole = currentUser?.role || portalViewRole;
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com").toLowerCase();
@@ -216,32 +169,36 @@ export function UnifiedAppHeader({
       ) || null
     : null;
 
-  // Strict role-based portal switching
-  const allowedPortals = ROLE_PORTALS.filter(opt => {
-    if (isActualAdmin) {
-      return opt.role === "admin" || opt.role === "transport_admin" || opt.role === "transport_manager";
+  // Pure dynamic hierarchy resolution from database (Zero hardcoded roles!)
+  const effectiveUserRole = isActualAdmin ? "admin" : (userAccountRole || "student") as string;
+  const accessibleRoles = useMemo(() => {
+    const allowed = new Set<string>([effectiveUserRole]);
+    let expanded = true;
+    while (expanded) {
+      expanded = false;
+      for (const opt of dynamicRolePortals) {
+        if (opt.parentRoleKey && allowed.has(opt.parentRoleKey) && !allowed.has(opt.role)) {
+          allowed.add(opt.role);
+          expanded = true;
+        }
+      }
     }
-    const currentRole = (userAccountRole || "student") as string;
-    switch (currentRole) {
-      case "transport_admin":
-        return opt.role === "transport_admin" || opt.role === "transport_manager";
-      case "transport_manager":
-        return opt.role === "transport_manager";
-      case "conductor":
-        return opt.role === "conductor";
-      case "driver":
-        return opt.role === "driver" || opt.role === "conductor";
-      case "teacher":
-        return opt.role === "teacher";
-      case "student":
-        return opt.role === "student";
-      default:
-        return opt.role === "student";
-    }
-  });
+    return allowed;
+  }, [effectiveUserRole, dynamicRolePortals]);
+
+  const allowedPortals = dynamicRolePortals.filter(opt => accessibleRoles.has(opt.role));
 
   const currentPortalConfig =
-    ROLE_PORTALS.find(p => p.role === portalViewRole) || ROLE_PORTALS[0];
+    dynamicRolePortals.find(p => p.role === portalViewRole) || {
+      role: portalViewRole,
+      label: portalTitle || "CampusFleet Portal",
+      shortLabel: "Portal",
+      path: pathname,
+      icon: getCardIcon("Compass"),
+      color: "text-blue-500",
+      gradient: "bg-blue-600 ",
+      description: portalSubtitle || "",
+    };
 
   const handleSignOut = async () => {
     await store.logout();

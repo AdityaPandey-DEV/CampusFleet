@@ -113,10 +113,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   const topLevelLinks = [
-    { href: "/admin/maintenance", label: "Maintenance", icon: Wrench },
-    { href: "/admin/users", label: "Accounts & Roles", icon: Users },
+    { href: "/role-manager", label: "Role & Access Manager", icon: ShieldCheck },
+    { href: "/role-manager/users", label: "User Accounts", icon: Users },
+    { href: "/role-manager/hierarchy", label: "Hierarchy Flowchart", icon: Compass },
     { href: "/transport-admin", label: "Transport Admin", icon: ShieldCheck },
-    { href: "/transport-manager", label: "Transport Manager", icon: Compass },
   ];
 
   let currentNavLinks = topLevelLinks;

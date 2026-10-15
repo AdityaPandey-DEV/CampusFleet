@@ -99,6 +99,11 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: "/admin/users",
+        destination: "/role-manager/users",
+        permanent: true,
+      },
+      {
         source: "/transport-admin/system/staff",
         destination: "/transport-admin/system/users",
         permanent: true,

@@ -1,4 +1,33 @@
-export type UserRole = "admin" | "student" | "driver" | "conductor" | "transport_manager" | "teacher" | "transport_admin";
+export type BuiltInRole = "admin" | "role_manager" | "student" | "driver" | "conductor" | "transport_manager" | "teacher" | "transport_admin";
+export type UserRole = BuiltInRole | (string & {});
+
+export interface SystemCard {
+  key: string;
+  title: string;
+  description: string;
+  icon: string;
+  route: string;
+  category: "Fleet Logistics" | "Finance & Accounts" | "Academics & Safety" | "Administration" | string;
+  sortOrder?: number;
+}
+
+export interface SystemRoleDefinition {
+  key: string;
+  name: string;
+  description?: string;
+  parentRoleKey?: string | null;
+  hierarchyLevel?: number;
+  portalPath?: string;
+  shortLabel?: string;
+  icon?: string;
+  color?: string;
+  gradient?: string;
+  isSystem: boolean;
+  directCards: string[];
+  inheritedCards?: string[];
+  allEffectiveCards?: string[];
+  memberCount?: number;
+}
 
 export type BookingStatus = "CONFIRMED" | "WAITLISTED" | "CANCELLED" | "BOARDED" | "ABSENT" | "NO_SHOW";
 

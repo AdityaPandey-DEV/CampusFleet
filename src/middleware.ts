@@ -17,6 +17,7 @@ const PROTECTED_PREFIXES = [
   "/admin",
   "/transport-admin",
   "/transport-manager",
+  "/role-manager",
   "/driver",
   "/conductor",
   "/teacher",
@@ -39,6 +40,8 @@ function getTargetRouteForRole(role?: string): string {
   switch (role) {
     case "admin":
       return "/admin";
+    case "role_manager":
+      return "/role-manager";
     case "transport_admin":
       return "/transport-admin";
     case "transport_manager":
@@ -209,7 +212,8 @@ export async function middleware(req: NextRequest) {
   // - Transport Head can access Transport Head
   const allowedPortalsForRole: Record<string, string[]> = {
     student: ["/portal"],
-    admin: ["/admin", "/transport-admin", "/transport-manager"],
+    admin: ["/admin", "/role-manager", "/transport-admin", "/transport-manager"],
+    role_manager: ["/role-manager", "/transport-admin", "/transport-manager"],
     transport_admin: ["/transport-admin", "/transport-manager"],
     transport_manager: ["/transport-manager"],
     driver: ["/driver", "/conductor"],
@@ -223,6 +227,7 @@ export async function middleware(req: NextRequest) {
   const allPortals = [
     "/portal",
     "/admin",
+    "/role-manager",
     "/transport-admin",
     "/transport-manager",
     "/driver",
