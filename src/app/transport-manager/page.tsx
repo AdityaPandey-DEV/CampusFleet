@@ -16,12 +16,6 @@ export const metadata: Metadata = {
 
 const logisticsModules: HubModule[] = [
   {
-    title: "All Buses",
-    description: "Manage all college buses, check seating capacity, and inspect bus status.",
-    icon: BusFront,
-    href: "/transport-manager/buses"
-  },
-  {
     title: "Assign Drivers",
     description: "Assign drivers and conductors to specific buses and shifts for today's service.",
     icon: Users,

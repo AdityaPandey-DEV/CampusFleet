@@ -715,7 +715,7 @@ export default function TransportManagerBusesView({
                   </button>
                 </div>
                 <Link
-                  href={`/transport-manager/buses/${viewingQrBus.id}/seat-qrs`}
+                  href={`/transport-admin/buses/${viewingQrBus.id}/seat-qrs`}
                   className="w-full py-3 text-sm font-bold bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-2xl transition-all shadow-sm text-center"
                 >
                   Print Seat QRs ({viewingQrBus.capacity} Seats)

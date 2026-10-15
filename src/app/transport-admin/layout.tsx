@@ -18,7 +18,8 @@ import {
   Building2, 
   Users, 
   FileBarChart,
-  Compass
+  Compass,
+  BusFront
 } from "lucide-react";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -64,6 +65,15 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
       ]
     },
+    buses: {
+      title: "Bus Fleet",
+      items: [
+        { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/transport-admin/buses", label: "All Buses", shortLabel: "Buses", icon: BusFront },
+        { href: "/transport-admin/maintenance", label: "Bus Repairs", shortLabel: "Repairs", icon: Wrench },
+        { href: "/transport-manager", label: "Transport Manager", shortLabel: "Transport", icon: Compass },
+      ]
+    },
     system: {
       title: "Accounts & Reports",
       items: [
@@ -78,6 +88,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   // 2. Define top-level Hub links (shown when exactly at /transport-admin)
   const topLevelLinks = [
     { href: "/transport-manager", label: "Transport Manager", icon: Compass },
+    { href: "/transport-admin/buses", label: "Bus Fleet", icon: BusFront },
     { href: "/transport-admin/billing/approvals", label: "Bus Fees", icon: CreditCard },
     { href: "/transport-admin/academics/students", label: "Students", icon: GraduationCap },
     { href: "/transport-admin/maintenance", label: "Repairs", icon: Wrench },
@@ -88,7 +99,10 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   let currentNavLinks = topLevelLinks;
   let currentTitle = "Transport Admin Desk";
 
-  if (pathname.startsWith("/transport-admin/billing")) {
+  if (pathname.startsWith("/transport-admin/buses")) {
+    currentNavLinks = subPortals.buses.items;
+    currentTitle = subPortals.buses.title;
+  } else if (pathname.startsWith("/transport-admin/billing")) {
     currentNavLinks = subPortals.billing.items;
     currentTitle = subPortals.billing.title;
   } else if (pathname.startsWith("/transport-admin/academics")) {

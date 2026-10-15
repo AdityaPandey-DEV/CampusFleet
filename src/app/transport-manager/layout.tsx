@@ -27,7 +27,6 @@ export default function TransportManagerLayout({ children }: { children: React.R
 
   const navLinks = [
     { href: "/transport-manager", label: "← Hub", shortLabel: "Hub", icon: Home },
-    { href: "/transport-manager/buses", label: "All Buses", shortLabel: "Buses", icon: BusFront },
     { href: "/transport-manager/drivers", label: "Assign Drivers", shortLabel: "Drivers", icon: BusFront },
     { href: "/transport-manager/routes", label: "Routes & Stops", shortLabel: "Routes", icon: Route },
     { href: "/transport-manager/trips", label: "Today's Trips", shortLabel: "Trips", icon: Navigation },
@@ -37,7 +36,6 @@ export default function TransportManagerLayout({ children }: { children: React.R
 
   let currentTitle = "Transport Manager Logistics";
   if (pathname.includes("/drivers")) currentTitle = "Assign Drivers";
-  else if (pathname.includes("/buses")) currentTitle = "All Buses";
   else if (pathname.includes("/routes")) currentTitle = "Routes & Stops";
   else if (pathname.includes("/trips")) currentTitle = "Today's Trips";
   else if (pathname.includes("/demand")) currentTitle = "Passenger Demand";

@@ -7,7 +7,7 @@ import { Bus } from "@/lib/types";
 import { QRCodeSVG } from "qrcode.react";
 import { ArrowLeft, Printer } from "lucide-react";
 
-export default function TransportManagerSeatQRsPage() {
+export default function TransportAdminSeatQRsPage() {
   const params = useParams();
   const router = useRouter();
   const busId = params.busId as string;

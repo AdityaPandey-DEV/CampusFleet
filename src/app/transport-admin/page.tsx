@@ -4,7 +4,8 @@ import {
   CreditCard, 
   GraduationCap, 
   Wrench, 
-  Shield
+  Shield,
+  BusFront
 } from "lucide-react";
 import { Metadata } from "next";
 
@@ -18,6 +19,12 @@ const staffModules: HubModule[] = [
     description: "Switch to Transport Manager to manage buses, driver allocations, routes, live trips, and bus combines.",
     icon: Compass,
     href: "/transport-manager"
+  },
+  {
+    title: "Bus Fleet",
+    description: "Manage buses, vehicle registrations, seat layouts, and print seat QR codes.",
+    icon: BusFront,
+    href: "/transport-admin/buses"
   },
   {
     title: "Bus Fees",
