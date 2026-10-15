@@ -2,6 +2,7 @@ import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import AdminStaffView from "@/components/admin/AdminStaffView";
+import { canRoleAccessCard } from "@/modules/rbac/rbac-service";
 import type { UserAccount } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +15,9 @@ export default async function RoleManagerUsersPage() {
     redirect("/login?redirect=/role-manager/users");
   }
 
-  if (session.role !== "admin" && session.role !== "role_manager") {
-    redirect("/portal");
+  const hasAccess = await canRoleAccessCard(session.role, "users");
+  if (!hasAccess) {
+    redirect(session.portalPath || "/portal");
   }
 
   const [{ data: dbUsers }, { data: dbStudents }] = await Promise.all([

@@ -213,21 +213,22 @@ export default function LoginPage() {
         const authUser = res.user;
         store.setCurrentUser(authUser);
 
-        if (authUser.role !== "student") {
+        const targetRoute = authUser.portalPath || authService.getTargetRouteForRole(authUser.role);
+        if (targetRoute !== "/portal") {
           setAuthStep("SUCCESS");
-          setTimeout(() => router.push(authService.getTargetRouteForRole(authUser.role)), 700);
+          setTimeout(() => router.push(targetRoute), 700);
         } else {
-          // Student role
+          // Commuter onboarding or portal route
           if (
             authUser.primaryStopId ||
-            (authUser.campus && authUser.fullName && authUser.fullName !== "Student Commuter")
+            (authUser.campus && authUser.fullName && authUser.fullName !== "Commuter")
           ) {
             setAuthStep("SUCCESS");
             setTimeout(() => router.push("/portal"), 700);
           } else {
-            // First time student commuter onboarding
+            // First time commuter onboarding
             setPendingAuthUser(authUser);
-            setOnboardingName(authUser.fullName || "Student Commuter");
+            setOnboardingName(authUser.fullName || "Commuter");
             const defaultStop = stops.find(s => s.name.includes("Laldant")) || stops[0];
             if (defaultStop) setSelectedStopId(defaultStop.id);
             setAuthStep("ONBOARDING");

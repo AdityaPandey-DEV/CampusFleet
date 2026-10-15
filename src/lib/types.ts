@@ -58,6 +58,7 @@ export interface UserAccount {
   email: string;
   fullName: string;
   role: UserRole;
+  portalPath?: string;
   provider: string;
   phone?: string | null;
   campusId?: string;

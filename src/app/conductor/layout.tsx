@@ -25,9 +25,10 @@ export default async function ConductorLayout({
     redirect("/login?redirect=/conductor");
   }
 
-  // 2. Strict Role Authorization (Conductor, Driver, Staff, Admin allowed per qualification matrix)
-  if (session.role !== "conductor" && session.role !== "driver" && session.role !== "admin" && session.role !== "transport_admin" && session.role !== "transport_manager") {
-    redirect("/portal");
+  // 2. Strict Role Authorization (Disallow commuters without operations privileges)
+  const userPortal = session.portalPath || "/portal";
+  if (userPortal === "/portal" && session.role !== "conductor" && session.role !== "admin" && session.role !== "transport_manager") {
+    redirect(userPortal);
   }
 
   // 3. Direct Server-Side Database Queries (Zero Client Roundtrip Delay)

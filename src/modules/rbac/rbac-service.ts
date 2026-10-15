@@ -391,3 +391,40 @@ export async function deleteSystemRole(roleKey: string): Promise<{ success: bool
     return { success: false, error: err.message || "Failed to delete role from database" };
   }
 }
+
+/**
+ * Check whether a given role key is authorized to access a functional card.
+ * Enforces dynamic HRBAC card inheritance without hardcoded role strings.
+ */
+export async function canRoleAccessCard(roleKey?: string, cardKey?: string): Promise<boolean> {
+  if (!roleKey || !cardKey) return false;
+  if (roleKey === "admin") return true;
+
+  try {
+    const roles = await getRolesWithHierarchy();
+    const roleDef = roles.find((r) => r.key === roleKey);
+    if (!roleDef) return false;
+    return Boolean(roleDef.allEffectiveCards?.includes(cardKey));
+  } catch (err) {
+    console.error("Error in canRoleAccessCard:", err);
+    return false;
+  }
+}
+
+/**
+ * Dynamically resolves the portal path for any role from the database.
+ * Falls back to `/${roleSlug}` or `/portal` if unspecified.
+ */
+export async function getRolePortalPath(roleKey?: string): Promise<string> {
+  if (!roleKey) return "/portal";
+  try {
+    const roles = await getRolesWithHierarchy();
+    const roleDef = roles.find((r) => r.key === roleKey);
+    if (roleDef?.portalPath) return roleDef.portalPath;
+  } catch (err) {
+    console.error("Error fetching role portal path:", err);
+  }
+  const normalized = roleKey.toLowerCase().replace(/_/g, "-");
+  return `/${normalized}`;
+}
+

@@ -5,6 +5,7 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
+  portalPath?: string;
   studentId?: string;
   campusId?: string;
   campus?: string;
@@ -107,10 +108,10 @@ class AuthService {
     return this.currentUser;
   }
 
-  public getTargetRouteForRole(role: UserRole): string {
-    if (!role || role === "student") return "/portal";
-    if (role === "admin") return "/admin";
-    if (role === "role_manager") return "/role-manager";
+  public getTargetRouteForRole(role?: UserRole | string, explicitPortalPath?: string): string {
+    if (explicitPortalPath) return explicitPortalPath;
+    if ((this.currentUser as any)?.portalPath) return (this.currentUser as any).portalPath;
+    if (!role) return "/portal";
     const normalized = String(role).toLowerCase().replace(/_/g, "-");
     return `/${normalized}`;
   }

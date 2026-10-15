@@ -50,7 +50,7 @@ export default function UsersView({
     fullName: "",
     email: "",
     phone: "",
-    role: "student" as UserRole,
+    role: "" as UserRole,
     campus: store.getPrimaryCampus()?.name || "Main Campus",
     campusId: store.getPrimaryCampus()?.id || "",
     provider: "Institutional SSO",
@@ -62,18 +62,21 @@ export default function UsersView({
       .then((r) => r.json())
       .then((data) => {
         if (data.roles && Array.isArray(data.roles) && data.roles.length > 0) {
-          setAvailableRoles(
-            data.roles.map((r: any) => ({
-              key: r.key,
-              name: r.name,
-              shortLabel: r.shortLabel || r.name,
-              icon: r.icon || "ShieldCheck",
-              color: r.color || "text-blue-500",
-              gradient: r.gradient || "bg-blue-600",
-              parentRoleKey: r.parentRoleKey || null,
-              hierarchyLevel: r.hierarchyLevel || 1,
-            }))
-          );
+          const mapped = data.roles.map((r: any) => ({
+            key: r.key,
+            name: r.name,
+            shortLabel: r.shortLabel || r.name,
+            icon: r.icon || "ShieldCheck",
+            color: r.color || "text-blue-500",
+            gradient: r.gradient || "bg-blue-600",
+            parentRoleKey: r.parentRoleKey || null,
+            hierarchyLevel: r.hierarchyLevel || 1,
+          }));
+          setAvailableRoles(mapped);
+          setNewUser((prev) => ({
+            ...prev,
+            role: prev.role || mapped[0]?.key || "",
+          }));
         }
       })
       .catch((err) => console.error("Failed to load roles from DB:", err));

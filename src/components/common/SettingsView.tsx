@@ -400,11 +400,22 @@ export function SettingsView() {
               </div>
             </div>
 
-            {/* Role Specific Fields */}
-            {((currentUser as any)?.role === "student" || (currentUser as any)?.role === "portal" || !currentUser?.role) && (
+            {/* Attribute-Based Profile Sections (ABAC): Dynamic schema detection without hardcoding role strings */}
+            {Boolean(
+              (currentUser as any)?.rollNumber ||
+              (currentUser as any)?.batch ||
+              (currentUser as any)?.semester ||
+              (currentUser as any)?.branch ||
+              (currentUser as any)?.classId ||
+              profileForm.department ||
+              profileForm.semester ||
+              profileForm.section ||
+              (currentUser as any)?.role === "student" ||
+              !currentUser?.role
+            ) && (
               <>
                 <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">Student Details</h3>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">Academic & Transit Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Department</label>
@@ -469,15 +480,17 @@ export function SettingsView() {
               </>
             )}
 
-            {(["admin", "transport_admin", "transport_manager", "driver", "conductor", "teacher"].includes(currentUser?.role || "")) && (
+            {Boolean(
+              (currentUser as any)?.employeeCode ||
+              (currentUser as any)?.designation ||
+              profileForm.employeeCode ||
+              profileForm.category ||
+              ((currentUser as any)?.role && (currentUser as any)?.role !== "student")
+            ) && (
               <>
                 <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">
-                  {currentUser?.role === "conductor" ? "Conductor Details" : 
-                   currentUser?.role === "driver" ? "Driver Details" : 
-                   currentUser?.role === "teacher" ? "Faculty Details" :
-                   currentUser?.role === "transport_manager" ? "Transport Manager Details" :
-                   "Transport Admin Details"}
+                  {currentUser?.role ? currentUser.role.replace(/[-_]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Official"} Details
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -500,7 +513,7 @@ export function SettingsView() {
                       placeholder="E.g. Senior"
                     />
                   </div>
-                  {currentUser?.role === "driver" && (
+                  {Boolean(profileForm.licenseNo || (currentUser as any)?.licenseNumber || currentUser?.role === "driver") && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">License Number</label>
                       <input 
@@ -512,7 +525,7 @@ export function SettingsView() {
                       />
                     </div>
                   )}
-                  {currentUser?.role === "conductor" && (
+                  {Boolean((currentUser as any)?.assignedBus || currentUser?.role === "conductor") && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Assigned Bus / Duty</label>
                       <input 

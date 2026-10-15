@@ -18,6 +18,7 @@ export interface SessionPayload extends JWTPayload {
   email: string;
   fullName: string;
   role: string;
+  portalPath?: string;
   campusId?: string;
   campus?: string;
   avatarUrl?: string;

@@ -63,7 +63,20 @@ export async function GET(req: NextRequest) {
       } catch {}
     }
 
-    if (currentRole === "student") {
+    let portalPath = (session as any).portalPath || "/portal";
+    try {
+      const { data: roleDef } = await supabaseAdmin
+        .from("system_roles")
+        .select("portal_path")
+        .eq("key", currentRole)
+        .single();
+      if (roleDef?.portal_path) {
+        portalPath = roleDef.portal_path;
+      }
+    } catch {}
+
+    const isCommuterRole = portalPath === "/portal";
+    if (isCommuterRole) {
       const { data: studentsList } = await supabaseAdmin
         .from("students")
         .select("id, campus_id, campus, full_name, primary_stop_id, has_active_subscription, payment_status")
@@ -93,10 +106,11 @@ export async function GET(req: NextRequest) {
       email: session.email,
       fullName: dbFullName,
       role: currentRole,
+      portalPath: (session as any).portalPath || "/portal",
       campusId: dbCampusId,
       campus: dbCampus,
       avatarUrl: session.avatarUrl,
-      studentId: dbStudentId || (currentRole === "student" ? session.userId : undefined),
+      studentId: dbStudentId || (session.userId),
       hasActiveSubscription,
       paymentStatus,
       token: `tok_jwt_${Date.now()}`,

@@ -10,9 +10,10 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
     redirect(`/login?redirect=${encodeURIComponent(redirectPath)}`);
   }
 
-  // Disallow student commuters from staff/admin operation desks
-  if (session.role === "student") {
-    redirect("/portal");
+  // Disallow commuters without operations privileges
+  const userPortal = session.portalPath || "/portal";
+  if (userPortal === "/portal" && session.role !== "admin" && session.role !== "role_manager" && session.role !== "transport_admin" && session.role !== "transport_manager") {
+    redirect(userPortal);
   }
 
   const [

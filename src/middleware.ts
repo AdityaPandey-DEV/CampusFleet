@@ -36,11 +36,11 @@ const ALLOWED_ORIGINS: string[] = [
   process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
 ].filter(Boolean);
 
-function getTargetRouteForRole(role?: string): string {
-  if (!role || role === "student") return "/portal";
-  if (role === "admin") return "/admin";
-  if (role === "role_manager") return "/role-manager";
-  return `/${role.toLowerCase().replace(/_/g, "-")}`;
+function getTargetRouteForRole(role?: string, portalPath?: string): string {
+  if (portalPath) return portalPath;
+  if (!role) return "/portal";
+  const normalized = role.toLowerCase().replace(/_/g, "-");
+  return `/${normalized}`;
 }
 
 /**
@@ -186,60 +186,19 @@ export async function middleware(req: NextRequest) {
   requestHeaders.set("x-user-role", session.role);
   requestHeaders.set("x-request-id", crypto.randomUUID());
 
-  // ── Cross-portal guard ─────────────────────────────────────────────
-  // If the user is on the wrong portal for their role, redirect to the correct one.
-  // This catches stale JWT sessions after an admin role change.
-  const correctPortal = getTargetRouteForRole(session.role);
+  // ── Dynamic cross-portal / capability guard ─────────────────────────
+  const userPortal = session.portalPath || getTargetRouteForRole(session.role);
 
-  // Portals each role is allowed to access
-  // Hierarchy:
-  // - Admin can access Admin, Transport Admin (staff), and Transport Head
-  // - Transport Admin (staff) can access Transport Admin and Transport Head
-  // - Transport Head can access Transport Head
-  const allowedPortalsForRole: Record<string, string[]> = {
-    student: ["/portal"],
-    admin: ["/admin", "/role-manager", "/transport-admin", "/transport-manager"],
-    role_manager: ["/role-manager", "/transport-admin", "/transport-manager"],
-    transport_admin: ["/transport-admin", "/transport-manager"],
-    transport_manager: ["/transport-manager"],
-    driver: ["/driver", "/conductor"],
-    conductor: ["/conductor"],
-    teacher: ["/teacher"],
-  };
-
-  // For students, strictly confine to /portal
-  if (session.role === "student" && !pathname.startsWith("/portal")) {
-    return NextResponse.redirect(new URL("/portal", req.url));
+  // If a commuter user attempts to access admin consoles directly, route to their designated portal
+  if (session.portalPath === "/portal" && !pathname.startsWith("/portal") && !pathname.startsWith("/cards")) {
+    return NextResponse.redirect(new URL(userPortal, req.url));
   }
 
-  // Admin and Role Manager can access all management consoles
-  if (session.role === "admin" || session.role === "role_manager") {
-    return NextResponse.next({ request: { headers: requestHeaders } });
-  }
-
-  const myAllowedPortals = allowedPortalsForRole[session.role] || [correctPortal];
-
-  // Check if they're on a restricted portal that is NOT in their allowed list
-  const staffPortals = [
-    "/admin",
-    "/role-manager",
-    "/transport-admin",
-    "/transport-manager",
-    "/driver",
-    "/conductor",
-    "/teacher"
-  ];
-  const isOnWrongPortal = staffPortals
-    .filter(p => !myAllowedPortals.includes(p))
-    .some(p => pathname === p || pathname.startsWith(p + "/"));
-
-  if (isOnWrongPortal) {
-    return NextResponse.redirect(new URL(correctPortal, req.url));
-  }
-
+  // Allow authenticated users on cards and consoles
   return NextResponse.next({
     request: { headers: requestHeaders },
   });
+
 }
 
 export const config = {

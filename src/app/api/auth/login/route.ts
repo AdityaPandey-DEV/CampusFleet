@@ -40,28 +40,44 @@ export async function POST(req: NextRequest) {
       provider: "password",
     });
 
+    const userRole = user.role || "student";
+    let portalPath = "/portal";
+    try {
+      const { data: roleDef } = await supabaseAdmin
+        .from("system_roles")
+        .select("portal_path")
+        .eq("key", userRole)
+        .single();
+      if (roleDef?.portal_path) {
+        portalPath = roleDef.portal_path;
+      }
+    } catch {}
+
     // Create JWT session
     const token = await signToken({
       userId: user.id,
       email: user.email,
       fullName: user.full_name || cleanEmail.split("@")[0],
-      role: user.role || "student",
+      role: userRole,
+      portalPath,
       campusId: user.campus_id || undefined,
       campus: user.campus || undefined,
       avatarUrl: user.avatar_url || undefined,
     });
 
+    const isCommuterRole = portalPath === "/portal";
     const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
         email: user.email,
         fullName: user.full_name || cleanEmail.split("@")[0],
-        role: user.role || "student",
+        role: userRole,
+        portalPath,
         campusId: user.campus_id || user.campus || "",
         campus: user.campus || "",
         avatarUrl: user.avatar_url,
-        studentId: user.role === "student" ? user.id : undefined,
+        studentId: isCommuterRole ? user.id : undefined,
         token: `tok_jwt_${Date.now()}`,
         createdAt: user.created_at || new Date().toISOString(),
       },

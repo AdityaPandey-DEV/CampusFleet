@@ -14,7 +14,9 @@ export default async function PortalLayout({
   let isSubscribed = false;
   let photoUrl = null;
 
-  if (session && session.role === "student") {
+  const isCommuter = !session?.portalPath || session?.portalPath === "/portal";
+
+  if (session && isCommuter) {
     // 1. Check Redis Cache for instant resolution
     const subCacheKey = `student:subscription:${session.userId}`;
     const photoCacheKey = `student:photo:${session.userId}`;
@@ -46,8 +48,8 @@ export default async function PortalLayout({
           await cacheSet(photoCacheKey, photoUrl, 300);
       }
     }
-  } else if (session && session.role !== "student") {
-    isSubscribed = true; // Admins, Staff, Drivers have inherent access
+  } else if (session && !isCommuter) {
+    isSubscribed = true; // Staff/Ops roles have inherent viewing access
   }
 
   return (

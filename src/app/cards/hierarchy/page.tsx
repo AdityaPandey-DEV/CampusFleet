@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
-import { getRolesWithHierarchy, getSystemCards } from "@/modules/rbac/rbac-service";
+import { getRolesWithHierarchy, getSystemCards, canRoleAccessCard } from "@/modules/rbac/rbac-service";
 import HierarchyFlowchartView from "@/modules/rbac/HierarchyFlowchartView";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +13,9 @@ export default async function RoleHierarchyFlowchartPage() {
     redirect("/login?redirect=/role-manager/hierarchy");
   }
 
-  if (session.role !== "admin" && session.role !== "role_manager") {
-    redirect("/portal");
+  const hasAccess = await canRoleAccessCard(session.role, "hierarchy");
+  if (!hasAccess) {
+    redirect(session.portalPath || "/portal");
   }
 
   const [roles, cards] = await Promise.all([

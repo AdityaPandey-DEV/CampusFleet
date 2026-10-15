@@ -95,32 +95,22 @@ const nextConfig = {
     return [
       {
         source: "/admin/staff",
-        destination: "/admin/users",
+        destination: "/cards/users",
         permanent: true,
       },
       {
         source: "/admin/users",
-        destination: "/role-manager/users",
+        destination: "/cards/users",
         permanent: true,
       },
       {
         source: "/transport-admin/system/staff",
-        destination: "/transport-admin/system/users",
-        permanent: true,
-      },
-      {
-        source: "/transport-manager/buses/:path*",
-        destination: "/transport-admin/buses/:path*",
-        permanent: true,
-      },
-      {
-        source: "/transport-manager/buses",
-        destination: "/transport-admin/buses",
+        destination: "/cards/users",
         permanent: true,
       },
       {
         source: "/staff/:path*",
-        destination: "/transport-admin/:path*",
+        destination: "/cards/:path*",
         permanent: true,
       },
       {
@@ -130,7 +120,7 @@ const nextConfig = {
       },
       {
         source: "/transport-head/:path*",
-        destination: "/transport-manager/:path*",
+        destination: "/cards/:path*",
         permanent: true,
       },
       {
@@ -142,6 +132,30 @@ const nextConfig = {
         source: "/transport",
         destination: "/transport-manager",
         permanent: true,
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/:role/:card(buses|routes|trips|drivers|demand|combine-buses|maintenance|billing|academics|system|users|hierarchy|students|reports|flowchart|settings)/:path*",
+        destination: "/cards/:card/:path*",
+      },
+      {
+        source: "/:role/:card(buses|routes|trips|drivers|demand|combine-buses|maintenance|billing|academics|system|users|hierarchy|students|reports|flowchart|settings)",
+        destination: "/cards/:card",
+      },
+      {
+        source: "/:role/students",
+        destination: "/cards/students",
+      },
+      {
+        source: "/:role/reports",
+        destination: "/cards/reports",
+      },
+      {
+        source: "/settings",
+        destination: "/cards/settings",
       },
     ];
   },

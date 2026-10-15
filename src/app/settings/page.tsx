@@ -2,9 +2,9 @@ import { SettingsView } from "@/components/common/SettingsView";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Settings | CampusFleet",
+  title: "Account Settings | CampusFleet",
 };
 
-export default function SettingsPage() {
+export default function GlobalSettingsPage() {
   return <SettingsView />;
 }

@@ -65,13 +65,13 @@ export default function ClientPortalLayout({
     return unsub;
   }, []);
 
-  // Strict Access Guard: Student portal can only be seen by enrolled students
-  const isAuthorizedStudent = !currentUser || currentUser.role === "student";
+  // Strict Access Guard: Check portalPath alignment
+  const isCommuterRole = !(currentUser as any)?.portalPath || (currentUser as any)?.portalPath === "/portal";
+  const isAuthorizedStudent = isCommuterRole;
 
   useEffect(() => {
-    if (currentUser && currentUser.role && currentUser.role !== "student") {
-      const destination = authService.getTargetRouteForRole(currentUser.role);
-      router.replace(destination);
+    if (currentUser && (currentUser as any).portalPath && (currentUser as any).portalPath !== "/portal") {
+      router.replace((currentUser as any).portalPath);
     }
   }, [currentUser, router]);
 
@@ -86,9 +86,9 @@ export default function ClientPortalLayout({
       ) || null
     : null;
 
-  const isStudent = currentUser?.role === "student";
+  const isStudent = isCommuterRole;
   // The server provides the ultimate source of truth instantly via Redis!
-  const isSubscriptionActiveNow = initialIsSubscribed || isStudentSubscriptionActive(activeStudent) || currentUser?.role === "admin";
+  const isSubscriptionActiveNow = initialIsSubscribed || isStudentSubscriptionActive(activeStudent) || !isCommuterRole;
 
   // Sticky guard: once active, stays active (prevents flicker)
   if (isSubscriptionActiveNow) {
@@ -128,7 +128,7 @@ export default function ClientPortalLayout({
 
   if (currentUser && !isAuthorizedStudent) {
     const role = currentUser.role;
-    const targetRoute = authService.getTargetRouteForRole(role);
+    const targetRoute = (currentUser as any).portalPath || authService.getTargetRouteForRole(role);
     const roleTitle = role.toUpperCase();
 
     return (

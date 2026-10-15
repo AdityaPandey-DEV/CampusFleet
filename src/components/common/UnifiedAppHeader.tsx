@@ -292,7 +292,7 @@ export function UnifiedAppHeader({
           icon: Building2,
         };
       }
-      if (portalViewRole === "student" && pathname !== "/portal/tracker") {
+      if ((portalViewRole === "student" || pathname.startsWith("/portal")) && pathname !== "/portal/tracker") {
         return {
           label: "Live GPS Bus Radar",
           href: "/portal/tracker",
