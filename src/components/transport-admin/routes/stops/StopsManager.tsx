@@ -42,6 +42,7 @@ import {
   Layers,
   Sliders,
   ChevronRight,
+  ChevronDown,
   Info,
   Building2,
 } from "lucide-react";
@@ -329,70 +330,101 @@ export default function StopsManager({ mode = "view" }: { mode?: "view" | "creat
         <div className="space-y-5">
           {/* Central Campus Terminal & Fleet Depot Hero Card */}
           {currentCampusStop && (
-            <div className="p-5 rounded-3xl bg-blue-900/40 border border-blue-500/30 shadow-lg text-white space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/40 text-blue-400 flex items-center justify-center text-xl shadow-inner">
-                    🏛️
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden transition-all space-y-4">
+              {/* Top Accent Gradient Line */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500" />
+
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80 flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
+                    <Building2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold uppercase tracking-wider border border-blue-500/30">
-                        Central University Campus & Fleet Depot
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider border border-blue-200 dark:border-blue-800">
+                        Campus Terminal Anchor & Depot
                       </span>
-                      <span className="px-1.5 py-0.5 rounded-md bg-green-500/20 text-green-300 text-[10px] font-mono font-bold">
-                        PostgreSQL Synced
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Active Geofence
                       </span>
-                      {/* Station Selector Dropdown */}
-                      <select
-                        value={currentCampusStop.id}
-                        onChange={e => setDesignatedCampusId(e.target.value)}
-                        className="px-2 py-0.5 rounded-lg bg-gray-800/90 border border-gray-700 text-[11px] font-bold text-blue-300 cursor-pointer hover:border-blue-400 outline-none"
-                        title="Designate a different stop as the Campus Terminal"
-                      >
-                        {stops.map(st => (
-                          <option key={st.id} value={st.id} className="bg-gray-900 text-white">
-                            Switch Terminal: {st.name} ({st.code})
-                          </option>
-                        ))}
-                      </select>
                     </div>
-                    <h3 className="text-base font-black text-white mt-0.5">
+                    <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">
                       {currentCampusStop.name}
                     </h3>
-                    <p className="text-xs text-gray-400">
-                      Anchor of all university transit corridors, bus parking bays, and arrival dispatching
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 max-w-xl">
+                      Central terminal anchor for all university corridors, arrival geofencing, and overnight fleet depot parking.
                     </p>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handleOpenEditCampus(currentCampusStop)}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all self-start sm:self-auto"
-                >
-                  <Sliders className="w-3.5 h-3.5" />
-                  <span>Edit Campus Terminal & Depot</span>
-                </button>
+                {/* Switch Terminal Selector & Edit Controls */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 self-stretch lg:self-auto flex-shrink-0">
+                  <div className="relative">
+                    <select
+                      value={currentCampusStop.id}
+                      onChange={e => setDesignatedCampusId(e.target.value)}
+                      className="w-full sm:w-auto appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm transition-all"
+                      title="Switch designated Central Campus Terminal"
+                    >
+                      {stops.map(st => (
+                        <option key={st.id} value={st.id}>
+                          Switch: {st.name} ({st.code})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  <button
+                    onClick={() => handleOpenEditCampus(currentCampusStop)}
+                    className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all active:scale-95"
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Configure Terminal</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-800/80 text-xs">
-                <div className="p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/50">
-                  <span className="text-[10px] text-gray-400 block font-bold uppercase">Terminal Code</span>
-                  <span className="font-mono font-black text-blue-300">{currentCampusStop.code}</span>
+              {/* 4-Metric Clean Summary Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs">
+                <div className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/60">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 block font-bold uppercase tracking-wider">
+                    Terminal Code
+                  </span>
+                  <span className="font-mono font-black text-blue-600 dark:text-blue-400 text-sm mt-0.5 block">
+                    {currentCampusStop.code}
+                  </span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/50">
-                  <span className="text-[10px] text-gray-400 block font-bold uppercase">GPS Anchor</span>
-                  <span className="font-mono font-bold text-gray-200">
+
+                <div className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/60">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 block font-bold uppercase tracking-wider">
+                    GPS Coordinates
+                  </span>
+                  <span className="font-mono font-bold text-gray-800 dark:text-gray-200 text-xs mt-0.5 block">
                     {currentCampusStop.latitude.toFixed(4)}° N, {currentCampusStop.longitude.toFixed(4)}° E
                   </span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/50">
-                  <span className="text-[10px] text-gray-400 block font-bold uppercase">Geofence Radius</span>
-                  <span className="font-mono font-bold text-green-400">{currentCampusStop.geofenceRadiusMeters} meters</span>
+
+                <div className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/60">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 block font-bold uppercase tracking-wider">
+                    Geofence Radius
+                  </span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs mt-0.5 block">
+                    {currentCampusStop.geofenceRadiusMeters || 90} meters
+                  </span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/50">
-                  <span className="text-[10px] text-gray-400 block font-bold uppercase">Depot Landmark</span>
-                  <span className="font-medium text-gray-300 truncate block">{currentCampusStop.landmark || "Main Terminal Area"}</span>
+
+                <div className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/60">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 block font-bold uppercase tracking-wider">
+                    Depot Landmark
+                  </span>
+                  <span
+                    className="font-medium text-gray-700 dark:text-gray-300 text-xs truncate mt-0.5 block"
+                    title={currentCampusStop.landmark || "Main Terminal Area"}
+                  >
+                    {currentCampusStop.landmark || "Main Terminal Area"}
+                  </span>
                 </div>
               </div>
             </div>
