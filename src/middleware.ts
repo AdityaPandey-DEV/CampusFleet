@@ -37,24 +37,10 @@ const ALLOWED_ORIGINS: string[] = [
 ].filter(Boolean);
 
 function getTargetRouteForRole(role?: string): string {
-  switch (role) {
-    case "admin":
-      return "/admin";
-    case "role_manager":
-      return "/role-manager";
-    case "transport_admin":
-      return "/transport-admin";
-    case "transport_manager":
-      return "/transport-manager";
-    case "driver":
-      return "/driver";
-    case "conductor":
-      return "/conductor";
-    case "teacher":
-      return "/teacher";
-    default:
-      return "/portal";
-  }
+  if (!role || role === "student") return "/portal";
+  if (role === "admin") return "/admin";
+  if (role === "role_manager") return "/role-manager";
+  return `/${role.toLowerCase().replace(/_/g, "-")}`;
 }
 
 /**
@@ -221,11 +207,20 @@ export async function middleware(req: NextRequest) {
     teacher: ["/teacher"],
   };
 
-  const myAllowedPortals = allowedPortalsForRole[session.role] || ["/portal"];
+  // For students, strictly confine to /portal
+  if (session.role === "student" && !pathname.startsWith("/portal")) {
+    return NextResponse.redirect(new URL("/portal", req.url));
+  }
 
-  // Check if they're on a portal that is NOT in their allowed list
-  const allPortals = [
-    "/portal",
+  // Admin and Role Manager can access all management consoles
+  if (session.role === "admin" || session.role === "role_manager") {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  const myAllowedPortals = allowedPortalsForRole[session.role] || [correctPortal];
+
+  // Check if they're on a restricted portal that is NOT in their allowed list
+  const staffPortals = [
     "/admin",
     "/role-manager",
     "/transport-admin",
@@ -234,7 +229,7 @@ export async function middleware(req: NextRequest) {
     "/conductor",
     "/teacher"
   ];
-  const isOnWrongPortal = allPortals
+  const isOnWrongPortal = staffPortals
     .filter(p => !myAllowedPortals.includes(p))
     .some(p => pathname === p || pathname.startsWith(p + "/"));
 

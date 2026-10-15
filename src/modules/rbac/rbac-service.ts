@@ -366,8 +366,8 @@ export async function deleteSystemRole(roleKey: string): Promise<{ success: bool
       return { success: false, error: "Role not found in database." };
     }
 
-    if (role.is_system) {
-      return { success: false, error: "System-defined roles cannot be deleted." };
+    if (role.is_system || roleKey === "admin" || roleKey === "role_manager") {
+      return { success: false, error: "Protected system roles (admin, role_manager) cannot be deleted." };
     }
 
     // Re-parent any dependent child roles

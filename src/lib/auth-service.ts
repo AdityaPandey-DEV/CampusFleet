@@ -108,22 +108,11 @@ class AuthService {
   }
 
   public getTargetRouteForRole(role: UserRole): string {
-    switch (role) {
-      case "admin":
-        return "/admin";
-      case "transport_admin":
-        return "/transport-admin";
-      case "transport_manager":
-        return "/transport-manager";
-      case "driver":
-        return "/driver";
-      case "conductor":
-        return "/conductor";
-      case "teacher":
-        return "/teacher";
-      default:
-        return "/portal";
-    }
+    if (!role || role === "student") return "/portal";
+    if (role === "admin") return "/admin";
+    if (role === "role_manager") return "/role-manager";
+    const normalized = String(role).toLowerCase().replace(/_/g, "-");
+    return `/${normalized}`;
   }
 
   // ─── Auth Methods (Custom JWT — No Supabase Auth) ─────────────────

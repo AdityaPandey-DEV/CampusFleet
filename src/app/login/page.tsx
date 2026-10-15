@@ -213,16 +213,7 @@ export default function LoginPage() {
         const authUser = res.user;
         store.setCurrentUser(authUser);
 
-        if (authUser.role === "admin") {
-          setAuthStep("SUCCESS");
-          setTimeout(() => router.push("/admin"), 700);
-        } else if (
-          authUser.role === "driver" ||
-          authUser.role === "conductor" ||
-          authUser.role === "transport_admin" ||
-          authUser.role === "transport_manager" ||
-          authUser.role === "teacher"
-        ) {
+        if (authUser.role !== "student") {
           setAuthStep("SUCCESS");
           setTimeout(() => router.push(authService.getTargetRouteForRole(authUser.role)), 700);
         } else {
