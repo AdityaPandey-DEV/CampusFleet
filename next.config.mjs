@@ -114,6 +114,16 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: "/transport-manager/routes/:path*",
+        destination: "/transport-admin/routes/:path*",
+        permanent: true,
+      },
+      {
+        source: "/transport-manager/routes",
+        destination: "/transport-admin/routes",
+        permanent: true,
+      },
+      {
         source: "/staff/:path*",
         destination: "/transport-admin/:path*",
         permanent: true,

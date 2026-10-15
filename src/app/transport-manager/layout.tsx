@@ -7,7 +7,6 @@ import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import {
   BusFront,
-  Route,
   Navigation,
   BarChart3,
   GitMerge,
@@ -28,7 +27,6 @@ export default function TransportManagerLayout({ children }: { children: React.R
   const navLinks = [
     { href: "/transport-manager", label: "← Hub", shortLabel: "Hub", icon: Home },
     { href: "/transport-manager/drivers", label: "Assign Drivers", shortLabel: "Drivers", icon: BusFront },
-    { href: "/transport-manager/routes", label: "Routes & Stops", shortLabel: "Routes", icon: Route },
     { href: "/transport-manager/trips", label: "Today's Trips", shortLabel: "Trips", icon: Navigation },
     { href: "/transport-manager/demand", label: "Passenger Demand", shortLabel: "Demand", icon: BarChart3 },
     { href: "/transport-manager/combine-buses", label: "Combine Buses", shortLabel: "Combine", icon: GitMerge },
@@ -36,7 +34,6 @@ export default function TransportManagerLayout({ children }: { children: React.R
 
   let currentTitle = "Transport Manager Logistics";
   if (pathname.includes("/drivers")) currentTitle = "Assign Drivers";
-  else if (pathname.includes("/routes")) currentTitle = "Routes & Stops";
   else if (pathname.includes("/trips")) currentTitle = "Today's Trips";
   else if (pathname.includes("/demand")) currentTitle = "Passenger Demand";
   else if (pathname.includes("/combine-buses")) currentTitle = "Combine Buses";

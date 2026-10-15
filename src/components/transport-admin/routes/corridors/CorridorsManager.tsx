@@ -774,11 +774,11 @@ export default function CorridorsManager({ mode = "view" }: { mode?: "view" | "c
         )}
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/transport-manager/routes/stops/create" className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+          <Link href="/transport-admin/routes/stops/create" className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
             <MapPin className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
             <span className="hidden sm:inline">Add Stop</span>
           </Link>
-          <Link href="/transport-manager/routes/corridors/create" className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+          <Link href="/transport-admin/routes/corridors/create" className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5" />
             <span>Create Route</span>
           </Link>
@@ -819,7 +819,7 @@ export default function CorridorsManager({ mode = "view" }: { mode?: "view" | "c
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {routes.map(r => (
                 <Link 
-                  href={`/transport-manager/routes/corridors/${r.id}`} 
+                  href={`/transport-admin/routes/corridors/${r.id}`} 
                   key={r.id}
                   className="group"
                 >

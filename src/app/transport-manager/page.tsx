@@ -2,7 +2,6 @@ import { HubDashboardView, HubModule } from "@/components/common/HubDashboardVie
 import { 
   BusFront,
   Users,
-  Route, 
   Navigation, 
   BarChart3,
   GitMerge,
@@ -20,12 +19,6 @@ const logisticsModules: HubModule[] = [
     description: "Assign drivers and conductors to specific buses and shifts for today's service.",
     icon: Users,
     href: "/transport-manager/drivers"
-  },
-  {
-    title: "Routes & Stops",
-    description: "Manage bus corridors, pickup points, stop timings, and route geometry.",
-    icon: Route,
-    href: "/transport-manager/routes"
   },
   {
     title: "Today's Trips",

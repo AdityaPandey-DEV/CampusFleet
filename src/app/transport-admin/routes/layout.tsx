@@ -5,7 +5,7 @@ import { RoutesProvider } from "@/components/transport-admin/routes/RoutesContex
 export const dynamic = "force-dynamic";
 
 export default async function TransportManagerRoutesLayout({ children }: { children: React.ReactNode }) {
-  const data = await getStaffServerData("/transport-manager/routes");
+  const data = await getStaffServerData("/transport-admin/routes");
 
   return (
     <RoutesProvider

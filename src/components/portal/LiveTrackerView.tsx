@@ -280,11 +280,11 @@ export default function LiveTrackerView({
           No campus bus stops or route corridors are populated yet. Please use the Admin Operations Console to add stops and allocate fleet buses.
         </p>
         <Link
-          href="/transport-manager/routes"
+          href="/transport-admin/routes"
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition-all"
         >
           <Plus className="w-4 h-4" />
-          Create Stops & Routes in Transport Manager Console →
+          Create Stops & Routes in Transport Admin Console →
         </Link>
       </div>
     );
