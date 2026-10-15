@@ -97,7 +97,18 @@ export default async function StudentPortalPage() {
     direction: (r.direction) as any,
     color: r.color || "#2563EB",
     isActive: Boolean(r.is_active),
-    stops: r.stops || [],
+    stops: (r.stops_data && Array.isArray(r.stops_data))
+      ? r.stops_data.map((rs: any, idx: number) => {
+          const stopObj = (dbStops || []).find((s: any) => s.id === (rs.stopId || rs.stop?.id)) || rs.stop;
+          return {
+            stopId: rs.stopId || rs.stop?.id || "",
+            stopOrder: rs.stopOrder || idx + 1,
+            arrivalOffsetMinutes: rs.arrivalOffsetMinutes ?? idx * 8,
+            bufferTimeMinutes: rs.bufferTimeMinutes ?? 2,
+            stop: stopObj,
+          };
+        })
+      : (r.stops || []),
     totalDistanceKm: Number(r.total_distance_km),
     estimatedDurationMins: Number(r.estimated_duration_mins),
     campusId: r.campus_id,

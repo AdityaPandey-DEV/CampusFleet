@@ -17,6 +17,7 @@ export interface CommuteBusSelectorProps {
   initialBuses?: Bus[];
   initialTrips?: Trip[];
   initialBookings?: Booking[];
+  initialRoutes?: Route[];
 }
 
 export default function CommuteBusSelector({
@@ -29,6 +30,7 @@ export default function CommuteBusSelector({
   initialBuses = [],
   initialTrips = [],
   initialBookings = [],
+  initialRoutes = [],
 }: CommuteBusSelectorProps) {
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [students, setStudents] = useState<Student[]>(() => initialStudents.length > 0 ? initialStudents : store.getStudents());
@@ -37,7 +39,7 @@ export default function CommuteBusSelector({
   const [stops, setStops] = useState<Stop[]>(() => initialStops.length > 0 ? initialStops : store.getStops());
   const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
   const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
-  const [routes, setRoutes] = useState<Route[]>(() => store.getRoutes());
+  const [routes, setRoutes] = useState<Route[]>(() => initialRoutes.length > 0 ? initialRoutes : store.getRoutes());
 
   const [activeStep, setActiveStep] = useState<"SHIFT" | "STOP" | "BUS" | "MESSAGE">("SHIFT");
   const [selectedShiftId, setSelectedShiftId] = useState(shifts[0]?.id || "");
@@ -57,6 +59,7 @@ export default function CommuteBusSelector({
       setStops(store.getStops());
       setBuses(store.getBuses());
       setTrips(store.getTrips());
+      setRoutes(store.getRoutes());
     });
     
     if ("geolocation" in navigator) {
@@ -123,17 +126,31 @@ export default function CommuteBusSelector({
   }, [trips, selectedShiftId, todayStr, currentUser, activeStudent]);
 
   const shiftBuses = useMemo(() => {
+    // Collect all route IDs serving selectedStopId
+    const matchingRouteIds = new Set<string>();
+    routes.forEach(r => {
+      if (r.stops?.some(rs => (rs.stopId === selectedStopId || rs.stop?.id === selectedStopId))) {
+        matchingRouteIds.add(r.id);
+      }
+    });
+
+    try {
+      const storeRoutes = store.getRoutesForStop(selectedStopId);
+      storeRoutes.forEach(r => matchingRouteIds.add(r.id));
+    } catch (e) {
+      // ignore
+    }
+
     return buses.filter(b => shiftTrips.some(t => {
       if (t.busId !== b.id) return false;
+      if (matchingRouteIds.size > 0 && !matchingRouteIds.has(t.routeId)) return false;
+
       const route = routes.find(r => r.id === t.routeId);
-      if (!route) return false;
-      // Ensure the route contains the selected stop
-      const stopIndex = route.stops.findIndex(rs => rs.stop.id === selectedStopId);
-      if (stopIndex === -1) return false;
-      
-      // Also optionally check if the bus has already passed this stop
-      // If t.currentStopIndex > stopIndex, it might have passed.
-      // We will just return true for now if it's on the route.
+      if (!route) return true;
+
+      const stopIndex = route.stops?.findIndex(rs => (rs.stopId === selectedStopId || rs.stop?.id === selectedStopId));
+      if (stopIndex === -1 || stopIndex === undefined) return true;
+
       return t.currentStopIndex <= stopIndex || t.status === "SCHEDULED" || t.status === "DELAYED";
     }));
   }, [buses, shiftTrips, routes, selectedStopId]);

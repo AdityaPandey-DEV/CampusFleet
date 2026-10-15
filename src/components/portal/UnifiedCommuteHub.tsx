@@ -94,6 +94,7 @@ export default function UnifiedCommuteHub({
         initialShifts={initialShifts}
         initialStops={initialStops}
         initialBookings={initialBookings}
+        initialRoutes={initialRoutes}
         onBusSelected={(shiftId, stopId, busId) => {
           setHubState({ shiftId, stopId, busId });
         }}

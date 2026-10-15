@@ -317,7 +317,7 @@ CampusFleetStore.prototype.getBusesForStop = function (this: CampusFleetStore, s
 
   // Direct route assignment
   for (const r of this.routes) {
-    if (r.isActive && r.stops?.some(rs => rs.stopId === stopId)) {
+    if (r.isActive && r.stops?.some(rs => rs.stopId === stopId || rs.stop?.id === stopId)) {
       const busesOnRoute = this.buses.filter(
         b => b.currentRouteId === r.id || this.trips.some(t => t.routeId === r.id && t.busId === b.id)
       );
@@ -354,7 +354,7 @@ CampusFleetStore.prototype.getRoutesForStop = function (this: CampusFleetStore, 
   );
 
   for (const r of this.routes) {
-    if (r.isActive && r.stops?.some(rs => rs.stopId === stopId)) {
+    if (r.isActive && r.stops?.some(rs => rs.stopId === stopId || rs.stop?.id === stopId)) {
       directRouteIds.add(r.id);
     }
   }
