@@ -104,11 +104,11 @@ export async function ensureDatabaseBootstrapped(): Promise<void> {
     const seedRoles = [
       { key: "admin",             name: "Super Administrator",   description: "Full master control over institution, settings, and role management", parent_role_key: null,              hierarchy_level: 1, portal_path: "/admin",             is_system: true },
       { key: "role_manager",      name: "Role & Access Manager", description: "Configures role hierarchy, assigns cards, and manages staff",       parent_role_key: "admin",           hierarchy_level: 2, portal_path: "/role-manager",      is_system: true },
-      { key: "transport_admin",   name: "Transport Admin",       description: "Oversees bus fleet, fee desks, student passes, and repairs",         parent_role_key: "role_manager",    hierarchy_level: 3, portal_path: "/transport-admin",   is_system: false },
-      { key: "transport_manager", name: "Transport Manager",     description: "Manages live operations, routes, drivers, and daily trips",          parent_role_key: "transport_admin", hierarchy_level: 4, portal_path: "/transport-manager", is_system: false },
-      { key: "driver",            name: "Driver",                description: "Operational telematics and route progression HUD",                   parent_role_key: "transport_manager", hierarchy_level: 5, portal_path: "/driver",            is_system: false },
-      { key: "conductor",         name: "Conductor",             description: "Optical QR passenger manifest verification scanner",                 parent_role_key: "transport_manager", hierarchy_level: 5, portal_path: "/conductor",         is_system: false },
-      { key: "teacher",           name: "Teacher",               description: "Classroom attendance and student transit status",                    parent_role_key: "transport_admin", hierarchy_level: 4, portal_path: "/teacher",           is_system: false },
+      { key: "transport_admin",   name: "Transport Admin",       description: "Oversees bus fleet, fee desks, student passes, and repairs",         parent_role_key: "admin",           hierarchy_level: 2, portal_path: "/transport-admin",   is_system: false },
+      { key: "transport_manager", name: "Transport Manager",     description: "Manages live operations, routes, drivers, and daily trips",          parent_role_key: "transport_admin", hierarchy_level: 3, portal_path: "/transport-manager", is_system: false },
+      { key: "teacher",           name: "Teacher",               description: "Classroom attendance and student transit status",                    parent_role_key: null,              hierarchy_level: 3, portal_path: "/teacher",           is_system: false },
+      { key: "driver",            name: "Driver",                description: "Operational telematics and route progression HUD",                   parent_role_key: null,              hierarchy_level: 4, portal_path: "/driver",            is_system: false },
+      { key: "conductor",         name: "Conductor",             description: "Optical QR passenger manifest verification scanner",                 parent_role_key: null,              hierarchy_level: 4, portal_path: "/conductor",         is_system: false },
       { key: "student",           name: "Student",               description: "Student mobility pass, reservations, and live tracking",             parent_role_key: null,              hierarchy_level: 6, portal_path: "/portal",            is_system: false },
     ];
     await supabaseAdmin.from("system_roles").upsert(seedRoles, { onConflict: "key" });
@@ -294,12 +294,26 @@ export async function createSystemRole(params: {
       return { success: false, error: "Role key and name are required." };
     }
 
+    let computedHierarchyLevel = params.hierarchyLevel;
+    if (!computedHierarchyLevel) {
+      if (params.parentRoleKey) {
+        const { data: parentRole } = await supabaseAdmin
+          .from("system_roles")
+          .select("hierarchy_level")
+          .eq("key", params.parentRoleKey)
+          .single();
+        computedHierarchyLevel = (parentRole?.hierarchy_level || 1) + 1;
+      } else {
+        computedHierarchyLevel = cleanKey === "admin" ? 1 : 2;
+      }
+    }
+
     const { error: roleError } = await supabaseAdmin.from("system_roles").insert({
       key: cleanKey,
       name: params.name.trim(),
       description: params.description?.trim() || null,
       parent_role_key: params.parentRoleKey || null,
-      hierarchy_level: params.hierarchyLevel || 4,
+      hierarchy_level: computedHierarchyLevel,
       portal_path: params.portalPath || "/transport-admin",
       short_label: params.shortLabel || params.name.trim(),
       icon: params.icon || "ShieldCheck",
@@ -345,11 +359,21 @@ export async function updateSystemRole(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    let computedHierarchyLevel = params.hierarchyLevel;
+    if (!computedHierarchyLevel && params.parentRoleKey) {
+      const { data: parentRole } = await supabaseAdmin
+        .from("system_roles")
+        .select("hierarchy_level")
+        .eq("key", params.parentRoleKey)
+        .single();
+      computedHierarchyLevel = (parentRole?.hierarchy_level || 1) + 1;
+    }
+
     const updatePayload: Record<string, any> = {
       name: params.name.trim(),
       description: params.description?.trim() || null,
       parent_role_key: params.parentRoleKey || null,
-      hierarchy_level: params.hierarchyLevel || 4,
+      hierarchy_level: computedHierarchyLevel || 4,
       updated_at: new Date().toISOString(),
     };
     if (params.portalPath) updatePayload.portal_path = params.portalPath;
