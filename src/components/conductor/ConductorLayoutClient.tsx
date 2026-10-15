@@ -155,7 +155,7 @@ export default function ConductorLayoutClient({ children }: { children: React.Re
       />
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 min-w-0">
+      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 pb-28 sm:pb-32 min-w-0">
         {children}
       </main>
 

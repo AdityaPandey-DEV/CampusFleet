@@ -3,8 +3,6 @@
 import React from "react";
 import { useConductorContext } from "@/components/conductor/ConductorContext";
 import { QRPassScanner } from "@/components/scanner/QRPassScanner";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function ScannerPage() {
@@ -29,18 +27,13 @@ export default function ScannerPage() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-in fade-in zoom-in-95">
-      <Link 
-        href="/conductor"
-        className="absolute top-6 left-6 z-[110] p-3.5 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-xl border border-white/10 shadow-xl transition-colors cursor-pointer"
-      >
-        <ArrowLeft className="w-6 h-6" />
-      </Link>
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
       <QRPassScanner
         trip={activeTrip}
         bookings={bookings}
         students={students}
         fullScreenMode={true}
+        backHref="/conductor"
         onAttendanceSuccess={(name, method) => {
           showToast(`✓ Verified & Marked Present: ${name} via ${method}!`);
         }}

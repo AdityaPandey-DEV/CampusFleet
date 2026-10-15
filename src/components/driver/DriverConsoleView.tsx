@@ -596,15 +596,6 @@ export default function DriverConsoleView({
 
         {/* Live Trip Status Card */}
         <div className="bg-white dark:bg-gray-900/80 rounded-3xl p-5 border border-gray-200 dark:border-gray-800 space-y-4 shadow-sm dark:shadow-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold">
-              Trip: {activeTrip?.tripCode || "Standby Mode"}
-            </span>
-            <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${activeTrip?.status === "IN_PROGRESS" ? "bg-green-500 animate-ping" : "bg-yellow-500"}`} />
-              <span className="text-xs font-black uppercase text-gray-800 dark:text-gray-200">{activeTrip?.status || "STANDBY"}</span>
-            </div>
-          </div>
 
           {/* Duty Vehicle & QR Attendance Verification Card */}
           <div className="p-4 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/60 flex flex-col md:flex-row md:items-center justify-between gap-3.5">
@@ -694,55 +685,49 @@ export default function DriverConsoleView({
             </div>
           )}
 
-          {/* Action Buttons: Start/End Trip & Hands-Free Automatic GPS Geofence Progression */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          {/* Action Buttons: Start/End Trip & Stop Progression */}
+          <div className="pt-2">
             {activeTrip?.status !== "IN_PROGRESS" ? (
               <button
                 onClick={handleStartTrip}
-                className="py-4 bg-green-600 hover:bg-green-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-green-600/20 transition-all cursor-pointer"
+                className="w-full py-4 bg-green-600 hover:bg-green-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-green-600/20 transition-all cursor-pointer"
               >
                 <Play className="w-5 h-5 fill-current" />
                 <span>START TRIP</span>
               </button>
             ) : (
-              <button
-                onClick={handleEndTrip}
-                className="py-4 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 transition-all cursor-pointer"
-              >
-                <Square className="w-5 h-5 fill-current" />
-                <span>END TRIP</span>
-              </button>
-            )}
-
-            {activeTrip?.status === "IN_PROGRESS" ? (
-              <button
-                type="button"
-                onClick={handleAdvanceStop}
-                className={`py-4 active:scale-95 text-white font-black text-xs sm:text-sm rounded-2xl flex flex-col items-center justify-center gap-1 shadow-lg transition-all cursor-pointer ${
-                  directExpressResult.isExpressDirect
-                    ? "bg-green-600 hover:bg-green-500 shadow-green-600/25"
-                    : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/20"
-                }`}
-                title="GPS Geofencing automatically advances stations. Tap only if you need to manually skip."
-              >
-                <div className="flex items-center gap-2">
-                  {directExpressResult.isExpressDirect ? <Zap className="w-4 h-4 fill-current" /> : <Navigation className="w-4 h-4 animate-pulse" />}
-                  <span>
-                    {directExpressResult.isExpressDirect
-                      ? "EXPRESS TO CAMPUS"
-                      : distanceToNextStopMeters !== null
-                      ? `AUTO-TRACKING (${distanceToNextStopMeters}m to stop)`
-                      : "AUTO-GEOFENCE ACTIVE"}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={handleEndTrip}
+                  className="py-4 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 transition-all cursor-pointer"
+                >
+                  <Square className="w-5 h-5 fill-current" />
+                  <span>END TRIP</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAdvanceStop}
+                  className={`py-4 active:scale-95 text-white font-black text-xs sm:text-sm rounded-2xl flex flex-col items-center justify-center gap-1 shadow-lg transition-all cursor-pointer ${
+                    directExpressResult.isExpressDirect
+                      ? "bg-green-600 hover:bg-green-500 shadow-green-600/25"
+                      : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/20"
+                  }`}
+                  title="GPS Geofencing automatically advances stations. Tap only if you need to manually skip."
+                >
+                  <div className="flex items-center gap-2">
+                    {directExpressResult.isExpressDirect ? <Zap className="w-4 h-4 fill-current" /> : <Navigation className="w-4 h-4 animate-pulse" />}
+                    <span>
+                      {directExpressResult.isExpressDirect
+                        ? "EXPRESS TO CAMPUS"
+                        : distanceToNextStopMeters !== null
+                        ? `AUTO-TRACKING (${distanceToNextStopMeters}m to stop)`
+                        : "AUTO-GEOFENCE ACTIVE"}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-white/80 font-normal">
+                    Auto-advances on arrival (&lt;150m) • Tap for manual skip
                   </span>
-                </div>
-                <span className="text-[10px] text-white/80 font-normal">
-                  Auto-advances on arrival (&lt;150m) • Tap for manual skip
-                </span>
-              </button>
-            ) : (
-              <div className="py-4 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700">
-                <Navigation className="w-4 h-4" />
-                <span>Hands-Free Auto-Arrival Ready</span>
+                </button>
               </div>
             )}
           </div>

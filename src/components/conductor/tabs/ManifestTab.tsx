@@ -85,10 +85,10 @@ export function ManifestTab({
       </div>
 
       {/* Filter Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full scrollbar-hide">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 max-w-full no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           onClick={() => setManifestFilter("ALL")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
             manifestFilter === "ALL"
               ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md"
               : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -98,7 +98,7 @@ export function ManifestTab({
         </button>
         <button
           onClick={() => setManifestFilter("PENDING")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
             manifestFilter === "PENDING"
               ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
               : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -108,7 +108,7 @@ export function ManifestTab({
         </button>
         <button
           onClick={() => setManifestFilter("BOARDED")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
             manifestFilter === "BOARDED"
               ? "bg-green-600 text-white shadow-md shadow-green-500/20"
               : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -118,7 +118,7 @@ export function ManifestTab({
         </button>
         <button
           onClick={() => setManifestFilter("WAITLIST")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
             manifestFilter === "WAITLIST"
               ? "bg-yellow-600 text-white shadow-md shadow-yellow-500/20"
               : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -128,7 +128,7 @@ export function ManifestTab({
         </button>
         <button
           onClick={() => setManifestFilter("ROAMING")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
             manifestFilter === "ROAMING"
               ? "bg-yellow-500 text-gray-950 shadow-md shadow-yellow-500/20"
               : "bg-yellow-50 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300/40 hover:bg-yellow-100 dark:hover:bg-yellow-900/60"
@@ -153,10 +153,16 @@ export function ManifestTab({
             const isAbsent = b.status === "ABSENT" || b.status === "NO_SHOW";
             const isWaitlisted = b.status === "WAITLISTED";
 
+            const seatCode = b.seatNumber || (b as any).seat_number || (
+              isWaitlisted
+                ? (b.waitlistPosition ? `WL-${b.waitlistPosition}` : "WL")
+                : (b.passengerType === "STANDING_TILL_MERGE" || (b as any).passenger_type === "STANDING_TILL_MERGE" ? "STND" : "PASS")
+            );
+
             return (
               <div
                 key={b.id}
-                className={`p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                className={`p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
                   isBoarded
                     ? "bg-green-50/50 dark:bg-green-950/20 border border-green-100 dark:border-green-900/30"
                     : isAbsent
@@ -164,9 +170,9 @@ export function ManifestTab({
                     : "hover:bg-gray-50 dark:hover:bg-gray-800/40"
                 }`}
               >
-                <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-black text-sm flex-shrink-0 shadow-sm border ${
+                    className={`w-12 h-12 min-w-[3rem] rounded-2xl flex items-center justify-center font-mono font-black text-xs shrink-0 shadow-sm border px-1 text-center overflow-hidden select-none ${
                       isBoarded
                         ? "bg-green-600 border-green-500 text-white"
                         : isWaitlisted
@@ -174,12 +180,12 @@ export function ManifestTab({
                         : "bg-blue-100 dark:bg-blue-600/10 text-blue-800 dark:text-blue-400 border-blue-300 dark:border-blue-500/30"
                     }`}
                   >
-                    {b.seatNumber || `WL-${b.waitlistPosition}`}
+                    <span className="truncate">{seatCode}</span>
                   </div>
 
                   {/* Student ID Photo for Conductor Visual Validation */}
                   {s?.photoUrl ? (
-                    <div className="relative w-10 h-12 rounded-xl overflow-hidden border-2 border-green-500/80 bg-gray-950 flex-shrink-0 shadow-xs" title="Official Passport Photo Verified">
+                    <div className="relative w-10 h-12 rounded-xl overflow-hidden border-2 border-green-500/80 bg-gray-950 shrink-0 shadow-xs" title="Official Passport Photo Verified">
                       <img
                         src={getSafePhotoUrl(s.photoUrl)}
                         alt={s.fullName}
@@ -197,34 +203,34 @@ export function ManifestTab({
                       </div>
                     </div>
                   ) : (
-                    <div className="w-10 h-12 rounded-xl border border-dashed border-red-400 dark:border-red-800 bg-red-50 dark:bg-red-950/40 flex flex-col items-center justify-center text-red-500 flex-shrink-0 p-0.5 text-center" title="No Official Photo Uploaded - Conductor must inspect physical ID!">
+                    <div className="w-10 h-12 rounded-xl border border-dashed border-red-400 dark:border-red-800 bg-red-50 dark:bg-red-950/40 flex flex-col items-center justify-center text-red-500 shrink-0 p-0.5 text-center" title="No Official Photo Uploaded - Conductor must inspect physical ID!">
                       <AlertTriangle className="w-3.5 h-3.5" />
                       <span className="text-[6px] font-black uppercase tracking-tighter text-red-600 dark:text-red-400 leading-none mt-0.5">Check ID</span>
                     </div>
                   )}
 
-                  <div className="min-w-0">
-                    <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 flex-wrap">
-                      <span className="truncate">{s?.fullName || "Student Passenger"}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                      <span className="truncate max-w-[150px] sm:max-w-none">{s?.fullName || "Student Passenger"}</span>
                       {b.roamingStatus === "ROAMING" || (b as any).roaming_status === "ROAMING" ? (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700 font-bold flex-shrink-0 flex items-center gap-1">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700 font-bold shrink-0 flex items-center gap-1">
                           <Footprints className="w-3 h-3 text-yellow-600 dark:text-yellow-500" />
-                          Roaming Campus (Seat Held)
+                          Roaming
                         </span>
                       ) : b.roamingStatus === "RUNNING_TO_BUS" ? (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-400 border border-orange-300 dark:border-orange-700 font-bold flex-shrink-0 animate-pulse">
-                          🏃 Sprinting to Bus (Grace Active)
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-400 border border-orange-300 dark:border-orange-700 font-bold shrink-0 animate-pulse">
+                          🏃 Sprinting
                         </span>
                       ) : null}
                       {s?.campus && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-medium flex-shrink-0 border border-gray-200 dark:border-gray-700">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-medium shrink-0 border border-gray-200 dark:border-gray-700">
                           {s.campus.split(",")[0]}
                         </span>
                       )}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-1 flex items-center gap-2 flex-wrap">
                       <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
-                        <MapPin className="w-3 h-3 text-gray-400" /> {stop?.name || "Boarding Stop"}
+                        <MapPin className="w-3 h-3 text-gray-400 shrink-0" /> {stop?.name || "Boarding Stop"}
                       </span>
                       {b.boardedAt && (
                         <>
@@ -239,14 +245,14 @@ export function ManifestTab({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-800/40 shrink-0">
                   {isBoarded ? (
-                    <span className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800/60 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
+                    <span className="px-3.5 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800/60 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
                       <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500" />
                       Boarded ✓
                     </span>
                   ) : isAbsent ? (
-                    <span className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-800/60 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
+                    <span className="px-3.5 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-800/60 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
                       <XCircle className="w-4 h-4 text-red-600 dark:text-red-500" />
                       Marked Absent
                     </span>
@@ -254,22 +260,23 @@ export function ManifestTab({
                     <>
                       <button
                         onClick={() => onMarkAttendance(b.studentId, "BOARDED")}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all active:scale-95"
+                        className="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                       >
                         <CheckCircle2 className="w-4 h-4" />
-                        Board
+                        <span>Board</span>
                       </button>
                       <button
                         onClick={() => onMarkRoamingHold(b.studentId, b.id)}
-                        className="px-3 py-2 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/60 text-xs font-bold rounded-xl flex items-center gap-1 transition-all active:scale-95"
+                        className="px-3 py-2 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/60 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
                         title="Hold seat digitally: student can roam campus without bag on seat"
                       >
                         <Footprints className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-500" />
-                        Hold (Roam)
+                        <span>Hold (Roam)</span>
                       </button>
                       <button
                         onClick={() => onMarkAttendance(b.studentId, "ABSENT")}
-                        className="px-3 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 border border-gray-200 dark:border-gray-700 hover:border-red-200 dark:hover:border-red-800/60 text-xs font-bold rounded-xl transition-all active:scale-95"
+                        className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 border border-gray-200 dark:border-gray-700 hover:border-red-200 dark:hover:border-red-800/60 rounded-xl transition-all active:scale-95 cursor-pointer"
+                        title="Mark Absent"
                       >
                         <XCircle className="w-4 h-4" />
                       </button>
