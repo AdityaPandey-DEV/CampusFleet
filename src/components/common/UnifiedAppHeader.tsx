@@ -8,6 +8,7 @@ import { authService } from "@/lib/auth-service";
 import { UserRole } from "@/lib/types";
 import { useTheme } from "./ThemeProvider";
 import { getCardIcon } from "@/modules";
+import { RolePortalSwitcher } from "./RolePortalSwitcher";
 import {
   BusFront,
   GraduationCap,
@@ -352,8 +353,11 @@ export function UnifiedAppHeader({
             </div>
           )}
 
-          {/* Right Action Items (Minimalist User & Sign Out) */}
-          <div className="hidden lg:flex items-center gap-6 flex-shrink-0 z-10">
+          {/* Right Action Items: Portal Switcher, User & Sign Out */}
+          <div className="hidden lg:flex items-center gap-4 flex-shrink-0 z-10">
+            {/* Dedicated Role Portal Switcher */}
+            <RolePortalSwitcher />
+
             {currentUser ? (
               <div className="flex items-center gap-4">
                 <Link href={`/${pathname.split('/')[1] === 'portal' ? 'portal' : (currentUser.role || 'portal')}/settings`} title="Open Settings" className="block w-9 h-9 rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
@@ -382,7 +386,9 @@ export function UnifiedAppHeader({
             )}
           </div>
           
-          <div className="flex items-center lg:hidden z-10">
+          <div className="flex items-center gap-2 lg:hidden z-10">
+            {/* Dedicated Mobile Role Portal Switcher */}
+            <RolePortalSwitcher />
 
             {/* Mobile Vertical Slide Sheet Trigger */}
             <button

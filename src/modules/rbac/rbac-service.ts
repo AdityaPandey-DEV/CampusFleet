@@ -115,6 +115,10 @@ export async function ensureDatabaseBootstrapped(): Promise<void> {
 
     // Seed direct role_cards in DB
     const seedRoleCards = [
+      { role_key: "admin", card_key: "role_manager" },
+      { role_key: "admin", card_key: "users" },
+      { role_key: "admin", card_key: "hierarchy" },
+      { role_key: "admin", card_key: "settings" },
       { role_key: "role_manager", card_key: "role_manager" },
       { role_key: "role_manager", card_key: "users" },
       { role_key: "role_manager", card_key: "hierarchy" },

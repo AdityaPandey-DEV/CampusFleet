@@ -18,6 +18,17 @@ export interface RolePortalOption {
   parentRoleKey?: string | null;
 }
 
+const DEFAULT_PORTAL_OPTIONS: RolePortalOption[] = [
+  { role: "admin", label: "Super Administrator", shortLabel: "Super Admin", path: "/admin", icon: getCardIcon("ShieldCheck"), color: "bg-blue-600 text-blue-400", description: "Master institutional control & user settings", parentRoleKey: null },
+  { role: "role_manager", label: "Role & Access Manager", shortLabel: "Role Manager", path: "/role-manager", icon: getCardIcon("ShieldCheck"), color: "bg-indigo-600 text-indigo-400", description: "Hierarchy flowchart & account controls", parentRoleKey: "admin" },
+  { role: "transport_admin", label: "Transport Admin", shortLabel: "Transport Admin", path: "/transport-admin", icon: getCardIcon("Building2"), color: "bg-blue-600 text-blue-400", description: "Fleet logistics, fee approvals & repairs", parentRoleKey: "admin" },
+  { role: "transport_manager", label: "Transport Manager", shortLabel: "Transport Mgr", path: "/transport-manager", icon: getCardIcon("Route"), color: "bg-amber-600 text-amber-400", description: "Live dispatch, drivers, and daily trips", parentRoleKey: "transport_admin" },
+  { role: "teacher", label: "Teacher Portal", shortLabel: "Teacher", path: "/teacher", icon: getCardIcon("GraduationCap"), color: "bg-emerald-600 text-emerald-400", description: "Classroom transit status & attendance", parentRoleKey: null },
+  { role: "driver", label: "Driver Console", shortLabel: "Driver", path: "/driver", icon: getCardIcon("Navigation"), color: "bg-cyan-600 text-cyan-400", description: "Operational telematics HUD & route progression", parentRoleKey: null },
+  { role: "conductor", label: "Conductor Scanner", shortLabel: "Conductor", path: "/conductor", icon: getCardIcon("UserCheck"), color: "bg-pink-600 text-pink-400", description: "Optical QR passenger manifest verification", parentRoleKey: null },
+  { role: "student", label: "Student Portal", shortLabel: "Student", path: "/portal", icon: getCardIcon("GraduationCap"), color: "bg-purple-600 text-purple-400", description: "Student mobility pass, reservations & tracker", parentRoleKey: null },
+];
+
 interface RolePortalSwitcherProps {
   align?: "left" | "right" | "auto";
 }
@@ -27,7 +38,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
-  const [portalOptions, setPortalOptions] = useState<RolePortalOption[]>([]);
+  const [portalOptions, setPortalOptions] = useState<RolePortalOption[]>(DEFAULT_PORTAL_OPTIONS);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,7 +82,17 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
 
   // Pure dynamic hierarchy resolution from database (Zero hardcoded role strings!)
   const userRole = (currentUser?.role || "student") as string;
+  const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "adityapandey.dev.in@gmail.com").toLowerCase();
+  const isActualAdmin =
+    userRole === "admin" ||
+    currentUser?.email?.toLowerCase() === adminEmail ||
+    pathname.startsWith("/admin");
+
   const accessibleRoles = useMemo(() => {
+    // Administrator has master capability to switch to ANY portal across the entire campus!
+    if (isActualAdmin || userRole === "admin") {
+      return new Set<string>(portalOptions.map((opt) => opt.role));
+    }
     const allowed = new Set<string>([userRole]);
     let expanded = true;
     while (expanded) {
@@ -84,7 +105,7 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
       }
     }
     return allowed;
-  }, [userRole, portalOptions]);
+  }, [userRole, isActualAdmin, portalOptions]);
 
   const allowedOptions = portalOptions.filter((opt) => accessibleRoles.has(opt.role));
 
@@ -96,12 +117,13 @@ export function RolePortalSwitcher({ align = "auto" }: RolePortalSwitcherProps) 
   // Match current portal option based on pathname
   const currentOption =
     allowedOptions.find((opt) => {
-      if (opt.path === "/admin") return pathname.startsWith("/admin");
-      if (opt.path === "/portal") return pathname.startsWith("/portal");
-      return pathname.startsWith(opt.path);
+      if (opt.path === "/admin") return pathname === "/admin" || pathname.startsWith("/admin/");
+      if (opt.path === "/portal") return pathname === "/portal" || pathname.startsWith("/portal/");
+      if (opt.path === "/role-manager") return pathname === "/role-manager" || pathname.startsWith("/role-manager/");
+      return pathname === opt.path || pathname.startsWith(opt.path + "/");
     }) || allowedOptions[0];
 
-  const CurrentIcon = currentOption.icon;
+  const CurrentIcon = currentOption?.icon;
 
   const handleSelectPortal = (option: RolePortalOption) => {
     store.switchRole(option.role);

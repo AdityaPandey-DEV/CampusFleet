@@ -30,11 +30,12 @@ export async function RoleDeskView({ roleKey }: RoleDeskViewProps) {
   // Cards map
   const cardMap = new Map(allCards.map((c) => [c.key, c]));
 
-  // Use all effective cards (direct assignments + hierarchical inheritance from descendants)
+  // Display only the direct cards assigned to this specific role desk
+  // This keeps the Admin desk clean with only Admin cards, and delegates other desks to their portals.
   const allowedCardKeys =
-    roleDef.allEffectiveCards && roleDef.allEffectiveCards.length > 0
-      ? roleDef.allEffectiveCards
-      : (roleDef.directCards || []);
+    roleDef.directCards && roleDef.directCards.length > 0
+      ? roleDef.directCards
+      : (roleDef.allEffectiveCards || []);
 
   const roleSlug = roleDef.portalPath ? roleDef.portalPath.replace(/^\//, "") : roleDef.key.replace(/_/g, "-");
 
@@ -47,7 +48,7 @@ export async function RoleDeskView({ roleKey }: RoleDeskViewProps) {
     // Build URL following the user's pattern: /rolefromdb/cardname
     // Special exception for role_manager card: always goes to /role-manager
     const cardSlug = card.key.replace(/_/g, "-");
-    const href = card.key === "role_manager" ? "/role-manager" : `/${roleSlug}/${cardSlug}`;
+    const href = card.route || (card.key === "role_manager" ? "/role-manager" : `/${roleSlug}/${cardSlug}`);
 
     modules.push({
       title: card.title,
