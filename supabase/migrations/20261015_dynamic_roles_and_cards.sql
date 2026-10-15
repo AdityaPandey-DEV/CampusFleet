@@ -116,3 +116,21 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.users (id, email, full_name, role, provider, created_at)
 VALUES ('admin-root-001', 'admin@campusfleet.com', 'System Administrator', 'admin', 'EMAIL_PASSWORD', NOW())
 ON CONFLICT (email) DO NOTHING;
+
+-- 10. Database Schema Enforcement: Core System Roles (admin, role_manager) Cannot Be Deleted
+CREATE OR REPLACE FUNCTION public.protect_system_core_roles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.key IN ('admin', 'role_manager') THEN
+    RAISE EXCEPTION 'Cannot delete core system role: %', OLD.key;
+  END IF;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_protect_core_roles ON public.system_roles;
+
+CREATE TRIGGER trg_protect_core_roles
+BEFORE DELETE ON public.system_roles
+FOR EACH ROW
+EXECUTE FUNCTION public.protect_system_core_roles();
