@@ -33,8 +33,8 @@ export const CACHE_TTL = {
   HOT_DATA_ROUTES: 3600, // 1 hour (rarely changes)
   HOT_DATA_STOPS: 3600, // 1 hour
   HOT_DATA_SHIFTS: 3600, // 1 hour
-  HOT_DATA_TRIPS: 60, // 1 minute (changes often with active trips)
-  MASTER_DATA_PERMANENT: 86400, // 24 hours (actively invalidated via webhooks)
+  HOT_DATA_TRIPS: 300, // 5 minutes (changes often with active trips)
+  MASTER_DATA_PERMANENT: 3600, // 1 hour (auto-heals even if webhooks drop)
 } as const;
 
 /**
@@ -52,17 +52,30 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
 }
 
 /**
- * Set a value in Redis with optional TTL in seconds.
+ * Adds randomized jitter (default 0% to 10%) to a TTL.
+ * Prevents Cache Stampede / Thundering Herd by spreading expiration across time.
+ */
+export function withJitter(ttlSeconds: number, jitterPercent = 0.1): number {
+  if (ttlSeconds <= 0) return ttlSeconds;
+  const maxJitter = Math.floor(ttlSeconds * jitterPercent);
+  const jitter = Math.floor(Math.random() * (maxJitter + 1));
+  return ttlSeconds + jitter;
+}
+
+/**
+ * Set a value in Redis with optional TTL and automatic jitter.
  */
 export async function cacheSet<T>(
   key: string,
   value: T,
-  ttlSeconds?: number
+  ttlSeconds?: number,
+  addJitter = true
 ): Promise<boolean> {
   if (!redis) return false;
   try {
     if (ttlSeconds && ttlSeconds > 0) {
-      await redis.set(key, value, { ex: ttlSeconds });
+      const finalTtl = addJitter ? withJitter(ttlSeconds) : ttlSeconds;
+      await redis.set(key, value, { ex: finalTtl });
     } else {
       await redis.set(key, value);
     }
@@ -70,6 +83,68 @@ export async function cacheSet<T>(
   } catch (err) {
     console.warn(`[Redis] cacheSet error for key "${key}":`, err);
     return false;
+  }
+}
+
+export interface CacheFetchOptions<T> {
+  key: string;
+  ttl: number;
+  fetchFn: () => Promise<T>;
+  staleIfError?: boolean;
+  allowEmpty?: boolean;
+  negativeTtl?: number; // Short TTL (in seconds) for empty or null results
+}
+
+/**
+ * Production-Grade Cache-Aside Pipeline:
+ * - Checks Redis cache first (sub-2ms hit)
+ * - Fetches from primary source on miss
+ * - Automatically applies Anti-Stampede TTL Jitter
+ * - Applies Negative Cache Guard to avoid DB hammering
+ * - Stale-If-Error: Falls back to existing cache if the primary DB fetch errors
+ */
+export async function getOrFetchWithCache<T>(options: CacheFetchOptions<T>): Promise<T> {
+  const { key, ttl, fetchFn, staleIfError = true, allowEmpty = false, negativeTtl = 30 } = options;
+
+  let cached: T | null = null;
+  try {
+    cached = await cacheGet<T>(key);
+    if (cached !== null) {
+      if (Array.isArray(cached)) {
+        if (cached.length > 0 || allowEmpty) {
+          return cached;
+        }
+      } else {
+        return cached;
+      }
+    }
+  } catch (err) {
+    console.warn(`[Cache] Error reading key "${key}", falling back to fetchFn:`, err);
+  }
+
+  try {
+    const freshData = await fetchFn();
+    const isArray = Array.isArray(freshData);
+    const hasData = freshData !== null && freshData !== undefined && (!isArray || (freshData as any).length > 0);
+
+    if (hasData || allowEmpty) {
+      void cacheSet(key, freshData, ttl, true);
+    } else if (negativeTtl > 0) {
+      // Negative caching guard: short TTL to prevent repeated DB hammering for empty results
+      void cacheSet(key, freshData, negativeTtl, false);
+    }
+
+    return freshData;
+  } catch (fetchErr) {
+    console.error(`[Cache] Primary fetch failed for key "${key}":`, fetchErr);
+
+    // Stale-If-Error: If primary database fails, serve stale cached data to prevent outage
+    if (staleIfError && cached !== null) {
+      console.warn(`[Cache] Stale-If-Error activated for "${key}". Serving stale data.`);
+      return cached;
+    }
+
+    throw fetchErr;
   }
 }
 

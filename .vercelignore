@@ -1,0 +1,12 @@
+.git
+node_modules
+.next
+campus fleet ss 2.zip
+campus fleet ss.zip
+supabase_backup_complete.json
+*.pptx
+*.pdf
+*.traineddata
+scratch/
+scripts/slide_renders/
+campus fleet ss/

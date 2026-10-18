@@ -87,7 +87,9 @@ export default function CommuteBusSelector({
     : initialStudent;
 
   const visibleShifts = useMemo(() => {
-    return store.getVisibleShiftsForStudent(activeStudent?.id);
+    const list = shifts.length > 0 ? shifts : store.getShifts();
+    const allocatedShiftIds = new Set(activeStudent?.id ? store.getAllocatedShiftIdsForStudent(activeStudent.id) : []);
+    return list.filter(sh => !sh.isSpecial || allocatedShiftIds.has(sh.id));
   }, [shifts, activeStudent]);
 
   // Auto-select next shift on load
@@ -110,7 +112,8 @@ export default function CommuteBusSelector({
 
   // Trips & Buses for the selected shift (restricted to visible trips for this user)
   const shiftTrips = useMemo(() => {
-    const visibleTrips = trips.filter(t => store.isTripVisibleToUser(t, currentUser, activeStudent?.id));
+    const tripList = trips.length > 0 ? trips : store.getTrips();
+    const visibleTrips = tripList.filter(t => store.isTripVisibleToUser(t, currentUser, activeStudent?.id));
 
     const todayMatches = visibleTrips.filter(
       t => t.shiftId === selectedShiftId && t.tripDate === todayStr && t.status !== "CANCELLED"
@@ -126,9 +129,11 @@ export default function CommuteBusSelector({
   }, [trips, selectedShiftId, todayStr, currentUser, activeStudent]);
 
   const shiftBuses = useMemo(() => {
+    const busList = buses.length > 0 ? buses : store.getBuses();
+    const routeList = routes.length > 0 ? routes : store.getRoutes();
     // Collect all route IDs serving selectedStopId
     const matchingRouteIds = new Set<string>();
-    routes.forEach(r => {
+    routeList.forEach(r => {
       if (r.stops?.some(rs => (rs.stopId === selectedStopId || rs.stop?.id === selectedStopId))) {
         matchingRouteIds.add(r.id);
       }
@@ -141,11 +146,11 @@ export default function CommuteBusSelector({
       // ignore
     }
 
-    return buses.filter(b => shiftTrips.some(t => {
+    return busList.filter(b => shiftTrips.some(t => {
       if (t.busId !== b.id) return false;
       if (matchingRouteIds.size > 0 && !matchingRouteIds.has(t.routeId)) return false;
 
-      const route = routes.find(r => r.id === t.routeId);
+      const route = routeList.find(r => r.id === t.routeId);
       if (!route) return true;
 
       const stopIndex = route.stops?.findIndex(rs => (rs.stopId === selectedStopId || rs.stop?.id === selectedStopId));
@@ -226,30 +231,34 @@ export default function CommuteBusSelector({
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {stops
-               .filter(s => s.zoneCode === activeStudent?.zoneCode)
-               .map(stop => {
-                 const dist = userLocation 
-                   ? calculateDistance(userLocation.lat, userLocation.lng, Number(stop.latitude), Number(stop.longitude))
-                   : null;
-                 return { ...stop, dist };
-               })
-               .sort((a,b) => {
-                 if (a.dist !== null && b.dist !== null) return a.dist - b.dist;
-                 return a.name.localeCompare(b.name);
-               })
-               .map((stop) => (
-               <div key={stop.id} onClick={() => { setSelectedStopId(stop.id); setActiveStep("BUS"); }} className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-green-500 transition-all duration-300">
-                 <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-bl-[100px] -z-10" />
-                 <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-900/50 flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
-                   <MapPin className="w-6 h-6" />
-                 </div>
-                 <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight">{stop.name}</h3>
-                 <p className="text-xs text-gray-500 mt-3 flex items-center gap-1.5">
-                   <RouteIcon className="w-3.5 h-3.5" /> {stop.dist !== null ? `${stop.dist.toFixed(1)} km away` : 'Calculating distance...'}
-                 </p>
-               </div>
-             ))}
+             {(() => {
+               const stopList = stops.length > 0 ? stops : store.getStops();
+               const zoneFiltered = activeStudent?.zoneCode ? stopList.filter(s => s.zoneCode === activeStudent.zoneCode) : [];
+               const stopsToRender = zoneFiltered.length > 0 ? zoneFiltered : stopList;
+               return stopsToRender
+                 .map(stop => {
+                   const dist = userLocation 
+                     ? calculateDistance(userLocation.lat, userLocation.lng, Number(stop.latitude), Number(stop.longitude))
+                     : null;
+                   return { ...stop, dist };
+                 })
+                 .sort((a,b) => {
+                   if (a.dist !== null && b.dist !== null) return a.dist - b.dist;
+                   return a.name.localeCompare(b.name);
+                 })
+                 .map((stop) => (
+                   <div key={stop.id} onClick={() => { setSelectedStopId(stop.id); setActiveStep("BUS"); }} className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl cursor-pointer hover:scale-[1.02] hover:ring-2 hover:ring-green-500 transition-all duration-300">
+                     <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-bl-[100px] -z-10" />
+                     <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-900/50 flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
+                       <MapPin className="w-6 h-6" />
+                     </div>
+                     <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight">{stop.name}</h3>
+                     <p className="text-xs text-gray-500 mt-3 flex items-center gap-1.5">
+                       <RouteIcon className="w-3.5 h-3.5" /> {stop.dist !== null ? `${stop.dist.toFixed(1)} km away` : 'Calculating distance...'}
+                     </p>
+                   </div>
+                 ));
+             })()}
           </div>
         </div>
       )}

@@ -47,6 +47,17 @@ export default function UnifiedCommuteHub({
   );
 
   useEffect(() => {
+    store.hydrate({
+      user: initialUser,
+      students: initialStudents,
+      buses: initialBuses,
+      trips: initialTrips,
+      shifts: initialShifts,
+      stops: initialStops,
+      bookings: initialBookings,
+      staff: initialStaff,
+      routes: initialRoutes,
+    });
     setIsClient(true);
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());

@@ -107,6 +107,79 @@ export class CampusFleetStore {
     return this.isInitialized;
   }
 
+  /**
+   * Unified Data Pipeline: Hydrate the store in ONE place from server props.
+   * Immediately updates all components and subscribers across the entire application.
+   */
+  public hydrate(data: {
+    user?: any;
+    students?: Student[];
+    buses?: Bus[];
+    routes?: Route[];
+    stops?: Stop[];
+    shifts?: Shift[];
+    trips?: Trip[];
+    bookings?: Booking[];
+    staff?: Staff[];
+    transitZones?: TransitZone[];
+    campuses?: Campus[];
+    specialShiftAllocations?: SpecialShiftAllocation[];
+  }) {
+    let changed = false;
+    if (data.user && !this.currentUser) {
+      this.currentUser = data.user;
+      changed = true;
+    }
+    if (data.shifts && data.shifts.length > 0 && (this.shifts.length === 0 || !this.isInitialized)) {
+      this.shifts = data.shifts;
+      changed = true;
+    }
+    if (data.buses && data.buses.length > 0 && (this.buses.length === 0 || !this.isInitialized)) {
+      this.buses = data.buses;
+      changed = true;
+    }
+    if (data.stops && data.stops.length > 0 && (this.stops.length === 0 || !this.isInitialized)) {
+      this.stops = data.stops;
+      changed = true;
+    }
+    if (data.routes && data.routes.length > 0 && (this.routes.length === 0 || !this.isInitialized)) {
+      this.routes = data.routes;
+      changed = true;
+    }
+    if (data.trips && data.trips.length > 0 && (this.trips.length === 0 || !this.isInitialized)) {
+      this.trips = data.trips;
+      changed = true;
+    }
+    if (data.students && data.students.length > 0 && (this.students.length === 0 || !this.isInitialized)) {
+      this.students = data.students;
+      changed = true;
+    }
+    if (data.bookings && data.bookings.length > 0) {
+      this.bookings = data.bookings;
+      changed = true;
+    }
+    if (data.staff && data.staff.length > 0 && (this.staff.length === 0 || !this.isInitialized)) {
+      this.staff = data.staff;
+      changed = true;
+    }
+    if (data.transitZones && data.transitZones.length > 0 && (this.transitZones.length === 0 || !this.isInitialized)) {
+      this.transitZones = data.transitZones;
+      changed = true;
+    }
+    if (data.campuses && data.campuses.length > 0 && (this.campuses.length === 0 || !this.isInitialized)) {
+      this.campuses = data.campuses;
+      changed = true;
+    }
+    if (data.specialShiftAllocations && data.specialShiftAllocations.length > 0) {
+      this.specialShiftAllocations = data.specialShiftAllocations;
+      changed = true;
+    }
+    if (changed) {
+      this.isInitialized = true;
+      this.notify();
+    }
+  }
+
   public subscribe(listener: () => void) {
     this.listeners.add(listener);
     return () => {
