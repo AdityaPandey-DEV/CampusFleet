@@ -790,15 +790,15 @@ JWT_SECRET=your-32-char-secret
 
 ---
 
-## 📖 SLIDE 24 — SUMMARY & KEY METRICS
+## 📖 SLIDE 24 — FUTURE IMPROVEMENTS, ARCHITECTURAL ROADMAP & CONCLUSION
 
 ### Code Statistics
 | Metric | Value |
 |--------|-------|
 | Total Files | 386 |
-| Source Files (.ts/.tsx) | ~120+ |
-| Database Tables | 26+ |
-| API Route Groups | 26 |
+| Source Files (.ts/.tsx) | 256 |
+| Database Tables | 29 |
+| API Route Groups | 26 (67 REST endpoints) |
 | Database Migrations | 24 |
 | Graph Algorithms | 6 (Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Kruskal's MST, Direct Express) |
 | User Roles | 7 |
@@ -821,6 +821,44 @@ JWT_SECRET=your-32-char-secret
 11. **Automated daily rollover** via CRON — zero manual intervention
 12. **Production-deployed** on Vercel with high-availability mirrors
 
+---
+
+### 🚀 Future Improvements & Architectural Suggestions (Phase 2 Roadmap)
+
+#### 1. Hybrid "Reserve-to-Stop" Auto-Cancelling Seat Allocation & Direct Attendance
+- **The Concept**: Combine advance seat reservation with instant walk-in attendance.
+  - A student can pre-reserve an unreserved seat up to their designated morning boarding stop (*e.g., Seat 14B at Bhakda Chauraha*).
+  - **Auto-Cancellation on Stop No-Show**: If the student does not physically board and mark attendance (via bus-door QR scan + <150m Haversine GPS check) by the time the bus departs their stop, the reservation is **automatically cancelled** and released back to the open seat pool.
+  - **Direct Walk-In Attendance**: Commuters who did not pre-reserve can directly board the bus, scan the door QR, and immediately claim any unreserved or released seat.
+- **Architectural Trade-Off & Complexity**:
+  - *Challenge*: Introduces dual state management (both advance reservation state and real-time attendance state).
+  - *Engineering Solution*: Solved via Redis key expiration events and driver cockpit stop-geofence departure webhooks (`POST /api/trips/[tripId]/depart-stop`), ensuring zero seats remain artificially blocked while commuters wait on the road.
+
+#### 2. Student Home Geolocation & AI Nearest Stop / Route Recommender
+- **Database Schema Expansion**:
+  - Add `home_latitude` and `home_longitude` columns to the `students` table, captured securely during student KYC onboarding.
+- **Spatial Shortest-Path Matching**:
+  - Uses the Haversine formula and OpenStreetMap road nodes to compute exact walking distances and walking times (in minutes) from the student's residence to all nearby corridor stops.
+- **Dynamic Suggestions in Student Portal**:
+  - Automatically recommends:
+    1. The nearest pickup stop (*e.g., "Gupta Store Halt is 320m (4 min walk) from your home"*).
+    2. The optimal departure time and least congested shift bus (*e.g., "Take Bus 8 at 07:35 AM instead of Bus 2 for guaranteed seating"*).
+    3. The fastest transit corridor, accounting for current road congestion and weather alerts.
+- **Institutional Benefit**: Aggregated student home location clusters give transport managers empirical data to optimize or merge physical bus stops.
+
+#### 3. Offline Mountain Manifest Sync via IndexedDB & Service Workers
+- **Himalayan Cellular Dead Zone Resiliency**:
+  - Mountain corridors between Kathgodam, Pines, and Bhowali experience intermittent cellular signal loss.
+  - Conductor PWA pre-caches the daily passenger manifest and seat allocation matrix inside **IndexedDB** before bus departure.
+  - Conductor's 60 FPS camera scanner continues verifying dynamic QR boarding passes completely offline.
+  - Validated attendance events are stored in a local IndexedDB buffer queue and automatically synced to PostgreSQL via `/api/sync/state` once cellular connectivity is restored.
+
+#### 4. Physical Fleet Biometric Hardware Rollout (Pending Director Sir's Approval)
+- Deploy physical on-chip biometric fingerprint terminals on buses using the existing pluggable `BiometricAndQRScanner.tsx` adapter protocol.
+- Ensures zero raw biometric data storage, transmitting only cryptographically signed verification tokens to the database.
+
+---
+
 ### Demonstration Walkthrough for Director Sir
 1. **Open** https://campusfleet.vercel.app → See the login/gateway
 2. **Student Portal** → Show live bus tracker, ETA, station progression
@@ -831,6 +869,7 @@ JWT_SECRET=your-32-char-secret
 7. **Conductor Console** → Scan QR, view passenger manifest with locked photo verification
 8. **Admin Panel** → Show fleet map, corridor builder, bus combiner analytics
 9. **Payment** → Upload a receipt screenshot, see OCR extract the UPI UTR number
+10. **Future Scope** → Present the Hybrid Reserve-to-Stop model and Student Home Geo-Routing!
 
 ---
 
