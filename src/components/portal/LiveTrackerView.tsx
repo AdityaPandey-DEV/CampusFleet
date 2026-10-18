@@ -36,6 +36,7 @@ const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"),
 });
 
 import type { Bus, Route, Stop, Trip, Staff, Student, Booking } from "@/lib/types";
+import { telematicsService } from "@/lib/telematicsService";
 import BusFullnessRoamingBanner from "./BusFullnessRoamingBanner";
 import BusDepartureAlertModal from "./BusDepartureAlertModal";
 
@@ -203,6 +204,18 @@ export default function LiveTrackerView({
       clearInterval(interval);
     };
   }, [activeStudent?.id, currentUser?.id, activeTrip?.id]);
+
+  // Real-time telematics polling fallback (MongoDB & Redis engine)
+  // Ensures live bus tracking functions even if Supabase Realtime hits quota limits
+  useEffect(() => {
+    const busId = assignedBus?.id;
+    if (busId) {
+      telematicsService.startPolling(busId, 3500);
+    }
+    return () => {
+      telematicsService.stopPolling();
+    };
+  }, [assignedBus?.id]);
 
   // Effective location: If trip has not started, bus MUST be stationary at the route starting point!
   const effectiveLiveLocation = useMemo(() => {

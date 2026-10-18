@@ -82,4 +82,12 @@ describe("Modern Production Telematics & Storage Architecture", () => {
       expect(mockStorage.getItem(key)).toBeNull();
     }
   });
+
+  it("should start and stop telematics fallback polling safely", () => {
+    expect(() => {
+      telematicsService.startPolling("bus-test-01", 1000);
+      telematicsService.stopPolling();
+    }).not.toThrow();
+  });
 });
+

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { calculateDistanceKm } from "@/lib/utils";
 import { cacheGet } from "@/lib/redis";
+import { getLiveLocationFromMongo } from "@/lib/mongodb";
 
 /**
  * Student Self-Service QR Boarding
@@ -71,9 +72,15 @@ export async function POST(req: NextRequest) {
     let isNearBus = false;
     let nearestStopName = "";
 
-    // Fetch TRUSTED bus location from Redis instead of relying on client payload to prevent GPS spoofing
+    // Fetch TRUSTED bus location from Redis (<5ms) or MongoDB fallback
     const CACHE_KEY = `telematics:bus:${busId}`;
-    const liveTelematics = await cacheGet<{ latitude: number; longitude: number }>(CACHE_KEY);
+    let liveTelematics = await cacheGet<{ latitude: number; longitude: number }>(CACHE_KEY);
+    if (!liveTelematics) {
+      const mongoDoc = await getLiveLocationFromMongo(busId);
+      if (mongoDoc && mongoDoc.latitude && mongoDoc.longitude) {
+        liveTelematics = { latitude: mongoDoc.latitude, longitude: mongoDoc.longitude };
+      }
+    }
 
     if (liveTelematics && liveTelematics.latitude && liveTelematics.longitude) {
       const distToBusKm = calculateDistanceKm(latitude, longitude, liveTelematics.latitude, liveTelematics.longitude);
