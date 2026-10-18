@@ -1,21 +1,25 @@
-import { supabase } from "./supabaseClient";
 import { LiveBusLocation } from "./types";
 
 export type TelematicsListener = (location: LiveBusLocation) => void;
 
+/**
+ * CampusFleet Dedicated Telematics Service
+ * 
+ * 100% Decoupled from Supabase Realtime WebSockets:
+ * - 0 Supabase Realtime messages used (prevents account restriction/limits).
+ * - Multi-device synchronization powered by Redis (<5ms) and MongoDB Atlas.
+ * - Same-device / cross-tab synchronization powered by zero-cost HTML5 BroadcastChannel.
+ */
 class TelematicsService {
-  private channel: ReturnType<typeof supabase.channel> | null = null;
   private localBroadcastChannel: BroadcastChannel | null = null;
   private listeners: Set<TelematicsListener> = new Set();
   private initialized = false;
 
-  // Throttling timers to protect cloud quotas
-  private lastSupabaseBroadcastTime = 0;
+  // Throttling timer to prevent flood
   private lastApiPostTime = 0;
-  private readonly SUPABASE_THROTTLE_MS = 4000; // Max 1 WebSocket broadcast per 4 seconds
-  private readonly API_POST_THROTTLE_MS = 3000;  // Max 1 Mongo/Redis sync per 3 seconds
+  private readonly API_POST_THROTTLE_MS = 2500; // 1 sync per 2.5 seconds to Redis/Mongo
 
-  // Polling fallback mechanism
+  // Polling mechanism for cross-device live tracking
   private pollingTimer: NodeJS.Timeout | null = null;
   private activePollingBusId: string | null = null;
 
@@ -29,30 +33,7 @@ class TelematicsService {
     if (this.initialized) return;
     this.initialized = true;
 
-    // 1. Supabase Realtime Broadcast Channel (Network / Multi-device WebSockets)
-    try {
-      this.channel = supabase.channel("fleet-telematics", {
-        config: {
-          broadcast: { self: false },
-        },
-      });
-
-      this.channel
-        .on("broadcast", { event: "bus-telematics-ping" }, ({ payload }) => {
-          if (payload && typeof payload.latitude === "number" && typeof payload.longitude === "number") {
-            this.notifyListeners(payload as LiveBusLocation);
-          }
-        })
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            // Connected to WebSocket cluster
-          }
-        });
-    } catch (e) {
-      console.warn("Realtime telematics channel init notice:", e);
-    }
-
-    // 2. Native HTML5 BroadcastChannel (Zero-disk in-memory cross-tab communication)
+    // Native HTML5 BroadcastChannel (Zero-cloud-cost in-memory cross-tab communication)
     try {
       if (typeof window !== "undefined" && "BroadcastChannel" in window) {
         this.localBroadcastChannel = new BroadcastChannel("campusfleet_telematics");
@@ -70,9 +51,10 @@ class TelematicsService {
   /**
    * Broadcast high-frequency live coordinates.
    * Architecture:
-   * 1. In-tab & Local HTML5 BroadcastChannel: 0 latency, in-memory, 0 cloud cost.
-   * 2. MongoDB & Redis Telematics API: Throttled, offloads high-velocity data from PostgreSQL.
-   * 3. Supabase Realtime: Throttled to 4 seconds to prevent quota overages.
+   * 1. In-tab listeners: 0 latency, in-memory (<1ms).
+   * 2. Local HTML5 BroadcastChannel: cross-tab in-memory, 0 cloud cost.
+   * 3. Redis & MongoDB Telematics API: Persists coordinates and allows other devices to fetch.
+   * 4. Zero Supabase Realtime messages (100% quota protection).
    */
   public async broadcastLiveLocation(location: LiveBusLocation): Promise<void> {
     // A. Notify local in-tab listeners immediately (<1ms)
@@ -89,7 +71,7 @@ class TelematicsService {
 
     const now = Date.now();
 
-    // C. Persist to MongoDB & Redis Telematics API (throttled to 3s)
+    // C. Persist to Redis (<5ms cache) & MongoDB (24h breadcrumbs)
     if (now - this.lastApiPostTime >= this.API_POST_THROTTLE_MS && location.busId) {
       this.lastApiPostTime = now;
       try {
@@ -111,27 +93,13 @@ class TelematicsService {
         // Silent fail for offline scenarios
       }
     }
-
-    // D. Send via Supabase Realtime WebSockets (Throttled to 4s to protect 2M message quota)
-    if (this.channel && now - this.lastSupabaseBroadcastTime >= this.SUPABASE_THROTTLE_MS) {
-      this.lastSupabaseBroadcastTime = now;
-      try {
-        await this.channel.send({
-          type: "broadcast",
-          event: "bus-telematics-ping",
-          payload: location,
-        });
-      } catch (e) {
-        console.warn("Supabase Realtime broadcast notice (falling back to Mongo/Redis):", e);
-      }
-    }
   }
 
   /**
-   * Start polling MongoDB / Redis fallback for a specific bus.
-   * Useful when Supabase Realtime reaches free plan limits or is restricted.
+   * Start polling MongoDB & Redis for a specific bus location.
+   * Consumes directly from Redis (<5ms read latency) or MongoDB.
    */
-  public startPolling(busId: string, intervalMs = 4000): void {
+  public startPolling(busId: string, intervalMs = 3000): void {
     if (this.pollingTimer && this.activePollingBusId === busId) return;
     this.stopPolling();
     this.activePollingBusId = busId;
@@ -185,10 +153,6 @@ class TelematicsService {
 
   public cleanup() {
     this.stopPolling();
-    if (this.channel) {
-      supabase.removeChannel(this.channel);
-      this.channel = null;
-    }
     if (this.localBroadcastChannel) {
       this.localBroadcastChannel.close();
       this.localBroadcastChannel = null;
