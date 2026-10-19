@@ -58,11 +58,11 @@ export default function StaffMaintenanceView({
 
   // Lightbox
   const [lightboxImg, setLightboxImg] = useState<{ url: string; title: string } | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; isError?: boolean } | null>(null);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+  const showToast = (msg: string, isError = false) => {
+    setToast({ msg, isError });
+    setTimeout(() => setToast(null), 4000);
   };
 
   const fetchMaintenanceRequests = async () => {
@@ -106,11 +106,11 @@ export default function StaffMaintenanceView({
         if (data.success && data.url) {
           onSuccess(data.url);
         } else {
-          alert(data.message || "Failed to upload image.");
+          showToast(data.message || "Failed to upload image.", true);
         }
       }
     } catch (err: any) {
-      alert("Network error uploading image: " + err.message);
+      showToast("Network error uploading image: " + err.message, true);
     } finally {
       setIsUploading(false);
       e.target.value = "";
@@ -120,7 +120,7 @@ export default function StaffMaintenanceView({
   const handleCreateEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!vehicleNo || !item) {
-      alert("Please provide Vehicle No. and Item.");
+      showToast("Please provide Vehicle No. and Item.", true);
       return;
     }
 
@@ -157,10 +157,10 @@ export default function StaffMaintenanceView({
         showToast("✓ Vehicle maintenance defect ticket logged!");
         await fetchMaintenanceRequests();
       } else {
-        alert(data.message || "Failed to create entry.");
+        showToast(data.message || "Failed to create entry.", true);
       }
     } catch (err: any) {
-      alert("Error creating entry: " + err.message);
+      showToast("Error creating entry: " + err.message, true);
     } finally {
       setIsSubmitting(false);
     }
@@ -189,10 +189,10 @@ export default function StaffMaintenanceView({
         showToast("✓ Workshop progress & photos recorded!");
         await fetchMaintenanceRequests();
       } else {
-        alert(data.message || "Failed to update work details.");
+        showToast(data.message || "Failed to update work details.", true);
       }
     } catch (err: any) {
-      alert("Error saving work details: " + err.message);
+      showToast("Error saving work details: " + err.message, true);
     } finally {
       setIsWorkSubmitting(false);
     }
@@ -215,10 +215,20 @@ export default function StaffMaintenanceView({
   return (
     <div className="space-y-6 animate-in fade-in">
       {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-bottom-3">
-          <CheckCircle2 className="w-4 h-4 text-green-400 dark:text-green-600" />
-          <span>{toastMessage}</span>
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 ${
+            toast.isError
+              ? "bg-red-600 text-white shadow-red-500/20"
+              : "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
+          } px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-bottom-3`}
+        >
+          {toast.isError ? (
+            <AlertTriangle className="w-4 h-4 text-white" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-green-400 dark:text-green-600" />
+          )}
+          <span>{toast.msg}</span>
         </div>
       )}
 
