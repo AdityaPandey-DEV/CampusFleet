@@ -6,7 +6,7 @@ import { useTheme } from "@/components/common/ThemeProvider";
 import { store } from "@/lib/store";
 import { 
   Sun, Moon, Bell, Shield, Database, Download, RefreshCw, MessageSquare, Trash, 
-  ChevronDown, Check, Globe, Loader2, Type
+  ChevronDown, Check, Globe, Loader2, Type, MapPin, ArrowLeftRight, Navigation, CheckCircle2, AlertCircle, Clock, Bus
 } from "lucide-react";
 import { usePWAInstall } from "@/lib/usePWAInstall";
 import { InstallAppModal } from "@/components/common/InstallAppModal";
@@ -264,6 +264,31 @@ export function SettingsView() {
     licenseNo: ""
   });
 
+  const isStudent = (currentUser as any)?.role === "student" || (currentUser as any)?.role === "portal" || !currentUser?.role;
+
+  // Student Transit State
+  const [homeAddress, setHomeAddress] = useState("");
+  const [homeLat, setHomeLat] = useState("");
+  const [homeLng, setHomeLng] = useState("");
+  const [autoAssignedStopId, setAutoAssignedStopId] = useState<string | null>(null);
+  const [nearestStops, setNearestStops] = useState<any[]>([]);
+  const [isDetectingGPS, setIsDetectingGPS] = useState(false);
+  const [isSavingHome, setIsSavingHome] = useState(false);
+  const [homeStatusMsg, setHomeStatusMsg] = useState<string | null>(null);
+
+  // Bus Switch / Transfer Request State
+  const [switchType, setSwitchType] = useState<"TEMPORARY_SWAP" | "PERMANENT_TRANSFER" | "STOP_CHANGE">("TEMPORARY_SWAP");
+  const [targetBusId, setTargetBusId] = useState("");
+  const [targetStopId, setTargetStopId] = useState("");
+  const [switchReason, setSwitchReason] = useState("");
+  const [switchDate, setSwitchDate] = useState(new Date().toISOString().split("T")[0]);
+  const [isSubmittingSwitch, setIsSubmittingSwitch] = useState(false);
+  const [switchStatusMsg, setSwitchStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [switchRequests, setSwitchRequests] = useState<any[]>([]);
+  const [availableBuses, setAvailableBuses] = useState<any[]>([]);
+  const [availableStops, setAvailableStops] = useState<any[]>([]);
+  const [activeReservation, setActiveReservation] = useState<any>(null);
+
   useEffect(() => {
     const initializeForm = () => {
       const user = store.getCurrentUser();
@@ -307,6 +332,158 @@ export function SettingsView() {
       })
       .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (!isStudent) return;
+    const user = store.getCurrentUser();
+    if (!user) return;
+    const activeStudent = store.getStudents().find(s => s.userId === user.id || s.id === user.id);
+    const studentId = activeStudent?.id || user.id;
+
+    setAvailableBuses(store.getBuses() || []);
+    setAvailableStops(store.getStops() || []);
+
+    fetch(`/api/students/reservations?studentId=${studentId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.reservation) {
+          setActiveReservation(data.reservation);
+        }
+      })
+      .catch(() => {});
+
+    fetch(`/api/students/home-location?studentId=${studentId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.homeLocation) {
+          if (data.homeLocation.address) setHomeAddress(data.homeLocation.address);
+          if (data.homeLocation.latitude) setHomeLat(String(data.homeLocation.latitude));
+          if (data.homeLocation.longitude) setHomeLng(String(data.homeLocation.longitude));
+          if (data.homeLocation.autoAssignedStopId) setAutoAssignedStopId(data.homeLocation.autoAssignedStopId);
+          if (data.nearestStops) setNearestStops(data.nearestStops);
+        }
+      })
+      .catch(() => {});
+
+    fetch(`/api/students/switch-requests?studentId=${studentId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.requests) {
+          setSwitchRequests(data.requests);
+        }
+      })
+      .catch(() => {});
+  }, [currentUser, isStudent]);
+
+  const handleDetectGPS = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setIsDetectingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setHomeLat(pos.coords.latitude.toFixed(6));
+        setHomeLng(pos.coords.longitude.toFixed(6));
+        setIsDetectingGPS(false);
+      },
+      err => {
+        alert("Failed to acquire GPS location: " + err.message);
+        setIsDetectingGPS(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleSaveHomeLocation = async () => {
+    const lat = parseFloat(homeLat);
+    const lng = parseFloat(homeLng);
+    if (isNaN(lat) || isNaN(lng)) {
+      alert("Please provide valid numeric latitude and longitude coordinates.");
+      return;
+    }
+    const user = store.getCurrentUser();
+    const activeStudent = store.getStudents().find(s => s.userId === user?.id || s.id === user?.id);
+    const studentId = activeStudent?.id || user?.id;
+    if (!studentId) return;
+
+    setIsSavingHome(true);
+    setHomeStatusMsg(null);
+    try {
+      const res = await fetch("/api/students/home-location", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId,
+          latitude: lat,
+          longitude: lng,
+          address: homeAddress.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Failed to save home location");
+      if (data.homeLocation?.autoAssignedStopId) {
+        setAutoAssignedStopId(data.homeLocation.autoAssignedStopId);
+      }
+      if (data.nearestStops) {
+        setNearestStops(data.nearestStops);
+      }
+      setHomeStatusMsg(data.message || "Home coordinates and stop assignment saved successfully!");
+    } catch (err: any) {
+      alert(err.message || "Error saving home location");
+    } finally {
+      setIsSavingHome(false);
+    }
+  };
+
+  const handleSubmitSwitchRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const user = store.getCurrentUser();
+    const activeStudent = store.getStudents().find(s => s.userId === user?.id || s.id === user?.id);
+    const studentId = activeStudent?.id || user?.id;
+    if (!studentId) return;
+
+    const currentBusId = activeReservation?.bus_id || activeReservation?.busId || (availableBuses[0]?.id || "");
+    const currentStopId = activeReservation?.boarding_stop_id || activeReservation?.boardingStopId || activeStudent?.primaryStopId || (availableStops[0]?.id || "");
+
+    if (!targetBusId && !targetStopId) {
+      alert("Please select either a requested bus or requested stop.");
+      return;
+    }
+
+    setIsSubmittingSwitch(true);
+    setSwitchStatusMsg(null);
+    try {
+      const res = await fetch("/api/students/switch-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId,
+          currentBusId,
+          currentStopId,
+          requestedBusId: targetBusId || undefined,
+          requestedStopId: targetStopId || undefined,
+          requestType: switchType,
+          reason: switchReason.trim(),
+          effectiveFrom: switchDate,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Failed to submit request");
+      setSwitchStatusMsg({
+        type: data.evaluation?.overallDecision === "AUTO_APPROVED" ? "success" : "error",
+        text: data.message || "Switch request submitted.",
+      });
+      if (data.request) {
+        setSwitchRequests(prev => [data.request, ...prev]);
+      }
+      setSwitchReason("");
+    } catch (err: any) {
+      alert(err.message || "Error submitting switch request");
+    } finally {
+      setIsSubmittingSwitch(false);
+    }
+  };
 
   const coursesList = Array.from(new Set(classesList.map(c => c.course).filter(Boolean))) as string[];
   const yearsList = Array.from(new Set(classesList.filter(c => c.course === profileForm.department).map(c => c.semester).filter(Boolean))) as string[];
@@ -538,6 +715,302 @@ export function SettingsView() {
             </div>
           </div>
         </div>
+        
+        {/* Student Transit Settings (Home Location & Nearest Stops) */}
+        {isStudent && (
+          <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-none">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">Home Location & Commute Stops</h2>
+                <p className="text-xs text-gray-500 mt-1">Configure your residential GPS coordinates for automatic nearest stop assignment</p>
+              </div>
+              <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
+                <MapPin className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {homeStatusMsg && (
+                <div className="p-3 text-sm border border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-800 text-green-800 dark:text-green-300 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  <span>{homeStatusMsg}</span>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Street / Area Address</label>
+                  <input
+                    type="text"
+                    value={homeAddress}
+                    onChange={e => setHomeAddress(e.target.value)}
+                    placeholder="E.g. Flat 402, Sunrise Residency, Main Ring Road"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Latitude</label>
+                    <input
+                      type="text"
+                      value={homeLat}
+                      onChange={e => setHomeLat(e.target.value)}
+                      placeholder="E.g. 22.719568"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Longitude</label>
+                    <input
+                      type="text"
+                      value={homeLng}
+                      onChange={e => setHomeLng(e.target.value)}
+                      placeholder="E.g. 75.857726"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleDetectGPS}
+                    disabled={isDetectingGPS}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-medium rounded-none transition-colors text-sm flex items-center gap-2"
+                  >
+                    <Navigation className={`w-4 h-4 ${isDetectingGPS ? "animate-spin text-green-600" : "text-gray-500"}`} />
+                    {isDetectingGPS ? "Acquiring GPS..." : "Detect Current Location"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveHomeLocation}
+                    disabled={isSavingHome || !homeLat || !homeLng}
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-none transition-colors text-sm"
+                  >
+                    {isSavingHome ? "Saving Location..." : "Save Coordinates & Calculate Stops"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Nearest Stops preview */}
+              {nearestStops && nearestStops.length > 0 && (
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-800/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      Nearby Stops by Road Distance
+                    </h3>
+                    <span className="text-xs text-gray-500">Calculated via OSRM / Road Network</span>
+                  </div>
+
+                  <div className="divide-y divide-gray-100 dark:divide-gray-800/60 border border-gray-200 dark:border-gray-800">
+                    {nearestStops.map((stop: any, idx: number) => {
+                      const isAssigned = stop.id === autoAssignedStopId;
+                      return (
+                        <div key={stop.id || idx} className="p-3 flex items-center justify-between bg-white dark:bg-black">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-mono px-2 py-0.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">
+                              #{idx + 1}
+                            </span>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                {stop.name}
+                                {isAssigned && (
+                                  <span className="text-[10px] px-1.5 py-0.5 font-bold uppercase bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 border border-green-300 dark:border-green-800">
+                                    Assigned Stop
+                                  </span>
+                                )}
+                              </p>
+                              {stop.landmark && (
+                                <p className="text-xs text-gray-500">Landmark: {stop.landmark}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
+                              {stop.distanceKm !== undefined ? `${stop.distanceKm} km` : "Nearby"}
+                            </p>
+                            <p className="text-xs text-gray-500 flex items-center justify-end gap-1">
+                              <Clock className="w-3 h-3" />
+                              {stop.walkTimeMins ? `~${stop.walkTimeMins} min walk` : "Walkable"}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Bus Switch & Transfer Request Card */}
+        {isStudent && (
+          <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-none">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">Bus Switch & Route Transfer</h2>
+                <p className="text-xs text-gray-500 mt-1">Request a temporary swap or permanent bus transfer with automated capacity evaluation</p>
+              </div>
+              <div className="p-2 border border-gray-100 dark:border-gray-800 rounded-none text-gray-500">
+                <ArrowLeftRight className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {switchStatusMsg && (
+                <div
+                  className={`p-3 text-sm border flex items-center gap-2 ${
+                    switchStatusMsg.type === "success"
+                      ? "border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-800 text-green-800 dark:text-green-300"
+                      : "border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 text-amber-800 dark:text-amber-300"
+                  }`}
+                >
+                  {switchStatusMsg.type === "success" ? (
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  )}
+                  <span>{switchStatusMsg.text}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitSwitchRequest} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Request Type</label>
+                    <select
+                      value={switchType}
+                      onChange={e => setSwitchType(e.target.value as any)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
+                    >
+                      <option value="TEMPORARY_SWAP">Temporary Swap (Today / Single Day)</option>
+                      <option value="PERMANENT_TRANSFER">Permanent Bus Transfer</option>
+                      <option value="STOP_CHANGE">Boarding Stop Change</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Effective Date</label>
+                    <input
+                      type="date"
+                      value={switchDate}
+                      onChange={e => setSwitchDate(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Requested Bus</label>
+                    <select
+                      value={targetBusId}
+                      onChange={e => setTargetBusId(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
+                    >
+                      <option value="">-- Keep Current Bus / Auto-pick --</option>
+                      {availableBuses.map((b: any) => (
+                        <option key={b.id} value={b.id}>
+                          {b.busNumber || b.bus_number} ({b.capacity || 40} seats)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Requested Boarding Stop</label>
+                    <select
+                      value={targetStopId}
+                      onChange={e => setTargetStopId(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
+                    >
+                      <option value="">-- Keep Current Stop --</option>
+                      {availableStops.map((s: any) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} {s.landmark ? `(${s.landmark})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Reason for Request</label>
+                  <textarea
+                    rows={2}
+                    value={switchReason}
+                    onChange={e => setSwitchReason(e.target.value)}
+                    placeholder="E.g. Staying at relative's place near South Campus for exams this week"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
+                  />
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmittingSwitch || (!targetBusId && !targetStopId)}
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-none transition-colors text-sm"
+                  >
+                    {isSubmittingSwitch ? "Submitting..." : "Submit Switch Request"}
+                  </button>
+                </div>
+              </form>
+
+              {/* Switch History */}
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-800/60 space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Request History & Decisions
+                </h3>
+
+                {switchRequests.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-3">No switch requests submitted yet.</p>
+                ) : (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-800/60 border border-gray-200 dark:border-gray-800">
+                    {switchRequests.map((req: any) => {
+                      const isApproved = req.status === "AUTO_APPROVED" || req.status === "APPROVED";
+                      const isDenied = req.status === "AUTO_DENIED" || req.status === "DENIED";
+                      return (
+                        <div key={req.id} className="p-3.5 space-y-1.5 bg-white dark:bg-black">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {req.request_type ? req.request_type.replace(/_/g, " ") : "Switch Request"}
+                            </span>
+                            <span
+                              className={`text-[11px] font-semibold px-2 py-0.5 border ${
+                                isApproved
+                                  ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800"
+                                  : isDenied
+                                  ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
+                                  : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                              }`}
+                            >
+                              {req.status}
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-gray-500">
+                            Effective: <span className="text-gray-700 dark:text-gray-300">{req.effective_from || "Today"}</span>
+                            {req.reason && ` • "${req.reason}"`}
+                          </p>
+
+                          {req.ai_reasoning && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-2 border border-gray-100 dark:border-gray-800">
+                              <span className="font-medium text-gray-700 dark:text-gray-300">Decision details: </span>
+                              {req.ai_reasoning}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Appearance Card */}
         <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-none relative z-20">

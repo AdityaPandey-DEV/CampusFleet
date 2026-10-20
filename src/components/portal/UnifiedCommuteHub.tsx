@@ -88,16 +88,16 @@ export default function UnifiedCommuteHub({
   return (
     <div className="space-y-6">
       {/* ─── Top Segmented Mode Selector ────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-1.5 border border-gray-100 dark:border-gray-800 shadow-sm flex items-center justify-between overflow-x-auto no-scrollbar gap-1">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-1.5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between overflow-x-auto no-scrollbar gap-1.5">
         <button
           onClick={() => setActiveTab("SMART_TRANSIT")}
           className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
             activeTab === "SMART_TRANSIT"
-              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              ? "bg-indigo-600 text-white shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60"
           }`}
         >
-          <Sparkles className="w-4 h-4" />
+          <Sparkles className="w-4 h-4 text-indigo-200" />
           <span>Smart Commute</span>
         </button>
 
@@ -105,11 +105,11 @@ export default function UnifiedCommuteHub({
           onClick={() => setActiveTab("TRACKER")}
           className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
             activeTab === "TRACKER"
-              ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              ? "bg-emerald-600 text-white shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60"
           }`}
         >
-          <Navigation className="w-4 h-4" />
+          <Navigation className="w-4 h-4 text-emerald-200" />
           <span>Live Radar</span>
         </button>
 
@@ -117,11 +117,11 @@ export default function UnifiedCommuteHub({
           onClick={() => setActiveTab("PASS")}
           className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
             activeTab === "PASS"
-              ? "bg-pink-600 text-white shadow-md shadow-pink-600/20"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              ? "bg-pink-600 text-white shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60"
           }`}
         >
-          <QrCode className="w-4 h-4" />
+          <QrCode className="w-4 h-4 text-pink-200" />
           <span>Digital Pass</span>
         </button>
 
@@ -129,11 +129,11 @@ export default function UnifiedCommuteHub({
           onClick={() => setActiveTab("EXPLORE")}
           className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
             activeTab === "EXPLORE"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              ? "bg-blue-600 text-white shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60"
           }`}
         >
-          <BusFront className="w-4 h-4" />
+          <BusFront className="w-4 h-4 text-blue-200" />
           <span>Bus Explorer</span>
         </button>
       </div>
