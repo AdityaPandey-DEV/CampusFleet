@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
           .eq("class_id", c.id);
 
         const { count: slotCount } = await supabaseAdmin
-          .from("class_timetables")
+          .from("class_shift_schedules")
           .select("id", { count: "exact", head: true })
           .eq("class_id", c.id);
 

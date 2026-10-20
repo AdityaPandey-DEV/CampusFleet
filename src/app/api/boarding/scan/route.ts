@@ -155,22 +155,31 @@ export async function POST(req: NextRequest) {
     const isLeavingCampus = routeDirection === "CAMPUS_TO_HOME";
 
     if (isLeavingCampus && student.class_id) {
-      const currentDay = getDayOfWeekIST();
+      const currentDay = getDayOfWeekIST().toUpperCase();
       const currentTimeStr = getCurrentTimeIST(true);
 
-      const { data: timetableSlots } = await supabaseAdmin
-        .from("class_timetables")
-        .select("*")
+      const { data: schedule } = await supabaseAdmin
+        .from("class_shift_schedules")
+        .select("*, outgoing_shift:shifts!outgoing_shift_id(*)")
         .eq("class_id", student.class_id)
-        .eq("day_of_week", currentDay);
+        .eq("day_of_week", currentDay)
+        .maybeSingle();
 
-      if (timetableSlots && timetableSlots.length > 0) {
-        for (const slot of timetableSlots) {
-          const slotStart = slot.start_time;
-          const slotEnd = slot.end_time;
+      if (schedule && !schedule.is_today_off && schedule.outgoing_shift) {
+        const shiftStart = schedule.outgoing_shift.start_time;
 
-          if (currentTimeStr >= slotStart && currentTimeStr <= slotEnd) {
-            // Audit log (AWAITED — security-critical denial record)
+        if (currentTimeStr < shiftStart) {
+          // Check if an approved early departure request exists
+          const { data: approvedEarlyDeparture } = await supabaseAdmin
+            .from("early_departure_requests")
+            .select("id")
+            .eq("student_id", student.id)
+            .eq("status", "APPROVED")
+            .gte("created_at", new Date().toISOString().split("T")[0])
+            .limit(1);
+
+          if (!approvedEarlyDeparture || approvedEarlyDeparture.length === 0) {
+            // Audit log
             try {
               await supabaseAdmin.from("audit_logs").insert({
                 user_id: student.id,
@@ -179,9 +188,9 @@ export async function POST(req: NextRequest) {
                 action: "BOARDING_DENIED_SCHEDULED_CLASS",
                 entity: "BoardingScan",
                 entity_id: tripId,
-                reason: `Student has active lecture '${slot.subject}' scheduled from ${slotStart} to ${slotEnd}.`,
+                reason: `Departure before scheduled outgoing shift (${shiftStart.substring(0, 5)}) without approved early departure pass.`,
                 previous_value: { status: "PENDING" },
-                new_value: { status: "DENIED", class: student.class_name, subject: slot.subject },
+                new_value: { status: "DENIED", class: student.class_name },
               });
             } catch (auditErr) {
               console.error("[AUDIT_FAIL] BOARDING_DENIED audit log failed:", auditErr);
@@ -190,7 +199,7 @@ export async function POST(req: NextRequest) {
             supabaseAdmin.from("notifications").insert({
               user_id: student.id,
               title: "❌ Bus Boarding Denied",
-              message: `You cannot board the campus bus right now because you have an ongoing scheduled class: ${slot.subject} (${slotStart.substring(0, 5)} - ${slotEnd.substring(0, 5)}).`,
+              message: `You cannot board the campus bus right now because your scheduled outgoing shift starts at ${shiftStart.substring(0, 5)}. Early departure requires teacher approval.`,
               type: "BOARDING",
               is_read: false,
             });
@@ -200,13 +209,10 @@ export async function POST(req: NextRequest) {
                 success: false,
                 status: "CLASS_RESTRICTION",
                 code: "ACTIVE_CLASS_RESTRICTION",
-                message: `❌ BOARDING DENIED: Student has a scheduled lecture (${slot.subject}) at this time (${slotStart.substring(0, 5)} - ${slotEnd.substring(0, 5)}).`,
-                reason: `Active scheduled lecture: ${slot.subject} (${slotStart.substring(0, 5)} - ${slotEnd.substring(0, 5)}) in ${slot.room_number || "Campus Hall"}`,
+                message: `❌ BOARDING DENIED: Your class outgoing departure shift starts at ${shiftStart.substring(0, 5)}. Early departure requires teacher approval.`,
+                reason: `Departure before scheduled outgoing shift (${shiftStart.substring(0, 5)}) without approved early departure pass.`,
                 studentName: student.full_name,
                 className: student.class_name,
-                subject: slot.subject,
-                timeSlot: `${slotStart.substring(0, 5)} - ${slotEnd.substring(0, 5)}`,
-                room: slot.room_number || "Classroom",
               },
               { status: 403 }
             );
