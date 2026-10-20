@@ -202,6 +202,17 @@ export interface Student {
   homeAddress?: string;
   /** Auto-assigned nearest stop based on home location */
   autoAssignedStopId?: string;
+  /** Academic Hierarchy (Course -> Branch -> Specialization -> Class) */
+  courseId?: string;
+  courseCode?: string;
+  courseName?: string;
+  branchId?: string;
+  branchCode?: string;
+  branchName?: string;
+  specializationId?: string;
+  specializationCode?: string;
+  specializationLabel?: string;
+  section?: string;
 }
 
 export interface Guardian {

@@ -333,18 +333,36 @@ LEFT JOIN public.transit_zones tz ON tz.id = s.zone_id
 ORDER BY s.id, s.created_at DESC;
 
 -- 12. Recreate v_classes_expanded view
-CREATE OR REPLACE VIEW public.v_classes_expanded AS
+DROP VIEW IF EXISTS public.v_classes_expanded CASCADE;
+
+CREATE VIEW public.v_classes_expanded AS
 SELECT 
     c.id,
     c.name,
     c.semester,
     c.semester_num,
-    c.year,
+    CASE 
+        WHEN c.year_num IS NOT NULL THEN (c.year_num::text || 
+            CASE 
+                WHEN c.year_num = 1 THEN 'st Year'
+                WHEN c.year_num = 2 THEN 'nd Year'
+                WHEN c.year_num = 3 THEN 'rd Year'
+                ELSE 'th Year'
+            END)
+        ELSE NULL
+    END AS year,
     c.year_num,
-    c.section,
+    c.section_id,
+    sec.code AS section,
+    sec.code AS section_code,
+    sec.name AS section_name,
     c.is_active,
     c.shift_schedule,
     c.created_at,
+    COALESCE(ac.short_name, ac.code) AS course,
+    COALESCE(ab.name, ac.name) AS department,
+    ab.name AS branch,
+    COALESCE(asp.short_label, asp.name) AS specialization,
     asp.id AS specialization_id,
     asp.code AS specialization_code,
     asp.name AS specialization_name,
@@ -361,6 +379,8 @@ SELECT
     ac.total_years,
     ac.total_semesters
 FROM public.classes c
+LEFT JOIN public.academic_sections sec ON sec.id = c.section_id
 LEFT JOIN public.academic_specializations asp ON asp.id = c.specialization_id
 LEFT JOIN public.academic_branches ab ON ab.id = asp.branch_id
 LEFT JOIN public.academic_courses ac ON ac.id = ab.course_id;
+

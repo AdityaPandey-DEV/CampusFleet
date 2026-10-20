@@ -7,7 +7,7 @@ import { store } from "@/lib/store";
 import { 
   Sun, Moon, Bell, Shield, Database, Download, RefreshCw, MessageSquare, Trash, 
   ChevronDown, Check, Globe, Loader2, Type, MapPin, ArrowLeftRight, Navigation, CheckCircle2, AlertCircle, Clock, Bus,
-  Users, BusFront, QrCode, Settings as SettingsIcon
+  Users, BusFront, QrCode, Settings as SettingsIcon, GraduationCap, GitBranch, Layers
 } from "lucide-react";
 import { usePWAInstall } from "@/lib/usePWAInstall";
 import { InstallAppModal } from "@/components/common/InstallAppModal";
@@ -16,53 +16,80 @@ import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { UserRole } from "@/lib/types";
 
+type DropdownOption = string | { value: string; label: string; sublabel?: string };
 
 const CustomDropdown = ({ 
   options, 
   value, 
   onChange, 
-  placeholder 
+  placeholder,
+  disabled = false
 }: { 
-  options: string[], 
+  options: DropdownOption[], 
   value: string, 
   onChange: (val: string) => void,
-  placeholder: string
+  placeholder: string,
+  disabled?: boolean
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   
+  const selectedOption = options.find(opt => 
+    typeof opt === "string" ? opt === value : opt.value === value
+  );
+  const displayLabel = typeof selectedOption === "string" 
+    ? selectedOption 
+    : (selectedOption?.label || value);
+
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2 text-left border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500 flex justify-between items-center"
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full px-4 py-2.5 text-left border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500 flex justify-between items-center transition-all ${
+          disabled ? "opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800/40" : "hover:border-gray-400 dark:hover:border-gray-600"
+        }`}
       >
-        <span className={value ? "text-gray-900 dark:text-white" : "text-gray-500"}>
-          {value || placeholder}
+        <span className={displayLabel ? "text-gray-900 dark:text-white truncate" : "text-gray-400 truncate"}>
+          {displayLabel || placeholder}
         </span>
-        <ChevronDown className="w-4 h-4 text-gray-500" />
+        <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </button>
-      {isOpen && (
+      {isOpen && !disabled && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
-            {options.map(opt => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => {
-                  onChange(opt);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                  value === opt 
-                    ? 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white font-medium' 
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800/50">
+            {options.length === 0 ? (
+              <div className="px-4 py-3 text-xs text-gray-400 italic">No options available</div>
+            ) : (
+              options.map((opt, idx) => {
+                const optVal = typeof opt === "string" ? opt : opt.value;
+                const optLabel = typeof opt === "string" ? opt : opt.label;
+                const optSub = typeof opt === "string" ? undefined : opt.sublabel;
+                const isSelected = value === optVal;
+
+                return (
+                  <button
+                    key={`${optVal}-${idx}`}
+                    type="button"
+                    onClick={() => {
+                      onChange(optVal);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex flex-col ${
+                      isSelected 
+                        ? 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 font-medium' 
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span className="font-medium text-xs md:text-sm">{optLabel}</span>
+                    {optSub && (
+                      <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{optSub}</span>
+                    )}
+                  </button>
+                );
+              })
+            )}
           </div>
         </>
       )}

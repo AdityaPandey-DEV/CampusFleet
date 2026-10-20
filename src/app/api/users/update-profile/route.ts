@@ -33,22 +33,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Full name is required." }, { status: 400 });
     }
 
-    if (role === "student" || role === "portal") { // sometimes students are "portal" or "student"
-      // Update students table
+    // 1. Always update users table (full_name and phone are stored in users)
+    const { error: userError } = await supabaseAdmin
+      .from("users")
+      .update({
+        full_name: fullName.trim(),
+        phone: phone ? phone.trim() : null,
+      })
+      .eq("id", session.userId);
+
+    if (userError) {
+      console.error("Error updating user record:", userError);
+    }
+
+    if (role === "student" || role === "portal" || !role) {
+      // 2. Update students table (normalized: class_id, semester, emergency_contact)
+      const studentUpdate: Record<string, any> = {
+        full_name: fullName.trim(),
+        class_id: classId || null,
+        semester: semester || null,
+        emergency_contact: {
+          name: emergencyContactName || "",
+          phone: emergencyContactPhone || ""
+        }
+      };
+
       const { error: studentError } = await supabaseAdmin
         .from("students")
-        .update({
-          full_name: fullName,
-          phone: phone || null,
-          department: department || null,
-          semester: semester || null,
-          class_id: classId || null,
-          class_name: className || null,
-          emergency_contact: {
-            name: emergencyContactName || "",
-            phone: emergencyContactPhone || ""
-          }
-        })
+        .update(studentUpdate)
         .eq("user_id", session.userId);
 
       if (studentError) {
@@ -56,12 +68,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: "Failed to update student profile." }, { status: 500 });
       }
     } else {
-      // Update staff table
+      // 3. Update staff table
       const { error: staffError } = await supabaseAdmin
         .from("staff")
         .update({
-          full_name: fullName,
-          phone: phone || null,
+          full_name: fullName.trim(),
+          phone: phone ? phone.trim() : null,
           employee_code: employeeCode || null,
           category: category || null,
           license_no: licenseNo || null
