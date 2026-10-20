@@ -68,7 +68,7 @@ export default function SmartTransitCockpit({
   const [isDigitalPassOpen, setIsDigitalPassOpen] = useState(false);
   const [isLiveRadarOpen, setIsLiveRadarOpen] = useState(false);
 
-  const studentId = student?.id || user?.studentId || user?.id;
+  const studentId = student?.id || user?.studentId || user?.userId || user?.id;
   const isTeacher = Boolean(
     user?.role === "teacher" ||
     user?.role === "faculty" ||
@@ -83,10 +83,12 @@ export default function SmartTransitCockpit({
 
   // Fetch Reservation & Settings
   const fetchReservation = async () => {
-    if (!studentId) return;
     try {
       setIsLoadingReservation(true);
-      const res = await fetch(`/api/students/reservations?studentId=${studentId}`);
+      const url = studentId
+        ? `/api/students/reservations?studentId=${encodeURIComponent(studentId)}`
+        : `/api/students/reservations`;
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setReservation(data.reservation);

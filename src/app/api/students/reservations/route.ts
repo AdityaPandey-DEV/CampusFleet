@@ -167,7 +167,14 @@ export async function GET(req: NextRequest) {
 
       enriched = {
         ...activeReservation,
-        bus: busRes.data || null,
+        bus: busRes.data
+          ? {
+              ...busRes.data,
+              busNumber: busRes.data.bus_number,
+              registrationNo: busRes.data.registration_no,
+              seatLayout: busRes.data.seat_layout,
+            }
+          : null,
         stop: stopRes.data || null,
       };
     }

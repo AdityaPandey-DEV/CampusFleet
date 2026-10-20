@@ -58,13 +58,13 @@ export default function UnifiedCommuteHub({
     return unsub;
   }, []);
 
+  const userEffectiveId = currentUser?.userId || currentUser?.id;
   const activeStudent = currentUser
     ? students.find(
         (s) =>
           (currentUser.studentId && s.id === currentUser.studentId) ||
-          s.userId === currentUser.id ||
-          s.id === currentUser.id ||
-          s.email?.toLowerCase() === currentUser.email?.toLowerCase()
+          (userEffectiveId && (s.userId === userEffectiveId || s.id === userEffectiveId)) ||
+          (currentUser.email && s.email?.toLowerCase() === currentUser.email?.toLowerCase())
       ) || undefined
     : undefined;
 

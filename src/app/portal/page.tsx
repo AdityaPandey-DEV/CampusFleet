@@ -229,9 +229,16 @@ export default async function StudentPortalPage() {
     return true;
   });
 
+  const normalizedUser = {
+    ...session,
+    id: session.userId,
+    userId: session.userId,
+    studentId: resolvedStudentId,
+  };
+
   return (
     <UnifiedCommuteHub
-      initialUser={session}
+      initialUser={normalizedUser}
       initialStudents={students}
       initialBuses={buses}
       initialTrips={visibleTrips}
