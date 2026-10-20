@@ -55,8 +55,15 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
         { href: "/transport-admin/academics/students", label: "Student List", shortLabel: "Students", icon: GraduationCap },
         { href: "/transport-admin/academics/reservations", label: "Daily Bookings", shortLabel: "Bookings", icon: CalendarCheck },
-        { href: "/transport-admin/academics/classes", label: "Classes & Batches", shortLabel: "Classes", icon: BookOpen },
-        { href: "/transport-admin/academics/campuses", label: "Campuses", shortLabel: "Campuses", icon: Building2 },
+        { href: "/transport-admin/classes", label: "Classes & Batches", shortLabel: "Classes", icon: BookOpen },
+      ]
+    },
+    classes: {
+      title: "Classes & Batches",
+      items: [
+        { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/transport-admin/classes", label: "Classes & Batches", shortLabel: "Classes", icon: BookOpen },
+        { href: "/transport-admin/academics/students", label: "Student List", shortLabel: "Students", icon: GraduationCap },
       ]
     },
     maintenance: {
@@ -108,6 +115,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     { href: "/transport-admin/trips", label: "Today's Trips", icon: Navigation },
     { href: "/transport-admin/billing/approvals", label: "Bus Fees", icon: CreditCard },
     { href: "/transport-admin/academics/students", label: "Students", icon: GraduationCap },
+    { href: "/transport-admin/classes", label: "Classes & Batches", icon: BookOpen },
     { href: "/transport-admin/maintenance", label: "Repairs", icon: Wrench },
     { href: "/transport-admin/system/users", label: "Accounts & Reports", icon: Shield },
   ];
@@ -128,6 +136,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   } else if (pathname.startsWith("/transport-admin/billing")) {
     currentNavLinks = subPortals.billing.items;
     currentTitle = subPortals.billing.title;
+  } else if (pathname.startsWith("/transport-admin/classes")) {
+    currentNavLinks = subPortals.classes.items;
+    currentTitle = subPortals.classes.title;
   } else if (pathname.startsWith("/transport-admin/academics")) {
     currentNavLinks = subPortals.academics.items;
     currentTitle = subPortals.academics.title;

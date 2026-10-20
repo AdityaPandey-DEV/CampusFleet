@@ -58,13 +58,7 @@ const staffModules: HubModule[] = [
     title: "Classes & Batches",
     description: "Manage academic departments, student batches, sections, timetables, and class advisors.",
     icon: BookOpen,
-    href: "/transport-admin/academics/classes"
-  },
-  {
-    title: "Campuses",
-    description: "Configure institutional campuses, college geofences, arrival gates, and campus stops.",
-    icon: Building2,
-    href: "/transport-admin/academics/campuses"
+    href: "/transport-admin/classes"
   },
   {
     title: "Bus Repairs",

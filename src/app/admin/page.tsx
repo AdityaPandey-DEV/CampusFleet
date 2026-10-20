@@ -20,6 +20,12 @@ const adminModules: HubModule[] = [
     href: "/admin/users"
   },
   {
+    title: "Campuses & Zones",
+    description: "Configure university campus branches, GPS geofences, arrival gates, and transit corridor fare zones.",
+    icon: Building2,
+    href: "/admin/campuses"
+  },
+  {
     title: "Transport Admin Desk",
     description: "Switch to Transport Admin to manage bus fees, student passes, and office desk records.",
     icon: Building2,

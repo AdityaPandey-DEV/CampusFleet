@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Home,
   Compass,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -106,8 +107,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { href: "/admin", label: "← Hub", shortLabel: "Hub", icon: Home },
         { href: "/admin/users", label: "User Accounts", shortLabel: "Users", icon: Users },
+        { href: "/admin/campuses", label: "Campuses & Zones", shortLabel: "Campuses", icon: Building2 },
         { href: "/transport-admin", label: "Transport Admin", shortLabel: "Admin Desk", icon: ShieldCheck },
         { href: "/transport-manager", label: "Transport Manager", shortLabel: "Fleet Ops", icon: Compass },
+      ]
+    },
+    campuses: {
+      title: "Campus Locations & Geofences",
+      items: [
+        { href: "/admin", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/admin/campuses", label: "Campuses & Zones", shortLabel: "Campuses", icon: Building2 },
+        { href: "/admin/users", label: "User Accounts", shortLabel: "Users", icon: Users },
+        { href: "/admin/maintenance", label: "Workshop", shortLabel: "Workshop", icon: Wrench },
       ]
     }
   };
@@ -115,6 +126,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const topLevelLinks = [
     { href: "/admin/maintenance", label: "Maintenance", icon: Wrench },
     { href: "/admin/users", label: "Accounts & Roles", icon: Users },
+    { href: "/admin/campuses", label: "Campuses & Zones", icon: Building2 },
     { href: "/transport-admin", label: "Transport Admin", icon: ShieldCheck },
     { href: "/transport-manager", label: "Transport Manager", icon: Compass },
   ];
@@ -128,6 +140,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   } else if (pathname.startsWith("/admin/users")) {
     currentNavLinks = subPortals.users.items;
     currentTitle = subPortals.users.title;
+  } else if (pathname.startsWith("/admin/campuses")) {
+    currentNavLinks = subPortals.campuses.items;
+    currentTitle = subPortals.campuses.title;
   }
 
   return (
