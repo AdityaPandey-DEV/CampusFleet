@@ -195,6 +195,12 @@ export interface Student {
   totalFeePaid?: number;
   photoUrl?: string;
   photoLocked?: boolean;
+  /** Smart Transit: Student home GPS coordinates */
+  homeLatitude?: number;
+  homeLongitude?: number;
+  homeAddress?: string;
+  /** Auto-assigned nearest stop based on home location */
+  autoAssignedStopId?: string;
 }
 
 export interface Guardian {
@@ -615,4 +621,105 @@ export interface HaltRequest {
   status: HaltRequestStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Smart Transit System Types ───
+
+export type BusReservationStatus = "ASSIGNED" | "SEAT_SELECTED" | "BOARDED" | "ABSENT" | "CANCELLED" | "SWITCHED";
+export type BusAssignmentSource = "AI_AUTO" | "MANAGER_OVERRIDE" | "SWITCH_APPROVED" | "MANUAL";
+export type SwitchRequestType = "PERMANENT_TRANSFER" | "TEMPORARY_SWAP" | "STOP_CHANGE" | "PREFERENCE_REQUEST";
+export type SwitchRequestStatus = "PENDING" | "AUTO_APPROVED" | "NEEDS_REVIEW" | "MANAGER_APPROVED" | "MANAGER_DENIED" | "AUTO_DENIED" | "EXECUTED" | "EXPIRED";
+export type SeatSelectionMode = "AT_BOOKING" | "AT_ATTENDANCE";
+export type FeasibilityCheck = "PASS" | "WARN" | "FAIL";
+
+/** Bus-level reservation (AI-assigned bus, student picks seat at attendance) */
+export interface BusReservation {
+  id: string;
+  studentId: string;
+  tripId?: string;
+  busId: string;
+  boardingStopId: string;
+  shiftId: string;
+  reservationDate: string;
+  assignedBy: BusAssignmentSource;
+  assignmentScore?: number;
+  chosenSeat?: string;
+  seatChosenAt?: string;
+  status: BusReservationStatus;
+  boardedAt?: string;
+  cancelledAt?: string;
+  createdAt: string;
+}
+
+/** Switch request with AI evaluation + manager override */
+export interface BusSwitchRequest {
+  id: string;
+  studentId: string;
+  currentBusId: string;
+  currentStopId: string;
+  requestedBusId?: string;
+  requestedStopId?: string;
+  requestType: SwitchRequestType;
+  reason?: string;
+  effectiveFrom: string;
+  effectiveUntil?: string;
+  aiCapacityCheck?: FeasibilityCheck;
+  aiDistanceCheck?: FeasibilityCheck;
+  aiEfficiencyCheck?: FeasibilityCheck;
+  aiComplianceCheck?: FeasibilityCheck;
+  aiOverallDecision?: string;
+  aiReasoning?: string;
+  aiAlternativeBusId?: string;
+  aiEvaluatedAt?: string;
+  managerDecision?: string;
+  managerId?: string;
+  managerNotes?: string;
+  managerDecidedAt?: string;
+  status: SwitchRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** AI-generated dynamic route plan */
+export interface DynamicRoutePlan {
+  id: string;
+  planDate: string;
+  shiftId: string;
+  direction: TripDirection;
+  busId: string;
+  stopSequence: string[];
+  demandPerStop: number[];
+  totalDemand: number;
+  currentReservations: number;
+  totalDistanceKm?: number;
+  estimatedDurationMins?: number;
+  isConsolidated: boolean;
+  mergedFromRoutes: string[];
+  status: string;
+  createdAt: string;
+}
+
+/** Transport admin configurable settings */
+export interface TransportSettings {
+  id: string;
+  maxWalkDistanceKm: number;
+  autoAssignmentEnabled: boolean;
+  seatSelectionMode: SeatSelectionMode;
+  minFillPercent: number;
+  maxRideTimeMins: number;
+  capacityBufferPercent: number;
+  switchAutoApproveBelowPct: number;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+/** Result of AI switch request feasibility evaluation */
+export interface SwitchEvaluation {
+  capacityCheck: FeasibilityCheck;
+  distanceCheck: FeasibilityCheck;
+  efficiencyCheck: FeasibilityCheck;
+  complianceCheck: FeasibilityCheck;
+  overallDecision: "AUTO_APPROVED" | "NEEDS_REVIEW" | "AUTO_DENIED";
+  reasoning: string;
+  alternativeBusId?: string;
 }

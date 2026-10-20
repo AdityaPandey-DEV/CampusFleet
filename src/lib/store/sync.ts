@@ -564,6 +564,10 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
               totalFeePaid: s.total_fee_paid || 0,
               photoUrl: s.photo_url || "",
               photoLocked: Boolean(s.photo_url && s.photo_url.trim() !== "") || Boolean(s.photo_locked),
+              homeLatitude: s.home_latitude ?? undefined,
+              homeLongitude: s.home_longitude ?? undefined,
+              homeAddress: s.home_address ?? undefined,
+              autoAssignedStopId: s.auto_assigned_stop_id ?? undefined,
             };
           }
         }
@@ -624,6 +628,10 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
         totalFeePaid: s.total_fee_paid || 0,
         photoUrl: s.photo_url || "",
         photoLocked: Boolean(s.photo_url && s.photo_url.trim() !== "") || Boolean(s.photo_locked),
+        homeLatitude: s.home_latitude ?? undefined,
+        homeLongitude: s.home_longitude ?? undefined,
+        homeAddress: s.home_address ?? undefined,
+        autoAssignedStopId: s.auto_assigned_stop_id ?? undefined,
       }));
     }
 

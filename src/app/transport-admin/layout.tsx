@@ -22,7 +22,8 @@ import {
   BusFront,
   Route,
   MapPin,
-  Navigation
+  Navigation,
+  Settings2
 } from "lucide-react";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -94,6 +95,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
         { href: "/transport-admin/system/users", label: "User Accounts", shortLabel: "Users", icon: Users },
         { href: "/transport-admin/system/reports", label: "Download Reports", shortLabel: "Reports", icon: FileBarChart },
+        { href: "/transport-admin/settings/transit", label: "Smart Transit", shortLabel: "Transit", icon: Settings2 },
       ]
     }
   };
@@ -132,7 +134,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   } else if (pathname.startsWith("/transport-admin/maintenance")) {
     currentNavLinks = subPortals.maintenance.items;
     currentTitle = subPortals.maintenance.title;
-  } else if (pathname.startsWith("/transport-admin/system")) {
+  } else if (pathname.startsWith("/transport-admin/system") || pathname.startsWith("/transport-admin/settings/transit")) {
     currentNavLinks = subPortals.system.items;
     currentTitle = subPortals.system.title;
   }
