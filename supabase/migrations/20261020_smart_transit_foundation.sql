@@ -191,36 +191,53 @@ CREATE INDEX IF NOT EXISTS idx_route_plans_date ON public.dynamic_route_plans(pl
 -- 6. UPDATE STUDENTS_FULL VIEW (add home location columns)
 -- ═══════════════════════════════════════════════════════════════════════════════
 
-CREATE OR REPLACE VIEW public.students_full AS
-SELECT
-    s.id,
-    s.user_id,
-    s.enrollment_no,
-    COALESCE(u.full_name, s.full_name) AS full_name,
-    COALESCE(u.email, s.email) AS email,
-    COALESCE(u.phone, s.phone) AS phone,
-    s.department,
-    s.semester,
-    s.campus,
-    s.primary_stop_id,
-    s.primary_route_id,
-    s.emergency_contact,
-    s.transport_access_suspended,
-    s.has_active_subscription,
-    s.subscription_expiry_date,
-    s.class_id,
-    s.class_name,
-    s.zone_code,
-    s.payment_status,
-    s.total_fee_due,
-    s.total_fee_paid,
-    s.home_latitude,
-    s.home_longitude,
-    s.home_address,
-    s.auto_assigned_stop_id,
-    tz.semester_fee AS zone_semester_fee,
-    tz.installments_allowed AS zone_installments,
-    s.created_at
-FROM public.students s
-LEFT JOIN public.users u ON u.id = s.user_id
-LEFT JOIN public.transit_zones tz ON tz.code = s.zone_code;
+DROP VIEW IF EXISTS public.students_full CASCADE;
+
+CREATE VIEW public.students_full AS
+SELECT DISTINCT ON (s.id)
+  s.id,
+  s.user_id,
+  s.enrollment_no,
+  COALESCE(u.full_name, s.full_name) AS full_name,
+  COALESCE(u.email, s.email) AS email,
+  COALESCE(u.phone, s.phone) AS phone,
+  s.department,
+  s.semester,
+  s.campus,
+  s.campus_id,
+  s.primary_stop_id,
+  s.primary_route_id,
+  s.emergency_contact,
+  s.transport_access_suspended,
+  (EXISTS ( SELECT 1
+         FROM public.subscriptions sub
+        WHERE sub.student_id = s.id AND sub.status = 'ACTIVE' AND sub.end_date >= CURRENT_DATE)) AS has_active_subscription,
+  ( SELECT max(sub.end_date) AS max
+         FROM public.subscriptions sub
+        WHERE sub.student_id = s.id AND sub.status = 'ACTIVE') AS subscription_expiry_date,
+  s.class_id,
+  s.class_name,
+  s.zone_code,
+  s.payment_status,
+  s.total_fee_due,
+  s.total_fee_paid,
+  s.photo_url,
+  COALESCE(s.photo_locked, false) AS photo_locked,
+  u.avatar_url,
+  s.home_latitude,
+  s.home_longitude,
+  s.home_address,
+  s.auto_assigned_stop_id,
+  tz.semester_fee AS zone_semester_fee,
+  tz.installments_allowed AS zone_installments,
+  s.created_at
+ FROM public.students s
+   LEFT JOIN public.users u ON u.id = s.user_id
+   LEFT JOIN LATERAL (
+     SELECT tz_1.semester_fee, tz_1.installments_allowed 
+     FROM public.transit_zones tz_1
+     WHERE tz_1.code = s.zone_code
+     ORDER BY (tz_1.campus_id = s.campus_id) DESC NULLS LAST
+     LIMIT 1
+   ) tz ON true
+ ORDER BY s.id, s.created_at DESC;
