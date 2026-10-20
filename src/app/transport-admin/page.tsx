@@ -62,7 +62,7 @@ const staffModules: HubModule[] = [
     title: "Staff & Reports",
     description: "Manage driver and conductor logins, and download daily attendance reports.",
     icon: Shield,
-    href: "/transport-admin/system/staff"
+    href: "/transport-admin/system/users"
   }
 ];
 

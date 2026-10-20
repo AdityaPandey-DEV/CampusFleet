@@ -125,7 +125,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (pathname.startsWith("/admin/maintenance")) {
     currentNavLinks = subPortals.maintenance.items;
     currentTitle = subPortals.maintenance.title;
-  } else if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/staff")) {
+  } else if (pathname.startsWith("/admin/users")) {
     currentNavLinks = subPortals.users.items;
     currentTitle = subPortals.users.title;
   }
