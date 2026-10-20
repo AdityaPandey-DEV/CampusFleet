@@ -81,26 +81,30 @@ export async function GET(request: NextRequest) {
           ocr_full_text: "RAZORPAY_CRON_RECONCILED",
         });
 
-        // Update student running balance and activate pass
+        // Check if fully paid and activate subscription
         const newTotalPaid = Number(student?.total_fee_paid || 0) + amountPaid;
         const amountLeft = Math.max(0, Number(student?.total_fee_due || 0) - newTotalPaid);
         
-        const updateData: any = {
-          total_fee_paid: newTotalPaid,
-        };
-
         if (amountLeft <= 0) {
-          updateData.payment_status = "APPROVED";
-          updateData.has_active_subscription = true;
-          updateData.transport_access_suspended = false;
-        } else {
-          updateData.payment_status = "PARTIALLY_PAID";
-        }
+          const { data: defaultPlan } = await supabaseAdmin
+            .from("subscription_plans")
+            .select("id")
+            .limit(1)
+            .maybeSingle();
 
-        await supabaseAdmin
-          .from("students")
-          .update(updateData)
-          .eq("id", studentId);
+          await supabaseAdmin.from("subscriptions").insert({
+            student_id: studentId,
+            plan_id: defaultPlan?.id || "plan-standard",
+            start_date: new Date().toISOString().split("T")[0],
+            end_date: new Date(Date.now() + 180 * 86400000).toISOString().split("T")[0],
+            status: "ACTIVE",
+          });
+
+          await supabaseAdmin
+            .from("students")
+            .update({ transport_access_suspended: false })
+            .eq("id", studentId);
+        }
 
         await supabaseAdmin.from("audit_logs").insert({
           action: "RAZORPAY_CRON_RECONCILED",

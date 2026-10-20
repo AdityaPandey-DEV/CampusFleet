@@ -165,9 +165,9 @@ export async function POST(request: NextRequest) {
         0
       );
 
-      // ── Fetch Student Record ──────────────────────────────────────────
+      // ── Fetch Student Record from students_full view ──────────────────
       const { data: student } = await supabaseAdmin
-        .from("students")
+        .from("students_full")
         .select("total_fee_due, total_fee_paid")
         .eq("id", submission.student_id)
         .maybeSingle();
@@ -175,30 +175,33 @@ export async function POST(request: NextRequest) {
       const totalFeeDue = Number(student?.total_fee_due || 0);
       const isFullyPaid = totalFeeDue > 0 && totalApproved >= totalFeeDue;
 
-      // ── Update Student Record ─────────────────────────────────────────
-      const studentUpdate: Record<string, any> = {
-        total_fee_paid: totalApproved,
-      };
-
+      // ── Activate Subscription if Fully Paid ───────────────────────────
       if (isFullyPaid) {
-        // Full payment achieved → activate subscription
-        studentUpdate.payment_status = "APPROVED";
-        studentUpdate.has_active_subscription = true;
-        // Set expiry to end of academic term (June 30 of next year or Dec 31)
+        const { data: defaultPlan } = await supabaseAdmin
+          .from("subscription_plans")
+          .select("id")
+          .limit(1)
+          .maybeSingle();
+
         const now_date = new Date();
         const expiryYear = now_date.getMonth() >= 6 ? now_date.getFullYear() + 1 : now_date.getFullYear();
         const expiryMonth = now_date.getMonth() >= 6 ? "06-30" : "12-31";
-        studentUpdate.subscription_expiry_date = `${expiryYear}-${expiryMonth}`;
-      } else if (totalApproved > 0) {
-        // Partial payment
-        studentUpdate.payment_status = "PARTIALLY_PAID";
-        studentUpdate.has_active_subscription = false;
-      }
+        const expiryDate = `${expiryYear}-${expiryMonth}`;
 
-      await supabaseAdmin
-        .from("students")
-        .update(studentUpdate)
-        .eq("id", submission.student_id);
+        await supabaseAdmin.from("subscriptions").insert({
+          student_id: submission.student_id,
+          plan_id: defaultPlan?.id || "plan-standard",
+          start_date: new Date().toISOString().split("T")[0],
+          end_date: expiryDate,
+          status: "ACTIVE",
+        });
+
+        // Ensure transport access is active
+        await supabaseAdmin
+          .from("students")
+          .update({ transport_access_suspended: false })
+          .eq("id", submission.student_id);
+      }
 
       // ── Create Financial Ledger Entry ─────────────────────────────────
       try {
@@ -274,28 +277,22 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", submissionId);
 
-      // ── Recalculate Student Status ────────────────────────────────────
-      // Check if student has any other approved or pending submissions
-      const { data: remainingSubmissions } = await supabaseAdmin
+      // ── Recalculate Subscriptions ─────────────────────────────────────
+      // Check if student has any other approved submissions
+      const { data: remainingApproved } = await supabaseAdmin
         .from("payment_submissions")
-        .select("amount, status")
+        .select("id")
         .eq("student_id", submission.student_id)
-        .in("status", ["APPROVED", "PENDING_APPROVAL"]);
+        .eq("status", "APPROVED")
+        .limit(1);
 
-      const hasApproved = (remainingSubmissions || []).some((s: any) => s.status === "APPROVED");
-      const hasPending = (remainingSubmissions || []).some((s: any) => s.status === "PENDING_APPROVAL");
-
-      let newStatus = "UNPAID";
-      if (hasApproved) newStatus = "PARTIALLY_PAID";
-      else if (hasPending) newStatus = "PENDING_APPROVAL";
-
-      await supabaseAdmin
-        .from("students")
-        .update({
-          payment_status: newStatus,
-          ...(newStatus === "UNPAID" ? { has_active_subscription: false } : {}),
-        })
-        .eq("id", submission.student_id);
+      if (!remainingApproved || remainingApproved.length === 0) {
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({ status: "CANCELLED" })
+          .eq("student_id", submission.student_id)
+          .eq("status", "ACTIVE");
+      }
 
       // ── Send Rejection Notification ───────────────────────────────────
       try {
