@@ -63,6 +63,7 @@ export interface TeacherClass {
 }
 
 export interface TeacherConsoleProps {
+  initialTab?: string;
   initialClasses?: TeacherClass[];
   initialDefaultClassId?: string;
   fleetShifts?: any[];
@@ -98,6 +99,7 @@ function getInitialsAvatarColor(name: string) {
 }
 
 export default function TeacherConsoleView({
+  initialTab,
   initialClasses = [],
   initialDefaultClassId,
   initialArrivals = [],
@@ -129,7 +131,18 @@ export default function TeacherConsoleView({
   // Filters & Tabs
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PRESENT" | "ABSENT">("ALL");
-  const [activeTab, setActiveTab] = useState<"attendance" | "gate_passes" | "shifts" | "my_commute">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "gate_passes" | "shifts" | "my_commute">(() => {
+    if (initialTab && ["attendance", "gate_passes", "shifts", "my_commute"].includes(initialTab)) {
+      return initialTab as any;
+    }
+    if (typeof window !== "undefined") {
+      const urlTab = new URLSearchParams(window.location.search).get("tab");
+      if (urlTab && ["attendance", "gate_passes", "shifts", "my_commute"].includes(urlTab)) {
+        return urlTab as any;
+      }
+    }
+    return "attendance";
+  });
   const [gatePassFilter, setGatePassFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("ALL");
 
   // Gate pass state
@@ -138,10 +151,37 @@ export default function TeacherConsoleView({
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [teacherRemarks, setTeacherRemarks] = useState<{ [key: string]: string }>({});
 
-  useEffect(() => {
-    if (searchParams.get("tab") === "my_commute") {
-      setActiveTab("my_commute");
+  const handleTabChange = (tab: "attendance" | "gate_passes" | "shifts" | "my_commute") => {
+    setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (tab === "attendance") {
+        url.searchParams.delete("tab");
+      } else {
+        url.searchParams.set("tab", tab);
+      }
+      window.history.pushState({}, "", url.toString());
     }
+  };
+
+  useEffect(() => {
+    const handleUrlTab = () => {
+      if (typeof window === "undefined") return;
+      const tab = new URLSearchParams(window.location.search).get("tab") || searchParams.get("tab");
+      if (tab === "my_commute") {
+        setActiveTab("my_commute");
+      } else if (tab === "gate_passes") {
+        setActiveTab("gate_passes");
+      } else if (tab === "shifts") {
+        setActiveTab("shifts");
+      } else if (tab === "attendance") {
+        setActiveTab("attendance");
+      }
+    };
+
+    handleUrlTab();
+    window.addEventListener("popstate", handleUrlTab);
+    return () => window.removeEventListener("popstate", handleUrlTab);
   }, [searchParams]);
 
   useEffect(() => {
@@ -437,9 +477,24 @@ export default function TeacherConsoleView({
   };
 
   const teacherNavLinks = [
-    { href: "/teacher", label: "Class Attendance", icon: Users },
-    { href: "/teacher?tab=my_commute", label: "My Commute", icon: BusFront },
-    { href: "/teacher/settings", label: "Commute Settings", icon: Settings },
+    {
+      onClick: () => handleTabChange("attendance"),
+      active: activeTab === "attendance",
+      label: "Class Attendance",
+      icon: Users,
+    },
+    {
+      onClick: () => handleTabChange("my_commute"),
+      active: activeTab === "my_commute",
+      label: "My Commute",
+      icon: BusFront,
+      highlight: true,
+    },
+    {
+      href: "/teacher/settings",
+      label: "Commute Settings",
+      icon: Settings,
+    },
   ];
 
   return (
@@ -449,8 +504,13 @@ export default function TeacherConsoleView({
         role="teacher"
         portalTitle="CampusFleet"
         portalSubtitle="Faculty Transit & Attendance Desk"
+        navLinks={[
+          { href: "/teacher", label: "Class Attendance" },
+          { href: "/teacher?tab=my_commute", label: "My Commute" },
+          { href: "/teacher/settings", label: "Commute Settings" },
+        ]}
         mobilePrimaryAction={{
-          label: "My Commute & Settings",
+          label: "My Commute Cockpit",
           href: "/teacher?tab=my_commute",
           subtitle: "Track your commute bus & seat attendance",
           icon: BusFront,
@@ -711,7 +771,7 @@ export default function TeacherConsoleView({
         <div className="border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-6 overflow-x-auto hide-scrollbar">
           <button
             type="button"
-            onClick={() => setActiveTab("attendance")}
+            onClick={() => handleTabChange("attendance")}
             className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-colors cursor-pointer shrink-0 ${
               activeTab === "attendance"
                 ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
@@ -728,7 +788,7 @@ export default function TeacherConsoleView({
           <button
             type="button"
             onClick={() => {
-              setActiveTab("gate_passes");
+              handleTabChange("gate_passes");
               loadGatePasses();
             }}
             className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-colors cursor-pointer shrink-0 ${
@@ -749,7 +809,7 @@ export default function TeacherConsoleView({
           {selectedClassId !== "ALL" && classes.find((c) => c.id === selectedClassId)?.isPrimary && (
             <button
               type="button"
-              onClick={() => setActiveTab("shifts")}
+              onClick={() => handleTabChange("shifts")}
               className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-colors cursor-pointer shrink-0 ${
                 activeTab === "shifts"
                   ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
@@ -763,7 +823,7 @@ export default function TeacherConsoleView({
 
           <button
             type="button"
-            onClick={() => setActiveTab("my_commute")}
+            onClick={() => handleTabChange("my_commute")}
             className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-colors cursor-pointer shrink-0 ${
               activeTab === "my_commute"
                 ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"

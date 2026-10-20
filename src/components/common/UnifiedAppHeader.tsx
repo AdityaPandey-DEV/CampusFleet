@@ -347,6 +347,22 @@ export function UnifiedAppHeader({
       return null;
     })();
 
+  const effectiveNavLinks = (navLinks && navLinks.length > 0)
+    ? navLinks
+    : (portalViewRole === "teacher"
+      ? [
+          { href: "/teacher", label: "Class Attendance" },
+          { href: "/teacher?tab=my_commute", label: "My Commute" },
+          { href: "/teacher/settings", label: "Commute Settings" },
+        ]
+      : (portalViewRole === "student"
+        ? [
+            { href: "/portal", label: "My Commute" },
+            { href: "/portal/qr", label: "QR Connect" },
+            { href: "/portal/settings", label: "Settings" },
+          ]
+        : []));
+
   return (
     <>
       <header className="sticky top-0 z-40 w-full max-w-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/80 dark:border-gray-800/80 shadow-xs transition-colors overflow-x-clip">
@@ -386,10 +402,10 @@ export function UnifiedAppHeader({
           </div>
 
           {/* Center Navigation Links (Minimalist Plain Text) */}
-          {navLinks && navLinks.length > 0 && (
+          {effectiveNavLinks && effectiveNavLinks.length > 0 && (
             <div className="hidden lg:flex items-center justify-center flex-1 min-w-0 px-8">
               <nav className="flex items-center gap-6">
-                {navLinks.map(link => {
+                {effectiveNavLinks.map(link => {
                   const isActive = pathname === link.href;
                   return (
                     <Link
@@ -490,16 +506,48 @@ export function UnifiedAppHeader({
             </button>
           </div>
 
-          <div className="p-5 space-y-6">
+          <div className="p-5 space-y-5">
+            {/* Primary Mobile Action Card (e.g. My Commute) */}
+            {resolvedMobileAction && (
+              <Link
+                href={resolvedMobileAction.href}
+                onClick={() => {
+                  setIsMobileSheetOpen(false);
+                  if (typeof window !== "undefined" && resolvedMobileAction.href.includes("tab=my_commute")) {
+                    window.location.href = resolvedMobileAction.href;
+                  }
+                }}
+                className="flex items-center gap-3 p-3.5 rounded-xl bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 transition-colors"
+              >
+                {resolvedMobileAction.icon ? (
+                  <resolvedMobileAction.icon className="w-5 h-5 flex-shrink-0" />
+                ) : (
+                  <BusFront className="w-5 h-5 flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold truncate">{resolvedMobileAction.label}</div>
+                  {resolvedMobileAction.subtitle && (
+                    <div className="text-xs text-blue-100 truncate">{resolvedMobileAction.subtitle}</div>
+                  )}
+                </div>
+                <ArrowRight className="w-4 h-4 flex-shrink-0 text-blue-200" />
+              </Link>
+            )}
+
             {/* Navigation Links */}
-            {navLinks && navLinks.length > 0 && (
-              <div className="space-y-5">
-                {navLinks.map((link) => (
+            {effectiveNavLinks && effectiveNavLinks.length > 0 && (
+              <div className="space-y-4">
+                {effectiveNavLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    onClick={() => setIsMobileSheetOpen(false)}
-                    className="block text-base font-medium text-gray-700 dark:text-gray-300"
+                    onClick={() => {
+                      setIsMobileSheetOpen(false);
+                      if (typeof window !== "undefined" && link.href.includes("tab=my_commute")) {
+                        window.location.href = link.href;
+                      }
+                    }}
+                    className="block text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -536,9 +584,17 @@ export function UnifiedAppHeader({
                   <div className="flex flex-col">
                     <span className="text-base font-semibold text-gray-900 dark:text-white">{currentUser.fullName}</span>
                     <Link
-                      href="/portal/profile"
+                      href={
+                        portalViewRole === "teacher"
+                          ? "/teacher/settings"
+                          : portalViewRole === "conductor"
+                          ? "/conductor/settings"
+                          : portalViewRole === "driver"
+                          ? "/driver/settings"
+                          : "/portal/settings"
+                      }
                       onClick={() => setIsMobileSheetOpen(false)}
-                      className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                      className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                     >
                       Settings
                     </Link>

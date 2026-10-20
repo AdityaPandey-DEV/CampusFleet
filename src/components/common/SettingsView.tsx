@@ -1,16 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-// Removed useGoogleReCaptcha
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { usePathname } from "next/navigation";
 import { useTheme } from "@/components/common/ThemeProvider";
 import { store } from "@/lib/store";
 import { 
   Sun, Moon, Bell, Shield, Database, Download, RefreshCw, MessageSquare, Trash, 
-  ChevronDown, Check, Globe, Loader2, Type, MapPin, ArrowLeftRight, Navigation, CheckCircle2, AlertCircle, Clock, Bus
+  ChevronDown, Check, Globe, Loader2, Type, MapPin, ArrowLeftRight, Navigation, CheckCircle2, AlertCircle, Clock, Bus,
+  Users, BusFront, QrCode, Settings as SettingsIcon
 } from "lucide-react";
 import { usePWAInstall } from "@/lib/usePWAInstall";
 import { InstallAppModal } from "@/components/common/InstallAppModal";
 import { useTranslation } from "@/components/common/LanguageProvider";
+import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
+import { MobileBottomNav } from "@/components/common/MobileBottomNav";
+import { UserRole } from "@/lib/types";
 
 
 const CustomDropdown = ({ 
@@ -67,9 +71,77 @@ const CustomDropdown = ({
 };
 
 export function SettingsView() {
+  const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { primaryLanguage, setPrimaryLanguage, languageOptions, t } = useTranslation();
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
+
+  const detectedRole: UserRole = useMemo(() => {
+    if (pathname.startsWith("/teacher")) return "teacher";
+    if (pathname.startsWith("/conductor")) return "conductor";
+    if (pathname.startsWith("/driver")) return "driver";
+    if (pathname.startsWith("/transport-admin")) return "transport_admin";
+    if (pathname.startsWith("/transport-manager")) return "transport_manager";
+    if (pathname.startsWith("/admin")) return "admin";
+    return ((currentUser as any)?.role as UserRole) || "student";
+  }, [pathname, currentUser]);
+
+  const settingsNavLinks = useMemo(() => {
+    if (detectedRole === "teacher") {
+      return [
+        { href: "/teacher", label: "Class Attendance" },
+        { href: "/teacher?tab=my_commute", label: "My Commute" },
+        { href: "/teacher/settings", label: "Commute Settings" },
+      ];
+    }
+    if (detectedRole === "conductor") {
+      return [
+        { href: "/conductor/scanner", label: "Scanner" },
+        { href: "/conductor/manifest", label: "Manifest" },
+        { href: "/conductor/settings", label: "Settings" },
+      ];
+    }
+    if (detectedRole === "driver") {
+      return [
+        { href: "/driver", label: "HUD Console" },
+        { href: "/driver/settings", label: "Settings" },
+      ];
+    }
+    return [
+      { href: "/portal", label: "My Commute" },
+      { href: "/portal/qr", label: "QR Connect" },
+      { href: "/portal/settings", label: "Settings" },
+    ];
+  }, [detectedRole]);
+
+  const mobileBottomNavItems = useMemo(() => {
+    if (detectedRole === "teacher") {
+      return [
+        { href: "/teacher", label: "Class Attendance", icon: Users },
+        { href: "/teacher?tab=my_commute", label: "My Commute", icon: BusFront, highlight: true },
+        { href: "/teacher/settings", label: "Settings", icon: SettingsIcon, active: true },
+      ];
+    }
+    if (detectedRole === "conductor") {
+      return [
+        { href: "/conductor/scanner", label: "Scanner", icon: QrCode },
+        { href: "/conductor/manifest", label: "Manifest", icon: Users },
+        { href: "/conductor/settings", label: "Settings", icon: SettingsIcon, active: true },
+      ];
+    }
+    if (detectedRole === "driver") {
+      return [
+        { href: "/driver", label: "HUD", icon: BusFront },
+        { href: "/driver/settings", label: "Settings", icon: SettingsIcon, active: true },
+      ];
+    }
+    return [
+      { href: "/portal", label: "My Commute", icon: BusFront },
+      { href: "/portal/qr", label: "QR Connect", icon: QrCode },
+      { href: "/portal/settings", label: "Settings", icon: SettingsIcon, active: true },
+    ];
+  }, [detectedRole]);
+
   const [mounted, setMounted] = useState(false);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
@@ -540,14 +612,39 @@ export function SettingsView() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 animate-in fade-in duration-300">
-      
-      {/* Page Header */}
-      <div className="mb-10">
-        <h1 className="text-2xl sm:text-3xl font-medium text-green-600">
-          {getGreeting()}, {displayName}
-        </h1>
-      </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col pb-24 md:pb-12">
+      <UnifiedAppHeader
+        role={detectedRole}
+        portalTitle="CampusFleet"
+        portalSubtitle={
+          detectedRole === "teacher"
+            ? "Faculty Transit & Settings"
+            : detectedRole === "conductor"
+            ? "Conductor Manifest & Settings"
+            : detectedRole === "driver"
+            ? "Driver HUD & Settings"
+            : "Account & Mobility Settings"
+        }
+        navLinks={settingsNavLinks}
+        mobilePrimaryAction={
+          detectedRole === "teacher"
+            ? {
+                label: "My Commute Cockpit",
+                href: "/teacher?tab=my_commute",
+                subtitle: "View seat pass & live bus tracking",
+                icon: BusFront,
+              }
+            : undefined
+        }
+      />
+
+      <main className="flex-1 max-w-5xl w-full mx-auto py-6 sm:py-8 px-4 sm:px-6 animate-in fade-in duration-300">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-medium text-green-600">
+            {getGreeting()}, {displayName}
+          </h1>
+        </div>
 
       <div className="space-y-8">
 
@@ -1384,7 +1481,10 @@ export function SettingsView() {
           </div>
         </div>
 
-      </div>
+        </div>
+      </main>
+
+      <MobileBottomNav navItems={mobileBottomNavItems} />
     </div>
   );
 }

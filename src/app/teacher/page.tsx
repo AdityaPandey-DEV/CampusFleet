@@ -12,7 +12,11 @@ export const dynamic = "force-dynamic";
  * - Defaults to primary allocated class
  * - Returns all enrolled students with Present/Absent attendance status
  */
-export default async function TeacherPage() {
+export default async function TeacherPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
   // 1. Authenticate server-side via HttpOnly JWT session
   const session = await getSession();
 
@@ -242,8 +246,11 @@ export default async function TeacherPage() {
     seatNumber: b.seat_number || b.seatNumber,
   }));
 
+  const initialTab = typeof searchParams?.tab === "string" ? searchParams.tab : undefined;
+
   return (
     <TeacherConsoleView
+      initialTab={initialTab}
       initialClasses={classes}
       initialDefaultClassId={defaultClassId}
       initialArrivals={arrivals}
