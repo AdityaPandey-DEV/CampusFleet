@@ -7,7 +7,8 @@ import ShiftBookingView from "./ShiftBookingView";
 import CommuteBusSelector from "./CommuteBusSelector";
 import DigitalPassView from "./DigitalPassView";
 import LiveTrackerView from "./LiveTrackerView";
-import { useMediaQuery } from "react-responsive";
+import SmartTransitCockpit from "./SmartTransitCockpit";
+import { Sparkles, Navigation, QrCode, BusFront, Calendar } from "lucide-react";
 import type { Student, Bus, Trip, Shift, Stop, Booking, Staff, Route } from "@/lib/types";
 
 interface UnifiedCommuteHubProps {
@@ -38,8 +39,7 @@ export default function UnifiedCommuteHub({
   const [students, setStudents] = useState<Student[]>(() => initialStudents.length > 0 ? initialStudents : store.getStudents());
   const [bookings, setBookings] = useState<Booking[]>(() => initialBookings.length > 0 ? initialBookings : store.getBookings());
 
-  const isDesktop = useMediaQuery({ minWidth: 1024 });
-  const [activeTab, setActiveTab] = useState<"BOOKING" | "PASS" | "TRACKER">("BOOKING");
+  const [activeTab, setActiveTab] = useState<"SMART_TRANSIT" | "TRACKER" | "PASS" | "EXPLORE">("SMART_TRANSIT");
   const searchParams = useSearchParams();
   const urlBusId = searchParams.get("busId");
   const [hubState, setHubState] = useState<{ shiftId: string; stopId: string; busId: string } | null>(
@@ -67,8 +67,6 @@ export default function UnifiedCommuteHub({
     return unsub;
   }, []);
 
-
-
   const activeStudent = currentUser
     ? students.find(
         s =>
@@ -83,152 +81,159 @@ export default function UnifiedCommuteHub({
     ? bookings.find(b => b.studentId === activeStudent.id && b.status === "CONFIRMED")
     : null;
 
-  // Auto-switch tabs based on state
-  useEffect(() => {
-    if (activeBooking && activeTab === "BOOKING") {
-      setActiveTab("TRACKER");
-    }
-  }, [activeBooking]);
-
   const resolvedBusId = activeBooking ? activeBooking.busId : hubState?.busId;
 
   if (!isClient) return null;
 
-  if (!resolvedBusId) {
-    return (
-      <CommuteBusSelector
-        initialUser={currentUser}
-        initialStudent={activeStudent}
-        initialStudents={initialStudents}
-        initialBuses={initialBuses}
-        initialTrips={initialTrips}
-        initialShifts={initialShifts}
-        initialStops={initialStops}
-        initialBookings={initialBookings}
-        initialRoutes={initialRoutes}
-        onBusSelected={(shiftId, stopId, busId) => {
-          setHubState({ shiftId, stopId, busId });
-        }}
-      />
-    );
-  }
-
-  const renderBooking = () => (
-    <ShiftBookingView
-      initialUser={currentUser}
-      initialStudent={activeStudent}
-      initialStudents={initialStudents}
-      initialBuses={initialBuses}
-      initialTrips={initialTrips}
-      initialShifts={initialShifts}
-      initialStops={initialStops}
-      initialBookings={initialBookings}
-      preselectedShiftId={hubState?.shiftId}
-      preselectedStopId={hubState?.stopId}
-      preselectedBusId={resolvedBusId}
-      isEmbedded={true}
-      onBackToBusSelection={!activeBooking ? () => setHubState(null) : undefined}
-    />
-  );
-
-  const renderPass = () => {
-    if (!activeStudent) return null;
-    return (
-      <DigitalPassView
-        initialUser={currentUser}
-        initialStudent={activeStudent}
-        initialStudents={initialStudents}
-        initialBuses={initialBuses}
-        initialTrips={initialTrips}
-        initialShifts={initialShifts}
-        initialStops={initialStops}
-        initialBookings={initialBookings}
-        initialStaff={initialStaff}
-        isEmbedded={true}
-      />
-    );
-  };
-
-  const renderTracker = () => (
-    <LiveTrackerView
-      initialUser={currentUser}
-      initialBuses={initialBuses}
-      initialRoutes={initialRoutes}
-      initialStops={initialStops}
-      initialTrips={initialTrips}
-      initialStaff={initialStaff}
-      initialStudents={initialStudents}
-      isEmbedded={true}
-      activeBooking={activeBooking}
-    />
-  );
-
-  if (isDesktop) {
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-8">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
-            {activeBooking ? renderPass() : renderBooking()}
-          </div>
-        </div>
-        <div className="lg:col-span-2">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 h-[800px] overflow-hidden">
-            {renderTracker()}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Mobile Tabs
   return (
-    <div className="space-y-4">
-      <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-2xl w-full">
+    <div className="space-y-6">
+      {/* ─── Top Segmented Mode Selector ────────────────────────────── */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-1.5 border border-gray-100 dark:border-gray-800 shadow-sm flex items-center justify-between overflow-x-auto no-scrollbar gap-1">
         <button
-          onClick={() => setActiveTab("BOOKING")}
-          className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${
-            activeTab === "BOOKING"
-              ? "bg-white dark:bg-gray-800 text-blue-600 shadow-sm"
-              : "text-gray-500 hover:text-gray-900"
+          onClick={() => setActiveTab("SMART_TRANSIT")}
+          className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+            activeTab === "SMART_TRANSIT"
+              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20"
+              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60"
           }`}
         >
-          Book
+          <Sparkles className="w-4 h-4" />
+          <span>Smart Commute</span>
         </button>
-        <button
-          onClick={() => setActiveTab("PASS")}
-          className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${
-            activeTab === "PASS"
-              ? "bg-white dark:bg-gray-800 text-pink-600 shadow-sm"
-              : "text-gray-500 hover:text-gray-900"
-          }`}
-        >
-          Pass
-        </button>
+
         <button
           onClick={() => setActiveTab("TRACKER")}
-          className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${
+          className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
             activeTab === "TRACKER"
-              ? "bg-white dark:bg-gray-800 text-emerald-600 shadow-sm"
-              : "text-gray-500 hover:text-gray-900"
+              ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60"
           }`}
         >
-          Radar
+          <Navigation className="w-4 h-4" />
+          <span>Live Radar</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("PASS")}
+          className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+            activeTab === "PASS"
+              ? "bg-pink-600 text-white shadow-md shadow-pink-600/20"
+              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+          }`}
+        >
+          <QrCode className="w-4 h-4" />
+          <span>Digital Pass</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("EXPLORE")}
+          className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+            activeTab === "EXPLORE"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+          }`}
+        >
+          <BusFront className="w-4 h-4" />
+          <span>Bus Explorer</span>
         </button>
       </div>
 
-      <div className="mt-4">
-        {activeTab === "BOOKING" && renderBooking()}
-        {activeTab === "PASS" && (
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-             {renderPass()}
-          </div>
-        )}
-        {activeTab === "TRACKER" && (
-          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 h-[600px] overflow-hidden">
-             {renderTracker()}
-          </div>
-        )}
-      </div>
+      {/* ─── TAB CONTENT ────────────────────────────────────────────── */}
+
+      {/* 1. Smart Transit Cockpit (Default & Recommended) */}
+      {activeTab === "SMART_TRANSIT" && (
+        <SmartTransitCockpit
+          student={activeStudent}
+          user={currentUser}
+          buses={initialBuses}
+          stops={initialStops}
+          shifts={initialShifts}
+          trips={initialTrips}
+          bookings={initialBookings}
+          routes={initialRoutes}
+          onOpenDigitalPass={() => setActiveTab("PASS")}
+          onOpenLiveRadar={() => setActiveTab("TRACKER")}
+        />
+      )}
+
+      {/* 2. Live Bus Radar */}
+      {activeTab === "TRACKER" && (
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 h-[720px] overflow-hidden">
+          <LiveTrackerView
+            initialUser={currentUser}
+            initialBuses={initialBuses}
+            initialRoutes={initialRoutes}
+            initialStops={initialStops}
+            initialTrips={initialTrips}
+            initialStaff={initialStaff}
+            initialStudents={initialStudents}
+            isEmbedded={true}
+            activeBooking={activeBooking}
+          />
+        </div>
+      )}
+
+      {/* 3. Digital Pass View */}
+      {activeTab === "PASS" && (
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+          {activeStudent ? (
+            <DigitalPassView
+              initialUser={currentUser}
+              initialStudent={activeStudent}
+              initialStudents={initialStudents}
+              initialBuses={initialBuses}
+              initialTrips={initialTrips}
+              initialShifts={initialShifts}
+              initialStops={initialStops}
+              initialBookings={initialBookings}
+              initialStaff={initialStaff}
+              isEmbedded={true}
+            />
+          ) : (
+            <div className="p-8 text-center text-xs text-gray-500">
+              Student profile could not be loaded. Please sign in again.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4. Manual Bus Schedules & Explorer */}
+      {activeTab === "EXPLORE" && (
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+          {!resolvedBusId ? (
+            <CommuteBusSelector
+              initialUser={currentUser}
+              initialStudent={activeStudent}
+              initialStudents={initialStudents}
+              initialBuses={initialBuses}
+              initialTrips={initialTrips}
+              initialShifts={initialShifts}
+              initialStops={initialStops}
+              initialBookings={initialBookings}
+              initialRoutes={initialRoutes}
+              onBusSelected={(shiftId, stopId, busId) => {
+                setHubState({ shiftId, stopId, busId });
+              }}
+            />
+          ) : (
+            <ShiftBookingView
+              initialUser={currentUser}
+              initialStudent={activeStudent}
+              initialStudents={initialStudents}
+              initialBuses={initialBuses}
+              initialTrips={initialTrips}
+              initialShifts={initialShifts}
+              initialStops={initialStops}
+              initialBookings={initialBookings}
+              preselectedShiftId={hubState?.shiftId}
+              preselectedStopId={hubState?.stopId}
+              preselectedBusId={resolvedBusId}
+              isEmbedded={true}
+              onBackToBusSelection={() => setHubState(null)}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
