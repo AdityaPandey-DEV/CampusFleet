@@ -48,35 +48,78 @@ export default function StudentOnboardingPage() {
   const [department, setDepartment] = useState("");
   const [semester, setSemester] = useState("");
   const [classesList, setClassesList] = useState<any[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState(""); // cascaded step 1
-  const [selectedYear, setSelectedYear] = useState("");   // cascaded step 2
-  const [selectedSection, setSelectedSection] = useState(""); // cascaded step 3
+  const [academicData, setAcademicData] = useState<{
+    courses: any[];
+    branches: any[];
+    specializations: any[];
+    sections: any[];
+    classes: any[];
+  }>({ courses: [], branches: [], specializations: [], sections: [], classes: [] });
+
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState("");
+  const [selectedSpecializationId, setSelectedSpecializationId] = useState("");
+  const [selectedCourse, setSelectedCourse] = useState(""); 
+  const [selectedYear, setSelectedYear] = useState("");   
+  const [selectedSection, setSelectedSection] = useState(""); 
   const [selectedClassId, setSelectedClassId] = useState("");
 
-  // Cascaded lists derived dynamically from classesList (PostgreSQL)
-  const coursesList = useMemo(() => {
-    const list = Array.from(new Set(classesList.map(c => c.course).filter(Boolean))) as string[];
-    if (department && !list.includes(department)) list.push(department);
-    return list;
-  }, [classesList, department]);
+  // Cascaded lists derived from pure relational academic hierarchy
+  const filteredBranches = useMemo(() => {
+    if (!selectedCourseId) return [];
+    return academicData.branches.filter(b => b.course_id === selectedCourseId);
+  }, [academicData.branches, selectedCourseId]);
 
-  const semestersList = useMemo(() => {
-    const filtered = (selectedCourse || department)
-      ? classesList.filter(c => c.course === (selectedCourse || department))
-      : classesList;
-    const list = Array.from(new Set(filtered.map(c => c.semester).filter(Boolean))) as string[];
-    list.sort((a, b) => parseInt(a) - parseInt(b));
-    return list;
-  }, [classesList, selectedCourse, department]);
+  const filteredSpecializations = useMemo(() => {
+    if (!selectedBranchId) return [];
+    return academicData.specializations.filter(s => s.branch_id === selectedBranchId);
+  }, [academicData.specializations, selectedBranchId]);
 
-  const sectionsList = useMemo(() => {
-    return classesList.filter(c => {
-      const crs = selectedCourse || department;
-      if (crs && c.course !== crs) return false;
-      if (selectedYear && c.semester !== selectedYear) return false;
-      return true;
-    });
-  }, [classesList, selectedCourse, department, selectedYear]);
+  const availableSemesters = useMemo(() => {
+    if (!selectedCourseId) return [];
+    const crs = academicData.courses.find(c => c.id === selectedCourseId);
+    const total = crs?.total_semesters || 8;
+    const list: string[] = [];
+    for (let i = 1; i <= total; i++) {
+      const suffix = i === 1 ? "st" : i === 2 ? "nd" : i === 3 ? "rd" : "th";
+      list.push(`${i}${suffix} Sem`);
+    }
+    return list;
+  }, [academicData.courses, selectedCourseId]);
+
+  const availableSections = useMemo(() => {
+    if (!selectedSpecializationId || !selectedYear) return [];
+    const matched = academicData.classes.filter(
+      c => c.specialization_id === selectedSpecializationId && c.semester === selectedYear
+    );
+    if (matched.length === 0) {
+      return (academicData.sections || []).map(s => ({
+        id: s.id,
+        code: s.code,
+        name: s.name,
+      }));
+    }
+    return matched.map(m => ({
+      id: m.section_id || m.id,
+      code: m.section,
+      name: m.section_name || `Section ${m.section}`,
+      classId: m.id,
+    }));
+  }, [academicData.classes, academicData.sections, selectedSpecializationId, selectedYear]);
+
+  const currentMatchedClass = useMemo(() => {
+    if (selectedClassId) {
+      return academicData.classes.find(c => c.id === selectedClassId) || null;
+    }
+    if (selectedSpecializationId && selectedYear && selectedSection) {
+      return academicData.classes.find(
+        c => c.specialization_id === selectedSpecializationId &&
+             c.semester === selectedYear &&
+             c.section === selectedSection
+      ) || null;
+    }
+    return null;
+  }, [academicData.classes, selectedClassId, selectedSpecializationId, selectedYear, selectedSection]);
 
   const [selectedZoneCode, setSelectedZoneCode] = useState("ZONE_B");
   const [phone, setPhone] = useState("");
@@ -234,10 +277,13 @@ export default function StudentOnboardingPage() {
   }, [campusId]);
 
   useEffect(() => {
-    fetch("/api/classes")
+    fetch("/api/academic/cascade")
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.classes) setClassesList(data.classes);
+        if (data.success) {
+          setAcademicData(data);
+          setClassesList(data.classes || []);
+        }
       })
       .catch(console.error);
 
@@ -273,10 +319,13 @@ export default function StudentOnboardingPage() {
     setSemester(prev => prev || activeStudent?.semester || "");
     setSelectedClassId(prev => prev || activeStudent?.classId || "");
     
-    if (activeStudent?.classId && classesList.length > 0) {
-      const ec2 = classesList.find(c => c.id === activeStudent.classId);
+    if (activeStudent?.classId && academicData.classes.length > 0) {
+      const ec2 = academicData.classes.find(c => c.id === activeStudent.classId);
       if (ec2) { 
-        setSelectedCourse(prev => prev || ec2.course || ""); 
+        setSelectedCourseId(prev => prev || ec2.course_id || "");
+        setSelectedBranchId(prev => prev || ec2.branch_id || "");
+        setSelectedSpecializationId(prev => prev || ec2.specialization_id || "");
+        setSelectedCourse(prev => prev || ec2.course_name || ec2.course || ""); 
         setSelectedYear(prev => prev || ec2.semester || ""); 
         setSelectedSection(prev => prev || ec2.section || ""); 
       }
@@ -289,7 +338,7 @@ export default function StudentOnboardingPage() {
     setEmergencyRel(prev => prev || activeStudent?.emergencyContact?.relationship || "Parent / Guardian");
     setPhotoUrl(prev => prev || activeStudent?.photoUrl || "");
 
-  }, [dataLoaded, activeStudent, currentUser, classesList, stops]);
+  }, [dataLoaded, activeStudent, currentUser, academicData.classes, stops]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -566,94 +615,179 @@ export default function StudentOnboardingPage() {
                 />
               </div>
 
-            {/* ── CASCADED ACADEMIC PICKER: Course/Dept → Year/Sem → Section ── */}
-            {/* Step 1: Department / Program */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
-                <span>1. Department / Course *</span>
-              </label>
-              <select
-                required
-                value={selectedCourse || department}
-                onChange={e => {
-                  const val = e.target.value;
-                  setSelectedCourse(val);
-                  setDepartment(val);
-                  setSelectedYear("");
-                  setSelectedSection("");
-                  setSelectedClassId("");
-                }}
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
-              >
-                <option value="">-- Select Course / Dept --</option>
-                {coursesList.map(crs => (
-                  <option key={crs} value={crs}>
-                    {crs}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* ── 5-TIER CASCADED ACADEMIC PICKER: Course → Branch → Specialization → Semester → Section ── */}
+            <div className="p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-blue-950/20 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+                  <GraduationCap className="w-4 h-4" /> Academic Cohort & Section Selection
+                </span>
+                {currentMatchedClass && (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                    ✓ Verified Cohort
+                  </span>
+                )}
+              </div>
 
-            {/* Step 2: Semester */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
-                <span>2. Academic Semester *</span>
-              </label>
-              <select
-                required
-                value={selectedYear}
-                onChange={e => {
-                  const val = e.target.value;
-                  setSelectedYear(val);
-                  setSemester(val);
-                  setSelectedSection("");
-                  setSelectedClassId("");
-                }}
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
-                disabled={!selectedCourse && !department}
-              >
-                <option value="">-- Select Semester --</option>
-                {semestersList.map(sem => (
-                  <option key={sem} value={sem}>
-                    {sem}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Step 1: Degree / Course */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    1. Degree / Course *
+                  </label>
+                  <select
+                    required
+                    value={selectedCourseId}
+                    onChange={e => {
+                      const cId = e.target.value;
+                      setSelectedCourseId(cId);
+                      setSelectedBranchId("");
+                      setSelectedSpecializationId("");
+                      setSelectedYear("");
+                      setSelectedSection("");
+                      setSelectedClassId("");
+                      const crs = academicData.courses.find(c => c.id === cId);
+                      if (crs) setSelectedCourse(crs.short_name);
+                    }}
+                    className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
+                  >
+                    <option value="">-- Select Degree / Course --</option>
+                    {academicData.courses.map(crs => (
+                      <option key={crs.id} value={crs.id}>
+                        {crs.short_name} — {crs.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* Step 3: Section / Official Class */}
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
-                <span>3. Assigned Section / Class *</span>
-              </label>
-              <select
-                required
-                value={selectedClassId}
-                onChange={e => {
-                  const classId = e.target.value;
-                  setSelectedClassId(classId);
-                  const chosen = classesList.find(c => c.id === classId);
-                  if (chosen) {
-                    if (chosen.section) setSelectedSection(chosen.section);
-                    if (chosen.course) {
-                      setSelectedCourse(chosen.course);
-                      setDepartment(chosen.course);
-                    }
-                    if (chosen.semester) {
-                      setSelectedYear(chosen.semester);
-                      setSemester(chosen.semester);
-                    }
-                  }
-                }}
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-colors"
-              >
-                <option value="">-- Select Section --</option>
-                {sectionsList.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.section}
-                  </option>
-                ))}
-              </select>
+                {/* Step 2: Branch / Department */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    2. Discipline / Branch *
+                  </label>
+                  <select
+                    required
+                    disabled={!selectedCourseId || filteredBranches.length === 0}
+                    value={selectedBranchId}
+                    onChange={e => {
+                      const bId = e.target.value;
+                      setSelectedBranchId(bId);
+                      setSelectedSpecializationId("");
+                      setSelectedSection("");
+                      setSelectedClassId("");
+                      const br = academicData.branches.find(b => b.id === bId);
+                      if (br) setDepartment(br.name);
+                    }}
+                    className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors disabled:opacity-60"
+                  >
+                    <option value="">-- Select Branch --</option>
+                    {filteredBranches.map(br => (
+                      <option key={br.id} value={br.id}>
+                        {br.code} — {br.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Step 3: Specialization / Track */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    3. Specialization / Track *
+                  </label>
+                  <select
+                    required
+                    disabled={!selectedBranchId || filteredSpecializations.length === 0}
+                    value={selectedSpecializationId}
+                    onChange={e => {
+                      const sId = e.target.value;
+                      setSelectedSpecializationId(sId);
+                      setSelectedSection("");
+                      setSelectedClassId("");
+                    }}
+                    className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors disabled:opacity-60"
+                  >
+                    <option value="">-- Select Specialization --</option>
+                    {filteredSpecializations.map(sp => (
+                      <option key={sp.id} value={sp.id}>
+                        {sp.short_label} ({sp.name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Step 4: Semester */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    4. Current Semester *
+                  </label>
+                  <select
+                    required
+                    disabled={!selectedCourseId}
+                    value={selectedYear}
+                    onChange={e => {
+                      const sem = e.target.value;
+                      setSelectedYear(sem);
+                      setSemester(sem);
+                      setSelectedSection("");
+                      setSelectedClassId("");
+                    }}
+                    className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors disabled:opacity-60"
+                  >
+                    <option value="">-- Select Semester --</option>
+                    {availableSemesters.map(sem => (
+                      <option key={sem} value={sem}>
+                        {sem}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Step 5: Section & Class Mapping */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    5. Class Section *
+                  </label>
+                  <select
+                    required
+                    disabled={!selectedSpecializationId || !selectedYear}
+                    value={selectedSection}
+                    onChange={e => {
+                      const secCode = e.target.value;
+                      setSelectedSection(secCode);
+                      // Auto-resolve class
+                      const matched = academicData.classes.find(
+                        c => c.specialization_id === selectedSpecializationId &&
+                             c.semester === selectedYear &&
+                             c.section === secCode
+                      );
+                      if (matched) {
+                        setSelectedClassId(matched.id);
+                      } else {
+                        setSelectedClassId("");
+                      }
+                    }}
+                    className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-colors disabled:opacity-60"
+                  >
+                    <option value="">-- Select Section --</option>
+                    {availableSections.map(sec => (
+                      <option key={sec.code} value={sec.code}>
+                        {sec.name} ({sec.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Verified Matched Class Banner */}
+              {currentMatchedClass && (
+                <div className="p-3 bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-between text-xs">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Assigned Timetable Cohort:
+                  </span>
+                  <span className="font-bold text-blue-700 dark:text-blue-300">
+                    {currentMatchedClass.name}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

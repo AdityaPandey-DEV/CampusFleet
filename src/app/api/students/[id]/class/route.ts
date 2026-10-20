@@ -32,7 +32,7 @@ export async function PATCH(
     // 2. Fetch current student
     const { data: studentsFound, error: stuErr } = await supabaseAdmin
       .from("students")
-      .select("id, full_name, class_id, class_name")
+      .select("id, full_name, class_id")
       .or(`id.eq.${studentId},user_id.eq.${studentId}`)
       .limit(1);
 
@@ -47,7 +47,6 @@ export async function PATCH(
       .from("students")
       .update({
         class_id: classItem?.id || null,
-        class_name: classItem?.name || null,
       })
       .eq("id", student.id)
       .select()
@@ -61,7 +60,7 @@ export async function PATCH(
       action: "UPDATE_STUDENT_CLASS",
       entity: "Student",
       entity_id: student.id,
-      previous_value: { class_id: student.class_id, class_name: student.class_name },
+      previous_value: { class_id: student.class_id },
       new_value: { class_id: classItem?.id, class_name: classItem?.name },
       reason: classItem
         ? `Reassigned ${student.full_name} to ${classItem.name}`
