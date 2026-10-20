@@ -99,3 +99,85 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+/**
+ * PATCH /api/shifts/demand
+ * Allows managers/teachers to dynamically toggle isTodayOff or update shifts:
+ * - Single class update: { classId, dayOfWeek, isTodayOff, incomingShiftId, outgoingShiftId, assignedBusId }
+ * - Bulk day toggle: { dayOfWeek, isTodayOff } (e.g. toggle entire Saturday or Sunday ON/OFF)
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { classId, dayOfWeek, isTodayOff, incomingShiftId, outgoingShiftId, assignedBusId } = body;
+
+    if (!dayOfWeek) {
+      return NextResponse.json(
+        { success: false, error: "dayOfWeek is required (e.g. 'SATURDAY', 'SUNDAY', 'MONDAY')" },
+        { status: 400 }
+      );
+    }
+
+    const cleanDay = dayOfWeek.toUpperCase().trim();
+
+    // 1. Bulk day update (e.g. toggle all classes on Saturday/Sunday)
+    if (!classId && typeof isTodayOff === "boolean") {
+      const updatePayload: any = {
+        is_today_off: isTodayOff,
+        updated_at: new Date().toISOString(),
+      };
+      if (incomingShiftId !== undefined) updatePayload.incoming_shift_id = incomingShiftId;
+      if (outgoingShiftId !== undefined) updatePayload.outgoing_shift_id = outgoingShiftId;
+
+      const { data, error } = await supabaseAdmin
+        .from("shift_demands")
+        .update(updatePayload)
+        .eq("day_of_week", cleanDay)
+        .select();
+
+      if (error) throw error;
+
+      return NextResponse.json({
+        success: true,
+        message: `Updated all classes for ${cleanDay}: is_today_off = ${isTodayOff}`,
+        updatedCount: data?.length || 0,
+      });
+    }
+
+    // 2. Specific class update
+    if (classId) {
+      const updatePayload: any = { updated_at: new Date().toISOString() };
+      if (typeof isTodayOff === "boolean") updatePayload.is_today_off = isTodayOff;
+      if (incomingShiftId !== undefined) updatePayload.incoming_shift_id = incomingShiftId || null;
+      if (outgoingShiftId !== undefined) updatePayload.outgoing_shift_id = outgoingShiftId || null;
+      if (assignedBusId !== undefined) updatePayload.assigned_bus_id = assignedBusId || null;
+
+      const { data, error } = await supabaseAdmin
+        .from("shift_demands")
+        .update(updatePayload)
+        .eq("class_id", classId)
+        .eq("day_of_week", cleanDay)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return NextResponse.json({
+        success: true,
+        message: `Updated schedule for class on ${cleanDay}`,
+        demand: data,
+      });
+    }
+
+    return NextResponse.json(
+      { success: false, error: "Provide either classId or isTodayOff for bulk day toggle" },
+      { status: 400 }
+    );
+  } catch (err: any) {
+    console.error("PATCH /api/shifts/demand error:", err);
+    return NextResponse.json(
+      { success: false, error: err.message || "Failed to update shift demand" },
+      { status: 500 }
+    );
+  }
+}
