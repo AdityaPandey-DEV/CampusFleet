@@ -15,22 +15,20 @@ import {
   Search,
   Filter,
   GraduationCap,
-  Sparkles,
-  ShieldCheck,
-  ChevronRight,
-  BookOpen,
-  Navigation,
-  FileText,
   ShieldAlert,
   Check,
   X,
-  MessageSquare,
   Settings,
   Layers,
   TrendingUp,
-  CheckCheck,
-  ArrowRight,
-  SlidersHorizontal,
+  Navigation,
+  Download,
+  Printer,
+  ChevronRight,
+  ShieldCheck,
+  Sparkles,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
@@ -82,6 +80,23 @@ export interface TeacherConsoleProps {
   initialBookings?: any[];
 }
 
+// Generate solid deterministic neutral avatar backgrounds
+function getInitialsAvatarColor(name: string) {
+  const solidColors = [
+    { bg: "bg-blue-100 dark:bg-blue-900", text: "text-blue-800 dark:text-blue-200", border: "border-blue-200 dark:border-blue-800" },
+    { bg: "bg-emerald-100 dark:bg-emerald-900", text: "text-emerald-800 dark:text-emerald-200", border: "border-emerald-200 dark:border-emerald-800" },
+    { bg: "bg-zinc-100 dark:bg-zinc-800", text: "text-zinc-800 dark:text-zinc-200", border: "border-zinc-300 dark:border-zinc-700" },
+    { bg: "bg-amber-100 dark:bg-amber-900", text: "text-amber-800 dark:text-amber-200", border: "border-amber-200 dark:border-amber-800" },
+    { bg: "bg-teal-100 dark:bg-teal-900", text: "text-teal-800 dark:text-teal-200", border: "border-teal-200 dark:border-teal-800" },
+    { bg: "bg-indigo-100 dark:bg-indigo-900", text: "text-indigo-800 dark:text-indigo-200", border: "border-indigo-200 dark:border-indigo-800" },
+  ];
+  let sum = 0;
+  for (let i = 0; i < name.length; i++) {
+    sum += name.charCodeAt(i);
+  }
+  return solidColors[sum % solidColors.length];
+}
+
 export default function TeacherConsoleView({
   initialClasses = [],
   initialDefaultClassId,
@@ -98,8 +113,8 @@ export default function TeacherConsoleView({
   const [classes, setClasses] = useState<TeacherClass[]>(initialClasses);
   const [isSavingShiftSchedule, setIsSavingShiftSchedule] = useState(false);
   const searchParams = useSearchParams();
-  
-  // Default to primary allocated class, or initial default, or first class
+
+  // Selected class
   const primaryAllocated = initialClasses.find((c) => c.isPrimary) || initialClasses[0];
   const [selectedClassId, setSelectedClassId] = useState<string>(
     initialDefaultClassId || primaryAllocated?.id || "ALL"
@@ -109,10 +124,15 @@ export default function TeacherConsoleView({
   const [stats, setStats] = useState(initialStats);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string>("");
 
-  // Tab State
+  // Filters & Tabs
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "PRESENT" | "ABSENT">("ALL");
   const [activeTab, setActiveTab] = useState<"attendance" | "gate_passes" | "shifts" | "my_commute">("attendance");
+  const [gatePassFilter, setGatePassFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("ALL");
+
+  // Gate pass state
   const [gatePassRequests, setGatePassRequests] = useState<any[]>([]);
   const [isLoadingGatePasses, setIsLoadingGatePasses] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -123,6 +143,17 @@ export default function TeacherConsoleView({
       setActiveTab("my_commute");
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    setLastRefreshedAt(
+      new Date().toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      })
+    );
+  }, []);
 
   // Load assigned classes
   const loadClasses = async () => {
@@ -154,6 +185,14 @@ export default function TeacherConsoleView({
       if (data.success) {
         setArrivals(data.arrivals || []);
         setStats(data.stats || { totalBoarded: 0, totalEnrolled: 0, pending: 0 });
+        setLastRefreshedAt(
+          new Date().toLocaleTimeString("en-IN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          })
+        );
       }
     } catch (e) {
       console.error("Failed to load today's arrivals", e);
@@ -333,26 +372,69 @@ export default function TeacherConsoleView({
     return () => clearInterval(interval);
   }, [selectedClassId, activeTab]);
 
-  // Filtered & sorted ascending by student name
+  // Filtered arrivals
   const filteredArrivals = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    const result = arrivals.filter(
-      (a) =>
+    const q = searchQuery.toLowerCase().trim();
+    let result = arrivals.filter((a) => {
+      const matchesSearch =
         !q ||
         a.studentName.toLowerCase().includes(q) ||
         a.busName.toLowerCase().includes(q) ||
-        a.className.toLowerCase().includes(q)
-    );
+        a.className.toLowerCase().includes(q);
 
-    // Ensure sorted ascending by student name
+      if (!matchesSearch) return false;
+
+      if (statusFilter === "PRESENT") return a.status === "Present";
+      if (statusFilter === "ABSENT") return a.status !== "Present";
+      return true;
+    });
+
     result.sort((a, b) => a.studentName.localeCompare(b.studentName));
     return result;
-  }, [arrivals, searchQuery]);
+  }, [arrivals, searchQuery, statusFilter]);
 
   const selectedClassName =
     selectedClassId === "ALL"
       ? "All Allocated Classes"
       : classes.find((c) => c.id === selectedClassId)?.name || "Assigned Class";
+
+  const selectedClassObj = classes.find((c) => c.id === selectedClassId);
+
+  // Filtered gate passes
+  const filteredGatePasses = useMemo(() => {
+    if (gatePassFilter === "ALL") return gatePassRequests;
+    return gatePassRequests.filter((r) => r.status === gatePassFilter);
+  }, [gatePassRequests, gatePassFilter]);
+
+  // Export CSV
+  const exportToCsv = () => {
+    const headers = ["#", "Student ID", "Student Name", "Class/Section", "Allocated Bus", "Boarding Time", "Status"];
+    const rows = filteredArrivals.map((a, i) => [
+      i + 1,
+      `"${a.studentId}"`,
+      `"${a.studentName.replace(/"/g, '""')}"`,
+      `"${a.className}"`,
+      `"${a.busName}"`,
+      `"${a.boardingTime}"`,
+      `"${a.status}"`,
+    ]);
+    const csvContent =
+      "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `Student_Transit_Attendance_${selectedClassName.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   const teacherNavLinks = [
     { href: "/teacher", label: "Class Attendance", icon: Users },
@@ -361,12 +443,12 @@ export default function TeacherConsoleView({
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col pb-20 md:pb-6">
-      {/* Zero-Overflow Top Header */}
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col pb-20 md:pb-8">
+      {/* Universal Navigation Header */}
       <UnifiedAppHeader
         role="teacher"
         portalTitle="CampusFleet"
-        portalSubtitle="Faculty & Class Attendance Desk"
+        portalSubtitle="Faculty Transit & Attendance Desk"
         mobilePrimaryAction={{
           label: "My Commute & Settings",
           href: "/teacher?tab=my_commute",
@@ -377,225 +459,301 @@ export default function TeacherConsoleView({
           <div className="flex items-center gap-2">
             <Link
               href="/teacher/settings"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 transition-colors shadow-2xs"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-semibold text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-2xs"
               title="Open Commute Settings"
             >
-              <Settings className="w-3.5 h-3.5" />
+              <Settings className="w-3.5 h-3.5 text-zinc-500" />
               <span>Commute Settings</span>
-            </Link>
-            <Link
-              href="/portal"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-950/60 hover:bg-green-100 dark:hover:bg-green-900/60 text-green-700 dark:text-green-300 font-bold text-xs rounded-xl border border-green-200 dark:border-green-800 transition-colors shadow-2xs"
-              title="Open Student & Mobility Portal"
-            >
-              <GraduationCap className="w-3.5 h-3.5" />
-              <span>Student Portal</span>
             </Link>
           </div>
         }
       />
 
-      {/* Main Container */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
-        {/* Banner */}
-        <div className="bg-green-900/40 border border-green-800/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-green-400 font-bold text-xs uppercase tracking-wider">
-              <Sparkles className="w-4 h-4" />
-              <span>Real-Time Campus Transit Attendance</span>
+      {/* Main Workspace Container */}
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 max-w-7xl w-full mx-auto space-y-5 pt-4">
+        {/* Enterprise Breadcrumb & Header Bar */}
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 sm:p-5 shadow-2xs">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              {/* Context Tag Breadcrumb */}
+              <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold text-[11px]">
+                  <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Faculty Academic Portal</span>
+                </span>
+                <span>/</span>
+                <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                  {selectedClassName}
+                </span>
+                {selectedClassObj?.isPrimary && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-800 text-[10px] font-bold">
+                    Primary Advisor
+                  </span>
+                )}
+              </div>
+
+              {/* Title & Live Status */}
+              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+                  Student Transit Attendance & Roll Call
+                </h1>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-800 text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                  <span>Live Conductor Sync Active</span>
+                </div>
+              </div>
+
+              <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                Real-time boarding confirmation synced from bus conductor scanners. Manage class timetable shifts and student emergency exit passes.
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">
-              Teacher Portal — Bus Arrival Feed
-            </h1>
-            <p className="text-sm text-gray-300 mt-1 max-w-2xl">
-              Track student bus arrivals in real time. Roster shows all enrolled students in your assigned class with live Present or Absent transit status.
-            </p>
+
+            {/* Quick Actions Toolbar */}
+            <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+              <button
+                type="button"
+                onClick={loadArrivals}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-xs transition-colors border border-zinc-200 dark:border-zinc-700 cursor-pointer disabled:opacity-50"
+                title="Force refresh student arrival records"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+                <span>{isRefreshing ? "Syncing..." : "Sync Now"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={exportToCsv}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold text-xs transition-colors border border-zinc-300 dark:border-zinc-700 cursor-pointer shadow-2xs"
+                title="Download CSV attendance sheet"
+              >
+                <Download className="w-3.5 h-3.5 text-zinc-600" />
+                <span>Export CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold text-xs transition-colors border border-zinc-300 dark:border-zinc-700 cursor-pointer shadow-2xs"
+                title="Print class attendance manifest"
+              >
+                <Printer className="w-3.5 h-3.5 text-zinc-600" />
+                <span>Print</span>
+              </button>
+
+              <Link
+                href="/teacher/settings"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-2xs"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                <span>Commute Settings</span>
+              </Link>
+            </div>
           </div>
 
+          {/* Subtext info bar */}
+          <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 flex-wrap gap-2">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Last ledger update: {lastRefreshedAt || "Just now"}</span>
+            </span>
+            <span className="font-mono text-[11px] text-zinc-500">
+              Conductor auto-refresh frequency: every 10 seconds
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Solid Human Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Boarded / Present Card */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                Arrived by Bus
+              </span>
+              <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center font-bold">
+                <BusFront className="w-4 h-4" />
+              </span>
+            </div>
+            <div className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mt-2">
+              {stats.totalBoarded}
+            </div>
+            <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 flex items-center gap-1.5 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Verified conductor boarding</span>
+            </div>
+          </div>
+
+          {/* Pending / Absent Card */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                Not Yet Boarded
+              </span>
+              <span className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 flex items-center justify-center font-bold">
+                <Clock className="w-4 h-4" />
+              </span>
+            </div>
+            <div className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mt-2">
+              {stats.pending}
+            </div>
+            <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 flex items-center gap-1.5 font-medium">
+              <UserX className="w-3.5 h-3.5 text-zinc-500" />
+              <span>Awaiting check-in or absent</span>
+            </div>
+          </div>
+
+          {/* Enrolled Card */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                Total Enrolled
+              </span>
+              <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200 border border-blue-200 dark:border-blue-800 flex items-center justify-center font-bold">
+                <Users className="w-4 h-4" />
+              </span>
+            </div>
+            <div className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mt-2">
+              {stats.totalEnrolled}
+            </div>
+            <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 truncate font-medium">
+              Class {selectedClassName}
+            </div>
+          </div>
+
+          {/* Turnout Percentage */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                Transit Attendance
+              </span>
+              <span className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700 flex items-center justify-center font-bold">
+                <TrendingUp className="w-4 h-4 text-zinc-700" />
+              </span>
+            </div>
+            <div className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mt-2">
+              {stats.totalEnrolled > 0
+                ? `${Math.round((stats.totalBoarded / stats.totalEnrolled) * 100)}%`
+                : "0%"}
+            </div>
+            {/* Progress bar */}
+            <div className="w-full bg-zinc-200 dark:bg-zinc-700 h-1.5 rounded-full mt-2 overflow-hidden">
+              <div
+                className="bg-emerald-600 h-1.5 rounded-full transition-all duration-300"
+                style={{
+                  width: `${
+                    stats.totalEnrolled > 0
+                      ? Math.min(100, Math.round((stats.totalBoarded / stats.totalEnrolled) * 100))
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section Segmented Switcher Strip */}
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <button
-              onClick={loadArrivals}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/30 font-bold text-xs transition-all active:scale-95 cursor-pointer"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
-              <span>Live Sync</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-5 rounded-3xl bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                Arrived by Bus Today
-              </div>
-              <div className="text-3xl font-black text-green-600 dark:text-green-400 mt-1">
-                {stats.totalBoarded}
-              </div>
-              <div className="text-[11px] text-gray-500 mt-1 flex items-center gap-1 font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                <span>Verified by Bus Conductor</span>
-              </div>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-950/60 text-green-600 dark:text-green-400 flex items-center justify-center">
-              <BusFront className="w-6 h-6" />
-            </div>
+            <Layers className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+            <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+              Assigned Sections:
+            </span>
           </div>
 
-          <div className="p-5 rounded-3xl bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                Total Class Students
-              </div>
-              <div className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                {stats.totalEnrolled}
-              </div>
-              <div className="text-[11px] text-gray-500 mt-1 truncate max-w-[200px]">
-                Enrolled in {selectedClassName}
-              </div>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-          </div>
-
-          <div className="p-5 rounded-3xl bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                Transit Attendance Rate
-              </div>
-              <div className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                {stats.totalEnrolled > 0
-                  ? `${Math.round((stats.totalBoarded / stats.totalEnrolled) * 100)}%`
-                  : "0%"}
-              </div>
-              <div className="text-[11px] text-gray-500 mt-1">
-                {stats.pending} students not boarded yet
-              </div>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-pink-50 dark:bg-pink-950/60 text-pink-600 dark:text-pink-400 flex items-center justify-center">
-              <Clock className="w-6 h-6" />
-            </div>
-          </div>
-        </div>
-
-        {/* Class Cards Picker */}
-        <div className="space-y-3">
-          <div className="text-xs font-bold text-gray-500 flex items-center justify-between">
-            <span>Your Assigned Classes</span>
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 snap-x hide-scrollbar">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar flex-wrap">
             {classes.length > 1 && (
               <button
+                type="button"
                 onClick={() => setSelectedClassId("ALL")}
-                className={`snap-start min-w-[200px] flex-shrink-0 p-4 rounded-3xl border transition-all text-left cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${
                   selectedClassId === "ALL"
-                    ? "bg-green-50 dark:bg-green-900/40 border-green-500/50 shadow-md ring-2 ring-green-500/20"
-                    : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-green-500/30"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 border-zinc-200 dark:border-zinc-700"
                 }`}
               >
-                <div className="font-black text-sm text-gray-900 dark:text-white mb-1">
-                  All Allocated Classes
-                </div>
-                <div className="text-[11px] text-gray-500">
-                  {classes.length} Classes Total
-                </div>
+                All Sections ({classes.length})
               </button>
             )}
-            
-            {classes.map((c) => (
+
+            {classes.map((cls) => (
               <button
-                key={c.id}
-                onClick={() => setSelectedClassId(c.id)}
-                className={`snap-start min-w-[240px] flex-shrink-0 p-4 rounded-3xl border transition-all text-left cursor-pointer ${
-                  selectedClassId === c.id
-                    ? "bg-blue-50 dark:bg-blue-900/40 border-blue-500/50 shadow-md ring-2 ring-blue-500/20"
-                    : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-blue-500/30"
+                key={cls.id}
+                type="button"
+                onClick={() => setSelectedClassId(cls.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border flex items-center gap-2 ${
+                  selectedClassId === cls.id
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 border-zinc-200 dark:border-zinc-700"
                 }`}
               >
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <div className="font-black text-sm text-gray-900 dark:text-white truncate">
-                    {c.name}
-                  </div>
-                  {c.isPrimary && (
-                    <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase flex-shrink-0">
-                      Primary
-                    </span>
-                  )}
-                </div>
-                <div className="text-[11px] text-gray-500 flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5" />
-                  <span>{c.studentCount} Enrolled Students</span>
-                </div>
+                <span>{cls.name}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ${
+                    selectedClassId === cls.id
+                      ? "bg-zinc-700 text-white dark:bg-zinc-300 dark:text-zinc-900"
+                      : "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                  }`}
+                >
+                  {cls.studentCount}
+                </span>
+                {cls.isPrimary && (
+                  <span className="text-[10px] font-bold text-amber-500" title="Primary Class">
+                    ★
+                  </span>
+                )}
               </button>
             ))}
-
-            {classes.length === 0 && (
-              <div className="text-sm text-gray-400 p-4">
-                No Classes Allocated.
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-3xl p-3 shadow-sm flex items-center">
-
-          {/* Search Box */}
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search student or roll number..."
-              className="w-full pl-9 pr-4 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-800 pb-2 overflow-x-auto no-scrollbar">
+        {/* Enterprise Underline Tab Navigation */}
+        <div className="border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-6 overflow-x-auto hide-scrollbar">
           <button
+            type="button"
             onClick={() => setActiveTab("attendance")}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+            className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-colors cursor-pointer shrink-0 ${
               activeTab === "attendance"
-                ? "bg-green-600 text-white shadow-sm"
-                : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-800"
+                ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+                : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
             }`}
           >
             <BusFront className="w-4 h-4" />
-            <span>Transit Attendance Manifest</span>
+            <span>Attendance Manifest</span>
+            <span className="ml-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+              {filteredArrivals.length}
+            </span>
           </button>
 
           <button
+            type="button"
             onClick={() => {
               setActiveTab("gate_passes");
               loadGatePasses();
             }}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+            className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-colors cursor-pointer shrink-0 ${
               activeTab === "gate_passes"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-800"
+                ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+                : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
             }`}
           >
             <ShieldAlert className="w-4 h-4" />
-            <span>Emergency Gate-Pass Requests</span>
+            <span>Emergency Gate-Passes</span>
             {gatePassRequests.filter((r) => r.status === "PENDING").length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-950 animate-pulse">
+              <span className="ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white">
                 {gatePassRequests.filter((r) => r.status === "PENDING").length}
               </span>
             )}
           </button>
 
-          {selectedClassId !== "ALL" && classes.find(c => c.id === selectedClassId)?.isPrimary && (
+          {selectedClassId !== "ALL" && classes.find((c) => c.id === selectedClassId)?.isPrimary && (
             <button
+              type="button"
               onClick={() => setActiveTab("shifts")}
-              className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+              className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-colors cursor-pointer shrink-0 ${
                 activeTab === "shifts"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-800"
+                  ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+                  : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
               }`}
             >
               <Calendar className="w-4 h-4" />
@@ -604,11 +762,12 @@ export default function TeacherConsoleView({
           )}
 
           <button
+            type="button"
             onClick={() => setActiveTab("my_commute")}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+            className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-colors cursor-pointer shrink-0 ${
               activeTab === "my_commute"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-800"
+                ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+                : "border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
             }`}
           >
             <Navigation className="w-4 h-4" />
@@ -616,108 +775,348 @@ export default function TeacherConsoleView({
           </button>
         </div>
 
-        {/* Tab Content: Emergency Gate-Passes */}
+        {/* Tab 1: Attendance Manifest */}
+        {activeTab === "attendance" && (
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xs overflow-hidden">
+            {/* Table Header Filter Bar */}
+            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <BusFront className="w-4 h-4 text-blue-600" />
+                    <span>Today's Transit Arrival Ledger</span>
+                  </h2>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    Showing students enrolled in {selectedClassName}.
+                  </p>
+                </div>
+
+                {/* Status Segment Filter */}
+                <div className="inline-flex p-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("ALL")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                      statusFilter === "ALL"
+                        ? "bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 shadow-2xs"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900"
+                    }`}
+                  >
+                    All ({arrivals.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("PRESENT")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                      statusFilter === "PRESENT"
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-emerald-700"
+                    }`}
+                  >
+                    Present ({stats.totalBoarded})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("ABSENT")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                      statusFilter === "ABSENT"
+                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900"
+                    }`}
+                  >
+                    Absent ({stats.pending})
+                  </button>
+                </div>
+              </div>
+
+              {/* Search Box */}
+              <div className="relative w-full lg:w-72">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search student or bus..."
+                  className="w-full pl-8 pr-8 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-blue-600"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Attendance Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-[11px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+                    <th className="py-2.5 px-4 w-12 text-center">#</th>
+                    <th className="py-2.5 px-4">Student Name</th>
+                    <th className="py-2.5 px-4">Section</th>
+                    <th className="py-2.5 px-4">Allocated Bus</th>
+                    <th className="py-2.5 px-4">Boarding Time</th>
+                    <th className="py-2.5 px-4">Conductor Verification</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-xs">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center">
+                        <BusLoadingScreen
+                          compact={true}
+                          fullScreen={false}
+                          message="Loading student roll call from ledger..."
+                          subtitle="Connecting to Faculty Transit Ledger"
+                        />
+                      </td>
+                    </tr>
+                  ) : filteredArrivals.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-zinc-500 dark:text-zinc-400">
+                        {classes.length === 0
+                          ? "You are not currently allocated to any class. Please contact the university administrator."
+                          : "No students matching your filter criteria."}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredArrivals.map((row, index) => {
+                      const isPresent = row.status === "Present";
+                      const avatarColors = getInitialsAvatarColor(row.studentName);
+
+                      return (
+                        <tr
+                          key={row.studentId || row.id}
+                          className="hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                        >
+                          <td className="py-3 px-4 text-center font-mono text-xs text-zinc-400">
+                            {index + 1}
+                          </td>
+
+                          <td className="py-3 px-4 font-semibold text-zinc-900 dark:text-zinc-100">
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                className={`w-7 h-7 rounded-md font-bold text-xs flex items-center justify-center flex-shrink-0 border ${avatarColors.bg} ${avatarColors.text} ${avatarColors.border}`}
+                              >
+                                {row.studentName.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+                                  {row.studentName}
+                                </div>
+                                <div className="text-[10px] font-mono text-zinc-400">
+                                  ID: {row.studentId.substring(0, 8)}...
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-4 text-zinc-700 dark:text-zinc-300 font-medium">
+                            {row.className}
+                          </td>
+
+                          <td className="py-3 px-4">
+                            {isPresent ? (
+                              <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
+                                <BusFront className="w-3 h-3 text-zinc-500" />
+                                {row.busName}
+                              </span>
+                            ) : (
+                              <span className="text-zinc-400 font-mono text-xs">—</span>
+                            )}
+                          </td>
+
+                          <td className="py-3 px-4 font-mono text-zinc-700 dark:text-zinc-300">
+                            {isPresent ? (
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                                <span>{row.boardingTime}</span>
+                              </div>
+                            ) : (
+                              <span className="text-zinc-400 font-mono text-xs">—</span>
+                            )}
+                          </td>
+
+                          <td className="py-3 px-4">
+                            {isPresent ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-800 text-[11px] font-bold">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Present • Verified</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 text-[11px] font-semibold">
+                                <XCircle className="w-3.5 h-3.5 text-zinc-400" />
+                                <span>Absent • Not Scanned</span>
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Emergency Gate-Passes */}
         {activeTab === "gate_passes" && (
-          <div className="bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-md space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-zinc-800">
               <div>
-                <h2 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-blue-500" />
+                <h2 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-blue-600" />
                   <span>Student Emergency Early Departure Requests</span>
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Students requesting early shuttle booking during class hours. Approval grants gate-pass authorization.
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Authorize or decline early campus departure permits for students within your sections.
                 </p>
               </div>
 
-              <button
-                onClick={loadGatePasses}
-                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 dark:hover:text-white px-2.5 py-1 rounded-xl bg-gray-100 dark:bg-gray-800 transition-colors"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingGatePasses ? "animate-spin" : ""}`} />
-                <span>Refresh</span>
-              </button>
+              {/* Status Filter */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="inline-flex p-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                  <button
+                    type="button"
+                    onClick={() => setGatePassFilter("ALL")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                      gatePassFilter === "ALL"
+                        ? "bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 shadow-2xs"
+                        : "text-zinc-600 dark:text-zinc-400"
+                    }`}
+                  >
+                    All ({gatePassRequests.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGatePassFilter("PENDING")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                      gatePassFilter === "PENDING"
+                        ? "bg-amber-500 text-white shadow-2xs"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-amber-600"
+                    }`}
+                  >
+                    Pending ({gatePassRequests.filter((r) => r.status === "PENDING").length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGatePassFilter("APPROVED")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                      gatePassFilter === "APPROVED"
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-emerald-600"
+                    }`}
+                  >
+                    Approved
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGatePassFilter("REJECTED")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                      gatePassFilter === "REJECTED"
+                        ? "bg-rose-600 text-white shadow-2xs"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-rose-600"
+                    }`}
+                  >
+                    Rejected
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={loadGatePasses}
+                  className="inline-flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-200 px-2.5 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 transition-colors shadow-2xs cursor-pointer font-semibold"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingGatePasses ? "animate-spin" : ""}`} />
+                  <span>Refresh</span>
+                </button>
+              </div>
             </div>
 
             {isLoadingGatePasses ? (
-              <div className="py-12 text-center text-xs text-gray-500">
+              <div className="py-12 text-center text-xs text-zinc-500">
                 Loading gate pass requests...
               </div>
-            ) : gatePassRequests.length === 0 ? (
+            ) : filteredGatePasses.length === 0 ? (
               <div className="py-12 text-center space-y-2">
-                <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto" />
-                <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                  No Emergency Requests Pending
+                <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
+                <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                  No Gate Pass Requests
                 </div>
-                <div className="text-xs text-gray-500">
-                  All students in your assigned class are attending scheduled timetable classes.
+                <div className="text-xs text-zinc-500">
+                  {gatePassFilter === "PENDING"
+                    ? "All early departure requests have been resolved."
+                    : "No early exit requests matching this status."}
                 </div>
               </div>
             ) : (
               <div className="space-y-3">
-                {gatePassRequests.map((req) => {
+                {filteredGatePasses.map((req) => {
                   const isPending = req.status === "PENDING";
                   const isApproved = req.status === "APPROVED";
-                  const isRejected = req.status === "REJECTED";
 
                   return (
                     <div
                       key={req.id}
-                      className={`p-4 rounded-2xl border transition-all ${
-                        isPending
-                          ? "bg-yellow-50/40 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800/60"
-                          : isApproved
-                          ? "bg-green-50/30 dark:bg-green-950/10 border-green-200 dark:border-green-800/40"
-                          : "bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-800 opacity-75"
-                      }`}
+                      className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 transition-colors"
                     >
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="space-y-1.5 flex-1">
+                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div className="space-y-2 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-sm text-gray-900 dark:text-white">
+                            <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
                               {req.student?.full_name || "Student"}
                             </span>
-                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300">
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
                               {req.class?.name || "Class"}
                             </span>
                             <span
-                              className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
                                 isPending
-                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-300 animate-pulse"
+                                  ? "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-800"
                                   : isApproved
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-300"
-                                  : "bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-300"
+                                  ? "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-800"
+                                  : "bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-800"
                               }`}
                             >
                               {req.status}
                             </span>
                           </div>
 
-                          <div className="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold">Shift: {req.shift?.name || "Corridor Shift"}</span>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                              Shift: {req.shift?.name || "Corridor Shift"}
+                            </span>
                             <span>•</span>
-                            <span>Requested for: {req.request_date}</span>
+                            <span>Date: {req.request_date}</span>
                             <span>•</span>
-                            <span className="text-gray-400">
-                              Submitted: {new Date(req.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            <span>
+                              Requested: {new Date(req.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           </div>
 
-                          <div className="p-3 bg-white dark:bg-gray-850 rounded-xl border border-gray-200 dark:border-gray-700 text-xs text-gray-800 dark:text-gray-200">
-                            <span className="font-bold text-gray-500 uppercase text-[10px] block mb-0.5">Emergency Reason:</span>
+                          <div className="p-3 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-800 dark:text-zinc-200">
+                            <span className="font-bold text-zinc-500 dark:text-zinc-400 uppercase text-[10px] block mb-1">
+                              Reason for Early Departure:
+                            </span>
                             {req.reason}
                           </div>
 
                           {req.teacher_remarks && (
-                            <div className="text-xs text-gray-500 italic">
+                            <div className="text-xs text-zinc-600 dark:text-zinc-400 italic">
                               Remarks: {req.teacher_remarks}
                             </div>
                           )}
                         </div>
 
-                        {/* Action Buttons for Pending Requests */}
+                        {/* Action Box for Pending Requests */}
                         {isPending && (
-                          <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0 w-full md:w-64">
+                          <div className="flex flex-col gap-2 shrink-0 w-full md:w-64">
                             <input
                               type="text"
                               placeholder="Remarks (Optional)..."
@@ -725,21 +1124,23 @@ export default function TeacherConsoleView({
                               onChange={(e) =>
                                 setTeacherRemarks((prev) => ({ ...prev, [req.id]: e.target.value }))
                               }
-                              className="w-full text-xs p-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none"
+                              className="w-full text-xs p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-600"
                             />
                             <div className="flex items-center gap-2">
                               <button
+                                type="button"
                                 onClick={() => handleGatePassAction(req.id, "APPROVED")}
                                 disabled={actionLoadingId === req.id}
-                                className="flex-1 py-2 px-3 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                className="flex-1 py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg shadow-2xs transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                               >
                                 <Check className="w-3.5 h-3.5" />
                                 <span>{actionLoadingId === req.id ? "Saving..." : "Approve Pass"}</span>
                               </button>
                               <button
+                                type="button"
                                 onClick={() => handleGatePassAction(req.id, "REJECTED")}
                                 disabled={actionLoadingId === req.id}
-                                className="flex-1 py-2 px-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                className="flex-1 py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-lg shadow-2xs transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                               >
                                 <X className="w-3.5 h-3.5" />
                                 <span>Reject</span>
@@ -756,166 +1157,29 @@ export default function TeacherConsoleView({
           </div>
         )}
 
-        {/* Tab Content: Transit Manifest */}
-        {activeTab === "attendance" && (
-        <div className="bg-white dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-md space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
-            <div>
-              <h2 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
-                <BusFront className="w-5 h-5 text-green-500" />
-                <span>Today's Bus Arrival Manifest</span>
-              </h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Complete student roll for {selectedClassName}, ordered alphabetically with real-time transit status.
-              </p>
-            </div>
-
-            <div className="text-xs font-bold px-3 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span>Conductor Live Feed</span>
-            </div>
-          </div>
-
-
-          {/* Table with S.No. and Present/Absent */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-800 text-[11px] font-black uppercase tracking-wider text-gray-400">
-                  <th className="py-3 px-4 w-14 text-center">S.No.</th>
-                  <th className="py-3 px-4">Student Name</th>
-                  <th className="py-3 px-4">Class</th>
-                  <th className="py-3 px-4">Bus</th>
-                  <th className="py-3 px-4">Boarding Time</th>
-                  <th className="py-3 px-4">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60 text-xs">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center">
-                      <BusLoadingScreen
-                        compact={true}
-                        fullScreen={false}
-                        message="Loading student roster and bus arrivals..."
-                        subtitle="Connecting to Faculty Transit Ledger"
-                      />
-                    </td>
-                  </tr>
-                ) : filteredArrivals.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-gray-400">
-                      {classes.length === 0
-                        ? "You are not currently allocated to any class. Please contact the administrator."
-                        : "No enrolled students found in this class."}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredArrivals.map((row, index) => {
-                    const isPresent = row.status === "Present";
-                    return (
-                      <tr
-                        key={row.studentId || row.id}
-                        className="hover:bg-gray-50/70 dark:hover:bg-gray-800/40 transition-colors"
-                      >
-                        {/* Serial Number */}
-                        <td className="py-3.5 px-4 text-center font-mono font-bold text-gray-400 text-xs">
-                          {index + 1}
-                        </td>
-
-                        {/* Student Name & Roll */}
-                        <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center flex-shrink-0 ${
-                                isPresent
-                                  ? "bg-green-100 dark:bg-green-950/80 text-green-700 dark:text-green-300"
-                                  : "bg-gray-100 dark:bg-gray-800 text-gray-500"
-                              }`}
-                            >
-                              {row.studentName.charAt(0)}
-                            </div>
-                            <div>
-                              <div>{row.studentName}</div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Class Name */}
-                        <td className="py-3.5 px-4 font-semibold text-gray-600 dark:text-gray-300">
-                          {row.className}
-                        </td>
-
-                        {/* Bus Badge */}
-                        <td className="py-3.5 px-4">
-                          {isPresent ? (
-                            <span className="inline-flex items-center gap-1 font-mono font-bold px-2.5 py-1 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px]">
-                              <BusFront className="w-3 h-3" />
-                              {row.busName}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 font-mono text-xs">—</span>
-                          )}
-                        </td>
-
-                        {/* Boarding Time */}
-                        <td className="py-3.5 px-4 font-mono font-bold text-gray-700 dark:text-gray-300">
-                          {isPresent ? (
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5 text-gray-400" />
-                              <span>{row.boardingTime}</span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 font-mono text-xs">—</span>
-                          )}
-                        </td>
-
-                        {/* Status (Present / Absent) */}
-                        <td className="py-3.5 px-4">
-                          {isPresent ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/30 text-[11px] font-bold">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Present</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 text-[11px] font-bold">
-                              <XCircle className="w-3.5 h-3.5" />
-                              <span>Absent</span>
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        )}
-
-        {/* Tab Content: Weekly Class Timetable & Fleet Demand */}
+        {/* Tab 3: Class Timetable & Mobility Demand */}
         {activeTab === "shifts" && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {selectedClassId === "ALL" ? (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-8 text-center space-y-4 shadow-sm">
-                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
-                  <Calendar className="w-6 h-6" />
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-8 text-center space-y-4 shadow-2xs">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200 border border-blue-200 dark:border-blue-800 flex items-center justify-center mx-auto">
+                  <Calendar className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                    Select a Section to Configure Weekly Transit Timetable
+                  <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                    Select a Specific Section to Configure Weekly Timetable
                   </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto mt-1">
-                    Choose one of your assigned sections to set incoming and outgoing shifts for Monday through Sunday and calculate student transit demand.
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mx-auto mt-1">
+                    Choose an assigned class section below to schedule morning incoming and evening outgoing shifts and compute passenger fleet demand.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                   {classes.map((cls) => (
                     <button
                       key={cls.id}
+                      type="button"
                       onClick={() => setSelectedClassId(cls.id)}
-                      className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-800 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-gray-700 dark:text-gray-200 transition-colors border border-gray-200 dark:border-gray-700 cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 transition-colors border border-zinc-200 dark:border-zinc-700 cursor-pointer"
                     >
                       {cls.name} ({cls.studentCount} students)
                     </button>
@@ -932,109 +1196,109 @@ export default function TeacherConsoleView({
                 const weeklyTotalTrips = activeDaysCount * enrolledStudents * 2;
 
                 return (
-                  <div className="space-y-6">
-                    {/* Header & Mobility Demand Sizing Bar */}
-                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-sm space-y-5">
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-800">
+                  <div className="space-y-5">
+                    {/* Top Demand KPI & Preset Bar */}
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-2xs space-y-4">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                              {currentClass?.name || selectedClassName} — Timetable & Fleet Demand
+                            <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                              {currentClass?.name || selectedClassName} — Mobility & Timetable Planner
                             </h3>
-                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
                               {enrolledStudents} Enrolled Students
                             </span>
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Set incoming & outgoing shifts for Monday through Sunday. Toggle transit ON or OFF per day to compute student commute demand and fleet vehicle requirements.
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                            Set incoming and outgoing shifts for Monday through Sunday. Daily toggles update fleet dispatch requirements automatically.
                           </p>
                         </div>
 
-                        {/* Presets and Status */}
+                        {/* Presets */}
                         <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
                           {isSavingShiftSchedule && (
-                            <span className="text-xs text-blue-500 flex items-center gap-1 font-bold animate-pulse mr-2">
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...
+                            <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1 font-semibold animate-pulse mr-2">
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving changes...
                             </span>
                           )}
                           <button
                             type="button"
                             onClick={() => handleApplyPresetSchedule("STANDARD_WEEKDAY")}
-                            className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs font-semibold text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
                           >
                             Mon–Fri Standard
                           </button>
                           <button
                             type="button"
                             onClick={() => handleApplyPresetSchedule("ALL_ON")}
-                            className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs font-semibold text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
                           >
                             Turn All ON
                           </button>
                           <button
                             type="button"
                             onClick={() => handleApplyPresetSchedule("ALL_OFF")}
-                            className="px-3 py-1.5 rounded-xl border border-red-200 dark:border-red-900/40 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs font-semibold text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg border border-rose-300 dark:border-rose-900 bg-white dark:bg-zinc-800 hover:bg-rose-50 dark:hover:bg-rose-950 text-xs font-semibold text-rose-700 dark:text-rose-300 transition-colors shadow-2xs cursor-pointer"
                           >
                             Turn All OFF
                           </button>
                         </div>
                       </div>
 
-                      {/* Fleet Demand KPI Cards */}
+                      {/* Demand KPI Tiles */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800">
-                          <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <div className="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                          <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
                             Active Days
                           </div>
-                          <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
-                            {activeDaysCount} <span className="text-xs font-normal text-gray-400">/ 7 days</span>
+                          <div className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mt-0.5">
+                            {activeDaysCount} <span className="text-xs font-normal text-zinc-400">/ 7 days</span>
                           </div>
-                          <div className="text-[11px] text-gray-500 mt-1">
-                            {7 - activeDaysCount} days transit saved
+                          <div className="text-[11px] text-zinc-500 mt-1">
+                            {7 - activeDaysCount} days transit off
                           </div>
                         </div>
 
-                        <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800">
-                          <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <div className="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                          <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
                             Shift Demand
                           </div>
-                          <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
-                            {enrolledStudents} <span className="text-xs font-normal text-gray-400">students</span>
+                          <div className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mt-0.5">
+                            {enrolledStudents} <span className="text-xs font-normal text-zinc-400">riders</span>
                           </div>
-                          <div className="text-[11px] text-gray-500 mt-1">
-                            Per active incoming/outgoing
+                          <div className="text-[11px] text-zinc-500 mt-1">
+                            Per active timetable shift
                           </div>
                         </div>
 
-                        <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
-                          <div className="text-[11px] font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                        <div className="p-3 rounded-lg bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
+                          <div className="text-[11px] font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
                             Fleet Required
                           </div>
-                          <div className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-0.5">
-                            ~{busesPerShift} <span className="text-xs font-normal text-blue-500">Bus(es)</span>
+                          <div className="text-xl font-bold text-blue-900 dark:text-blue-100 mt-0.5">
+                            ~{busesPerShift} <span className="text-xs font-normal">Bus(es)</span>
                           </div>
-                          <div className="text-[11px] text-blue-500/80 mt-1">
-                            @ 40 pax capacity / shift
+                          <div className="text-[11px] text-blue-700 dark:text-blue-300 mt-1">
+                            Based on standard 40-seat coach
                           </div>
                         </div>
 
-                        <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800">
-                          <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Weekly Total Trips
+                        <div className="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                          <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+                            Weekly Passenger Trips
                           </div>
-                          <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
-                            {weeklyTotalTrips} <span className="text-xs font-normal text-gray-400">trips</span>
+                          <div className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mt-0.5">
+                            {weeklyTotalTrips} <span className="text-xs font-normal text-zinc-400">trips</span>
                           </div>
-                          <div className="text-[11px] text-gray-500 mt-1">
-                            Both directions combined
+                          <div className="text-[11px] text-zinc-500 mt-1">
+                            Combined in & outbound
                           </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Monday to Sunday 7-Day Timetable Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
                       {WEEK_DAYS.map((day) => {
                         const dayConfig = schedule[day.key] || {
                           enabled: day.key !== "sunday",
@@ -1046,23 +1310,23 @@ export default function TeacherConsoleView({
                         return (
                           <div
                             key={day.key}
-                            className={`p-5 rounded-2xl border transition-all ${
+                            className={`p-4 rounded-xl border transition-colors ${
                               isDayEnabled
-                                ? "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm"
-                                : "bg-gray-50/70 dark:bg-gray-900/40 border-gray-200/60 dark:border-gray-800/60 opacity-80"
+                                ? "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-2xs"
+                                : "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
                             }`}
                           >
-                            {/* Day Header with Toggle */}
-                            <div className="flex items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
+                            {/* Day Header with Solid Toggle Switch */}
+                            <div className="flex items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-zinc-800">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-sm text-gray-900 dark:text-white">
+                                <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
                                   {day.label}
                                 </span>
                                 <span
-                                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
                                     isDayEnabled
-                                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                      : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                      ? "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-800"
+                                      : "bg-zinc-200 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700"
                                   }`}
                                 >
                                   {isDayEnabled ? "Transit ON" : "Transit OFF"}
@@ -1072,13 +1336,14 @@ export default function TeacherConsoleView({
                               <button
                                 type="button"
                                 onClick={() => handleUpdateDaySchedule(day.key, "enabled", !isDayEnabled)}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                                  isDayEnabled ? "bg-emerald-600" : "bg-gray-300 dark:bg-gray-700"
+                                className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors cursor-pointer ${
+                                  isDayEnabled ? "bg-emerald-600" : "bg-zinc-300 dark:bg-zinc-700"
                                 }`}
+                                aria-label={`Toggle transit for ${day.label}`}
                               >
                                 <span
-                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                    isDayEnabled ? "translate-x-6" : "translate-x-1"
+                                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                                    isDayEnabled ? "translate-x-5" : "translate-x-1"
                                   }`}
                                 />
                               </button>
@@ -1086,16 +1351,15 @@ export default function TeacherConsoleView({
 
                             {/* Shift Selectors */}
                             {isDayEnabled ? (
-                              <div className="space-y-3.5 mt-3.5">
-                                {/* Incoming Shift */}
+                              <div className="space-y-3 mt-3">
                                 <div>
-                                  <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                  <label className="block text-[11px] font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
                                     Incoming Shift (Home → Campus)
                                   </label>
                                   <select
                                     value={dayConfig.incomingShiftId || ""}
                                     onChange={(e) => handleUpdateDaySchedule(day.key, "incomingShiftId", e.target.value)}
-                                    className="w-full text-xs font-medium px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full text-xs px-2.5 py-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-600"
                                   >
                                     <option value="">Select incoming shift</option>
                                     {fleetShifts.map((shift) => (
@@ -1106,15 +1370,14 @@ export default function TeacherConsoleView({
                                   </select>
                                 </div>
 
-                                {/* Outgoing Shift */}
                                 <div>
-                                  <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                  <label className="block text-[11px] font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
                                     Outgoing Shift (Campus → Home)
                                   </label>
                                   <select
                                     value={dayConfig.outgoingShiftId || ""}
                                     onChange={(e) => handleUpdateDaySchedule(day.key, "outgoingShiftId", e.target.value)}
-                                    className="w-full text-xs font-medium px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full text-xs px-2.5 py-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-600"
                                   >
                                     <option value="">Select outgoing shift</option>
                                     {fleetShifts.map((shift) => (
@@ -1125,22 +1388,21 @@ export default function TeacherConsoleView({
                                   </select>
                                 </div>
 
-                                {/* Demand & Sizing Pill */}
-                                <div className="pt-2 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between text-[11px] text-gray-500">
-                                  <span className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300">
-                                    <Users className="w-3.5 h-3.5 text-blue-500" />
+                                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-zinc-500">
+                                  <span className="flex items-center gap-1 font-semibold text-zinc-700 dark:text-zinc-300">
+                                    <Users className="w-3.5 h-3.5 text-blue-600" />
                                     {enrolledStudents} students
                                   </span>
                                   <span className="flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400">
                                     <BusFront className="w-3.5 h-3.5" />
-                                    ~{busesPerShift} bus(es) / trip
+                                    ~{busesPerShift} bus(es)
                                   </span>
                                 </div>
                               </div>
                             ) : (
-                              <div className="mt-3.5 py-4 px-3 rounded-xl bg-gray-100/70 dark:bg-gray-800/50 border border-dashed border-gray-200 dark:border-gray-800 text-center">
-                                <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                                  Transit disabled on {day.label}. 0 students commuting, saving fleet capacity & fuel.
+                              <div className="mt-3 py-4 px-2 rounded-lg bg-zinc-200 dark:bg-zinc-800 text-center">
+                                <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+                                  Transit turned off on {day.label}. 0 buses deployed.
                                 </span>
                               </div>
                             )}
@@ -1155,28 +1417,28 @@ export default function TeacherConsoleView({
           </div>
         )}
 
-        {/* Tab Content: My Commute Cockpit */}
+        {/* Tab 4: My Commute Cockpit */}
         {activeTab === "my_commute" && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <BusFront className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                    Faculty Transit & Commute Cockpit
+                  <BusFront className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                    Faculty Commute Cockpit & Digital Pass
                   </h3>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Mark your daily seat attendance, generate your QR pass, track live bus radar, and manage your assigned commute.
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Check-in for your daily seat, generate your digital boarding pass, and track your campus shuttle live.
                 </p>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Link
                   href="/teacher/settings"
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700 transition-colors shadow-2xs"
                 >
-                  <Settings className="w-3.5 h-3.5 text-blue-500" />
+                  <Settings className="w-3.5 h-3.5 text-zinc-500" />
                   <span>Commute Settings</span>
                 </Link>
               </div>
@@ -1195,6 +1457,7 @@ export default function TeacherConsoleView({
         )}
       </main>
 
+      {/* Mobile Bottom Navigation */}
       <MobileBottomNav isPaymentApproved={true} navItems={teacherNavLinks} />
     </div>
   );
