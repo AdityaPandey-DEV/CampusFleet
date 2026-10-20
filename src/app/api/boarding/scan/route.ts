@@ -263,6 +263,21 @@ export async function POST(req: NextRequest) {
       booking_id: `att-${Date.now()}` 
     });
 
+    // Update Smart Transit bus_reservations status to BOARDED
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      await supabaseAdmin
+        .from("bus_reservations")
+        .update({
+          status: "BOARDED",
+          boarded_at: timestamp,
+        })
+        .eq("student_id", student.id)
+        .eq("reservation_date", today);
+    } catch (e) {
+      console.warn("[QR_ATTENDANCE] Could not update bus_reservations:", e);
+    }
+
     // 7b. Record Audit Log (AWAITED — security-critical attendance verification)
     try {
       await supabaseAdmin.from("audit_logs").insert({

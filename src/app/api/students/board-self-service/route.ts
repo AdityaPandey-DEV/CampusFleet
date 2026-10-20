@@ -145,6 +145,23 @@ export async function POST(req: NextRequest) {
       signature_token: `GEOFENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
     });
 
+    // Sync to bus_reservations
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      await supabaseAdmin
+        .from("bus_reservations")
+        .update({
+          status: "BOARDED",
+          boarded_at: new Date().toISOString(),
+          chosen_seat: targetBooking.seat_number,
+          seat_chosen_at: new Date().toISOString(),
+        })
+        .eq("student_id", studentId)
+        .eq("reservation_date", today);
+    } catch (e) {
+      console.warn("[SELF_BOARDING] Could not update bus_reservations:", e);
+    }
+
     return NextResponse.json({ 
       success: true, 
       message: `Boarding approved for seat ${targetBooking.seat_number}. Welcome aboard!`,
