@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSessionFromRequest } from "@/lib/jwt";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
 import { isTripCutoffPassed, getTodayIST } from "@/lib/time-manager";
-import { generateSeatLayout } from "@/lib/utils";
+import { generateSeatLayout, isStartingSeat, getTeacherStartingSeats } from "@/lib/utils";
 
 // GET /api/bookings?tripId=...&shiftId=...&studentId=...&date=...
 export async function GET(req: NextRequest) {
@@ -324,8 +324,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const userRole = ((session as any)?.role || "").toLowerCase();
+    const isFacultyUser = userRole === "teacher" || userRole === "faculty" || userRole === "staff" || userRole === "admin";
+
+    // Determine N number of teachers for this bus/trip
+    const busTeacherQuota = Number((bus as any)?.teacher_seats_count || (bus as any)?.teacherSeatsCount || 0);
+    const { count: teacherBookingsCount } = await supabaseAdmin
+      .from("bookings_full")
+      .select("*", { count: "exact", head: true })
+      .eq("trip_id", tripId)
+      .in("passenger_type", ["FACULTY", "TEACHER", "STAFF"]);
+
+    const nTeachers = Math.max(busTeacherQuota, teacherBookingsCount || 0, 1);
+    const teacherReservedSeats = getTeacherStartingSeats(allSeats, nTeachers);
+
     let allocatedSeat = availableSeats[0];
     if (requestedSeatNumber) {
+      if (teacherReservedSeats.includes(requestedSeatNumber) && !isFacultyUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: "SEAT_RESTRICTED_FOR_FACULTY",
+            message: `Starting seats (first ${nTeachers} seats) on this bus are strictly reserved for Faculty and Teachers. Please select another seat.`,
+            availableSeats: availableSeats.filter((s) => !teacherReservedSeats.includes(s)),
+          },
+          { status: 403 }
+        );
+      }
+
       if (occupiedSeatSet.has(requestedSeatNumber)) {
         return NextResponse.json(
           {
@@ -338,6 +364,22 @@ export async function POST(req: NextRequest) {
         );
       }
       allocatedSeat = requestedSeatNumber;
+    } else {
+      // Non-faculty students should not be automatically allocated starting teacher seats if other seats exist
+      let candidateSeats = availableSeats;
+      if (!isFacultyUser) {
+        const studentEligibleSeats = availableSeats.filter((s) => !teacherReservedSeats.includes(s));
+        if (studentEligibleSeats.length > 0) {
+          candidateSeats = studentEligibleSeats;
+        }
+      } else {
+        // Faculty commuters get starting seats prioritized
+        const facultyPreferredSeats = availableSeats.filter((s) => teacherReservedSeats.includes(s));
+        if (facultyPreferredSeats.length > 0) {
+          candidateSeats = facultyPreferredSeats;
+        }
+      }
+      allocatedSeat = candidateSeats[0] || availableSeats[0];
     }
 
     // 7. Atomic Insert into public.bookings

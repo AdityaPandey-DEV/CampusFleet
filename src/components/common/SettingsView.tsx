@@ -265,6 +265,7 @@ export function SettingsView() {
   });
 
   const isStudent = (currentUser as any)?.role === "student" || (currentUser as any)?.role === "portal" || !currentUser?.role;
+  const isCommuter = isStudent || (currentUser as any)?.role === "teacher" || (currentUser as any)?.role === "faculty" || (currentUser as any)?.role === "staff";
 
   // Student Transit State
   const [homeAddress, setHomeAddress] = useState("");
@@ -334,11 +335,12 @@ export function SettingsView() {
   }, []);
 
   useEffect(() => {
-    if (!isStudent) return;
+    if (!isCommuter) return;
     const user = store.getCurrentUser();
     if (!user) return;
     const activeStudent = store.getStudents().find(s => s.userId === user.id || s.id === user.id);
-    const studentId = activeStudent?.id || user.id;
+    const activeStaff = store.getStaff().find(s => s.userId === user.id || s.id === user.id);
+    const studentId = activeStudent?.id || activeStaff?.id || user.id;
 
     setAvailableBuses(store.getBuses() || []);
     setAvailableStops(store.getStops() || []);
@@ -373,7 +375,7 @@ export function SettingsView() {
         }
       })
       .catch(() => {});
-  }, [currentUser, isStudent]);
+  }, [currentUser, isCommuter]);
 
   const handleDetectGPS = () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
@@ -716,8 +718,8 @@ export function SettingsView() {
           </div>
         </div>
         
-        {/* Student Transit Settings (Home Location & Nearest Stops) */}
-        {isStudent && (
+        {/* Commute Transit Settings (Home Location & Nearest Stops) */}
+        {isCommuter && (
           <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-none">
             <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
               <div>
@@ -847,7 +849,7 @@ export function SettingsView() {
         )}
 
         {/* Bus Switch & Transfer Request Card */}
-        {isStudent && (
+        {isCommuter && (
           <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-none">
             <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
               <div>

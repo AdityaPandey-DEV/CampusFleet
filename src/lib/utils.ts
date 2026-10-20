@@ -151,3 +151,44 @@ export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lo
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.round(R * c * 10) / 10;
 }
+
+/**
+ * Checks if a seat code belongs to the starting front row (Row 1) reserved for faculty / teachers
+ */
+export function isStartingSeat(seatCode: string): boolean {
+  if (!seatCode) return false;
+  const match = seatCode.trim().match(/^(\d+)/);
+  if (!match) return false;
+  return parseInt(match[1], 10) === 1;
+}
+
+/**
+ * Returns the first N starting seats on a bus chassis allocated for N teachers in the bus.
+ * If teacherCount is not specified or <= 0, defaults to Row 1 starting seats.
+ */
+export function getTeacherStartingSeats(allSeats: string[], teacherCount?: number): string[] {
+  if (!allSeats || allSeats.length === 0) return [];
+  if (typeof teacherCount === "number" && teacherCount > 0) {
+    return allSeats.slice(0, Math.min(teacherCount, allSeats.length));
+  }
+  const row1Seats = allSeats.filter((s) => isStartingSeat(s));
+  return row1Seats.length > 0 ? row1Seats : allSeats.slice(0, 4);
+}
+
+/**
+ * Checks if a seat code is restricted for teachers given N teachers on the bus
+ */
+export function isSeatRestrictedForTeachers(
+  seatCode: string,
+  allSeats?: string[],
+  teacherCount?: number
+): boolean {
+  if (!seatCode) return false;
+  if (allSeats && allSeats.length > 0 && typeof teacherCount === "number" && teacherCount > 0) {
+    const teacherSeats = getTeacherStartingSeats(allSeats, teacherCount);
+    return teacherSeats.includes(seatCode);
+  }
+  return isStartingSeat(seatCode);
+}
+
+

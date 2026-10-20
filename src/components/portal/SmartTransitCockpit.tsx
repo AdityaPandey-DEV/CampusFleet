@@ -20,6 +20,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
+import { isStartingSeat } from "@/lib/utils";
 import DigitalPassView from "./DigitalPassView";
 import LiveTrackerView from "./LiveTrackerView";
 import type { Student, Bus, Stop, Shift, Trip, Booking, Route, TransportSettings, Staff } from "@/lib/types";
@@ -68,6 +69,17 @@ export default function SmartTransitCockpit({
   const [isLiveRadarOpen, setIsLiveRadarOpen] = useState(false);
 
   const studentId = student?.id || user?.studentId || user?.id;
+  const isTeacher = Boolean(
+    user?.role === "teacher" ||
+    user?.role === "faculty" ||
+    user?.role === "staff" ||
+    user?.role === "admin" ||
+    user?.role === "TEACHER" ||
+    user?.role === "FACULTY" ||
+    user?.role === "STAFF" ||
+    user?.role === "ADMIN"
+  );
+  const settingsHref = isTeacher ? "/teacher/settings" : "/portal/settings";
 
   // Fetch Reservation & Settings
   const fetchReservation = async () => {
@@ -136,6 +148,10 @@ export default function SmartTransitCockpit({
   // Confirm Seat Selection & Mark Attendance
   const handleConfirmSeat = async (seatNumber: string) => {
     if (!seatNumber) return;
+    if (!isTeacher && isStartingSeat(seatNumber)) {
+      alert("Front starting seats (Row 1) are strictly reserved for Faculty and Teachers. Please choose another seat.");
+      return;
+    }
     setIsSavingSeat(true);
     try {
       const res = await fetch("/api/students/reservations", {
@@ -197,7 +213,7 @@ export default function SmartTransitCockpit({
           </div>
 
           <Link
-            href="/portal/settings"
+            href={settingsHref}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-semibold transition-all text-slate-700 dark:text-slate-300 shrink-0 self-start md:self-auto"
           >
             <Settings className="w-4 h-4 text-slate-500" />
@@ -234,7 +250,7 @@ export default function SmartTransitCockpit({
               <span>Check For Assignment</span>
             </button>
             <Link
-              href="/portal/settings"
+              href={settingsHref}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 text-xs font-bold transition-all shadow-sm"
             >
               <Settings className="w-3.5 h-3.5" />
@@ -267,7 +283,7 @@ export default function SmartTransitCockpit({
           </div>
 
           <Link
-            href="/portal/settings"
+            href={settingsHref}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-semibold transition-all text-slate-700 dark:text-slate-300 shrink-0 self-start md:self-auto"
           >
             <Settings className="w-4 h-4 text-slate-500" />
@@ -339,7 +355,15 @@ export default function SmartTransitCockpit({
                 bus={assignedBus}
                 activeBookings={bookings}
                 selectedSeat={tentativeSeat}
-                onSelectSeat={(seatNum) => setTentativeSeat(seatNum)}
+                onSelectSeat={(seatNum) => {
+                  if (!isTeacher && isStartingSeat(seatNum)) {
+                    alert("Front starting seats (Row 1) are strictly reserved for Faculty and Teachers. Please choose another seat.");
+                    return;
+                  }
+                  setTentativeSeat(seatNum);
+                }}
+                isTeacher={isTeacher}
+                userRole={user?.role}
               />
             </div>
 
@@ -556,7 +580,7 @@ export default function SmartTransitCockpit({
         {/* Footer Link to Settings */}
         <div className="pt-2 text-center sm:text-left">
           <Link
-            href="/portal/settings"
+            href={settingsHref}
             className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
           >
             <span>Need to update your home address or submit a bus switch request? Go to Settings</span>

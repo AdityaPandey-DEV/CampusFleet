@@ -1,5 +1,5 @@
 import { Booking, BookingStatus, Bus, Trip, Student, BookingStatusHistory } from "./types";
-import { generateSeatLayout } from "./utils";
+import { generateSeatLayout, getTeacherStartingSeats } from "./utils";
 import { isTripCutoffPassed } from "./time-manager";
 
 import { isStudentSubscriptionActive } from "./subscription-utils";
@@ -119,15 +119,43 @@ export function createBooking(
   const bookingCode = `BS-${trip.tripCode}-${Math.floor(1000 + Math.random() * 9000)}`;
 
   if (confirmedCount < totalCapacity && availableSeats.length > 0) {
-    // If student selected a specific seat and it's available, use it; otherwise pick first available
+    const allSeatNumbers = generateSeatLayout(bus.capacity, bus.seatLayout);
+    const nTeachers = Math.max(Number((bus as any)?.teacherSeatsCount || (bus as any)?.teacher_seats_count || 0), 1);
+    const teacherReservedSeats = getTeacherStartingSeats(allSeatNumbers, nTeachers);
+    const isFacultyUser = Boolean(
+      (student as any)?.role === "teacher" ||
+      (student as any)?.role === "faculty" ||
+      (student as any)?.role === "staff" ||
+      (student as any)?.userRole === "teacher" ||
+      (student as any)?.userRole === "faculty"
+    );
+
     let allocatedSeat = availableSeats[0];
-    if (requestedSeatNumber && availableSeats.includes(requestedSeatNumber)) {
-      allocatedSeat = requestedSeatNumber;
-    } else if (requestedSeatNumber && !availableSeats.includes(requestedSeatNumber)) {
-      return {
-        success: false,
-        message: `Requested seat ${requestedSeatNumber} was just taken. Please choose another seat.`,
-      };
+    if (requestedSeatNumber) {
+      if (teacherReservedSeats.includes(requestedSeatNumber) && !isFacultyUser) {
+        return {
+          success: false,
+          message: `Starting seats (first ${nTeachers} seat${nTeachers !== 1 ? "s" : ""}) are strictly reserved for Faculty and Teachers. Please choose another seat.`,
+        };
+      }
+      if (availableSeats.includes(requestedSeatNumber)) {
+        allocatedSeat = requestedSeatNumber;
+      } else {
+        return {
+          success: false,
+          message: `Requested seat ${requestedSeatNumber} was just taken. Please choose another seat.`,
+        };
+      }
+    } else {
+      let eligibleSeats = availableSeats;
+      if (!isFacultyUser) {
+        const studentEligible = availableSeats.filter((s) => !teacherReservedSeats.includes(s));
+        if (studentEligible.length > 0) eligibleSeats = studentEligible;
+      } else {
+        const facultyPreferred = availableSeats.filter((s) => teacherReservedSeats.includes(s));
+        if (facultyPreferred.length > 0) eligibleSeats = facultyPreferred;
+      }
+      allocatedSeat = eligibleSeats[0] || availableSeats[0];
     }
 
     const newBooking: Booking = {

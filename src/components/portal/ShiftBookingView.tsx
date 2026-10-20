@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
-import { formatTime, formatDate } from "@/lib/utils";
+import { formatTime, formatDate, isStartingSeat } from "@/lib/utils";
 import { useCampusTime } from "@/components/common/CampusTimeProvider";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { NearestStopFinder } from "@/components/booking/NearestStopFinder";
@@ -101,11 +101,22 @@ export default function ShiftBookingView({
   const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
   const [bookings, setBookings] = useState<Booking[]>(() => initialBookings.length > 0 ? initialBookings : store.getBookings());
 
+  const isTeacher = Boolean(
+    currentUser?.role === "teacher" ||
+    currentUser?.role === "faculty" ||
+    currentUser?.role === "staff" ||
+    currentUser?.role === "admin" ||
+    currentUser?.role === "TEACHER" ||
+    currentUser?.role === "FACULTY" ||
+    currentUser?.role === "STAFF" ||
+    currentUser?.role === "ADMIN"
+  );
+
   const [activeStep, setActiveStep] = useState<"SEAT" | "SUCCESS">("SEAT");
   const [selectedShiftId, setSelectedShiftId] = useState(preselectedShiftId || shifts[0]?.id || "");
   const [selectedBusId, setSelectedBusId] = useState(preselectedBusId || "");
   const [selectedStopId, setSelectedStopId] = useState(preselectedStopId || "");
-  const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>("1A");
+  const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>(isTeacher ? "1A" : "2A");
   const [bookingMessage, setBookingMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isBookingLoading, setIsBookingLoading] = useState(false);
@@ -477,7 +488,15 @@ export default function ShiftBookingView({
                bus={buses.find(b => b.id === selectedBusId) || buses[0]}
                activeBookings={bookings.filter(b => b.busId === selectedBusId)}
                selectedSeat={selectedSeatNumber}
-               onSelectSeat={(seatNumber: string) => setSelectedSeatNumber(seatNumber)}
+               onSelectSeat={(seatNumber: string) => {
+                 if (!isTeacher && isStartingSeat(seatNumber)) {
+                   alert("Front starting seats (Row 1) are strictly reserved for Faculty and Teachers. Please choose another seat.");
+                   return;
+                 }
+                 setSelectedSeatNumber(seatNumber);
+               }}
+               isTeacher={isTeacher}
+               userRole={currentUser?.role}
              />
              
              {selectedSeatNumber && (
@@ -488,6 +507,10 @@ export default function ShiftBookingView({
                   </div>
                   <button 
                     onClick={() => {
+                      if (selectedSeatNumber && !isTeacher && isStartingSeat(selectedSeatNumber)) {
+                        alert("Front starting seats (Row 1) are strictly reserved for Faculty and Teachers. Please choose another seat.");
+                        return;
+                      }
                       setIsBookingLoading(true);
                       if ("geolocation" in navigator) {
                         navigator.geolocation.getCurrentPosition(

@@ -17,15 +17,40 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, message: "studentId required" }, { status: 400 });
     }
 
-    // Fetch student home data
-    const { data: student, error: stuErr } = await supabaseAdmin
+    // Fetch student or faculty home data
+    const { data: dbStudent } = await supabaseAdmin
       .from("students")
       .select("id, full_name, home_latitude, home_longitude, home_address, auto_assigned_stop_id, primary_stop_id")
-      .eq("id", studentId)
-      .single();
+      .or(`id.eq.${studentId},user_id.eq.${studentId}`)
+      .maybeSingle();
 
-    if (stuErr || !student) {
-      return NextResponse.json({ success: false, message: "Student not found." }, { status: 404 });
+    let student: any = dbStudent;
+
+    if (!student) {
+      // Check if user is staff/teacher in users table
+      const { data: userRow } = await supabaseAdmin
+        .from("users")
+        .select("id, full_name, role")
+        .eq("id", studentId)
+        .maybeSingle();
+
+      if (userRow) {
+        student = {
+          id: userRow.id,
+          full_name: userRow.full_name,
+          home_latitude: null,
+          home_longitude: null,
+          home_address: null,
+          auto_assigned_stop_id: null,
+          primary_stop_id: null,
+        };
+      } else {
+        return NextResponse.json({ success: false, message: "Commuter profile not found." }, { status: 404 });
+      }
+    }
+
+    if (!student) {
+      return NextResponse.json({ success: false, message: "Commuter profile not found." }, { status: 404 });
     }
 
     // If they have a home location, compute nearest stops
@@ -142,14 +167,52 @@ export async function PUT(req: NextRequest) {
       updatePayload.primary_stop_id = autoStopId;
     }
 
-    const { data: updated, error: updateErr } = await supabaseAdmin
+    let { data: updated } = await supabaseAdmin
       .from("students")
       .update(updatePayload)
       .eq("id", studentId)
       .select("id, full_name, home_latitude, home_longitude, home_address, auto_assigned_stop_id, primary_stop_id")
-      .single();
+      .maybeSingle();
 
-    if (updateErr) throw updateErr;
+    if (!updated) {
+      const res = await supabaseAdmin
+        .from("students")
+        .update(updatePayload)
+        .eq("user_id", studentId)
+        .select("id, full_name, home_latitude, home_longitude, home_address, auto_assigned_stop_id, primary_stop_id")
+        .maybeSingle();
+      updated = res.data;
+    }
+
+    if (!updated) {
+      // Upsert a faculty/staff record into students table
+      const { data: userRow } = await supabaseAdmin
+        .from("users")
+        .select("id, full_name, email, phone")
+        .eq("id", studentId)
+        .maybeSingle();
+
+      const { data: inserted, error: insertErr } = await supabaseAdmin
+        .from("students")
+        .insert({
+          id: studentId,
+          user_id: studentId,
+          full_name: userRow?.full_name || "Faculty Member",
+          email: userRow?.email || `${studentId}@campus.edu`,
+          phone: userRow?.phone || "",
+          department: "Faculty",
+          semester: "Staff",
+          primary_stop_id: updatePayload.primary_stop_id || "",
+          has_active_subscription: true,
+          transport_access_suspended: false,
+          ...updatePayload,
+        })
+        .select("id, full_name, home_latitude, home_longitude, home_address, auto_assigned_stop_id, primary_stop_id")
+        .single();
+
+      if (insertErr) throw insertErr;
+      updated = inserted;
+    }
 
     // Get nearest stops for response
     const nearestStops = findNearestStops(latitude, longitude, stops, { maxWalkDistanceKm: maxWalkKm }, 5);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { isStartingSeat, getTeacherStartingSeats, generateSeatLayout } from "@/lib/utils";
 
 /**
  * GET /api/students/reservations?studentId=xxx
@@ -146,6 +147,38 @@ export async function POST(req: NextRequest) {
 
     if (findErr || !targetRes) {
       return NextResponse.json({ success: false, message: "No active bus reservation found for today." }, { status: 404 });
+    }
+
+    // Verify N starting seats restriction for teachers on this bus
+    const userRole = ((session as any)?.role || "").toLowerCase();
+    const isFacultyUser = userRole === "teacher" || userRole === "faculty" || userRole === "staff" || userRole === "admin";
+
+    if (!isFacultyUser) {
+      let isRestricted = isStartingSeat(seatNumber);
+      if (targetRes.bus_id) {
+        const { data: busData } = await supabaseAdmin
+          .from("buses")
+          .select("capacity, seat_layout, teacher_seats_count")
+          .eq("id", targetRes.bus_id)
+          .maybeSingle();
+
+        if (busData) {
+          const busSeats = generateSeatLayout(busData.capacity, busData.seat_layout || "NONE");
+          const nTeachers = Math.max(Number((busData as any)?.teacher_seats_count || 0), 1);
+          const teacherReservedSeats = getTeacherStartingSeats(busSeats, nTeachers);
+          isRestricted = teacherReservedSeats.includes(seatNumber);
+        }
+      }
+
+      if (isRestricted) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Starting seats on this bus are strictly reserved for Faculty and Teachers. Please select another seat.",
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // Update reservation with chosen seat

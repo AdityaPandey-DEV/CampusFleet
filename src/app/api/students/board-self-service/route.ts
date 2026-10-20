@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import { calculateDistanceKm } from "@/lib/utils";
+import { calculateDistanceKm, isStartingSeat, getTeacherStartingSeats, generateSeatLayout } from "@/lib/utils";
 import { cacheGet } from "@/lib/redis";
 import { getLiveLocationFromMongo } from "@/lib/mongodb";
 
@@ -103,6 +103,30 @@ export async function POST(req: NextRequest) {
     }
 
     if (seatId) {
+      // Check if seatId is restricted for teachers on this bus
+      const { data: busData } = await supabaseAdmin
+        .from("buses")
+        .select("capacity, seat_layout, teacher_seats_count")
+        .eq("id", busId)
+        .maybeSingle();
+
+      if (busData) {
+        const busSeats = generateSeatLayout(busData.capacity, busData.seat_layout || "NONE");
+        const nTeachers = Math.max(Number((busData as any)?.teacher_seats_count || 0), 1);
+        const teacherReservedSeats = getTeacherStartingSeats(busSeats, nTeachers);
+        if (teacherReservedSeats.includes(seatId) || isStartingSeat(seatId)) {
+          return NextResponse.json({
+            success: false,
+            message: "Starting seats on this bus are strictly reserved for Faculty and Teachers. Please choose another seat.",
+          }, { status: 403 });
+        }
+      } else if (isStartingSeat(seatId)) {
+        return NextResponse.json({
+          success: false,
+          message: "Starting seats on this bus are strictly reserved for Faculty and Teachers. Please choose another seat.",
+        }, { status: 403 });
+      }
+
       // Check if seatId is already booked by someone else on this trip
       const { data: seatCheck } = await supabaseAdmin
         .from("bookings")

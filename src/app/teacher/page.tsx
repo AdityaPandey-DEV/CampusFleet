@@ -97,6 +97,10 @@ export default async function TeacherPage() {
   const [
     { data: dbAttendances },
     { data: dbBuses },
+    { data: dbRoutes },
+    { data: dbStops },
+    { data: dbTrips },
+    { data: dbBookings },
   ] = await Promise.all([
     studentIds.length > 0
       ? supabaseAdmin
@@ -107,7 +111,11 @@ export default async function TeacherPage() {
           .lte("timestamp", endOfDay)
           .order("timestamp", { ascending: false })
       : { data: [] },
-    supabaseAdmin.from("buses").select("id, bus_number"),
+    supabaseAdmin.from("buses").select("*"),
+    supabaseAdmin.from("routes").select("*"),
+    supabaseAdmin.from("stops").select("*"),
+    supabaseAdmin.from("trips").select("*").eq("trip_date", today),
+    supabaseAdmin.from("bookings_full").select("*").eq("student_id", session.userId).limit(20),
   ]);
 
   const busMap = new Map<string, any>((dbBuses || []).map((b: any) => [b.id, b]));
@@ -168,7 +176,7 @@ export default async function TeacherPage() {
   const totalEnrolled = targetStudents.length;
   const pending = totalEnrolled - totalBoarded;
 
-  // 4. Fetch fleet shifts for shift management (Primary teachers only)
+  // 7. Fetch fleet shifts for shift management (Primary teachers only)
   const { data: dbShifts } = await supabaseAdmin.from("shifts").select("*").order("start_time");
   const fleetShifts = (dbShifts || []).map((sh: any) => ({
     id: sh.id,
@@ -182,6 +190,58 @@ export default async function TeacherPage() {
     isPlacement: Boolean(sh.is_placement),
   }));
 
+  const buses: any[] = (dbBuses || []).map((b: any) => ({
+    id: b.id,
+    busNumber: b.bus_number || b.busNumber || "",
+    registrationNo: b.registration_no || b.registrationNo || "",
+    model: b.model || "",
+    capacity: Number(b.capacity || 0),
+    seatLayout: b.seat_layout || b.seatLayout || "NONE",
+    status: b.status || "ACTIVE",
+    gpsDeviceId: b.gps_device_id || b.gpsDeviceId || "",
+    currentRouteId: b.route_id || b.currentRouteId,
+  }));
+
+  const routes: any[] = (dbRoutes || []).map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    code: r.code,
+    description: r.description,
+    stops: r.stops || [],
+    isActive: r.is_active ?? true,
+  }));
+
+  const stops: any[] = (dbStops || []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    code: s.code,
+    latitude: Number(s.latitude || 0),
+    longitude: Number(s.longitude || 0),
+    geofenceRadiusMeters: Number(s.geofence_radius_meters || 100),
+    landmark: s.landmark,
+  }));
+
+  const trips: any[] = (dbTrips || []).map((t: any) => ({
+    id: t.id,
+    tripCode: t.trip_code || t.tripCode || "",
+    routeId: t.route_id || t.routeId || "",
+    busId: t.bus_id || t.busId || "",
+    shiftId: t.shift_id || t.shiftId || "",
+    tripDate: t.trip_date || t.tripDate || "",
+    status: t.status || "SCHEDULED",
+  }));
+
+  const bookings: any[] = (dbBookings || []).map((b: any) => ({
+    id: b.id,
+    bookingCode: b.booking_code || b.bookingCode || "",
+    studentId: b.student_id || b.studentId || "",
+    tripId: b.trip_id || b.tripId || "",
+    busId: b.bus_id || b.busId || "",
+    boardingStopId: b.boarding_stop_id || b.boardingStopId || "",
+    status: b.status || "CONFIRMED",
+    seatNumber: b.seat_number || b.seatNumber,
+  }));
+
   return (
     <TeacherConsoleView
       initialClasses={classes}
@@ -190,6 +250,11 @@ export default async function TeacherPage() {
       initialStats={{ totalBoarded, totalEnrolled, pending }}
       initialUser={session}
       fleetShifts={fleetShifts}
+      initialBuses={buses}
+      initialRoutes={routes}
+      initialStops={stops}
+      initialTrips={trips}
+      initialBookings={bookings}
     />
   );
 }

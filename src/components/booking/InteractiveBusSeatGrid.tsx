@@ -2,8 +2,8 @@
 
 import React, { useMemo } from "react";
 import { Bus, Booking } from "@/lib/types";
-import { generateSeatLayout, parseSeatLayout } from "@/lib/utils";
-import { Check, User, Info, Disc } from "lucide-react";
+import { generateSeatLayout, parseSeatLayout, isStartingSeat, getTeacherStartingSeats } from "@/lib/utils";
+import { Check, User, Info, Disc, GraduationCap } from "lucide-react";
 
 interface InteractiveBusSeatGridProps {
   bus: Bus;
@@ -11,6 +11,9 @@ interface InteractiveBusSeatGridProps {
   selectedSeat: string | null;
   onSelectSeat: (seatNumber: string) => void;
   disabled?: boolean;
+  isTeacher?: boolean;
+  userRole?: string;
+  teacherCount?: number;
 }
 
 export function InteractiveBusSeatGrid({
@@ -19,6 +22,9 @@ export function InteractiveBusSeatGrid({
   selectedSeat,
   onSelectSeat,
   disabled = false,
+  isTeacher = false,
+  userRole,
+  teacherCount,
 }: InteractiveBusSeatGridProps) {
   if (!bus) {
     return (
@@ -27,6 +33,18 @@ export function InteractiveBusSeatGrid({
       </div>
     );
   }
+
+  const isFacultyUser = Boolean(
+    isTeacher ||
+    userRole === "teacher" ||
+    userRole === "faculty" ||
+    userRole === "staff" ||
+    userRole === "admin" ||
+    userRole === "TEACHER" ||
+    userRole === "FACULTY" ||
+    userRole === "STAFF" ||
+    userRole === "ADMIN"
+  );
 
   const occupiedSeats = activeBookings
     .filter(b => b.status === "CONFIRMED" || b.status === "BOARDED")
@@ -85,26 +103,56 @@ export function InteractiveBusSeatGrid({
     return result;
   }, [allGeneratedSeats, capacity, leftCols, rightCols]);
 
+  const effectiveTeacherCount = useMemo(() => {
+    if (typeof teacherCount === "number" && teacherCount >= 0) {
+      return teacherCount;
+    }
+    if (typeof (bus as any)?.teacherSeatsCount === "number") {
+      return (bus as any).teacherSeatsCount;
+    }
+    if (typeof (bus as any)?.teacher_seats_count === "number") {
+      return (bus as any).teacher_seats_count;
+    }
+    // Default to Row 1 seat count
+    return Math.max(1, leftCount + rightCount);
+  }, [teacherCount, bus, leftCount, rightCount]);
+
+  const teacherReservedSeatSet = useMemo(() => {
+    return new Set(getTeacherStartingSeats(allGeneratedSeats, effectiveTeacherCount));
+  }, [allGeneratedSeats, effectiveTeacherCount]);
+
   const renderSeatButton = (seatNum: string, seatTypeDescription: string) => {
     const isOccupied = occupiedSeats.includes(seatNum);
     const isSelected = selectedSeat === seatNum;
+    const isFrontStartingSeat = teacherReservedSeatSet.has(seatNum);
+    const isRestrictedFacultySeat = isFrontStartingSeat && !isFacultyUser;
 
     return (
       <button
         key={seatNum}
         type="button"
-        disabled={isOccupied || disabled}
+        disabled={isOccupied || disabled || isRestrictedFacultySeat}
         onClick={() => onSelectSeat(seatNum)}
         title={
           isOccupied
             ? `Seat ${seatNum} is already occupied`
+            : isRestrictedFacultySeat
+            ? `Seat ${seatNum} is one of ${effectiveTeacherCount} starting seats reserved exclusively for Faculty & Teachers`
+            : isFrontStartingSeat
+            ? `Seat ${seatNum} (Faculty Priority Starting Seat)`
             : `Select Seat ${seatNum} (${seatTypeDescription})`
         }
         className={`relative w-11 h-12 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xs transition-all ${
           isOccupied
             ? "bg-gray-200 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700/40 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+            : isRestrictedFacultySeat
+            ? "bg-indigo-50/80 dark:bg-indigo-950/40 border-2 border-indigo-300/80 dark:border-indigo-700/60 text-indigo-700 dark:text-indigo-300 cursor-not-allowed shadow-none"
             : isSelected
-            ? "bg-green-500 text-gray-950 font-black shadow-lg shadow-green-500/30 scale-105 ring-2 ring-green-400"
+            ? isFrontStartingSeat
+              ? "bg-indigo-600 text-white font-black shadow-lg shadow-indigo-600/30 scale-105 ring-2 ring-indigo-400"
+              : "bg-green-500 text-gray-950 font-black shadow-lg shadow-green-500/30 scale-105 ring-2 ring-green-400"
+            : isFrontStartingSeat
+            ? "bg-white dark:bg-gray-800 border-2 border-indigo-500/80 text-indigo-700 dark:text-indigo-300 hover:border-indigo-600 hover:scale-105 active:scale-95 shadow-sm"
             : "bg-white dark:bg-gray-800 border-2 border-green-500/70 text-gray-900 dark:text-gray-100 hover:border-blue-500 hover:scale-105 active:scale-95 shadow-sm"
         }`}
       >
@@ -115,16 +163,26 @@ export function InteractiveBusSeatGrid({
               ? "bg-gray-950/20"
               : isOccupied
               ? "bg-gray-300 dark:bg-gray-700"
+              : isFrontStartingSeat
+              ? "bg-indigo-300 dark:bg-indigo-700"
               : "bg-green-200 dark:bg-green-800"
           }`}
         />
 
-        <span className="mt-1 text-[11px] font-bold">
-          {seatNum}
-        </span>
+        {isRestrictedFacultySeat ? (
+          <div className="flex flex-col items-center justify-center mt-1">
+            <GraduationCap className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 mb-0.5" />
+            <span className="text-[9px] font-black leading-none">{seatNum}</span>
+          </div>
+        ) : (
+          <span className="mt-1 text-[11px] font-bold flex items-center gap-0.5">
+            {isFrontStartingSeat && <GraduationCap className="w-2.5 h-2.5 text-indigo-500 dark:text-indigo-400" />}
+            {seatNum}
+          </span>
+        )}
 
         {isSelected && (
-          <Check className="w-3 h-3 text-gray-950 font-black stroke-[3]" />
+          <Check className="w-3 h-3 text-current font-black stroke-[3]" />
         )}
       </button>
     );
@@ -135,7 +193,7 @@ export function InteractiveBusSeatGrid({
       {/* Bus Vehicle Outer Chassis */}
       <div className="relative w-full max-w-sm bg-gray-50 dark:bg-gray-900/90 rounded-[2.5rem] p-5 sm:p-6 border-2 border-gray-300 dark:border-gray-700 shadow-xl">
         {/* Bus Front Windshield & Driver Cabin */}
-        <div className="relative flex items-center justify-between pb-5 mb-5 border-b-2 border-dashed border-gray-200 dark:border-gray-800">
+        <div className="relative flex items-center justify-between pb-5 mb-4 border-b-2 border-dashed border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping" />
             <div className="text-[11px] font-black uppercase tracking-wider text-gray-400">
@@ -154,6 +212,23 @@ export function InteractiveBusSeatGrid({
             </svg>
             <span className="text-[10px] font-black uppercase">Driver</span>
           </div>
+        </div>
+
+        {/* Faculty Row Banner */}
+        <div className="mb-4 px-3.5 py-2 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 text-[11px] font-semibold text-indigo-800 dark:text-indigo-200 flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <GraduationCap className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+            <span>Starting Seats: Reserved for {effectiveTeacherCount} Teacher{effectiveTeacherCount !== 1 ? "s" : ""}</span>
+          </span>
+          {isFacultyUser ? (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white shadow-xs">
+              Teacher Access ({effectiveTeacherCount} Reserved)
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+              Restricted ({effectiveTeacherCount} Seats)
+            </span>
+          )}
         </div>
 
         {/* Seats Cabin Rows */}
@@ -206,6 +281,13 @@ export function InteractiveBusSeatGrid({
             ✓
           </div>
           <span>Your Selected Seat</span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border-2 border-indigo-400 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-[10px]">
+            <GraduationCap className="w-2.5 h-2.5" />
+          </div>
+          <span>Reserved for Teachers (First {effectiveTeacherCount} Seats)</span>
         </div>
 
         <div className="flex items-center gap-1.5">

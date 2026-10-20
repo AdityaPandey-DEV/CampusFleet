@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid, GraduationCap } from "lucide-react";
 import { Booking, Student, Bus } from "@/lib/types";
-import { generateSeatLayout, parseSeatLayout } from "@/lib/utils";
+import { generateSeatLayout, parseSeatLayout, getTeacherStartingSeats } from "@/lib/utils";
 
 interface SeatMapTabProps {
   bus?: Bus;
@@ -30,9 +30,19 @@ export function SeatMapTab({
   const rightCols = Array.from({ length: rightCount }, (_, i) => String.fromCharCode(65 + leftCount + i));
   const totalGridCols = leftCount > 0 && rightCount > 0 ? leftCount + 1 + rightCount : 0;
 
-  const rows = useMemo(() => {
+  const effectiveTeacherCount = Number((bus as any)?.teacher_seats_count || (bus as any)?.teacherSeatsCount || Math.max(1, leftCount + rightCount));
+
+  const allGeneratedSeats = useMemo(() => {
     if (!capacity || capacity <= 0 || !layout || layout === "NONE" || leftCount <= 0 || rightCount <= 0) return [];
-    const allGeneratedSeats = generateSeatLayout(capacity, layout, customRows);
+    return generateSeatLayout(capacity, layout, customRows);
+  }, [capacity, layout, customRows, leftCount, rightCount]);
+
+  const teacherReservedSet = useMemo(() => {
+    return new Set(getTeacherStartingSeats(allGeneratedSeats, effectiveTeacherCount));
+  }, [allGeneratedSeats, effectiveTeacherCount]);
+
+  const rows = useMemo(() => {
+    if (allGeneratedSeats.length === 0) return [];
     const seatSet = new Set(allGeneratedSeats);
 
     let maxRow = 0;
@@ -83,7 +93,7 @@ export function SeatMapTab({
         right,
       };
     });
-  }, [capacity, layout, customRows, leftCount, rightCount, leftCols, rightCols, tripBookings, students]);
+  }, [allGeneratedSeats, leftCols, rightCols, tripBookings, students]);
 
   const renderSeatButton = (seatData: {
     seatCode: string;
@@ -92,21 +102,32 @@ export function SeatMapTab({
     isBoarded?: boolean;
     isConfirmed?: boolean;
     isWaitlisted?: boolean;
-  }) => (
-    <button
-      key={seatData.seatCode}
-      onClick={() => onSelectSeat(seatData)}
-      className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all active:scale-95 ${
-        seatData.isBoarded
-          ? "bg-green-500 text-white shadow-md shadow-green-500/20"
-          : seatData.isConfirmed
-          ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-          : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:shadow-sm"
-      }`}
-    >
-      <span>{seatData.seatCode}</span>
-    </button>
-  );
+  }) => {
+    const isTeacherReserved = teacherReservedSet.has(seatData.seatCode);
+    return (
+      <button
+        key={seatData.seatCode}
+        onClick={() => onSelectSeat(seatData)}
+        className={`p-2.5 rounded-xl font-mono text-xs font-black flex flex-col items-center justify-center transition-all active:scale-95 ${
+          seatData.isBoarded
+            ? "bg-green-500 text-white shadow-md shadow-green-500/20"
+            : seatData.isConfirmed
+            ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+            : isTeacherReserved
+            ? "bg-indigo-50 dark:bg-indigo-950/40 border-2 border-indigo-400 dark:border-indigo-600 text-indigo-700 dark:text-indigo-300 shadow-xs"
+            : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:shadow-sm"
+        }`}
+        title={isTeacherReserved ? `Seat ${seatData.seatCode}: Teacher / Faculty Reserved Starting Seat` : undefined}
+      >
+        <div className="flex items-center gap-0.5">
+          {isTeacherReserved && !seatData.isBoarded && !seatData.isConfirmed && (
+            <GraduationCap className="w-3 h-3 text-indigo-500" />
+          )}
+          <span>{seatData.seatCode}</span>
+        </div>
+      </button>
+    );
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl p-5 sm:p-6 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-w-0">
@@ -130,6 +151,10 @@ export function SeatMapTab({
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-blue-600 shadow-sm shadow-blue-500/40" />
             <span className="text-gray-700 dark:text-gray-300">Awaiting ({pendingCount})</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-400" />
+            <span className="text-gray-700 dark:text-gray-300">Teacher Reserved ({effectiveTeacherCount})</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600" />
