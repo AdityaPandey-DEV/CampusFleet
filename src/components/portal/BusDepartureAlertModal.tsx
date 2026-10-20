@@ -141,26 +141,23 @@ export default function BusDepartureAlertModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-gray-900 border-2 border-yellow-500/80 text-white rounded-3xl p-6 sm:p-7 shadow-[0_0_60px_rgba(245,158,11,0.3)] space-y-6 overflow-hidden">
-        {/* Pulsing Alert Glow Strip */}
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-yellow-500 animate-pulse" />
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-md bg-white dark:bg-black border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white rounded-xl p-6 shadow-xl space-y-5 overflow-hidden">
         {/* Header with audio mute toggle */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
-            <span className="text-xs font-black uppercase tracking-wider text-yellow-400">
-              High Priority Departure Alert
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+              Departure Alert
             </span>
           </div>
 
           <button
             onClick={handleMuteToggle}
-            className="p-2 rounded-xl bg-gray-800 text-gray-300 hover:text-white border border-gray-700 active:scale-95 transition-all text-xs flex items-center gap-1 cursor-pointer"
+            className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800 transition-colors text-xs flex items-center gap-1.5 cursor-pointer"
             title={isMuted ? "Unmute Alarm" : "Silence Alarm"}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-green-400 animate-bounce" />}
+            {isMuted ? <VolumeX className="w-3.5 h-3.5 text-gray-500" /> : <Volume2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400 animate-bounce" />}
             <span>{isMuted ? "Muted" : "Ringing"}</span>
           </button>
         </div>
@@ -168,29 +165,29 @@ export default function BusDepartureAlertModal({
         {/* Main Body */}
         {confirmedOnboard ? (
           <div className="text-center py-6 space-y-3 animate-in zoom-in-95">
-            <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-400 border border-green-500/40 mx-auto flex items-center justify-center shadow-lg">
-              <CheckCircle2 className="w-9 h-9" />
+            <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 mx-auto flex items-center justify-center">
+              <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-black text-white">Onboard Verified ✓</h3>
-            <p className="text-xs text-gray-300 max-w-xs mx-auto">
-              Your status has been updated to <strong>Seated & Onboard</strong> in the conductor manifest. Have a safe journey!
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Onboard Verified</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+              Your status has been updated to <strong>Seated & Onboard</strong> in the conductor manifest.
             </p>
           </div>
         ) : graceSecondsLeft !== null ? (
           <div className="text-center py-4 space-y-4 animate-in zoom-in-95">
-            <div className="w-14 h-14 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 mx-auto flex items-center justify-center animate-bounce">
-              <Footprints className="w-7 h-7" />
+            <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 mx-auto flex items-center justify-center">
+              <Footprints className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-yellow-300">Conductor Alerted: Hold 2 Mins!</h3>
-              <p className="text-xs text-gray-300 mt-1">
-                The driver has been notified that you are sprinting to the bus.
+              <h3 className="text-base font-bold text-amber-700 dark:text-amber-300">Conductor Alerted: Holding 2 Mins</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                The driver has been notified that you are heading to the bus.
               </p>
             </div>
 
             {/* Countdown Badge */}
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-yellow-500/15 border border-yellow-500/40 text-yellow-300 font-mono text-xl font-black">
-              <Clock className="w-5 h-5 animate-spin" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 font-mono text-lg font-bold">
+              <Clock className="w-4 h-4" />
               <span>
                 {Math.floor(graceSecondsLeft / 60)}:
                 {String(graceSecondsLeft % 60).padStart(2, "0")}
@@ -199,66 +196,64 @@ export default function BusDepartureAlertModal({
 
             <button
               onClick={handleConfirmOnboard}
-              className="w-full py-3 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-black text-xs shadow-lg active:scale-95 transition-all"
+              className="w-full py-2.5 px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-xs transition-colors"
             >
-              ✓ I have arrived & seated
+              I have arrived & seated
             </button>
           </div>
         ) : (
           <div className="space-y-4">
             {/* Bus Info Pill */}
-            <div className="p-3.5 rounded-2xl bg-gray-800/80 border border-gray-700 flex items-center justify-between">
+            <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center">
-                  <BusFront className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 flex items-center justify-center">
+                  <BusFront className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-black text-white">
-                    {bus?.busNumber || "NONE"}
+                  <div className="text-xs font-bold text-gray-900 dark:text-white">
+                    {bus?.busNumber || "Campus Bus"}
                   </div>
-                  <div className="text-[10px] text-gray-400 font-mono">
-                    {bus?.registrationNo || "NONE"} • Seat: {booking?.seatNumber || "NONE"}
+                  <div className="text-[10px] text-gray-500 font-mono">
+                    {bus?.registrationNo || "Assigned"} • Seat: {booking?.seatNumber || "Reserved"}
                   </div>
                 </div>
               </div>
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30">
+              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                 Departing Soon
               </span>
             </div>
 
-            {/* Big Urgent Question */}
-            <div className="text-center space-y-1.5 pt-1">
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                🚨 Bus is Full & Preparing to Roll!
+            {/* Urgent Question */}
+            <div className="text-center space-y-1 pt-1">
+              <h2 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
+                Bus is Preparing to Roll Out
               </h2>
-              <p className="text-xs text-gray-300">
-                All seats are claimed. Conductor is freezing the final departure manifest.
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Conductor is preparing the final departure manifest.
               </p>
-              <div className="text-sm font-extrabold text-yellow-300 pt-2">
-                Are you onboard inside the bus?
+              <div className="text-xs font-semibold text-gray-800 dark:text-gray-200 pt-2">
+                Are you currently onboard?
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-2.5 pt-2">
-              {/* Option 1: Yes, I am already in the bus */}
+            <div className="space-y-2 pt-2">
               <button
                 onClick={handleConfirmOnboard}
                 disabled={isSubmitting}
-                className="w-full py-3.5 px-4 rounded-2xl bg-green-500 hover:bg-green-600  text-white font-black text-sm shadow-xl shadow-green-600/30 flex items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
-                <CheckCircle2 className="w-5 h-5" />
+                <CheckCircle2 className="w-4 h-4" />
                 <span>Yes, I am already in the bus</span>
               </button>
 
-              {/* Option 2: Running to bus */}
               <button
                 onClick={handleRunningToBus}
                 disabled={isSubmitting}
-                className="w-full py-3 px-4 rounded-2xl bg-gray-800 hover:bg-gray-700/80 text-yellow-300 font-black text-xs border border-yellow-500/40 flex items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-lg bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-medium text-xs border border-gray-300 dark:border-gray-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Footprints className="w-4 h-4" />
-                <span>Running to Bus! Hold 2 mins</span>
+                <Footprints className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>Running to Bus (Hold 2 mins)</span>
               </button>
             </div>
           </div>
