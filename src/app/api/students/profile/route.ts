@@ -91,18 +91,27 @@ export async function POST(req: NextRequest) {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const validClassId = classId && uuidRegex.test(classId) ? classId : null;
 
-    // 3. Prepare student row for upsert (only real data submitted by user)
+    // 3. Resolve transit zone and prepare student row for upsert
+    let resolvedZoneId: string | null = null;
+    let feeDue = 12000; // default fallback
+    if (zoneCode && effectiveCampusId) {
+      const { data: zone } = await supabaseAdmin.from("transit_zones").select("id, semester_fee").eq("code", zoneCode).eq("campus_id", effectiveCampusId).maybeSingle();
+      if (zone?.id) resolvedZoneId = zone.id;
+      if (zone?.semester_fee) feeDue = Number(zone.semester_fee);
+    } else if (zoneCode) {
+      const { data: zone } = await supabaseAdmin.from("transit_zones").select("id, semester_fee").eq("code", zoneCode).limit(1).maybeSingle();
+      if (zone?.id) resolvedZoneId = zone.id;
+      if (zone?.semester_fee) feeDue = Number(zone.semester_fee);
+    }
+
     const studentData: Record<string, any> = {
       id: finalStudentId,
       user_id: userId,
       full_name: (fullName || session.fullName || "").trim(),
-      email: cleanEmail,
-      phone: (phone || "").trim() || null,
       campus_id: effectiveCampusId,
       campus: effectiveCampus,
-      department: (department || "").trim() || null,
       semester: (semester || "").trim() || null,
-      zone_code: zoneCode || null,
+      zone_id: resolvedZoneId,
       primary_stop_id: primaryStopId || null,
       emergency_contact: emergencyContact || null,
     };
@@ -113,39 +122,21 @@ export async function POST(req: NextRequest) {
       finalPhotoUrl = body.photoUrl;
       // Only lock photo if student already has an approved subscription
       finalPhotoLocked = hasActiveSubscription;
-      studentData.photo_url = finalPhotoUrl;
       studentData.photo_locked = finalPhotoLocked;
     }
 
     if (validClassId) {
       studentData.class_id = validClassId;
-      studentData.class_name = className || null;
-    } else if (className) {
-      studentData.class_name = className;
     }
 
     if (!existingStudentId) {
       // New student: set initial fee based on zone
-      let feeDue = 12000; // default fallback
-      if (zoneCode && effectiveCampusId) {
-        const { data: zone } = await supabaseAdmin.from("transit_zones").select("semester_fee").eq("code", zoneCode).eq("campus_id", effectiveCampusId).maybeSingle();
-        if (zone?.semester_fee) feeDue = Number(zone.semester_fee);
-      } else if (zoneCode) {
-        const { data: zone } = await supabaseAdmin.from("transit_zones").select("semester_fee").eq("code", zoneCode).limit(1).maybeSingle();
-        if (zone?.semester_fee) feeDue = Number(zone.semester_fee);
-      }
       studentData.total_fee_due = feeDue;
       studentData.total_fee_paid = 0;
       studentData.payment_status = "UNPAID";
     } else if (zoneCode && !hasActiveSubscription) {
       // Existing student changing zone BEFORE payment: update fee to match new zone
-      if (effectiveCampusId) {
-        const { data: zone } = await supabaseAdmin.from("transit_zones").select("semester_fee").eq("code", zoneCode).eq("campus_id", effectiveCampusId).maybeSingle();
-        if (zone?.semester_fee) studentData.total_fee_due = Number(zone.semester_fee);
-      } else {
-        const { data: zone } = await supabaseAdmin.from("transit_zones").select("semester_fee").eq("code", zoneCode).limit(1).maybeSingle();
-        if (zone?.semester_fee) studentData.total_fee_due = Number(zone.semester_fee);
-      }
+      studentData.total_fee_due = feeDue;
     }
 
     const { data: savedStudent, error: studentErr } = await supabaseAdmin
@@ -159,19 +150,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: studentErr.message }, { status: 500 });
     }
 
-    // 4. Guarantee users table entry exists and is synchronized
+    // 4. Guarantee users table entry exists and is synchronized with contact info & photo
     await supabaseAdmin
       .from("users")
       .upsert({
         id: userId,
         email: cleanEmail,
         full_name: studentData.full_name,
-        phone: studentData.phone,
+        phone: (phone || "").trim() || null,
         campus_id: studentData.campus_id,
         campus: studentData.campus,
         role: "student",
         provider: "Institutional SSO",
-        ...(finalPhotoUrl ? { avatar_url: finalPhotoUrl, photo_locked: finalPhotoLocked } : {}),
+        ...(finalPhotoUrl ? { avatar_url: finalPhotoUrl, photo_url: finalPhotoUrl, photo_locked: finalPhotoLocked } : {}),
       }, { onConflict: "id" });
 
     // 5. Update Redis cache for instant UI resolution

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch student details including zone_code and campus_id for server-side price verification
     const { data: studentRecord } = await supabaseAdmin
-      .from("students")
+      .from("students_full")
       .select("user_id, phone, full_name, email, zone_code, campus_id, total_fee_due, total_fee_paid")
       .eq("id", studentId)
       .maybeSingle();

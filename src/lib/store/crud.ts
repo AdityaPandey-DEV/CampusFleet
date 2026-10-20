@@ -370,17 +370,12 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
 
   // Secondary client-side fallback
   try {
-    await supabase.from("students").upsert({
+    const studentPayload: Record<string, any> = {
       id: updatedStudent.id,
       user_id: updatedStudent.userId,
       full_name: updatedStudent.fullName,
-      email: updatedStudent.email,
-      phone: updatedStudent.phone,
-      department: updatedStudent.department,
       semester: updatedStudent.semester,
       class_id: updatedStudent.classId || null,
-      class_name: updatedStudent.className || null,
-      zone_code: updatedStudent.zoneCode || "ZONE_B",
       campus_id: updatedStudent.campusId || null,
       campus: updatedStudent.campus,
       primary_stop_id: updatedStudent.primaryStopId || null,
@@ -390,9 +385,12 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
       payment_status: updatedStudent.paymentStatus || "UNPAID",
       total_fee_due: updatedStudent.totalFeeDue || 12000,
       total_fee_paid: updatedStudent.totalFeePaid || 0,
-      photo_url: updatedStudent.photoUrl || null,
       photo_locked: updatedStudent.photoLocked || false,
-    });
+    };
+    if (updatedStudent.zoneId) {
+      studentPayload.zone_id = updatedStudent.zoneId;
+    }
+    await supabase.from("students").upsert(studentPayload);
 
     if (updatedStudent.userId) {
       await supabase.from("users").update({

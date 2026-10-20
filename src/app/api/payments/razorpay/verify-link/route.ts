@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: studentRecord, error: fetchError } = await supabaseAdmin
-      .from("students")
+      .from("students_full")
       .select("total_fee_paid, full_name, zone_code")
       .eq("id", studentId)
       .maybeSingle();

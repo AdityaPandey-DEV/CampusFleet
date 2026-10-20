@@ -59,8 +59,8 @@ export async function findOrCreateUser({
     if (existingUser.role === "student") {
       const { data: existingStudents } = await supabaseAdmin
         .from("students")
-        .select("id, user_id, campus_id, campus, full_name, phone")
-        .or(`user_id.eq.${existingUser.id},email.ilike.${cleanEmail}`)
+        .select("id, user_id, campus_id, campus, full_name")
+        .eq("user_id", existingUser.id)
         .order("created_at", { ascending: false })
         .limit(1);
 
@@ -72,7 +72,6 @@ export async function findOrCreateUser({
           id: newStudentId,
           user_id: existingUser.id,
           full_name: existingUser.full_name || cleanEmail.split("@")[0],
-          email: cleanEmail,
           created_at: new Date().toISOString(),
         });
         if (studErr2) {
@@ -87,11 +86,10 @@ export async function findOrCreateUser({
             .eq("id", existingStudent.id);
         }
 
-        // Sync campus / phone to user record if missing in users table
+        // Sync campus to user record if missing in users table
         const userSync: Record<string, any> = {};
         if (!existingUser.campus_id && existingStudent.campus_id) userSync.campus_id = existingStudent.campus_id;
         if (!existingUser.campus && existingStudent.campus) userSync.campus = existingStudent.campus;
-        if (!existingUser.phone && existingStudent.phone) userSync.phone = existingStudent.phone;
         if (Object.keys(userSync).length > 0) {
           await supabaseAdmin.from("users").update(userSync).eq("id", existingUser.id);
           Object.assign(existingUser, userSync);
@@ -181,7 +179,6 @@ export async function findOrCreateUser({
         id: studentId,
         user_id: userId,
         full_name: realName,
-        email: cleanEmail,
         created_at: new Date().toISOString(),
       });
 

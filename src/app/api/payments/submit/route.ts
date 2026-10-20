@@ -161,8 +161,8 @@ export async function POST(request: NextRequest) {
 
     // Get total fee due from student record
     const { data: student } = await supabaseAdmin
-      .from("students")
-      .select("total_fee_due, total_fee_paid, zone_code")
+      .from("students_full")
+      .select("total_fee_due, total_fee_paid, zone_id, zone_code, campus_id")
       .eq("id", studentId)
       .maybeSingle();
 
@@ -170,9 +170,14 @@ export async function POST(request: NextRequest) {
     const amountLeft = Math.max(0, totalFeeDue - totalPendingAndApproved);
 
     // ── Update Student Payment Status ─────────────────────────────────
-    const updateData: Record<string, any> = {
-      zone_code: zoneCode || student?.zone_code || "ZONE_B",
-    };
+    const updateData: Record<string, any> = {};
+    if (zoneCode && student?.campus_id) {
+      const { data: z } = await supabaseAdmin.from("transit_zones").select("id").eq("code", zoneCode).eq("campus_id", student.campus_id).maybeSingle();
+      if (z?.id) updateData.zone_id = z.id;
+    } else if (zoneCode) {
+      const { data: z } = await supabaseAdmin.from("transit_zones").select("id").eq("code", zoneCode).limit(1).maybeSingle();
+      if (z?.id) updateData.zone_id = z.id;
+    }
 
     if (amountLeft <= 0 && totalFeeDue > 0) {
       // Full amount covered (pending + approved) → auto-submit for verification

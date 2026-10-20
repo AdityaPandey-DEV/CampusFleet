@@ -140,7 +140,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const classId = params.id;
 
     // Unassign students from class
-    await supabaseAdmin.from("students").update({ class_id: null, class_name: null }).eq("class_id", classId);
+    await supabaseAdmin.from("students").update({ class_id: null }).eq("class_id", classId);
 
     const { error } = await supabaseAdmin.from("classes").delete().eq("id", classId);
     if (error) throw error;

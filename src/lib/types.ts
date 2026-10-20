@@ -189,6 +189,7 @@ export interface Student {
   subscriptionExpiryDate?: string;
   classId?: string;
   className?: string;
+  zoneId?: string;
   zoneCode?: string;
   paymentStatus?: "UNPAID" | "PENDING_APPROVAL" | "PARTIALLY_PAID" | "APPROVED" | "REJECTED";
   totalFeeDue?: number;

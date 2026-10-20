@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
         const receiptNumber = `RZP-REC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
         const { data: student } = await supabaseAdmin
-          .from("students")
+          .from("students_full")
           .select("full_name, zone_code, total_fee_due, total_fee_paid")
           .eq("id", studentId)
           .maybeSingle();
