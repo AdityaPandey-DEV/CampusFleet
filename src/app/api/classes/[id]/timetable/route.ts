@@ -82,14 +82,31 @@ export async function POST(
 
     const cleanDay = dayOfWeek.toUpperCase().trim();
 
+    // Default incoming to Shift 0 (earliest) and outgoing to Shift N (latest)
+    let finalIncoming = incomingShiftId;
+    let finalOutgoing = outgoingShiftId;
+
+    if (!finalIncoming || !finalOutgoing) {
+      const { data: activeShifts } = await supabaseAdmin
+        .from("shifts")
+        .select("id, start_time")
+        .eq("is_active", true)
+        .order("start_time", { ascending: true });
+
+      if (activeShifts && activeShifts.length > 0) {
+        if (!finalIncoming) finalIncoming = activeShifts[0].id; // Shift 0
+        if (!finalOutgoing) finalOutgoing = activeShifts[activeShifts.length - 1].id; // Shift N
+      }
+    }
+
     const { data: updated, error } = await supabaseAdmin
       .from("class_shift_schedules")
       .upsert(
         {
           class_id: classId,
           day_of_week: cleanDay,
-          incoming_shift_id: incomingShiftId || null,
-          outgoing_shift_id: outgoingShiftId || null,
+          incoming_shift_id: finalIncoming || null,
+          outgoing_shift_id: finalOutgoing || null,
           is_today_off: Boolean(isTodayOff),
           notes: notes || null,
           updated_at: new Date().toISOString(),
@@ -100,6 +117,22 @@ export async function POST(
       .single();
 
     if (error) throw error;
+
+    // Keep physical shift_demands synchronized
+    await supabaseAdmin
+      .from("shift_demands")
+      .upsert(
+        {
+          class_id: classId,
+          day_of_week: cleanDay,
+          incoming_shift_id: finalIncoming || null,
+          outgoing_shift_id: finalOutgoing || null,
+          is_today_off: Boolean(isTodayOff),
+          notes: notes || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "class_id,day_of_week" }
+      );
 
     return NextResponse.json({
       success: true,
