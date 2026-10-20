@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { sendOtpEmail } from "@/lib/email";
 
@@ -72,21 +73,24 @@ export async function POST(req: NextRequest) {
 
     // ── Generate Cryptographically Secure 6-digit OTP ─────────────────
     const code = generateSecureOtp();
+    const codeHash = crypto.createHash("sha256").update(code).digest("hex");
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
 
     // Invalidate any previous OTPs for this email
     await supabaseAdmin
-      .from("otp_codes")
+      .from("auth_otps")
       .update({ used: true })
       .eq("email", cleanEmail)
       .eq("used", false);
 
-    // Store the new OTP
-    const { error } = await supabaseAdmin.from("otp_codes").insert({
+    // Store the new hashed OTP
+    const { error } = await supabaseAdmin.from("auth_otps").insert({
       email: cleanEmail,
-      code,
+      code_hash: codeHash,
       expires_at: expiresAt,
       used: false,
+      attempts: 0,
+      max_attempts: 5,
     });
 
     if (error) {

@@ -80,7 +80,6 @@ export async function POST(req: NextRequest) {
         landmark: landmark ? landmark.trim() : null,
         geofence_radius: geofenceRadiusMeters ? Number(geofenceRadiusMeters) : 80,
         campus_id: campusId || null,
-        campus: campus || null,
         is_bus_merge_stop: Boolean(isBusMergeStop),
       })
       .select()

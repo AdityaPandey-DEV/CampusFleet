@@ -36,11 +36,25 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       .eq("class_id", classId)
       .order("start_time", { ascending: true });
 
+    // 5. Shift Schedules from relational table
+    const { data: scheds } = await supabaseAdmin
+      .from("class_shift_schedules")
+      .select("*")
+      .eq("class_id", classId);
+    const scheduleMap: Record<string, any> = {};
+    for (const sc of (scheds || [])) {
+      scheduleMap[sc.day_of_week.toLowerCase()] = {
+        enabled: !sc.is_today_off,
+        incomingShiftId: sc.incoming_shift_id,
+        outgoingShiftId: sc.outgoing_shift_id,
+      };
+    }
+
     return NextResponse.json({
       success: true,
       class: {
         ...classItem,
-        shiftSchedule: classItem.shift_schedule || {},
+        shiftSchedule: scheduleMap,
       },
       students: students || [],
       teachers: (classTeachers || []).map(ct => ({
@@ -96,9 +110,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (year) updates.year = year.trim();
     if (section) updates.section = section.trim().toUpperCase();
     if (isActive !== undefined) updates.is_active = isActive;
-    if (shiftSchedule !== undefined) updates.shift_schedule = shiftSchedule;
     if (department !== undefined) updates.department = department;
     if (semester !== undefined) updates.semester = semester;
+
+    // Save shift schedule to class_shift_schedules table (Single Source of Truth)
+    if (shiftSchedule && typeof shiftSchedule === "object") {
+      const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      for (const d of dayNames) {
+        if (shiftSchedule[d]) {
+          const entry = shiftSchedule[d];
+          await supabaseAdmin.from("class_shift_schedules").upsert({
+            class_id: classId,
+            day_of_week: d.toUpperCase(),
+            incoming_shift_id: entry.incomingShiftId || null,
+            outgoing_shift_id: entry.outgoingShiftId || null,
+            is_today_off: entry.enabled === false,
+          }, { onConflict: "class_id,day_of_week" });
+        }
+      }
+    }
 
     if (course || year || section) {
       const { data: current } = await supabaseAdmin.from("classes").select("*").eq("id", classId).single();

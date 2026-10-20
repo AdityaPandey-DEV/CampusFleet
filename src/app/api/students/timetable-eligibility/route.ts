@@ -79,21 +79,26 @@ export async function GET(req: NextRequest) {
     if (student.class_id) {
       const { data: classRecord } = await supabaseAdmin
         .from("classes")
-        .select("id, name, shift_schedule")
+        .select("id, name")
         .eq("id", student.class_id)
         .maybeSingle();
 
       if (classRecord) {
         className = classRecord.name || className;
-        const schedule = classRecord.shift_schedule as Record<string, any> || {};
+      }
 
-        if (shiftId && schedule[shiftId]) {
-          const rule = schedule[shiftId];
-          if (rule.enabled === false) {
-            isShiftRestricted = true;
-          } else if (rule.days && rule.days[dayKey] === false) {
-            isShiftRestricted = true;
-          }
+      const { data: scheduleRow } = await supabaseAdmin
+        .from("class_shift_schedules")
+        .select("incoming_shift_id, outgoing_shift_id, is_today_off")
+        .eq("class_id", student.class_id)
+        .eq("day_of_week", dayOfWeek.toUpperCase())
+        .maybeSingle();
+
+      if (scheduleRow) {
+        if (scheduleRow.is_today_off) {
+          isShiftRestricted = true;
+        } else if (shiftId && shiftId !== scheduleRow.incoming_shift_id && shiftId !== scheduleRow.outgoing_shift_id) {
+          isShiftRestricted = true;
         }
       }
     }

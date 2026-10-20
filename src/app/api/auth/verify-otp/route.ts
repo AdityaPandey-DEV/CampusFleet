@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { signToken, createSessionCookie } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { findOrCreateUser } from "@/lib/account-service";
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     // ── Look Up OTP in Database ───────────────────────────────────────
     const { data: otpRecord } = await supabaseAdmin
-      .from("otp_codes")
+      .from("auth_otps")
       .select("*")
       .eq("email", cleanEmail)
       .eq("used", false)
@@ -89,32 +90,54 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check max attempts
+    const currentAttempts = otpRecord.attempts || 0;
+    const maxAttempts = otpRecord.max_attempts || 5;
+    if (currentAttempts >= maxAttempts) {
+      await supabaseAdmin.from("auth_otps").update({ used: true }).eq("id", otpRecord.id);
+      return NextResponse.json(
+        { error: "Too many incorrect attempts for this code. Please request a new one." },
+        { status: 401 }
+      );
+    }
+
     // Check expiry BEFORE comparison
     if (new Date(otpRecord.expires_at) < new Date()) {
-      await supabaseAdmin.from("otp_codes").update({ used: true }).eq("id", otpRecord.id);
+      await supabaseAdmin.from("auth_otps").update({ used: true }).eq("id", otpRecord.id);
       return NextResponse.json(
         { error: "Code has expired. Please request a new one." },
         { status: 401 }
       );
     }
 
-    // ── Timing-Safe OTP Comparison ────────────────────────────────────
-    // Prevents timing attacks by ensuring constant-time comparison
-    const isValid = timingSafeEqual(cleanOtp, otpRecord.code);
+    // ── Timing-Safe OTP Comparison (Hashed) ───────────────────────────
+    const inputHash = crypto.createHash("sha256").update(cleanOtp).digest("hex");
+    const targetHash = otpRecord.code_hash || "";
+    const isValid = timingSafeEqual(inputHash, targetHash);
 
     if (!isValid) {
+      const nextAttempts = currentAttempts + 1;
+      await supabaseAdmin
+        .from("auth_otps")
+        .update({
+          attempts: nextAttempts,
+          used: nextAttempts >= maxAttempts,
+        })
+        .eq("id", otpRecord.id);
+
+      const remaining = Math.max(0, maxAttempts - nextAttempts);
       return NextResponse.json(
-        { error: "Invalid verification code. Please check and try again." },
+        { error: `Invalid verification code. ${remaining > 0 ? `${remaining} attempts remaining.` : "Please request a new code."}` },
         { status: 401 }
       );
     }
 
     // ── Mark OTP as Used ──────────────────────────────────────────────
-    await supabaseAdmin.from("otp_codes").update({ used: true }).eq("id", otpRecord.id);
+    await supabaseAdmin.from("auth_otps").update({ used: true }).eq("id", otpRecord.id);
 
     // Invalidate ALL remaining OTPs for this email (defense in depth)
     await supabaseAdmin
-      .from("otp_codes")
+      .from("auth_otps")
       .update({ used: true })
       .eq("email", cleanEmail)
       .eq("used", false);

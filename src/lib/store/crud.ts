@@ -516,7 +516,6 @@ CampusFleetStore.prototype.createStop = async function (this: CampusFleetStore, 
       landmark: newStop.landmark,
       geofence_radius: newStop.geofenceRadiusMeters,
       campus_id: newStop.campusId || null,
-      campus: newStop.campus || (newStop.campusId ? this.campuses.find(c => c.id === newStop.campusId)?.name : "") || null,
       is_bus_merge_stop: Boolean(newStop.isBusMergeStop),
     });
   } catch (e) {
@@ -569,7 +568,6 @@ CampusFleetStore.prototype.deleteStop = async function (this: CampusFleetStore, 
 
   try {
     await supabase.from("stops").delete().eq("id", id);
-    await supabase.from("stop_routes").delete().eq("stop_id", id);
     await supabase.from("route_stops").delete().eq("stop_id", id);
   } catch (e) {
     console.warn("DB deleteStop:", e);
@@ -667,7 +665,6 @@ CampusFleetStore.prototype.updateCampus = async function (this: CampusFleetStore
         longitude: updated.longitude,
         landmark: updated.landmark || updated.address,
         geofence_radius: updated.geofenceRadiusMeters,
-        campus: updated.name,
       }).or(`id.eq.stop-bhimtal-campus,code.eq.${updated.code}`);
     }
   } catch (e) {
@@ -863,10 +860,9 @@ CampusFleetStore.prototype.createRoute = async function (this: CampusFleetStore,
       total_distance_km: newRoute.totalDistanceKm,
       estimated_duration_mins: newRoute.estimatedDurationMins,
       is_active: newRoute.isActive,
-      stops_data: newRoute.stops,
     });
 
-    // 2. Insert into route_stops & stop_routes tables
+    // 2. Insert into route_stops
     if (newRoute.stops && newRoute.stops.length > 0) {
       const routeStopsEntries = newRoute.stops.map(rs => ({
         route_id: newRoute.id,
@@ -876,13 +872,6 @@ CampusFleetStore.prototype.createRoute = async function (this: CampusFleetStore,
         buffer_time_minutes: rs.bufferTimeMinutes,
       }));
       await supabase.from("route_stops").insert(routeStopsEntries);
-
-      const stopRoutesEntries = newRoute.stops.map(rs => ({
-        route_id: newRoute.id,
-        stop_id: rs.stopId,
-        stop_order: rs.stopOrder,
-      }));
-      await supabase.from("stop_routes").upsert(stopRoutesEntries, { onConflict: "stop_id,route_id" });
     }
   } catch (e) {
     console.warn("DB createRoute:", e);
@@ -906,13 +895,12 @@ CampusFleetStore.prototype.updateRoute = async function (this: CampusFleetStore,
     if (updates.totalDistanceKm !== undefined) dbUpdates.total_distance_km = updates.totalDistanceKm;
     if (updates.estimatedDurationMins !== undefined) dbUpdates.estimated_duration_mins = updates.estimatedDurationMins;
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
-    if (updates.stops !== undefined) dbUpdates.stops_data = updates.stops;
 
     if (Object.keys(dbUpdates).length > 0) {
       await supabase.from("routes").update(dbUpdates).eq("id", id);
     }
 
-    // Re-sync relational route_stops and stop_routes if stops were updated
+    // Re-sync relational route_stops if stops were updated
     if (updates.stops && updates.stops.length > 0) {
       await supabase.from("route_stops").delete().eq("route_id", id);
       const routeStopsEntries = updates.stops.map(rs => ({
@@ -923,14 +911,6 @@ CampusFleetStore.prototype.updateRoute = async function (this: CampusFleetStore,
         buffer_time_minutes: rs.bufferTimeMinutes,
       }));
       await supabase.from("route_stops").insert(routeStopsEntries);
-
-      await supabase.from("stop_routes").delete().eq("route_id", id);
-      const stopRoutesEntries = updates.stops.map(rs => ({
-        route_id: id,
-        stop_id: rs.stopId,
-        stop_order: rs.stopOrder,
-      }));
-      await supabase.from("stop_routes").upsert(stopRoutesEntries, { onConflict: "stop_id,route_id" });
     }
   } catch (e) {
     console.warn("DB updateRoute:", e);
@@ -945,7 +925,6 @@ CampusFleetStore.prototype.deleteRoute = async function (this: CampusFleetStore,
   try {
     await supabase.from("routes").delete().eq("id", id);
     await supabase.from("route_stops").delete().eq("route_id", id);
-    await supabase.from("stop_routes").delete().eq("route_id", id);
   } catch (e) {
     console.warn("DB deleteRoute:", e);
   }
@@ -1066,7 +1045,6 @@ CampusFleetStore.prototype.addVehicleIssue = async function (this: CampusFleetSt
     await supabase.from("vehicle_issues").insert({
       id: newIssue.id,
       bus_id: newIssue.busId,
-      bus_number: newIssue.busNumber,
       reported_by: newIssue.reportedBy,
       issue_type: newIssue.issueType,
       severity: newIssue.severity,

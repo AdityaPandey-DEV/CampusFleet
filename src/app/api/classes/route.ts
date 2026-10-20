@@ -59,7 +59,7 @@ export async function GET() {
       createdAt: c.created_at,
       studentCount: countMap.get(c.id) || 0,
       assignedTeachers: teachersMap.get(c.id) || [],
-      shiftSchedule: c.shift_schedule || {},
+      shiftSchedule: {},
     }));
 
     return NextResponse.json(
