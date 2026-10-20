@@ -24,24 +24,24 @@ export default async function TeacherPage({
     redirect("/login?redirect=/teacher");
   }
 
-  const isElevated = session.role === "admin" || session.role === "transport_manager";
+  const teacherUserId = session.userId || (session as any).id;
 
   // 2. Fetch allocated classes for this teacher from class_teachers
-  let allocatedClasses: any[] = [];
+  const { data: allocations } = await supabaseAdmin
+    .from("class_teachers")
+    .select("class_id, is_primary, classes(*)")
+    .eq("teacher_id", teacherUserId);
 
-  if (!isElevated) {
-    const { data: allocations } = await supabaseAdmin
-      .from("class_teachers")
-      .select("class_id, is_primary, classes(*)")
-      .eq("teacher_id", session.id);
-
-    allocatedClasses = (allocations || []).map((row: any) => ({
+  let allocatedClasses: any[] = (allocations || [])
+    .filter((row: any) => row.classes)
+    .map((row: any) => ({
       ...row.classes,
       isPrimary: row.is_primary,
     }));
-  } else {
-    // Admin / Manager: show all classes or allocated
-    const { data: allCls } = await supabaseAdmin.from("classes").select("*").order("name");
+
+  // If this user has no specific classes allocated in class_teachers AND is admin/transport_manager:
+  if (allocatedClasses.length === 0 && (session.role === "admin" || session.role === "transport_manager")) {
+    const { data: allCls } = await supabaseAdmin.from("classes").select("*").eq("is_active", true).order("name");
     allocatedClasses = (allCls || []).map((c: any) => ({ ...c, isPrimary: false }));
   }
 

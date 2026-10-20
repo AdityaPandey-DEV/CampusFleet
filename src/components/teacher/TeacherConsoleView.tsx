@@ -721,12 +721,31 @@ export default function TeacherConsoleView({
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar flex-wrap">
+          {/* Mobile dropdown selector */}
+          <div className="block sm:hidden w-full">
+            <select
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              className="w-full text-xs font-semibold px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-600"
+            >
+              {classes.length > 1 && (
+                <option value="ALL">All Assigned Sections ({classes.length})</option>
+              )}
+              {classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name} ({cls.studentCount} students){cls.isPrimary ? " ★ Primary" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Desktop & tablet horizontal scrolling pill strip */}
+          <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar flex-nowrap min-w-0">
             {classes.length > 1 && (
               <button
                 type="button"
                 onClick={() => setSelectedClassId("ALL")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border whitespace-nowrap shrink-0 ${
                   selectedClassId === "ALL"
                     ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
                     : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 border-zinc-200 dark:border-zinc-700"
@@ -741,7 +760,7 @@ export default function TeacherConsoleView({
                 key={cls.id}
                 type="button"
                 onClick={() => setSelectedClassId(cls.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border flex items-center gap-2 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border flex items-center gap-2 whitespace-nowrap shrink-0 ${
                   selectedClassId === cls.id
                     ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
                     : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 border-zinc-200 dark:border-zinc-700"

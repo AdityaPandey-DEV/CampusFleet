@@ -9,14 +9,14 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
     const { searchParams } = new URL(req.url);
-    const teacherId = searchParams.get("teacherId") || session?.id;
+    const teacherId = searchParams.get("teacherId") || session?.userId || (session as any)?.id;
 
     const isElevated = session?.role === "admin" || session?.role === "transport_manager";
 
     let classesData: any[] = [];
 
-    if (teacherId && !isElevated) {
-      // Query ONLY classes allocated to this teacher
+    if (teacherId) {
+      // Query classes allocated to this teacher first
       const { data, error } = await supabaseAdmin
         .from("class_teachers")
         .select("class_id, is_primary, classes(*)")
@@ -24,29 +24,20 @@ export async function GET(req: NextRequest) {
 
       if (error) throw error;
 
-      classesData = (data || []).map((row: any) => ({
-        ...row.classes,
-        isPrimary: row.is_primary,
-      }));
-    } else if (teacherId && isElevated) {
-      // If elevated admin checking a specific teacher or all
-      const { data, error } = await supabaseAdmin
-        .from("class_teachers")
-        .select("class_id, is_primary, classes(*)")
-        .eq("teacher_id", teacherId);
-
-      if (!error && data && data.length > 0) {
-        classesData = data.map((row: any) => ({
-          ...row.classes,
-          isPrimary: row.is_primary,
-        }));
-      } else {
-        const { data: allCls } = await supabaseAdmin.from("classes").select("*").order("name");
+      if (data && data.length > 0) {
+        classesData = data
+          .filter((row: any) => row.classes)
+          .map((row: any) => ({
+            ...row.classes,
+            isPrimary: row.is_primary,
+          }));
+      } else if (isElevated) {
+        // Only if elevated user has no direct allocations, show all active classes
+        const { data: allCls } = await supabaseAdmin.from("classes").select("*").eq("is_active", true).order("name");
         classesData = (allCls || []).map((c: any) => ({ ...c, isPrimary: false }));
       }
-    } else {
-      // Fallback
-      const { data: allCls } = await supabaseAdmin.from("classes").select("*").order("name");
+    } else if (isElevated) {
+      const { data: allCls } = await supabaseAdmin.from("classes").select("*").eq("is_active", true).order("name");
       classesData = (allCls || []).map((c: any) => ({ ...c, isPrimary: false }));
     }
 
