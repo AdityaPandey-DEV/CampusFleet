@@ -3,9 +3,13 @@ import { getSession } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { isStartingSeat, getTeacherStartingSeats, generateSeatLayout } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/students/reservations?studentId=xxx
- * Returns the student's active reservation for today + transport settings
+ * Returns the student's active reservation for today + transport settings.
+ * If no reservation exists, performs an automated AI matching to the student's
+ * primary stop, route, class shifts, and available bus.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -15,8 +19,15 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const studentId = searchParams.get("studentId") || (session as any).studentId || session.userId;
-    const today = new Date().toISOString().split("T")[0];
+    const rawStudentId = searchParams.get("studentId") || (session as any).studentId || session.userId;
+
+    // Resolve date in IST & UTC
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(now.getTime() + istOffset);
+    const today = istDate.toISOString().split("T")[0];
+    const utcToday = now.toISOString().split("T")[0];
+    const allowedDates = Array.from(new Set([today, utcToday]));
 
     // Fetch transport settings
     const { data: settings } = await supabaseAdmin
@@ -32,58 +43,108 @@ export async function GET(req: NextRequest) {
       min_fill_percent: 60,
     };
 
+    // 0. Resolve the student profile
+    const { data: student } = await supabaseAdmin
+      .from("students")
+      .select("id, user_id, primary_stop_id, primary_route_id, auto_assigned_stop_id, class_id")
+      .or(`id.eq.${rawStudentId},user_id.eq.${rawStudentId}`)
+      .maybeSingle();
+
+    const resolvedStudentId = student?.id || rawStudentId;
+
     // 1. Fetch student's reservation for today
-    const { data: reservations, error: resErr } = await supabaseAdmin
+    const { data: reservations } = await supabaseAdmin
       .from("bus_reservations")
       .select("*")
-      .eq("student_id", studentId)
-      .eq("reservation_date", today)
+      .or(`student_id.eq.${resolvedStudentId},student_id.eq.${rawStudentId}`)
+      .in("reservation_date", allowedDates)
       .order("created_at", { ascending: false });
 
     let activeReservation = reservations && reservations.length > 0 ? reservations[0] : null;
 
     // 2. If no reservation exists and auto-assignment is enabled, create an AI auto-assignment
-    if (!activeReservation && currentSettings.auto_assignment_enabled) {
-      // Fetch student details
-      const { data: student } = await supabaseAdmin
-        .from("students")
-        .select("id, primary_stop_id, primary_route_id, auto_assigned_stop_id")
-        .eq("id", studentId)
-        .single();
+    if (!activeReservation && currentSettings.auto_assignment_enabled && student) {
+      const targetStopId = student.auto_assigned_stop_id || student.primary_stop_id;
+      let targetRouteId = student.primary_route_id;
 
-      if (student) {
-        const targetStopId = student.auto_assigned_stop_id || student.primary_stop_id;
+      if (!targetRouteId && targetStopId) {
+        // Resolve route serving this stop
+        const { data: routeStop } = await supabaseAdmin
+          .from("route_stops")
+          .select("route_id")
+          .eq("stop_id", targetStopId)
+          .limit(1)
+          .maybeSingle();
+        if (routeStop) targetRouteId = routeStop.route_id;
+      }
 
-        // Fetch active trip for today
-        const { data: trips } = await supabaseAdmin
+      // Fetch active trip for today on student's route
+      let trip: any = null;
+      if (targetRouteId) {
+        const { data: routeTrips } = await supabaseAdmin
           .from("trips")
           .select("id, bus_id, shift_id, route_id, status")
-          .eq("trip_date", today)
+          .eq("route_id", targetRouteId)
+          .in("trip_date", allowedDates)
           .neq("status", "CANCELLED")
+          .order("trip_date", { ascending: false })
           .limit(1);
 
-        const trip = trips && trips.length > 0 ? trips[0] : null;
+        if (routeTrips && routeTrips.length > 0) {
+          trip = routeTrips[0];
+        }
+      }
 
-        if (trip && trip.bus_id && targetStopId) {
-          const { data: createdRes, error: createErr } = await supabaseAdmin
-            .from("bus_reservations")
-            .insert({
-              student_id: studentId,
-              trip_id: trip.id,
-              bus_id: trip.bus_id,
-              boarding_stop_id: targetStopId,
-              shift_id: trip.shift_id || "morning",
-              reservation_date: today,
-              assigned_by: "AI_AUTO",
-              assignment_score: 0.95,
-              status: "ASSIGNED",
-            })
-            .select()
-            .single();
+      // Fallback: any active operational trip today
+      if (!trip) {
+        const { data: fallbackTrips } = await supabaseAdmin
+          .from("trips")
+          .select("id, bus_id, shift_id, route_id, status")
+          .in("trip_date", allowedDates)
+          .neq("status", "CANCELLED")
+          .order("trip_date", { ascending: false })
+          .limit(1);
 
-          if (!createErr && createdRes) {
-            activeReservation = createdRes;
+        if (fallbackTrips && fallbackTrips.length > 0) {
+          trip = fallbackTrips[0];
+        }
+      }
+
+      if (trip && trip.bus_id && targetStopId) {
+        // Resolve incoming shift from class demand
+        let incomingShift = trip.shift_id || "shift-1";
+        if (student.class_id) {
+          const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+          const currentDayName = days[istDate.getUTCDay()];
+          const { data: demandRow } = await supabaseAdmin
+            .from("shift_demands")
+            .select("incoming_shift_id")
+            .eq("class_id", student.class_id)
+            .eq("day_of_week", currentDayName)
+            .maybeSingle();
+          if (demandRow?.incoming_shift_id) {
+            incomingShift = demandRow.incoming_shift_id;
           }
+        }
+
+        const { data: createdRes, error: createErr } = await supabaseAdmin
+          .from("bus_reservations")
+          .insert({
+            student_id: resolvedStudentId,
+            trip_id: trip.id,
+            bus_id: trip.bus_id,
+            boarding_stop_id: targetStopId,
+            shift_id: incomingShift,
+            reservation_date: today,
+            assigned_by: "AI_AUTO",
+            assignment_score: 0.965,
+            status: "ASSIGNED",
+          })
+          .select()
+          .single();
+
+        if (!createErr && createdRes) {
+          activeReservation = createdRes;
         }
       }
     }
@@ -92,8 +153,16 @@ export async function GET(req: NextRequest) {
     let enriched = null;
     if (activeReservation) {
       const [busRes, stopRes] = await Promise.all([
-        supabaseAdmin.from("buses").select("id, bus_number, registration_no, model, capacity, seat_layout").eq("id", activeReservation.bus_id).maybeSingle(),
-        supabaseAdmin.from("stops").select("id, name, landmark, latitude, longitude").eq("id", activeReservation.boarding_stop_id).maybeSingle(),
+        supabaseAdmin
+          .from("buses")
+          .select("id, bus_number, registration_no, model, capacity, seat_layout, teacher_seats_count")
+          .eq("id", activeReservation.bus_id)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("stops")
+          .select("id, name, landmark, latitude, longitude")
+          .eq("id", activeReservation.boarding_stop_id)
+          .maybeSingle(),
       ]);
 
       enriched = {
@@ -132,18 +201,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Seat number is required." }, { status: 400 });
     }
 
-    const resolvedStudentId = studentId || (session as any).studentId || session.userId;
-    const today = new Date().toISOString().split("T")[0];
+    const rawStudentId = studentId || (session as any).studentId || session.userId;
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(now.getTime() + istOffset);
+    const today = istDate.toISOString().split("T")[0];
+    const utcToday = now.toISOString().split("T")[0];
+    const allowedDates = Array.from(new Set([today, utcToday]));
+
+    // Resolve student
+    const { data: student } = await supabaseAdmin
+      .from("students")
+      .select("id, user_id")
+      .or(`id.eq.${rawStudentId},user_id.eq.${rawStudentId}`)
+      .maybeSingle();
+
+    const resolvedStudentId = student?.id || rawStudentId;
 
     // Find reservation
     let query = supabaseAdmin.from("bus_reservations").select("*");
     if (reservationId) {
       query = query.eq("id", reservationId);
     } else {
-      query = query.eq("student_id", resolvedStudentId).eq("reservation_date", today);
+      query = query
+        .or(`student_id.eq.${resolvedStudentId},student_id.eq.${rawStudentId}`)
+        .in("reservation_date", allowedDates);
     }
 
-    const { data: targetRes, error: findErr } = await query.maybeSingle();
+    const { data: targetRes, error: findErr } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     if (findErr || !targetRes) {
       return NextResponse.json({ success: false, message: "No active bus reservation found for today." }, { status: 404 });
@@ -203,7 +288,7 @@ export async function POST(req: NextRequest) {
         .from("bookings")
         .update({ seat_number: seatNumber })
         .eq("trip_id", targetRes.trip_id)
-        .eq("student_id", resolvedStudentId);
+        .or(`student_id.eq.${resolvedStudentId},student_id.eq.${rawStudentId}`);
     }
 
     return NextResponse.json({

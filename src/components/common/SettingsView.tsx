@@ -76,6 +76,16 @@ export function SettingsView() {
   const { primaryLanguage, setPrimaryLanguage, languageOptions, t } = useTranslation();
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
 
+  const isEnclosedInPortalLayout = useMemo(() => {
+    return (
+      pathname.startsWith("/portal") ||
+      pathname.startsWith("/admin") ||
+      pathname.startsWith("/transport-admin") ||
+      pathname.startsWith("/transport-manager") ||
+      pathname.startsWith("/conductor")
+    );
+  }, [pathname]);
+
   const detectedRole: UserRole = useMemo(() => {
     if (pathname.startsWith("/teacher")) return "teacher";
     if (pathname.startsWith("/conductor")) return "conductor";
@@ -371,13 +381,17 @@ export function SettingsView() {
       const activeStudent = store.getStudents().find(s => s.userId === user.id || s.id === user.id);
       const activeStaff = store.getStaff().find(s => s.userId === user.id || s.id === user.id);
 
+      const rawSection = activeStudent?.className
+        ? activeStudent.className.match(/\(([^)]+)\)/)?.[1] || activeStudent.className.split("-").pop()?.trim() || ""
+        : "";
+
       setProfileForm({
         fullName: activeStudent?.fullName || activeStaff?.fullName || user.fullName || "",
         phone: activeStudent?.phone || activeStaff?.phone || (user as any).phone || "",
         photoUrl: activeStudent?.photoUrl || (activeStaff as any)?.photoUrl || user.avatarUrl || "",
         department: activeStudent?.department || "",
         semester: activeStudent?.semester || "",
-        section: activeStudent?.className ? activeStudent.className.split("-").pop()?.trim() || "" : "",
+        section: rawSection,
         classId: activeStudent?.classId || "",
         className: activeStudent?.className || "",
         emergencyContactName: activeStudent?.emergencyContact?.name || "",
@@ -401,7 +415,24 @@ export function SettingsView() {
     fetch("/api/classes")
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.classes) setClassesList(data.classes);
+        if (data.success && data.classes) {
+          setClassesList(data.classes);
+          // If student has a classId, accurately align department, semester, and section
+          setProfileForm(prev => {
+            if (!prev.classId) return prev;
+            const matched = data.classes.find((c: any) => c.id === prev.classId);
+            if (matched) {
+              return {
+                ...prev,
+                department: matched.course || matched.department || prev.department,
+                semester: matched.semester || prev.semester,
+                section: matched.section || prev.section,
+                className: matched.name || prev.className,
+              };
+            }
+            return prev;
+          });
+        }
       })
       .catch(console.error);
   }, []);
@@ -612,31 +643,33 @@ export function SettingsView() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col pb-24 md:pb-12">
-      <UnifiedAppHeader
-        role={detectedRole}
-        portalTitle="CampusFleet"
-        portalSubtitle={
-          detectedRole === "teacher"
-            ? "Faculty Transit & Settings"
-            : detectedRole === "conductor"
-            ? "Conductor Manifest & Settings"
-            : detectedRole === "driver"
-            ? "Driver HUD & Settings"
-            : "Account & Mobility Settings"
-        }
-        navLinks={settingsNavLinks}
-        mobilePrimaryAction={
-          detectedRole === "teacher"
-            ? {
-                label: "My Commute Cockpit",
-                href: "/teacher?tab=my_commute",
-                subtitle: "View seat pass & live bus tracking",
-                icon: BusFront,
-              }
-            : undefined
-        }
-      />
+    <div className={`min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col ${isEnclosedInPortalLayout ? 'pb-16' : 'pb-24 md:pb-12'}`}>
+      {!isEnclosedInPortalLayout && (
+        <UnifiedAppHeader
+          role={detectedRole}
+          portalTitle="CampusFleet"
+          portalSubtitle={
+            detectedRole === "teacher"
+              ? "Faculty Transit & Settings"
+              : detectedRole === "conductor"
+              ? "Conductor Manifest & Settings"
+              : detectedRole === "driver"
+              ? "Driver HUD & Settings"
+              : "Account & Mobility Settings"
+          }
+          navLinks={settingsNavLinks}
+          mobilePrimaryAction={
+            detectedRole === "teacher"
+              ? {
+                  label: "My Commute Cockpit",
+                  href: "/teacher?tab=my_commute",
+                  subtitle: "View seat pass & live bus tracking",
+                  icon: BusFront,
+                }
+              : undefined
+          }
+        />
+      )}
 
       <main className="flex-1 max-w-5xl w-full mx-auto py-6 sm:py-8 px-4 sm:px-6 animate-in fade-in duration-300">
         {/* Page Header */}
@@ -803,11 +836,11 @@ export function SettingsView() {
               </>
             )}
 
-            <div className="pt-4 flex justify-end">
+            <div className="pt-4 flex flex-col sm:flex-row justify-end items-center gap-3">
               <button
                 onClick={handleSaveProfile}
                 disabled={isSaving}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-none transition-colors"
+                className="w-full sm:w-auto px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-none transition-colors text-sm shadow-sm active:scale-95 cursor-pointer"
               >
                 {isSaving ? t('saving') : t('saveProfile')}
               </button>
@@ -1484,7 +1517,7 @@ export function SettingsView() {
         </div>
       </main>
 
-      <MobileBottomNav navItems={mobileBottomNavItems} />
+      {!isEnclosedInPortalLayout && <MobileBottomNav navItems={mobileBottomNavItems} />}
     </div>
   );
 }
