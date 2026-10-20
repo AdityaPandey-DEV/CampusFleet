@@ -30,7 +30,11 @@ export function SeatMapTab({
   const rightCols = Array.from({ length: rightCount }, (_, i) => String.fromCharCode(65 + leftCount + i));
   const totalGridCols = leftCount > 0 && rightCount > 0 ? leftCount + 1 + rightCount : 0;
 
-  const effectiveTeacherCount = Number((bus as any)?.teacher_seats_count || (bus as any)?.teacherSeatsCount || Math.max(1, leftCount + rightCount));
+  const effectiveTeacherCount = typeof (bus as any)?.teacher_seats_count === "number"
+    ? (bus as any).teacher_seats_count
+    : typeof (bus as any)?.teacherSeatsCount === "number"
+    ? (bus as any).teacherSeatsCount
+    : 0;
 
   const allGeneratedSeats = useMemo(() => {
     if (!capacity || capacity <= 0 || !layout || layout === "NONE" || leftCount <= 0 || rightCount <= 0) return [];

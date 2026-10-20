@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
     const isFacultyUser = userRole === "teacher" || userRole === "faculty" || userRole === "staff" || userRole === "admin";
 
     if (!isFacultyUser) {
-      let isRestricted = isStartingSeat(seatNumber);
+      let isRestricted = false;
       if (targetRes.bus_id) {
         const { data: busData } = await supabaseAdmin
           .from("buses")
@@ -256,9 +256,13 @@ export async function POST(req: NextRequest) {
 
         if (busData) {
           const busSeats = generateSeatLayout(busData.capacity, busData.seat_layout || "NONE");
-          const nTeachers = Math.max(Number((busData as any)?.teacher_seats_count || 0), 1);
-          const teacherReservedSeats = getTeacherStartingSeats(busSeats, nTeachers);
-          isRestricted = teacherReservedSeats.includes(seatNumber);
+          const nTeachers = typeof (busData as any)?.teacher_seats_count === "number"
+            ? (busData as any).teacher_seats_count
+            : 0;
+          if (nTeachers > 0) {
+            const teacherReservedSeats = getTeacherStartingSeats(busSeats, nTeachers);
+            isRestricted = teacherReservedSeats.includes(seatNumber);
+          }
         }
       }
 

@@ -328,15 +328,15 @@ export async function POST(req: NextRequest) {
     const isFacultyUser = userRole === "teacher" || userRole === "faculty" || userRole === "staff" || userRole === "admin";
 
     // Determine N number of teachers for this bus/trip
-    const busTeacherQuota = Number((bus as any)?.teacher_seats_count || (bus as any)?.teacherSeatsCount || 0);
+    const busTeacherQuota = Number((bus as any)?.teacher_seats_count ?? (bus as any)?.teacherSeatsCount ?? 0);
     const { count: teacherBookingsCount } = await supabaseAdmin
       .from("bookings_full")
       .select("*", { count: "exact", head: true })
       .eq("trip_id", tripId)
       .in("passenger_type", ["FACULTY", "TEACHER", "STAFF"]);
 
-    const nTeachers = Math.max(busTeacherQuota, teacherBookingsCount || 0, 1);
-    const teacherReservedSeats = getTeacherStartingSeats(allSeats, nTeachers);
+    const nTeachers = Math.max(busTeacherQuota, teacherBookingsCount || 0);
+    const teacherReservedSeats = nTeachers > 0 ? getTeacherStartingSeats(allSeats, nTeachers) : [];
 
     let allocatedSeat = availableSeats[0];
     if (requestedSeatNumber) {

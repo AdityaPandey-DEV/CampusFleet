@@ -20,7 +20,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
-import { isStartingSeat } from "@/lib/utils";
+import { generateSeatLayout, getTeacherStartingSeats } from "@/lib/utils";
 import DigitalPassView from "./DigitalPassView";
 import LiveTrackerView from "./LiveTrackerView";
 import type { Student, Bus, Stop, Shift, Trip, Booking, Route, TransportSettings, Staff } from "@/lib/types";
@@ -150,9 +150,21 @@ export default function SmartTransitCockpit({
   // Confirm Seat Selection & Mark Attendance
   const handleConfirmSeat = async (seatNumber: string) => {
     if (!seatNumber) return;
-    if (!isTeacher && isStartingSeat(seatNumber)) {
-      alert("Front starting seats (Row 1) are strictly reserved for Faculty and Teachers. Please choose another seat.");
-      return;
+    if (!isTeacher && assignedBus) {
+      const teacherCount =
+        typeof (assignedBus as any)?.teacherSeatsCount === "number"
+          ? (assignedBus as any).teacherSeatsCount
+          : typeof (assignedBus as any)?.teacher_seats_count === "number"
+          ? (assignedBus as any).teacher_seats_count
+          : 0;
+      if (teacherCount > 0) {
+        const allSeats = generateSeatLayout(assignedBus.capacity, assignedBus.seatLayout);
+        const teacherSeats = getTeacherStartingSeats(allSeats, teacherCount);
+        if (teacherSeats.includes(seatNumber)) {
+          alert(`The first ${teacherCount} starting seat${teacherCount !== 1 ? "s" : ""} on this bus are reserved for Faculty and Teachers. Please choose another seat.`);
+          return;
+        }
+      }
     }
     setIsSavingSeat(true);
     try {
@@ -358,9 +370,21 @@ export default function SmartTransitCockpit({
                 activeBookings={bookings}
                 selectedSeat={tentativeSeat}
                 onSelectSeat={(seatNum) => {
-                  if (!isTeacher && isStartingSeat(seatNum)) {
-                    alert("Front starting seats (Row 1) are strictly reserved for Faculty and Teachers. Please choose another seat.");
-                    return;
+                  if (!isTeacher && assignedBus) {
+                    const teacherCount =
+                      typeof (assignedBus as any)?.teacherSeatsCount === "number"
+                        ? (assignedBus as any).teacherSeatsCount
+                        : typeof (assignedBus as any)?.teacher_seats_count === "number"
+                        ? (assignedBus as any).teacher_seats_count
+                        : 0;
+                    if (teacherCount > 0) {
+                      const allSeats = generateSeatLayout(assignedBus.capacity, assignedBus.seatLayout);
+                      const teacherSeats = getTeacherStartingSeats(allSeats, teacherCount);
+                      if (teacherSeats.includes(seatNum)) {
+                        alert(`Starting seats (first ${teacherCount} seats) on this bus are reserved for Faculty and Teachers. Please choose another seat.`);
+                        return;
+                      }
+                    }
                   }
                   setTentativeSeat(seatNum);
                 }}

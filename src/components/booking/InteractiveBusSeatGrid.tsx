@@ -113,11 +113,11 @@ export function InteractiveBusSeatGrid({
     if (typeof (bus as any)?.teacher_seats_count === "number") {
       return (bus as any).teacher_seats_count;
     }
-    // Default to Row 1 seat count
-    return Math.max(1, leftCount + rightCount);
-  }, [teacherCount, bus, leftCount, rightCount]);
+    return 0;
+  }, [teacherCount, bus]);
 
   const teacherReservedSeatSet = useMemo(() => {
+    if (effectiveTeacherCount <= 0) return new Set<string>();
     return new Set(getTeacherStartingSeats(allGeneratedSeats, effectiveTeacherCount));
   }, [allGeneratedSeats, effectiveTeacherCount]);
 
@@ -215,21 +215,33 @@ export function InteractiveBusSeatGrid({
         </div>
 
         {/* Faculty Row Banner */}
-        <div className="mb-4 px-3.5 py-2 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 text-[11px] font-semibold text-indigo-800 dark:text-indigo-200 flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <GraduationCap className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
-            <span>Starting Seats: Reserved for {effectiveTeacherCount} Teacher{effectiveTeacherCount !== 1 ? "s" : ""}</span>
-          </span>
-          {isFacultyUser ? (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white shadow-xs">
-              Teacher Access ({effectiveTeacherCount} Reserved)
+        {effectiveTeacherCount > 0 ? (
+          <div className="mb-4 px-3.5 py-2 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 text-[11px] font-semibold text-indigo-800 dark:text-indigo-200 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <GraduationCap className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+              <span>Starting Seats: Reserved for {effectiveTeacherCount} Teacher{effectiveTeacherCount !== 1 ? "s" : ""}</span>
             </span>
-          ) : (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-              Restricted ({effectiveTeacherCount} Seats)
+            {isFacultyUser ? (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white shadow-xs">
+                Teacher Access ({effectiveTeacherCount} Reserved)
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                Restricted ({effectiveTeacherCount} Seats)
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="mb-4 px-3.5 py-2 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 text-[11px] font-semibold text-emerald-800 dark:text-emerald-200 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <span>Open Seating: All seats open for commuters</span>
             </span>
-          )}
-        </div>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+              No Reserved Seats
+            </span>
+          </div>
+        )}
 
         {/* Seats Cabin Rows */}
         <div className="space-y-3">

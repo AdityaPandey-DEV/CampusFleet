@@ -164,11 +164,14 @@ export function isStartingSeat(seatCode: string): boolean {
 
 /**
  * Returns the first N starting seats on a bus chassis allocated for N teachers in the bus.
- * If teacherCount is not specified or <= 0, defaults to Row 1 starting seats.
+ * - If teacherCount is 0: returns [] (no seats reserved, open seating).
+ * - If teacherCount > 0: returns the first N seats (e.g. 4, 10, or up to all seats for a full faculty bus).
+ * - If teacherCount is undefined: defaults to Row 1 starting seats.
  */
 export function getTeacherStartingSeats(allSeats: string[], teacherCount?: number): string[] {
   if (!allSeats || allSeats.length === 0) return [];
-  if (typeof teacherCount === "number" && teacherCount > 0) {
+  if (typeof teacherCount === "number") {
+    if (teacherCount <= 0) return [];
     return allSeats.slice(0, Math.min(teacherCount, allSeats.length));
   }
   const row1Seats = allSeats.filter((s) => isStartingSeat(s));
@@ -176,7 +179,8 @@ export function getTeacherStartingSeats(allSeats: string[], teacherCount?: numbe
 }
 
 /**
- * Checks if a seat code is restricted for teachers given N teachers on the bus
+ * Checks if a seat code is restricted for teachers given N teachers on the bus.
+ * Returns false if teacherCount is 0.
  */
 export function isSeatRestrictedForTeachers(
   seatCode: string,
@@ -184,8 +188,16 @@ export function isSeatRestrictedForTeachers(
   teacherCount?: number
 ): boolean {
   if (!seatCode) return false;
-  if (allSeats && allSeats.length > 0 && typeof teacherCount === "number" && teacherCount > 0) {
-    const teacherSeats = getTeacherStartingSeats(allSeats, teacherCount);
+  if (typeof teacherCount === "number") {
+    if (teacherCount <= 0) return false;
+    if (allSeats && allSeats.length > 0) {
+      const teacherSeats = getTeacherStartingSeats(allSeats, teacherCount);
+      return teacherSeats.includes(seatCode);
+    }
+    return isStartingSeat(seatCode);
+  }
+  if (allSeats && allSeats.length > 0) {
+    const teacherSeats = getTeacherStartingSeats(allSeats);
     return teacherSeats.includes(seatCode);
   }
   return isStartingSeat(seatCode);

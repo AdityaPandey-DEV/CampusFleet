@@ -120,8 +120,12 @@ export function createBooking(
 
   if (confirmedCount < totalCapacity && availableSeats.length > 0) {
     const allSeatNumbers = generateSeatLayout(bus.capacity, bus.seatLayout);
-    const nTeachers = Math.max(Number((bus as any)?.teacherSeatsCount || (bus as any)?.teacher_seats_count || 0), 1);
-    const teacherReservedSeats = getTeacherStartingSeats(allSeatNumbers, nTeachers);
+    const nTeachers = typeof (bus as any)?.teacherSeatsCount === "number"
+      ? (bus as any).teacherSeatsCount
+      : typeof (bus as any)?.teacher_seats_count === "number"
+      ? (bus as any).teacher_seats_count
+      : 0;
+    const teacherReservedSeats = nTeachers > 0 ? getTeacherStartingSeats(allSeatNumbers, nTeachers) : [];
     const isFacultyUser = Boolean(
       (student as any)?.role === "teacher" ||
       (student as any)?.role === "faculty" ||
@@ -132,7 +136,7 @@ export function createBooking(
 
     let allocatedSeat = availableSeats[0];
     if (requestedSeatNumber) {
-      if (teacherReservedSeats.includes(requestedSeatNumber) && !isFacultyUser) {
+      if (nTeachers > 0 && teacherReservedSeats.includes(requestedSeatNumber) && !isFacultyUser) {
         return {
           success: false,
           message: `Starting seats (first ${nTeachers} seat${nTeachers !== 1 ? "s" : ""}) are strictly reserved for Faculty and Teachers. Please choose another seat.`,
@@ -149,11 +153,15 @@ export function createBooking(
     } else {
       let eligibleSeats = availableSeats;
       if (!isFacultyUser) {
-        const studentEligible = availableSeats.filter((s) => !teacherReservedSeats.includes(s));
-        if (studentEligible.length > 0) eligibleSeats = studentEligible;
+        if (teacherReservedSeats.length > 0) {
+          const studentEligible = availableSeats.filter((s) => !teacherReservedSeats.includes(s));
+          if (studentEligible.length > 0) eligibleSeats = studentEligible;
+        }
       } else {
-        const facultyPreferred = availableSeats.filter((s) => teacherReservedSeats.includes(s));
-        if (facultyPreferred.length > 0) eligibleSeats = facultyPreferred;
+        if (teacherReservedSeats.length > 0) {
+          const facultyPreferred = availableSeats.filter((s) => teacherReservedSeats.includes(s));
+          if (facultyPreferred.length > 0) eligibleSeats = facultyPreferred;
+        }
       }
       allocatedSeat = eligibleSeats[0] || availableSeats[0];
     }

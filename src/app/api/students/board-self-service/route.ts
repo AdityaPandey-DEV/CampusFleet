@@ -112,19 +112,18 @@ export async function POST(req: NextRequest) {
 
       if (busData) {
         const busSeats = generateSeatLayout(busData.capacity, busData.seat_layout || "NONE");
-        const nTeachers = Math.max(Number((busData as any)?.teacher_seats_count || 0), 1);
-        const teacherReservedSeats = getTeacherStartingSeats(busSeats, nTeachers);
-        if (teacherReservedSeats.includes(seatId) || isStartingSeat(seatId)) {
-          return NextResponse.json({
-            success: false,
-            message: "Starting seats on this bus are strictly reserved for Faculty and Teachers. Please choose another seat.",
-          }, { status: 403 });
+        const nTeachers = typeof (busData as any)?.teacher_seats_count === "number"
+          ? (busData as any).teacher_seats_count
+          : 0;
+        if (nTeachers > 0) {
+          const teacherReservedSeats = getTeacherStartingSeats(busSeats, nTeachers);
+          if (teacherReservedSeats.includes(seatId)) {
+            return NextResponse.json({
+              success: false,
+              message: `Starting seats (first ${nTeachers} seats) on this bus are strictly reserved for Faculty and Teachers. Please choose another seat.`,
+            }, { status: 403 });
+          }
         }
-      } else if (isStartingSeat(seatId)) {
-        return NextResponse.json({
-          success: false,
-          message: "Starting seats on this bus are strictly reserved for Faculty and Teachers. Please choose another seat.",
-        }, { status: 403 });
       }
 
       // Check if seatId is already booked by someone else on this trip
