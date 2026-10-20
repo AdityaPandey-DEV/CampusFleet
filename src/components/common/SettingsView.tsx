@@ -356,8 +356,24 @@ export function SettingsView() {
   const [autoAssignedStopId, setAutoAssignedStopId] = useState<string | null>(null);
   const [nearestStops, setNearestStops] = useState<any[]>([]);
   const [isDetectingGPS, setIsDetectingGPS] = useState(false);
+  const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const [isSavingHome, setIsSavingHome] = useState(false);
   const [homeStatusMsg, setHomeStatusMsg] = useState<string | null>(null);
+
+  const fetchAddressForCoordinates = async (lat: number, lng: number) => {
+    setIsResolvingAddress(true);
+    try {
+      const res = await fetch(`/api/geo/reverse-geocode?lat=${lat}&lng=${lng}`);
+      const data = await res.json();
+      if (data.success && data.address) {
+        setHomeAddress(data.address);
+      }
+    } catch (err) {
+      console.warn("Could not reverse geocode coordinates:", err);
+    } finally {
+      setIsResolvingAddress(false);
+    }
+  };
 
   // Bus Switch / Transfer Request State
   const [switchType, setSwitchType] = useState<"TEMPORARY_SWAP" | "PERMANENT_TRANSFER" | "STOP_CHANGE">("TEMPORARY_SWAP");
@@ -488,9 +504,13 @@ export function SettingsView() {
     setIsDetectingGPS(true);
     navigator.geolocation.getCurrentPosition(
       pos => {
-        setHomeLat(pos.coords.latitude.toFixed(6));
-        setHomeLng(pos.coords.longitude.toFixed(6));
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setHomeLat(lat.toFixed(6));
+        setHomeLng(lng.toFixed(6));
         setIsDetectingGPS(false);
+        // Automatically fetch street/area address from map provider (OSM / Google)
+        fetchAddressForCoordinates(lat, lng);
       },
       err => {
         alert("Failed to acquire GPS location: " + err.message);
@@ -534,6 +554,16 @@ export function SettingsView() {
         setNearestStops(data.nearestStops);
       }
       setHomeStatusMsg(data.message || "Home coordinates and stop assignment saved successfully!");
+
+      // Refresh today's reservation immediately
+      fetch(`/api/students/reservations?studentId=${studentId}`)
+        .then(r => r.json())
+        .then(resData => {
+          if (resData.success && resData.reservation) {
+            setActiveReservation(resData.reservation);
+          }
+        })
+        .catch(() => {});
     } catch (err: any) {
       alert(err.message || "Error saving home location");
     } finally {
@@ -871,12 +901,24 @@ export function SettingsView() {
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Street / Area Address</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Street / Area Address</label>
+                    {isResolvingAddress && (
+                      <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1 font-medium animate-pulse">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Fetching street address from map...
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={homeAddress}
                     onChange={e => setHomeAddress(e.target.value)}
-                    placeholder="E.g. Flat 402, Sunrise Residency, Main Ring Road"
+                    placeholder={
+                      isResolvingAddress
+                        ? "Resolving street address from map provider..."
+                        : "E.g. Flat 402, Sunrise Residency, Main Ring Road"
+                    }
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
                   />
                 </div>
@@ -888,7 +930,7 @@ export function SettingsView() {
                       type="text"
                       value={homeLat}
                       onChange={e => setHomeLat(e.target.value)}
-                      placeholder="E.g. 22.719568"
+                      placeholder="E.g. 29.220849"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm font-mono"
                     />
                   </div>
@@ -898,30 +940,36 @@ export function SettingsView() {
                       type="text"
                       value={homeLng}
                       onChange={e => setHomeLng(e.target.value)}
-                      placeholder="E.g. 75.857726"
+                      placeholder="E.g. 79.514651"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm font-mono"
                     />
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
                   <button
                     type="button"
                     onClick={handleDetectGPS}
-                    disabled={isDetectingGPS}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-medium rounded-none transition-colors text-sm flex items-center gap-2"
+                    disabled={isDetectingGPS || isResolvingAddress}
+                    className="px-4 py-2.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-medium rounded-none transition-colors text-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
                   >
                     <Navigation className={`w-4 h-4 ${isDetectingGPS ? "animate-spin text-green-600" : "text-gray-500"}`} />
-                    {isDetectingGPS ? "Acquiring GPS..." : "Detect Current Location"}
+                    <span>
+                      {isDetectingGPS
+                        ? "Acquiring GPS..."
+                        : isResolvingAddress
+                        ? "Resolving Address..."
+                        : "Detect Current Location"}
+                    </span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleSaveHomeLocation}
-                    disabled={isSavingHome || !homeLat || !homeLng}
-                    className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-none transition-colors text-sm"
+                    disabled={isSavingHome || isResolvingAddress || !homeLat || !homeLng}
+                    className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-none transition-colors text-sm shadow-sm active:scale-95 cursor-pointer text-center"
                   >
-                    {isSavingHome ? "Saving Location..." : "Save Coordinates & Calculate Stops"}
+                    {isSavingHome ? "Saving & Reserving Bus..." : "Save Coordinates & Calculate Stops"}
                   </button>
                 </div>
               </div>

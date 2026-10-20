@@ -216,14 +216,82 @@ export async function PUT(req: NextRequest) {
 
     // Get nearest stops for response
     const nearestStops = findNearestStops(latitude, longitude, stops, { maxWalkDistanceKm: maxWalkKm }, 5);
-
     const autoStop = stops.find(s => s.id === autoStopId);
+
+    // Immediately trigger / auto-reserve today's bus for this commuter based on new stop
+    let assignedBusNumber: string | null = null;
+    if (autoStopId && updated?.id) {
+      try {
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(now.getTime() + istOffset);
+        const today = istDate.toISOString().split("T")[0];
+        const utcToday = now.toISOString().split("T")[0];
+        const dates = Array.from(new Set([today, utcToday]));
+
+        // Find route serving this stop
+        const { data: routeStop } = await supabaseAdmin
+          .from("route_stops")
+          .select("route_id")
+          .eq("stop_id", autoStopId)
+          .limit(1)
+          .maybeSingle();
+
+        const routeId = routeStop?.route_id;
+        if (routeId) {
+          // Find today's trip
+          const { data: trip } = await supabaseAdmin
+            .from("trips")
+            .select("id, bus_id, shift_id")
+            .eq("route_id", routeId)
+            .in("trip_date", dates)
+            .limit(1)
+            .maybeSingle();
+
+          if (trip && trip.bus_id) {
+            await supabaseAdmin
+              .from("bus_reservations")
+              .upsert(
+                {
+                  student_id: updated.id,
+                  trip_id: trip.id,
+                  bus_id: trip.bus_id,
+                  boarding_stop_id: autoStopId,
+                  shift_id: trip.shift_id,
+                  reservation_date: today,
+                  assigned_by: "AI_AUTO_LOCATION",
+                  assignment_score: 0.99,
+                  status: "ASSIGNED",
+                },
+                { onConflict: "student_id,reservation_date,shift_id" }
+              );
+
+            const { data: busRow } = await supabaseAdmin
+              .from("buses")
+              .select("bus_number")
+              .eq("id", trip.bus_id)
+              .maybeSingle();
+
+            if (busRow?.bus_number) {
+              assignedBusNumber = busRow.bus_number;
+            }
+          }
+        }
+      } catch (autoErr) {
+        console.warn("[home-location] Automatic bus allocation error:", autoErr);
+      }
+    }
+
+    const customMessage = autoStop
+      ? assignedBusNumber
+        ? `Home coordinates saved! Auto-assigned stop: ${autoStop.name} (${nearestStops[0]?.distanceKm ?? "?"}km away) & reserved on ${assignedBusNumber}!`
+        : `Home coordinates saved! Auto-assigned stop: ${autoStop.name} (${nearestStops[0]?.distanceKm ?? "?"}km away).`
+      : "Home location saved successfully!";
 
     return NextResponse.json({
       success: true,
-      message: autoStop
-        ? `Home location saved! Auto-assigned to stop: ${autoStop.name} (${nearestStops[0]?.distanceKm ?? "?"}km away)`
-        : "Home location saved!",
+      message: customMessage,
+      assignedBusNumber,
       homeLocation: {
         latitude: updated.home_latitude,
         longitude: updated.home_longitude,

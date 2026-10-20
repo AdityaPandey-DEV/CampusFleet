@@ -13,30 +13,50 @@ export default async function StudentPortalPage() {
     redirect("/login?redirect=/portal");
   }
 
+  // Resolve student record by user_id, id, or email
+  const studentOrFilter = [
+    `user_id.eq.${session.userId}`,
+    `id.eq.${session.userId}`,
+    session.email ? `email.eq.${session.email}` : null,
+  ].filter(Boolean).join(",");
+
+  const { data: dbStudents } = await supabaseAdmin
+    .from("students_full")
+    .select("*")
+    .or(studentOrFilter);
+
+  const activeStudentRow = dbStudents?.[0];
+  const resolvedStudentId = activeStudentRow?.id || session.userId;
+
   const [
-    { data: dbStudents },
     { data: dbBuses },
     { data: dbRoutes },
     { data: dbStops },
     { data: dbShifts },
     { data: dbTrips },
     { data: dbBookings },
-    { data: dbStaff },
     { data: dbAllocations },
   ] = await Promise.all([
-    supabaseAdmin.from("students_full").select("*").or(`user_id.eq.${session.userId},id.eq.${(session as any).studentId || 'null'}`),
     supabaseAdmin.from("buses").select("*"),
     supabaseAdmin.from("routes").select("*"),
     supabaseAdmin.from("stops").select("*"),
     supabaseAdmin.from("shifts").select("*"),
     supabaseAdmin.from("trips").select("*").order("trip_code"),
-    // Security Fix: Only fetch bookings for the logged-in student!
-    supabaseAdmin.from("bookings_full").select("*").eq("student_id", session.userId).order("created_at", { ascending: false }).limit(50),
-    // Security Fix: Students do not need to download the entire staff directory.
-    Promise.resolve({ data: [] }),
+    // Fetch bookings for the logged-in student (matches both student UUID and user UUID)
+    supabaseAdmin
+      .from("bookings_full")
+      .select("*")
+      .or(`student_id.eq.${resolvedStudentId},student_id.eq.${session.userId}`)
+      .order("created_at", { ascending: false })
+      .limit(50),
     // Fetch special shift allocations for the student
-    supabaseAdmin.from("special_shift_allocations").select("*").or(`student_id.eq.${session.userId},student_id.eq.${(session as any).studentId || 'null'}`),
+    supabaseAdmin
+      .from("special_shift_allocations")
+      .select("*")
+      .or(`student_id.eq.${resolvedStudentId},student_id.eq.${session.userId}`),
   ]);
+
+  const dbStaff: any[] = [];
 
   const students: Student[] = (dbStudents || []).map((s: any) => ({
     id: s.id,
