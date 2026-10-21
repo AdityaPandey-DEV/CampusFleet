@@ -133,8 +133,8 @@ export function InteractiveBusSeatGrid({
   }, [allGeneratedSeats, effectiveTeacherCount]);
 
   const renderSeatButton = (seatNum: string, seatTypeDescription: string) => {
-    const isOccupied = occupiedSeats.includes(seatNum);
     const isSelected = selectedSeat === seatNum;
+    const isOccupied = !isSelected && occupiedSeats.includes(seatNum);
     const isFrontStartingSeat = teacherReservedSeatSet.has(seatNum);
     const isRestrictedFacultySeat = isFrontStartingSeat && !isFacultyUser;
 

@@ -481,7 +481,11 @@ export default function SmartTransitCockpit({
             <div className="p-4 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 max-h-[460px] overflow-y-auto">
               <InteractiveBusSeatGrid
                 bus={assignedBus}
-                activeBookings={bookings.filter(b => !b.busId || b.busId === assignedBus.id)}
+                activeBookings={
+                  reservation?.trip_id
+                    ? bookings.filter((b) => b.tripId === reservation.trip_id)
+                    : []
+                }
                 occupiedSeats={occupiedSeats}
                 selectedSeat={tentativeSeat}
                 onSelectSeat={(seatNum) => {
