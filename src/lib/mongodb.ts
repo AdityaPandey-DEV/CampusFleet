@@ -59,10 +59,14 @@ export async function getMongoDb(): Promise<Db | null> {
 export interface LiveLocationDocument {
   busId: string;
   tripId?: string;
+  driverId?: string;
+  driverName?: string;
+  busNumber?: string;
   latitude: number;
   longitude: number;
   speedKmh?: number;
   headingDeg?: number;
+  accuracy?: number;
   currentStopId?: string;
   delayMinutes?: number;
   updatedAt: Date;
@@ -71,9 +75,14 @@ export interface LiveLocationDocument {
 export interface BreadcrumbDocument {
   busId: string;
   tripId?: string;
+  driverId?: string;
+  driverName?: string;
+  busNumber?: string;
   latitude: number;
   longitude: number;
   speedKmh?: number;
+  headingDeg?: number;
+  accuracy?: number;
   createdAt: Date;
 }
 
@@ -107,7 +116,7 @@ async function ensureIndexes(db: Db): Promise<void> {
 }
 
 /**
- * Upsert the latest live location for a bus into MongoDB.
+ * Upsert the latest live location for a bus and driver into MongoDB.
  */
 export async function saveLiveLocationToMongo(data: Omit<LiveLocationDocument, "updatedAt">): Promise<boolean> {
   const db = await getMongoDb();
@@ -133,9 +142,14 @@ export async function saveLiveLocationToMongo(data: Omit<LiveLocationDocument, "
     await db.collection("gps_breadcrumbs").insertOne({
       busId: data.busId,
       tripId: data.tripId,
+      driverId: data.driverId,
+      driverName: data.driverName,
+      busNumber: data.busNumber,
       latitude: data.latitude,
       longitude: data.longitude,
       speedKmh: data.speedKmh || 0,
+      headingDeg: data.headingDeg || 0,
+      accuracy: data.accuracy,
       createdAt: now,
     });
 
@@ -143,6 +157,69 @@ export async function saveLiveLocationToMongo(data: Omit<LiveLocationDocument, "
   } catch (err) {
     console.warn("Failed to persist live location to MongoDB:", (err as Error)?.message || err);
     return false;
+  }
+}
+
+/**
+ * Get MongoDB Telemetry cluster metrics and sync status for a vehicle.
+ */
+export async function getMongoTelemetryStats(busId?: string): Promise<{
+  connected: boolean;
+  database: string | null;
+  liveCollection: string;
+  breadcrumbsCollection: string;
+  totalActiveBuses: number;
+  busBreadcrumbsCount: number;
+  lastSyncAt: string | null;
+  driverName?: string | null;
+  busNumber?: string | null;
+}> {
+  const db = await getMongoDb();
+  if (!db) {
+    return {
+      connected: false,
+      database: null,
+      liveCollection: "bus_live_locations",
+      breadcrumbsCollection: "gps_breadcrumbs",
+      totalActiveBuses: 0,
+      busBreadcrumbsCount: 0,
+      lastSyncAt: null,
+    };
+  }
+
+  try {
+    const [totalActiveBuses, busBreadcrumbsCount, latestDoc] = await Promise.all([
+      db.collection("bus_live_locations").countDocuments().catch(() => 0),
+      busId
+        ? db.collection("gps_breadcrumbs").countDocuments({ busId }).catch(() => 0)
+        : db.collection("gps_breadcrumbs").countDocuments().catch(() => 0),
+      busId
+        ? db.collection("bus_live_locations").findOne({ busId }, { projection: { _id: 0 } }).catch(() => null)
+        : null,
+    ]);
+
+    return {
+      connected: true,
+      database: db.databaseName,
+      liveCollection: "bus_live_locations",
+      breadcrumbsCollection: "gps_breadcrumbs",
+      totalActiveBuses,
+      busBreadcrumbsCount,
+      lastSyncAt: latestDoc?.updatedAt ? new Date(latestDoc.updatedAt).toISOString() : null,
+      driverName: latestDoc?.driverName || null,
+      busNumber: latestDoc?.busNumber || null,
+    };
+  } catch (err) {
+    console.warn("Failed to fetch MongoDB telemetry stats:", err);
+    return {
+      connected: false,
+      database: null,
+      liveCollection: "bus_live_locations",
+      breadcrumbsCollection: "gps_breadcrumbs",
+      totalActiveBuses: 0,
+      busBreadcrumbsCount: 0,
+      lastSyncAt: null,
+    };
   }
 }
 

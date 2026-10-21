@@ -5,6 +5,7 @@ import {
   getLiveLocationFromMongo,
   getAllLiveLocationsFromMongo,
   getBusBreadcrumbsFromMongo,
+  getMongoTelemetryStats,
 } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,13 @@ export async function GET(req: NextRequest) {
     const busId = searchParams.get("busId");
     const history = searchParams.get("history") === "true";
     const all = searchParams.get("all") === "true";
+    const stats = searchParams.get("stats") === "true";
+
+    // 0. Fetch MongoDB cluster telemetry sync stats (for Driver & Fleet Ops Cockpit)
+    if (stats) {
+      const telemetryStats = await getMongoTelemetryStats(busId || undefined);
+      return NextResponse.json({ success: true, stats: telemetryStats });
+    }
 
     // 1. Fetch historical GPS breadcrumbs for polyline map rendering
     if (history && busId) {
@@ -56,8 +64,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const latestRfid = await cacheGet(`telematics:rfid:latest:${busId}`);
+
     return NextResponse.json(
-      { success: true, liveLocation: liveLocation || null },
+      { success: true, liveLocation: liveLocation || null, latestRfid: latestRfid || null },
       {
         status: 200,
         headers: {
@@ -73,8 +83,9 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/telematics/live
  * Driver's smartphone / AIS-140 GPS telematics hardware pushes coordinates here.
- * - Caches in Redis for high-concurrency student reads.
- * - Persists to MongoDB for 24-hour auto-expiring breadcrumbs and multi-database isolation.
+ * - Caches in Redis for high-concurrency student reads (<5ms).
+ * - Persists to MongoDB Atlas for 24-hour auto-expiring breadcrumbs and multi-database isolation.
+ * - Records driver identity, bus details, GPS accuracy, and movement telemetry.
  * - Zero impact on Supabase PostgreSQL tables or Supabase Realtime WebSocket message limits!
  */
 export async function POST(req: NextRequest) {
@@ -83,6 +94,10 @@ export async function POST(req: NextRequest) {
     const {
       busId,
       tripId,
+      driverId,
+      driverName,
+      busNumber,
+      accuracy,
       latitude,
       longitude,
       speedKmh,
@@ -102,6 +117,10 @@ export async function POST(req: NextRequest) {
     const locationData = {
       busId,
       tripId,
+      driverId: driverId || undefined,
+      driverName: driverName || undefined,
+      busNumber: busNumber || undefined,
+      accuracy: accuracy != null ? Number(accuracy) : undefined,
       latitude: Number(latitude),
       longitude: Number(longitude),
       speedKmh: speedKmh != null ? Number(speedKmh) : 0,
@@ -119,6 +138,10 @@ export async function POST(req: NextRequest) {
     saveLiveLocationToMongo({
       busId: locationData.busId,
       tripId: locationData.tripId,
+      driverId: locationData.driverId,
+      driverName: locationData.driverName,
+      busNumber: locationData.busNumber,
+      accuracy: locationData.accuracy,
       latitude: locationData.latitude,
       longitude: locationData.longitude,
       speedKmh: locationData.speedKmh,

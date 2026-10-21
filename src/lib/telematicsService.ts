@@ -81,6 +81,10 @@ class TelematicsService {
           body: JSON.stringify({
             busId: location.busId,
             tripId: location.tripId,
+            driverId: (location as any).driverId,
+            driverName: (location as any).driverName,
+            busNumber: (location as any).busNumber,
+            accuracy: (location as any).accuracy,
             latitude: location.latitude,
             longitude: location.longitude,
             speedKmh: location.speedKmh,

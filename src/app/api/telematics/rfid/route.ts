@@ -145,6 +145,16 @@ export async function POST(req: NextRequest) {
       }, 86400);
     }
 
+    // 7. Store latest in-bus RFID event for Driver Cockpit Live Feed (5 min TTL)
+    await cacheSet(`telematics:rfid:latest:${busId}`, {
+      studentId,
+      studentName: student.full_name,
+      enrollmentNo: student.enrollment_no,
+      seatNumber: reservation?.chosen_seat || reservation?.seat_number || null,
+      rfidCardId: effectiveRfid,
+      timestamp: nowIso,
+    }, 300);
+
     return NextResponse.json({
       success: true,
       message: `✓ Attendance Verified via In-Bus RFID Tap. Welcome aboard, ${student.full_name}!`,
