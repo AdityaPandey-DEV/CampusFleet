@@ -247,10 +247,22 @@ export function ManifestTab({
                 {/* Actions */}
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-800/40 shrink-0">
                   {isBoarded ? (
-                    <span className="px-3.5 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800/60 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
-                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500" />
-                      Boarded ✓
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      <span className="px-3.5 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800/60 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500" />
+                        Boarded ✓
+                      </span>
+                      {((b as any).unlocked_by === "RFID" || (b as any).unlockedBy === "RFID") && (
+                        <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                          RFID
+                        </span>
+                      )}
+                      {((b as any).unlocked_by === "LOCATION_DISTANCE" || (b as any).unlockedBy === "LOCATION_DISTANCE") && (
+                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                          GPS Dist
+                        </span>
+                      )}
+                    </div>
                   ) : isAbsent ? (
                     <span className="px-3.5 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-800/60 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
                       <XCircle className="w-4 h-4 text-red-600 dark:text-red-500" />

@@ -30,6 +30,7 @@ import {
   User,
 } from "lucide-react";
 import { getSafePhotoUrl } from "@/lib/image-utils";
+import { AttendanceLockCard } from "@/components/portal/AttendanceLockCard";
 import type { Student, Bus, Trip, Shift, Stop, Booking, Staff } from "@/lib/types";
 
 export interface DigitalPassProps {
@@ -478,6 +479,15 @@ export default function DigitalPassView({
             </div>
           </div>
 
+          {/* Attendance Proximity Security Lock & Distance/RFID Unlock Card */}
+          <AttendanceLockCard
+            busId={bus?.id}
+            studentId={activeStudent?.id}
+            onUnlocked={() => {
+              store.notify();
+            }}
+          />
+
           {/* Quick Bridge to Live Radar Tracker */}
           <div className="p-4 rounded-3xl bg-blue-900 text-white shadow-lg flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -543,6 +553,14 @@ export default function DigitalPassView({
               If your GPS fails, the conductor can scan this QR code to assign you a seat manually.
             </div>
           </div>
+
+          {/* Attendance Proximity Security Lock & Distance/RFID Unlock Card */}
+          <AttendanceLockCard
+            studentId={activeStudent?.id}
+            onUnlocked={() => {
+              store.notify();
+            }}
+          />
 
           {quickBookingError && (
             <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs flex items-center gap-2 font-semibold animate-in fade-in">

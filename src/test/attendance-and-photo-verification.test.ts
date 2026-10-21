@@ -143,4 +143,91 @@ describe("Attendance and Passport Photo Anti-Impersonation Verification", () => 
       expect(isAlreadyBoarded).toBe(true);
     });
   });
+
+  describe("Attendance Lock & Dual Unlock (Location Distance & RFID)", () => {
+    const lockTripId = "trip-lock-test-99";
+    const lockStudentId = "stud-lock-test";
+
+    beforeEach(() => {
+      const student: Student = {
+        id: lockStudentId,
+        userId: "u-lock-test",
+        fullName: "Aarav Sharma",
+        email: "aarav.test@gehu.ac.in",
+        phone: "+91 99887 76655",
+        department: "B.Tech AI & Data Science",
+        semester: "6th Semester",
+        primaryStopId: "stop-lock",
+        photoUrl: "https://example.com/aarav.jpg",
+        photoLocked: true,
+        hasActiveSubscription: true,
+        primaryRouteId: "route-lock",
+        transportAccessSuspended: false,
+        emergencyContact: null,
+      };
+      (store as any).students.push(student);
+
+      const booking: Booking = {
+        id: "bk-lock-01",
+        bookingCode: "LOCK-PASS-01",
+        tripId: lockTripId,
+        studentId: lockStudentId,
+        seatNumber: "5B",
+        status: "CONFIRMED",
+        bookingDate: new Date().toISOString().split("T")[0],
+        boardingStopId: "stop-lock",
+        createdAt: new Date().toISOString(),
+      };
+      (store as any).bookings.push(booking);
+    });
+
+    it("rejects Location Distance Unlock when commuter is beyond 100m threshold", async () => {
+      // Commuter is 350 meters away
+      const res = await store.unlockAttendance(lockStudentId, lockTripId, "LOCATION_DISTANCE", {
+        distanceMeters: 350,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.message).toContain("Attendance Locked");
+      expect(res.message).toContain("350m");
+
+      // Booking must remain not boarded
+      const b = store.getBookings().find((x) => x.id === "bk-lock-01");
+      expect(b?.status).not.toBe("BOARDED");
+    });
+
+    it("successfully unlocks attendance when commuter is within 100m live GPS proximity", async () => {
+      // Commuter is 22 meters away (within <= 100m)
+      const res = await store.unlockAttendance(lockStudentId, lockTripId, "LOCATION_DISTANCE", {
+        distanceMeters: 22,
+        busId: "bus-44",
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.record?.lockStatus).toBe("UNLOCKED");
+      expect(res.record?.unlockedBy).toBe("LOCATION_DISTANCE");
+      expect(res.record?.distanceMeters).toBe(22);
+      expect(res.record?.status).toBe("BOARDED");
+
+      // Booking status must be updated to BOARDED with lockStatus UNLOCKED
+      const b = store.getBookings().find((x) => x.id === "bk-lock-01");
+      expect(b?.status).toBe("BOARDED");
+      expect((b as any)?.lockStatus).toBe("UNLOCKED");
+    });
+
+    it("instantly unlocks attendance and records card UID upon physical RFID tap", async () => {
+      const cardUid = "93A24B1F";
+      const res = await store.unlockAttendance(lockStudentId, lockTripId, "RFID", {
+        rfidCardId: cardUid,
+        busId: "bus-44",
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.record?.lockStatus).toBe("UNLOCKED");
+      expect(res.record?.unlockedBy).toBe("RFID");
+      expect(res.record?.rfidCardId).toBe(cardUid);
+      expect(res.record?.status).toBe("BOARDED");
+      expect(res.message).toContain(cardUid);
+    });
+  });
 });

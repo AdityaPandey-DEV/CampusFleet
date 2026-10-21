@@ -121,12 +121,15 @@ export async function POST(req: NextRequest) {
           status: "BOARDED",
           boarded_at: nowIso,
           bus_id: busId,
+          lock_status: "UNLOCKED",
+          unlocked_by: "RFID",
+          unlock_timestamp: nowIso,
           ...(tripId ? { trip_id: tripId } : {}),
         })
         .eq("id", reservation.id);
     }
 
-    // 5. Create verified attendance record
+    // 5. Create verified attendance record with RFID unlock status
     const attendanceId = `att-rfid-${Date.now()}`;
     await supabaseAdmin.from("attendance_records").insert({
       id: attendanceId,
@@ -139,26 +142,29 @@ export async function POST(req: NextRequest) {
       notes: `Tapped RFID card [${effectiveRfid || enrollmentNo}] at bus entry reader`,
       signature_token: `RFID-${effectiveRfid || enrollmentNo}`,
       timestamp: nowIso,
+      lock_status: "UNLOCKED",
+      unlocked_by: "RFID",
+      rfid_card_id: effectiveRfid || student.rfid_card_id || null,
+      unlock_timestamp: nowIso,
     });
 
-    // 6. Fast-path cache in Redis: student is verified on board
-    await cacheSet(`attendance:rfid:${studentId}:${today}`, {
-      verified: true,
+    // 6. Fast-path cache in Redis: student attendance is UNLOCKED via RFID
+    const lockPayload = {
+      lockStatus: "UNLOCKED",
+      unlockedBy: "RFID",
+      rfidCardId: effectiveRfid || student.rfid_card_id || null,
       busId,
       tripId,
       timestamp: nowIso,
       method: "RFID_VERIFIED",
-    }, 86400); // 24 hour TTL
+    };
 
-    // Also cache by user_id
+    await cacheSet(`attendance:rfid:${studentId}:${today}`, lockPayload, 86400);
+    await cacheSet(`attendance:lock:${studentId}:${today}`, lockPayload, 86400);
+
     if (student.user_id) {
-      await cacheSet(`attendance:rfid:${student.user_id}:${today}`, {
-        verified: true,
-        busId,
-        tripId,
-        timestamp: nowIso,
-        method: "RFID_VERIFIED",
-      }, 86400);
+      await cacheSet(`attendance:rfid:${student.user_id}:${today}`, lockPayload, 86400);
+      await cacheSet(`attendance:lock:${student.user_id}:${today}`, lockPayload, 86400);
     }
 
     // 7. Store latest in-bus RFID event for Driver Cockpit Live Feed (5 min TTL)

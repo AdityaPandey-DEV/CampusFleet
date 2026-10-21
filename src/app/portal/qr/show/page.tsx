@@ -5,6 +5,7 @@ import Link from "next/link";
 import { store } from "@/lib/store";
 import { QRCodeSVG } from "qrcode.react";
 import { ArrowLeft } from "lucide-react";
+import { AttendanceLockCard } from "@/components/portal/AttendanceLockCard";
 
 export default function ShowQRPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -74,6 +75,11 @@ export default function ShowQRPage() {
           <div className="text-[11px] font-bold text-gray-400 max-w-[200px] leading-relaxed">
             Show this screen to the conductor if you are unable to self-scan.
           </div>
+        </div>
+
+        {/* Attendance Security Proximity Lock & Unlock Card */}
+        <div className="w-full">
+          <AttendanceLockCard studentId={activeStudent?.id || currentUser?.id} />
         </div>
       </div>
     </div>

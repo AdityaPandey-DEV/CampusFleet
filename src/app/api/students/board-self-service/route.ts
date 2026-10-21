@@ -187,6 +187,10 @@ export async function POST(req: NextRequest) {
           boarded_at: nowIso,
           chosen_seat: chosenSeat,
           seat_chosen_at: nowIso,
+          lock_status: "UNLOCKED",
+          unlocked_by: "LOCATION_DISTANCE",
+          distance_meters: calculatedDistMeters,
+          unlock_timestamp: nowIso,
         })
         .eq("id", targetReservation.id);
     } else {
@@ -197,6 +201,10 @@ export async function POST(req: NextRequest) {
           boarded_at: nowIso,
           chosen_seat: chosenSeat,
           seat_chosen_at: nowIso,
+          lock_status: "UNLOCKED",
+          unlocked_by: "LOCATION_DISTANCE",
+          distance_meters: calculatedDistMeters,
+          unlock_timestamp: nowIso,
         })
         .or(`student_id.eq.${resolvedStudentId},student_id.eq.${session.userId}`)
         .in("reservation_date", allowedDates);
@@ -224,20 +232,42 @@ export async function POST(req: NextRequest) {
         .eq("trip_id", resolvedTripId);
     }
 
-    // 8. Add verified attendance record
+    // 8. Add verified attendance record with Location Distance Unlock
     const attendanceId = `att-self-${Date.now()}`;
     await supabaseAdmin.from("attendance_records").insert({
       id: attendanceId,
       student_id: resolvedStudentId,
       trip_id: resolvedTripId,
       bus_id: busId,
-      method: "QR_SCAN_GPS", 
+      method: "LOCATION_DISTANCE_UNLOCK", 
       status: "BOARDED",
-      verified_by: "Self-Service Geofence System",
-      notes: `Geofenced boarding verified: ${nearestStopName}`,
-      signature_token: `GEOFENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      verified_by: "Live GPS Proximity System",
+      notes: `Geofenced location distance unlock verified (dist: ${calculatedDistMeters}m <= 200m)`,
+      signature_token: `LOCATION-DIST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
       timestamp: nowIso,
+      lock_status: "UNLOCKED",
+      unlocked_by: "LOCATION_DISTANCE",
+      distance_meters: calculatedDistMeters,
+      unlock_timestamp: nowIso,
     });
+
+    // 9. Cache attendance lock state in Redis
+    try {
+      const { cacheSet } = await import("@/lib/redis");
+      const lockPayload = {
+        lockStatus: "UNLOCKED",
+        unlockedBy: "LOCATION_DISTANCE",
+        distanceMeters: calculatedDistMeters,
+        busId,
+        tripId: resolvedTripId,
+        timestamp: nowIso,
+        method: "LOCATION_DISTANCE_UNLOCK",
+      };
+      await cacheSet(`attendance:lock:${resolvedStudentId}:${today}`, lockPayload, 86400);
+      if (session.userId && session.userId !== resolvedStudentId) {
+        await cacheSet(`attendance:lock:${session.userId}:${today}`, lockPayload, 86400);
+      }
+    } catch {}
 
     return NextResponse.json({ 
       success: true, 

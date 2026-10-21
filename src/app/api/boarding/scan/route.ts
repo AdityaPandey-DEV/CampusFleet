@@ -252,7 +252,7 @@ export async function POST(req: NextRequest) {
 
     const timestamp = new Date().toISOString();
 
-    // 7a. Create verified attendance record
+    // 7a. Create verified attendance record with UNLOCKED status
     const attendanceId = `att-${Date.now()}`;
     await supabaseAdmin.from("attendance_records").insert({
       id: attendanceId,
@@ -265,11 +265,14 @@ export async function POST(req: NextRequest) {
       signature_token: `SIG-${Date.now().toString(36).toUpperCase()}`,
       notes: `Verified by ${conductorName} at ${new Date().toLocaleTimeString()} ${isRoaming ? '(Roaming)' : ''}`,
       timestamp,
+      lock_status: "UNLOCKED",
+      unlocked_by: "MANUAL_OVERRIDE",
+      unlock_timestamp: timestamp,
       // HACK: for backwards compatibility if booking_id was required in DB schema
       booking_id: `att-${Date.now()}` 
     });
 
-    // Update Smart Transit bus_reservations status to BOARDED
+    // Update Smart Transit bus_reservations status to BOARDED and UNLOCKED
     try {
       const today = new Date().toISOString().split("T")[0];
       await supabaseAdmin
@@ -277,9 +280,22 @@ export async function POST(req: NextRequest) {
         .update({
           status: "BOARDED",
           boarded_at: timestamp,
+          lock_status: "UNLOCKED",
+          unlocked_by: "MANUAL_OVERRIDE",
+          unlock_timestamp: timestamp,
         })
         .eq("student_id", student.id)
         .eq("reservation_date", today);
+
+      const { cacheSet } = await import("@/lib/redis");
+      await cacheSet(`attendance:lock:${student.id}:${today}`, {
+        lockStatus: "UNLOCKED",
+        unlockedBy: "MANUAL_OVERRIDE",
+        busId: resolvedBusId,
+        tripId,
+        timestamp,
+        method: "QR_SCAN",
+      }, 86400);
     } catch (e) {
       console.warn("[QR_ATTENDANCE] Could not update bus_reservations:", e);
     }

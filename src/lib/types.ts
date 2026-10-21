@@ -327,6 +327,22 @@ export interface FleetBusMarkerData {
   destinationStopName?: string;
 }
 
+export type AttendanceLockStatus = "LOCKED" | "UNLOCKED";
+export type AttendanceUnlockMethod = "LOCATION_DISTANCE" | "RFID" | "MANUAL_OVERRIDE";
+
+export interface AttendanceLockState {
+  studentId: string;
+  tripId?: string;
+  busId?: string;
+  lockStatus: AttendanceLockStatus;
+  unlockedBy?: AttendanceUnlockMethod | null;
+  unlockedAt?: string | null;
+  distanceMeters?: number | null;
+  rfidCardId?: string | null;
+  allowedThresholdMeters: number;
+  canUnlockByLocation?: boolean;
+}
+
 export interface AttendanceRecord {
   id: string;
   studentId: string;
@@ -336,13 +352,18 @@ export interface AttendanceRecord {
   tripId: string;
   busId?: string;
   bookingId?: string;
-  method: AttendanceMethod | "BUS_QR_SCAN" | "MANUAL_SELECT";
+  method: AttendanceMethod | "BUS_QR_SCAN" | "MANUAL_SELECT" | "RFID_VERIFIED" | "QR_SCAN_GPS" | "LOCATION_DISTANCE_UNLOCK" | "RFID_UNLOCK";
   verifiedBy: string;
   signatureToken?: string;
   deviceId?: string;
   status: "BOARDED" | "ABSENT" | "NO_SHOW" | "CHECKED_IN";
   notes?: string;
   timestamp: string;
+  lockStatus?: AttendanceLockStatus;
+  unlockedBy?: AttendanceUnlockMethod | null;
+  distanceMeters?: number | null;
+  rfidCardId?: string | null;
+  unlockTimestamp?: string | null;
 }
 
 export interface SubscriptionPlan {

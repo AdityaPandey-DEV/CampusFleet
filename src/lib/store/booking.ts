@@ -17,6 +17,12 @@ declare module "./_base" {
       notes?: string;
     }): Promise<{ success: boolean; message: string; record: AttendanceRecord }>;
     recordStaffAttendance(params: any): Promise<{ success: boolean; message: string; record: AttendanceRecord }>;
+    unlockAttendance(
+      studentId: string,
+      tripId: string,
+      method: "LOCATION_DISTANCE" | "RFID",
+      meta?: { distanceMeters?: number; rfidCardId?: string; busId?: string }
+    ): Promise<{ success: boolean; record?: AttendanceRecord; message: string }>;
     assignWaitlistSeat(bookingId: string, seatCode: string): Promise<any>;
     bookShift(studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string, instantBoard?: boolean): Promise<any>;
     cancelBooking(bookingId: string): Promise<any>;
@@ -138,6 +144,82 @@ CampusFleetStore.prototype.recordAttendance = async function (
   this.saveToLocalStorage();
   this.notify();
   return { success: true, message: `Passenger attendance marked as ${status}`, record: newRecord };
+};
+
+CampusFleetStore.prototype.unlockAttendance = async function (
+  this: CampusFleetStore,
+  studentId: string,
+  tripId: string,
+  method: "LOCATION_DISTANCE" | "RFID",
+  meta?: { distanceMeters?: number; rfidCardId?: string; busId?: string }
+) {
+  const student = this.students.find(
+    s => s.id === studentId || s.userId === studentId || s.email?.toLowerCase() === studentId.toLowerCase()
+  );
+  const resolvedStudentId = student?.id || studentId;
+
+  // Proximity validation for Location Distance: must be <= 100 meters
+  if (method === "LOCATION_DISTANCE") {
+    const dist = meta?.distanceMeters ?? 0;
+    if (dist > 100) {
+      return {
+        success: false,
+        message: `Attendance Locked: You are ${dist}m away from the bus (allowed: ≤100m).`,
+      };
+    }
+  }
+
+  const matchedBooking = this.bookings.find(
+    b => (b.studentId === resolvedStudentId || b.studentId === studentId) && (tripId ? b.tripId === tripId : true)
+  );
+  const bookingId = matchedBooking?.id || `bk-${resolvedStudentId}`;
+  const nowIso = new Date().toISOString();
+
+  const newRecord: AttendanceRecord = {
+    id: `att-${Date.now()}`,
+    studentId: resolvedStudentId,
+    bookingId,
+    tripId,
+    busId: meta?.busId || matchedBooking?.busId,
+    method: method === "RFID" ? "RFID_VERIFIED" : "LOCATION_DISTANCE_UNLOCK",
+    verifiedBy: method === "RFID" ? "ESP32 Hardware RFID Gate" : "Location Distance Proximity Engine",
+    signatureToken: `${method}-${Date.now().toString(36).toUpperCase()}`,
+    status: "BOARDED",
+    lockStatus: "UNLOCKED",
+    unlockedBy: method,
+    distanceMeters: meta?.distanceMeters,
+    rfidCardId: meta?.rfidCardId || student?.rfidCardId,
+    unlockTimestamp: nowIso,
+    notes: method === "RFID"
+      ? `Attendance unlocked via physical RFID card [${meta?.rfidCardId || "RFID"}]`
+      : `Attendance unlocked via GPS location distance (${meta?.distanceMeters || 0}m <= 100m)`,
+    timestamp: nowIso,
+  };
+
+  this.attendanceRecords = [newRecord, ...this.attendanceRecords];
+  this.bookings = this.bookings.map(b => {
+    if ((b.studentId === resolvedStudentId || b.id === bookingId) && (tripId ? b.tripId === tripId : true)) {
+      return {
+        ...b,
+        status: "BOARDED",
+        boardedAt: nowIso,
+        unlockedBy: method,
+        lockStatus: "UNLOCKED",
+      };
+    }
+    return b;
+  });
+
+  this.saveToLocalStorage();
+  this.notify();
+
+  return {
+    success: true,
+    record: newRecord,
+    message: method === "RFID"
+      ? `✓ Attendance Unlocked via RFID Card Tap [${meta?.rfidCardId || "RFID"}]. Welcome aboard!`
+      : `✓ Attendance Unlocked via Live GPS Distance (${meta?.distanceMeters || 0}m). Welcome aboard!`,
+  };
 };
 
 // ── User / Crew Duty Attendance ─────────────────────────────────────────────
