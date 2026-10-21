@@ -36,6 +36,8 @@ export default async function StudentPortalPage() {
     { data: dbTrips },
     { data: dbBookings },
     { data: dbAllocations },
+    { data: dbRouteStops },
+    { data: dbCampuses },
   ] = await Promise.all([
     supabaseAdmin.from("buses").select("*"),
     supabaseAdmin.from("routes").select("*"),
@@ -54,7 +56,12 @@ export default async function StudentPortalPage() {
       .from("special_shift_allocations")
       .select("*")
       .or(`student_id.eq.${resolvedStudentId},student_id.eq.${session.userId}`),
+    supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
+    supabaseAdmin.from("campuses").select("*"),
   ]);
+
+  const campusNameMap = new Map((dbCampuses || []).map((c: any) => [c.id, c.name]));
+  const stopMap = new Map((dbStops || []).map((s: any) => [s.id, s]));
 
   const dbStaff: any[] = [];
 
@@ -116,30 +123,32 @@ export default async function StudentPortalPage() {
     teacherSeatsCount: typeof b.teacher_seats_count === "number" ? b.teacher_seats_count : b.teacherSeatsCount,
   }));
 
-  const routes: Route[] = (dbRoutes || []).map((r: any) => ({
-    id: r.id,
-    name: r.name,
-    code: r.code,
-    description: r.description || (r.origin && r.destination ? `${r.origin} to ${r.destination}` : ""),
-    direction: (r.direction) as any,
-    color: r.color || "#2563EB",
-    isActive: Boolean(r.is_active),
-    stops: (r.stops_data && Array.isArray(r.stops_data))
-      ? r.stops_data.map((rs: any, idx: number) => {
-          const stopObj = (dbStops || []).find((s: any) => s.id === (rs.stopId || rs.stop?.id)) || rs.stop;
-          return {
-            stopId: rs.stopId || rs.stop?.id || "",
-            stopOrder: rs.stopOrder || idx + 1,
-            arrivalOffsetMinutes: rs.arrivalOffsetMinutes ?? idx * 8,
-            bufferTimeMinutes: rs.bufferTimeMinutes ?? 2,
-            stop: stopObj,
-          };
-        })
-      : (r.stops || []),
-    totalDistanceKm: Number(r.total_distance_km),
-    estimatedDurationMins: Number(r.estimated_duration_mins),
-    campusId: r.campus_id,
-  }));
+  const routes: Route[] = (dbRoutes || []).map((r: any) => {
+    const routeStops = (dbRouteStops || [])
+      .filter((rs: any) => rs.route_id === r.id && stopMap.has(rs.stop_id))
+      .sort((a: any, b: any) => (a.stop_order ?? 0) - (b.stop_order ?? 0))
+      .map((rs: any) => ({
+        stopId: rs.stop_id,
+        stopOrder: rs.stop_order || 0,
+        arrivalOffsetMinutes: rs.arrival_offset_minutes || 0,
+        bufferTimeMinutes: rs.buffer_time_minutes || 0,
+        stop: stopMap.get(rs.stop_id)!,
+      }));
+
+    return {
+      id: r.id,
+      name: r.name,
+      code: r.code,
+      description: r.description || (r.origin && r.destination ? `${r.origin} to ${r.destination}` : ""),
+      direction: (r.direction) as any,
+      color: r.color || "#2563EB",
+      isActive: Boolean(r.is_active),
+      stops: routeStops,
+      totalDistanceKm: Number(r.total_distance_km || 0),
+      estimatedDurationMins: Number(r.estimated_duration_mins || 0),
+      campusId: r.campus_id,
+    };
+  });
 
   const stops: Stop[] = (dbStops || []).map((st: any) => ({
     id: st.id,
@@ -147,11 +156,12 @@ export default async function StudentPortalPage() {
     code: st.code,
     latitude: Number(st.latitude),
     longitude: Number(st.longitude),
-    landmark: st.landmark,
-    geofenceRadiusMeters: Number(st.geofence_radius_meters),
+    landmark: st.landmark || "",
+    geofenceRadiusMeters: Number(st.geofence_radius || 80),
+    campusId: st.campus_id,
+    campus: campusNameMap.get(st.campus_id) || "",
     isBusMergeStop: Boolean(st.is_bus_merge_stop),
     zoneCode: st.zone_code,
-    campusId: st.campus_id,
   }));
 
   const shifts: Shift[] = (dbShifts || []).map((sh: any) => ({

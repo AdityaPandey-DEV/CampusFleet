@@ -86,10 +86,9 @@ export async function findOrCreateUser({
             .eq("id", existingStudent.id);
         }
 
-        // Sync campus to user record if missing in users table
+        // Sync campus_id to user record if missing in users table
         const userSync: Record<string, any> = {};
         if (!existingUser.campus_id && existingStudent.campus_id) userSync.campus_id = existingStudent.campus_id;
-        if (!existingUser.campus && existingStudent.campus) userSync.campus = existingStudent.campus;
         if (Object.keys(userSync).length > 0) {
           await supabaseAdmin.from("users").update(userSync).eq("id", existingUser.id);
           Object.assign(existingUser, userSync);
@@ -149,7 +148,6 @@ export async function findOrCreateUser({
       full_name: effectiveFullName,
       role,
       campus_id: effectiveCampusId,
-      campus: effectiveCampus,
       phone: effectivePhone,
       avatar_url: avatarUrl || existingStudentForNewUser?.photo_url || null,
       provider,

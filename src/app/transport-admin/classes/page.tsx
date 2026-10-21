@@ -18,7 +18,7 @@ export default async function StaffClassesPage() {
     { data: dbTeachers },
     { data: dbClassTeachers },
   ] = await Promise.all([
-    supabaseAdmin.from("classes").select("*").order("name"),
+    supabaseAdmin.from("v_classes_expanded").select("*").order("name"),
     supabaseAdmin.from("students").select("id, class_id"),
     supabaseAdmin.from("users").select("id, full_name, email, role").in("role", ["teacher", "transport_admin", "transport_manager", "admin"]),
     supabaseAdmin.from("class_teachers").select("class_id, is_primary, users(id, full_name, email)"),

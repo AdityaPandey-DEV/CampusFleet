@@ -50,7 +50,7 @@ export default async function TeacherScheduleShiftPage() {
     session.role === "admin" || session.role === "transport_manager";
   if (allocatedClasses.length === 0 && isElevated) {
     const { data: allCls } = await supabaseAdmin
-      .from("classes")
+      .from("v_classes_expanded")
       .select("*")
       .eq("is_active", true)
       .order("name", { ascending: true });

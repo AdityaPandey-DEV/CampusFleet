@@ -303,14 +303,6 @@ export async function POST(req: NextRequest) {
         };
       }
 
-      // Update classes.shift_schedule
-      await supabaseAdmin
-        .from("classes")
-        .update({
-          shift_schedule: jsonShiftSchedule,
-          updated_at: nowIso,
-        })
-        .eq("id", classId);
     }
 
     // 1. Batch Upsert to class_shift_schedules

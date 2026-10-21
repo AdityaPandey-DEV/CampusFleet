@@ -19,25 +19,33 @@ export async function GET(req: NextRequest) {
       // Query classes allocated to this teacher first
       const { data, error } = await supabaseAdmin
         .from("class_teachers")
-        .select("class_id, is_primary, classes(*)")
+        .select("class_id, is_primary")
         .eq("teacher_id", teacherId);
 
       if (error) throw error;
 
       if (data && data.length > 0) {
+        const classIds = data.map((d: any) => d.class_id);
+        const { data: expClasses } = await supabaseAdmin
+          .from("v_classes_expanded")
+          .select("*")
+          .in("id", classIds);
+
+        const expMap = new Map((expClasses || []).map((ec: any) => [ec.id, ec]));
         classesData = data
-          .filter((row: any) => row.classes)
           .map((row: any) => ({
-            ...row.classes,
+            ...(expMap.get(row.class_id) || {}),
+            id: row.class_id,
             isPrimary: row.is_primary,
-          }));
+          }))
+          .filter((c: any) => c.name);
       } else if (isElevated) {
         // Only if elevated user has no direct allocations, show all active classes
-        const { data: allCls } = await supabaseAdmin.from("classes").select("*").eq("is_active", true).order("name");
+        const { data: allCls } = await supabaseAdmin.from("v_classes_expanded").select("*").eq("is_active", true).order("name");
         classesData = (allCls || []).map((c: any) => ({ ...c, isPrimary: false }));
       }
     } else if (isElevated) {
-      const { data: allCls } = await supabaseAdmin.from("classes").select("*").eq("is_active", true).order("name");
+      const { data: allCls } = await supabaseAdmin.from("v_classes_expanded").select("*").eq("is_active", true).order("name");
       classesData = (allCls || []).map((c: any) => ({ ...c, isPrimary: false }));
     }
 

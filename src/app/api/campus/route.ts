@@ -227,7 +227,7 @@ export async function PATCH(req: NextRequest) {
           longitude: updatedRow.longitude,
           landmark: updatedRow.landmark || updatedRow.address,
           geofence_radius: updatedRow.geofence_radius,
-          campus: updatedRow.name,
+          campus_id: updatedRow.id,
         })
         .or(`id.eq.stop-bhimtal-campus,code.eq.${updatedRow.code}`);
     }

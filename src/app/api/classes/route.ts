@@ -6,9 +6,9 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    // 1. Fetch all classes
+    // 1. Fetch all classes from 3NF expanded view
     const { data: classes, error: classErr } = await supabaseAdmin
-      .from("classes")
+      .from("v_classes_expanded")
       .select("*")
       .order("name", { ascending: true });
 
@@ -101,10 +101,8 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await supabaseAdmin
       .from("classes")
       .select("id, name")
-      .eq("course", course.trim())
-      .eq("year", year.trim())
-      .eq("section", section.trim().toUpperCase())
-      .single();
+      .eq("name", name)
+      .maybeSingle();
 
     if (existing) {
       return NextResponse.json(
@@ -113,15 +111,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Resolve section_id from academic_sections
+    const cleanSection = section.trim().toUpperCase();
+    const { data: secRow } = await supabaseAdmin
+      .from("academic_sections")
+      .select("id")
+      .eq("code", cleanSection)
+      .maybeSingle();
+
+    const insertPayload: Record<string, any> = {
+      name,
+      is_active: true,
+      semester: year.trim(),
+    };
+    if (secRow?.id) {
+      insertPayload.section_id = secRow.id;
+    }
+
     const { data: newClass, error } = await supabaseAdmin
       .from("classes")
-      .insert({
-        course: course.trim(),
-        year: year.trim(),
-        section: section.trim().toUpperCase(),
-        name,
-        is_active: true,
-      })
+      .insert(insertPayload)
       .select()
       .single();
 

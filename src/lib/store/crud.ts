@@ -409,7 +409,6 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
         full_name: updatedStudent.fullName,
         phone: updatedStudent.phone,
         campus_id: updatedStudent.campusId || null,
-        campus: updatedStudent.campus,
         avatar_url: updatedStudent.photoUrl || null,
         photo_locked: updatedStudent.photoLocked || false,
       }).eq("id", updatedStudent.userId);
@@ -556,7 +555,6 @@ CampusFleetStore.prototype.updateStop = async function (this: CampusFleetStore, 
     if (updates.landmark !== undefined) dbUpdates.landmark = updates.landmark;
     if (updates.geofenceRadiusMeters !== undefined) dbUpdates.geofence_radius = updates.geofenceRadiusMeters;
     if (updates.campusId !== undefined) dbUpdates.campus_id = updates.campusId;
-    if (updates.campus !== undefined) dbUpdates.campus = updates.campus;
     if (updates.isBusMergeStop !== undefined) dbUpdates.is_bus_merge_stop = Boolean(updates.isBusMergeStop);
 
     if (Object.keys(dbUpdates).length > 0) {

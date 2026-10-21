@@ -19,7 +19,6 @@ export async function PATCH(
     if (landmark !== undefined) updates.landmark = landmark ? landmark.trim() : null;
     if (geofenceRadiusMeters !== undefined) updates.geofence_radius = Number(geofenceRadiusMeters);
     if (campusId !== undefined) updates.campus_id = campusId;
-    if (campus !== undefined) updates.campus = campus;
     if (isBusMergeStop !== undefined) updates.is_bus_merge_stop = Boolean(isBusMergeStop);
 
     const { data: updatedStop, error: updateErr } = await supabaseAdmin

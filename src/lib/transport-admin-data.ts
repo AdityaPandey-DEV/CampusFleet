@@ -38,9 +38,11 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
     supabaseAdmin.from("users").select("id, full_name, email, role, phone"),
     supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
     supabaseAdmin.from("campuses").select("*"),
-    supabaseAdmin.from("classes").select("*"),
+    supabaseAdmin.from("v_classes_expanded").select("*"),
     supabaseAdmin.from("shifts").select("*"),
   ]);
+
+  const campusNameMap = new Map((dbCampuses || []).map((c: any) => [c.id, c.name]));
 
   const stops: Stop[] = (dbStops || []).map((s: any) => ({
     id: s.id,
@@ -50,8 +52,8 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
     longitude: Number(s.longitude),
     landmark: s.landmark,
     geofenceRadiusMeters: Number(s.geofence_radius),
-    campusId: s.campus_id || s.campus,
-    campus: s.campus,
+    campusId: s.campus_id,
+    campus: campusNameMap.get(s.campus_id) || s.campus || "",
     isBusMergeStop: Boolean(s.is_bus_merge_stop),
     zoneCode: s.zone_code,
   }));

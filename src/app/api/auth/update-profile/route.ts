@@ -18,17 +18,16 @@ export async function POST(req: NextRequest) {
     // Check if user already has campus set
     const { data: existingUser } = await supabaseAdmin
       .from("users")
-      .select("campus_id, campus, role")
+      .select("campus_id, role")
       .eq("id", session.userId)
       .maybeSingle();
 
     const isStudent = session.role === "student" || existingUser?.role === "student";
-    const hasExistingCampus = Boolean(existingUser?.campus_id || existingUser?.campus);
+    const hasExistingCampus = Boolean(existingUser?.campus_id);
 
     const updates: Record<string, any> = {};
     if (fullName) updates.full_name = fullName;
     if (campusId && (!isStudent || !hasExistingCampus)) updates.campus_id = campusId;
-    if (campus && (!isStudent || !hasExistingCampus)) updates.campus = campus;
 
     if (Object.keys(updates).length > 0) {
       await supabaseAdmin

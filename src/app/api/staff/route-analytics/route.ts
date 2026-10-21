@@ -28,18 +28,15 @@ export async function GET() {
       const routeTripIds = (trips || []).filter(t => t.route_id === route.id).map(t => t.id);
       const routeBookings = (bookings || []).filter(b => routeTripIds.includes(b.trip_id) && b.status !== "CANCELLED");
 
-      // Stops on this route from database stops_data
-      let rawStops: any[] = [];
-      if (Array.isArray(route.stops_data) && route.stops_data.length > 0) {
-        rawStops = route.stops_data;
-      } else if (Array.isArray((route as any).stops) && (route as any).stops.length > 0) {
-        rawStops = (route as any).stops;
-      }
+      // Stops on this route from relational route_stops table
+      const rawStops = (routeStops || [])
+        .filter((rs: any) => rs.route_id === route.id)
+        .sort((a: any, b: any) => (a.stop_order ?? 0) - (b.stop_order ?? 0));
 
       const stopsOnRoute = rawStops.map((rs: any, idx: number) => {
-        const stopId = rs.stopId || rs.stop_id || rs.id || `stop-${idx}`;
-        const stopName = rs.stop?.name || rs.name || `Stop ${idx + 1}`;
-        const zoneCode = rs.stop?.zoneCode || rs.zone_code || "ZONE_B";
+        const stopId = rs.stop_id || rs.stops?.id || `stop-${idx}`;
+        const stopName = rs.stops?.name || `Stop ${idx + 1}`;
+        const zoneCode = rs.stops?.zone_code || "ZONE_B";
         const stopStudents = routeStudents.filter(s => s.primary_stop_id === stopId);
         const stopBookings = routeBookings.filter(b => b.boarding_stop_id === stopId);
         return {

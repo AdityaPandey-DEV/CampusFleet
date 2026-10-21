@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data: dbUser } = await supabaseAdmin
       .from("users")
-      .select("role, full_name, campus_id, campus, avatar_url")
+      .select("role, full_name, campus_id, avatar_url")
       .eq("id", session.userId)
       .maybeSingle();
 
@@ -53,7 +53,6 @@ export async function GET(req: NextRequest) {
         roleChanged = true;
       }
       if (dbUser.campus_id) dbCampusId = dbUser.campus_id;
-      if (dbCampus !== dbUser.campus && dbUser.campus) dbCampus = dbUser.campus;
       if (dbUser.full_name) dbFullName = dbUser.full_name;
 
       // Keep Redis cache fresh

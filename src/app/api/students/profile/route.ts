@@ -132,6 +132,33 @@ export async function POST(req: NextRequest) {
     // Note: Fee and payment status are normalized in transit_zones and payments tables,
     // and dynamically computed by the students_full view based on zone_id.
 
+    // 4. Guarantee users table entry exists FIRST (without dropped 'campus' column)
+    // to satisfy foreign key constraint fk_students_users on students table
+    const userUpsertPayload: Record<string, any> = {
+      id: userId,
+      email: cleanEmail,
+      full_name: studentData.full_name,
+      phone: (phone || "").trim() || null,
+      campus_id: studentData.campus_id,
+      role: "student",
+      provider: "Institutional SSO",
+    };
+    if (finalPhotoUrl) {
+      userUpsertPayload.avatar_url = finalPhotoUrl;
+      userUpsertPayload.photo_url = finalPhotoUrl;
+      userUpsertPayload.photo_locked = finalPhotoLocked;
+    }
+
+    const { error: userErr } = await supabaseAdmin
+      .from("users")
+      .upsert(userUpsertPayload, { onConflict: "id" });
+
+    if (userErr) {
+      console.error("Supabase user profile upsert error:", userErr);
+      return NextResponse.json({ success: false, error: userErr.message }, { status: 500 });
+    }
+
+    // 5. Upsert student record
     const { data: savedStudent, error: studentErr } = await supabaseAdmin
       .from("students")
       .upsert(studentData)
@@ -143,22 +170,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: studentErr.message }, { status: 500 });
     }
 
-    // 4. Guarantee users table entry exists and is synchronized with contact info & photo
-    await supabaseAdmin
-      .from("users")
-      .upsert({
-        id: userId,
-        email: cleanEmail,
-        full_name: studentData.full_name,
-        phone: (phone || "").trim() || null,
-        campus_id: studentData.campus_id,
-        campus: studentData.campus,
-        role: "student",
-        provider: "Institutional SSO",
-        ...(finalPhotoUrl ? { avatar_url: finalPhotoUrl, photo_url: finalPhotoUrl, photo_locked: finalPhotoLocked } : {}),
-      }, { onConflict: "id" });
-
-    // 5. Update Redis cache for instant UI resolution
+    // 6. Update Redis cache for instant UI resolution
     if (finalPhotoUrl) {
       await cacheSet(`student:photo:${userId}`, finalPhotoUrl, 300);
     }

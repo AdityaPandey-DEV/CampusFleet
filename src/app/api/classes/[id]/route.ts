@@ -135,11 +135,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const { course, year, section, isActive, shiftSchedule, department, semester } = body;
 
     const updates: Record<string, any> = {};
-    if (course) updates.course = course.trim();
-    if (year) updates.year = year.trim();
-    if (section) updates.section = section.trim().toUpperCase();
     if (isActive !== undefined) updates.is_active = isActive;
-    if (department !== undefined) updates.department = department;
     if (semester !== undefined) updates.semester = semester;
 
     // Save shift schedule to class_shift_schedules table (Single Source of Truth)
@@ -160,10 +156,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     if (course || year || section) {
-      const { data: current } = await supabaseAdmin.from("classes").select("*").eq("id", classId).single();
-      const c = course || current?.course;
-      const y = year || current?.year;
-      const s = section ? section.trim().toUpperCase() : current?.section;
+      const { data: current } = await supabaseAdmin.from("v_classes_expanded").select("*").eq("id", classId).single();
+      const c = course || current?.course || current?.name;
+      const y = year || current?.year || current?.semester;
+      const s = section ? section.trim().toUpperCase() : (current?.section || "A");
       updates.name = `${c} - ${y} (Sec ${s})`;
     }
 

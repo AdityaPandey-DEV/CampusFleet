@@ -28,7 +28,7 @@ export default async function UserAndRBACManagementPage() {
   const [{ data: dbUsers }, { data: dbStudents }] = await Promise.all([
     supabaseAdmin
       .from("users")
-      .select("id, full_name, email, role, phone, campus, campus_id, provider, created_at")
+      .select("id, full_name, email, role, phone, campus_id, provider, created_at")
       .order("created_at", { ascending: false }),
     supabaseAdmin
       .from("students")
@@ -79,7 +79,6 @@ export default async function UserAndRBACManagementPage() {
         full_name: s.full_name || "Student",
         phone: s.phone || null,
         campus_id: s.campus_id || null,
-        campus: s.campus || "",
         role: "student",
         provider: "NONE",
       }, { onConflict: "id" }).then(() => {});
