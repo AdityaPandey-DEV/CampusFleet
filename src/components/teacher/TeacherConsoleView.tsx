@@ -506,25 +506,25 @@ export default function TeacherConsoleView({
         portalSubtitle="Faculty Transit & Attendance Desk"
         navLinks={[
           { href: "/teacher", label: "Class Attendance" },
-          { href: "/teacher/schedule", label: "Schedule Trip" },
+          { href: "/teacher/schedule", label: "Schedule Shift" },
           { href: "/teacher?tab=my_commute", label: "My Commute" },
           { href: "/teacher/settings", label: "Commute Settings" },
         ]}
         mobilePrimaryAction={{
-          label: "Schedule Class Trip",
+          label: "Schedule Shifts",
           href: "/teacher/schedule",
-          subtitle: "Allocate fleet bus for class",
-          icon: BusFront,
+          subtitle: "Class timetable & fleet shifts",
+          icon: Clock,
         }}
         customActions={
           <div className="flex items-center gap-2">
             <Link
               href="/teacher/schedule"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg transition-colors shadow-xs"
-              title="Schedule Fleet Trip for Class"
+              title="Schedule Academic Shifts for Classes"
             >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Schedule Trip</span>
+              <Clock className="w-3.5 h-3.5" />
+              <span>Schedule Shift</span>
             </Link>
             <Link
               href="/teacher/settings"
@@ -866,8 +866,8 @@ export default function TeacherConsoleView({
             href="/teacher/schedule"
             className="pb-3 text-xs font-bold flex items-center gap-2 border-b-2 border-transparent text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors shrink-0"
           >
-            <BusFront className="w-4 h-4" />
-            <span>Schedule Class Trip 🚀</span>
+            <Clock className="w-4 h-4" />
+            <span>Schedule Shifts</span>
           </Link>
         </div>
 
