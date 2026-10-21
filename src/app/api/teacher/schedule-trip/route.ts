@@ -47,7 +47,9 @@ export async function GET(req: NextRequest) {
         isPrimary: row.is_primary,
       }));
 
-    if (allocatedClasses.length === 0) {
+    // Only if elevated user (admin or transport_manager) has no specific allocations, allow testing with all classes
+    const isElevated = session.role === "admin" || session.role === "transport_manager";
+    if (allocatedClasses.length === 0 && isElevated) {
       const { data: allCls } = await supabaseAdmin
         .from("classes")
         .select("*")

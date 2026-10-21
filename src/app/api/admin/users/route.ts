@@ -12,13 +12,18 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    const isAllowed = session && (
+      session.role === "admin" ||
+      session.role === "transport_admin" ||
+      session.role === "transport_manager"
+    );
+    if (!isAllowed) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { data: dbUsers, error } = await supabaseAdmin
       .from("users")
-      .select("id, full_name, email, role, phone, campus, campus_id, provider, created_at")
+      .select("id, full_name, email, role, phone, campus_id, provider, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -31,13 +36,19 @@ export async function GET(req: NextRequest) {
       email: u.email || "",
       role: u.role || "student",
       phone: u.phone || undefined,
-      campusId: u.campus_id || u.campus || undefined,
-      campus: u.campus || undefined,
+      campusId: u.campus_id || undefined,
       provider: u.provider || "Institutional SSO",
       createdAt: u.created_at || new Date().toISOString(),
     }));
 
-    return NextResponse.json({ users });
+    return NextResponse.json(
+      { users },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (e: any) {
     console.error("Error in GET /api/admin/users:", e);
     return NextResponse.json({ error: e.message || "Failed to fetch users" }, { status: 500 });

@@ -409,62 +409,76 @@ export default function TeacherScheduleTripView({
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleSelectAllClasses}
-                    className="self-start sm:self-auto text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-600 transition-colors"
-                  >
-                    {selectedClassIds.length === initialClasses.length ? "Deselect All" : "Select All Classes"}
-                  </button>
+                  {initialClasses.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleSelectAllClasses}
+                      className="self-start sm:self-auto text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-600 transition-colors"
+                    >
+                      {selectedClassIds.length === initialClasses.length ? "Deselect All" : "Select All Classes"}
+                    </button>
+                  )}
                 </div>
 
                 {/* Assigned Classes Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {initialClasses.map((cls) => {
-                    const isSelected = selectedClassIds.includes(cls.id);
-                    return (
-                      <div
-                        key={cls.id}
-                        onClick={() => handleToggleClass(cls.id)}
-                        className={`relative p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
-                          isSelected
-                            ? "bg-indigo-50/60 dark:bg-indigo-950/40 border-2 border-indigo-600 dark:border-indigo-500 shadow-sm shadow-indigo-500/10"
-                            : "bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-mono">
-                                {cls.semester || "Class Section"}
-                              </span>
+                {initialClasses.length === 0 ? (
+                  <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                    <GraduationCap className="w-8 h-8 text-slate-400 mx-auto" />
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                      No Academic Classes Assigned
+                    </h3>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
+                      You are not currently allocated as a teacher or advisor to any class section in the academic registry. Please contact the Transport Administrator or Department Head to assign your classes.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {initialClasses.map((cls) => {
+                      const isSelected = selectedClassIds.includes(cls.id);
+                      return (
+                        <div
+                          key={cls.id}
+                          onClick={() => handleToggleClass(cls.id)}
+                          className={`relative p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                            isSelected
+                              ? "bg-indigo-50/60 dark:bg-indigo-950/40 border-2 border-indigo-600 dark:border-indigo-500 shadow-sm shadow-indigo-500/10"
+                              : "bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-mono">
+                                  {cls.semester || "Class Section"}
+                                </span>
+                              </div>
+                              <h3 className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                                {cls.name}
+                              </h3>
                             </div>
-                            <h3 className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
-                              {cls.name}
-                            </h3>
+
+                            <div
+                              className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                                isSelected
+                                  ? "bg-indigo-600 text-white"
+                                  : "border-2 border-slate-300 dark:border-slate-600"
+                              }`}
+                            >
+                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </div>
                           </div>
 
-                          <div
-                            className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
-                              isSelected
-                                ? "bg-indigo-600 text-white"
-                                : "border-2 border-slate-300 dark:border-slate-600"
-                            }`}
-                          >
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/40 text-xs">
+                            <span className="text-slate-500 dark:text-slate-400">Enrolled Students:</span>
+                            <span className="font-bold text-slate-900 dark:text-white px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                              {cls.studentCount} Students
+                            </span>
                           </div>
                         </div>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/40 text-xs">
-                          <span className="text-slate-500 dark:text-slate-400">Enrolled Students:</span>
-                          <span className="font-bold text-slate-900 dark:text-white px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                            {cls.studentCount} Students
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Faculty Self-Escort Toggle Card */}
                 <div

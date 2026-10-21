@@ -43,7 +43,7 @@ export default function StaffUsersView({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [campuses, setCampuses] = useState<Campus[]>(() => store.getCampuses());
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "transport_manager";
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "transport_manager" || currentUser?.role === "transport_admin";
 
   const [newUser, setNewUser] = useState({
     fullName: "",

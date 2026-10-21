@@ -13,7 +13,12 @@ const COOKIE_NAME = "campusfleet_session";
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    const isAllowed = session && (
+      session.role === "admin" ||
+      session.role === "transport_admin" ||
+      session.role === "transport_manager"
+    );
+    if (!isAllowed) {
       return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
     }
 
