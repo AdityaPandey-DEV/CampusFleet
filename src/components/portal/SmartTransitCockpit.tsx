@@ -57,6 +57,8 @@ export default function SmartTransitCockpit({
   // Reservation state
   const [reservation, setReservation] = useState<any>(null);
   const [settings, setSettings] = useState<TransportSettings | null>(null);
+  const [teacherSchedule, setTeacherSchedule] = useState<any>(null);
+  const [previousReservation, setPreviousReservation] = useState<any>(null);
   const [isLoadingReservation, setIsLoadingReservation] = useState(true);
 
   // Seat attendance state
@@ -94,8 +96,12 @@ export default function SmartTransitCockpit({
         setReservation(data.reservation);
         if (data.reservation?.chosen_seat) {
           setTentativeSeat(data.reservation.chosen_seat);
+        } else {
+          setTentativeSeat(null);
         }
         if (data.settings) setSettings(data.settings);
+        if (data.teacherSchedule) setTeacherSchedule(data.teacherSchedule);
+        if (data.previousReservation) setPreviousReservation(data.previousReservation);
       }
     } catch (e) {
       console.warn("Could not fetch smart transit reservation", e);
@@ -144,6 +150,65 @@ export default function SmartTransitCockpit({
     if (!stopId) return null;
     return stops.find((s) => s.id === stopId) || reservation?.stop || null;
   }, [reservation, activeBooking, student, stops]);
+
+  // Single Source of Truth: dynamically resolve shift from database shifts
+  const assignedShift = useMemo(() => {
+    // 1. If shifts prop has the shift matching reservation shift_id, prefer the latest from shifts prop (Source of Truth)
+    const shiftId =
+      reservation?.shift_id ||
+      (reservation as any)?.shiftId ||
+      reservation?.shift?.id ||
+      (activeBooking as any)?.shiftId;
+
+    if (shiftId) {
+      const found = shifts.find((s) => s.id === shiftId);
+      if (found) return found;
+    }
+
+    // 2. Check trip's shift if trip_id is present
+    const tripId = reservation?.trip_id || activeBooking?.tripId;
+    if (tripId) {
+      const foundTrip = trips.find((t) => t.id === tripId);
+      if (foundTrip?.shiftId) {
+        const found = shifts.find((s) => s.id === foundTrip.shiftId);
+        if (found) return found;
+      }
+    }
+
+    // 3. Fallback to enriched reservation shift
+    if (reservation?.shift) return reservation.shift;
+
+    // 4. Fallback: match by morning/evening or first shift
+    return shifts.find((s) => s.shiftType === "MORNING" || s.direction === "HOME_TO_CAMPUS") || shifts[0] || null;
+  }, [reservation, activeBooking, shifts, trips]);
+
+  const assignedShiftName =
+    assignedShift?.name ||
+    (assignedShift as any)?.shift_name ||
+    "Regular Transit Shift";
+
+  const assignedShiftStartTime =
+    assignedShift?.startTime ||
+    (assignedShift as any)?.start_time ||
+    "";
+
+  const assignedShiftEndTime =
+    assignedShift?.endTime ||
+    (assignedShift as any)?.end_time ||
+    "";
+
+  const formatShiftTime = (timeStr?: string) => {
+    if (!timeStr) return "";
+    const clean = String(timeStr).trim();
+    if (clean.toUpperCase().includes("AM") || clean.toUpperCase().includes("PM")) return clean;
+    const parts = clean.split(":");
+    const h = parseInt(parts[0], 10);
+    const m = parts[1] || "00";
+    if (isNaN(h)) return clean;
+    const ampm = h >= 12 ? "PM" : "AM";
+    const formattedH = h % 12 === 0 ? 12 : h % 12;
+    return `${String(formattedH).padStart(2, "0")}:${m} ${ampm}`;
+  };
 
   // Attendance status: marked when chosen_seat or status is BOARDED / SEAT_SELECTED
   const isAttendanceMarked = useMemo(() => {
@@ -335,6 +400,20 @@ export default function SmartTransitCockpit({
           </Link>
         </div>
 
+        {teacherSchedule?.isIncomingOver && previousReservation && (
+          <div className="p-3.5 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 text-xs flex flex-wrap items-center justify-between gap-2.5 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="font-bold text-indigo-950 dark:text-indigo-200">
+                Morning Shift Completed {previousReservation.chosen_seat ? `• Seat ${previousReservation.chosen_seat}` : ""}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+              Next Shift Assigned by Teacher: <strong className="text-indigo-600 dark:text-indigo-400">{assignedShiftName}</strong>
+            </div>
+          </div>
+        )}
+
         {/* Assigned Bus Info Bar */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
@@ -361,7 +440,11 @@ export default function SmartTransitCockpit({
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-blue-500" />
-                <span>08:30 AM Departure</span>
+                <span>
+                  {assignedShiftStartTime
+                    ? `${formatShiftTime(assignedShiftStartTime)} Departure`
+                    : "Scheduled Departure"}
+                </span>
               </div>
             </div>
           </div>
@@ -526,11 +609,14 @@ export default function SmartTransitCockpit({
               <Clock className="w-4 h-4 text-blue-500" />
               <span>Schedule / Shift</span>
             </div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white">
-              Regular Morning Shift
+            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+              {assignedShiftName}
             </div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-              08:30 AM Departure
+            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold truncate">
+              {assignedShiftStartTime
+                ? `${formatShiftTime(assignedShiftStartTime)} Departure`
+                : "Scheduled Departure"}
+              {assignedShiftEndTime ? ` • Arrive ${formatShiftTime(assignedShiftEndTime)}` : ""}
             </div>
           </div>
 

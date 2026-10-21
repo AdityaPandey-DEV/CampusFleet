@@ -55,6 +55,21 @@ export async function GET(req: NextRequest) {
   }
 }
 
+const ALLOWED_SHIFT_ADMIN_ROLES = ["admin", "transport_admin", "transport_manager"];
+
+function sanitizeTimeString(timeStr?: string): string | undefined {
+  if (!timeStr) return undefined;
+  const clean = timeStr.trim();
+  const parts = clean.split(":");
+  if (parts.length >= 2) {
+    const h = parts[0].padStart(2, "0");
+    const m = parts[1].padStart(2, "0");
+    const s = (parts[2] || "00").substring(0, 2).padStart(2, "0");
+    return `${h}:${m}:${s}`;
+  }
+  return clean.length === 5 ? `${clean}:00` : clean;
+}
+
 /**
  * POST /api/shifts
  * Admin creates a new shift in the database
@@ -62,7 +77,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    if (!session || !ALLOWED_SHIFT_ADMIN_ROLES.includes(session.role?.toLowerCase())) {
       return NextResponse.json(
         { success: false, error: "Unauthorized. Admin privileges required." },
         { status: 403 }
@@ -96,8 +111,8 @@ export async function POST(req: NextRequest) {
         id: shiftId,
         name,
         type: shiftType,
-        start_time: startTime.length === 5 ? `${startTime}:00` : startTime,
-        end_time: endTime.length === 5 ? `${endTime}:00` : endTime,
+        start_time: sanitizeTimeString(startTime),
+        end_time: sanitizeTimeString(endTime),
         booking_cutoff_minutes: Number(bookingCutoffMins),
         direction: direction,
         is_special: Boolean(isSpecial),
@@ -138,7 +153,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    if (!session || !ALLOWED_SHIFT_ADMIN_ROLES.includes(session.role?.toLowerCase())) {
       return NextResponse.json(
         { success: false, error: "Unauthorized. Admin privileges required." },
         { status: 403 }
@@ -155,8 +170,8 @@ export async function PUT(req: NextRequest) {
     const updates: any = {};
     if (name !== undefined) updates.name = name;
     if (shiftType !== undefined) updates.type = shiftType;
-    if (startTime !== undefined) updates.start_time = startTime.length === 5 ? `${startTime}:00` : startTime;
-    if (endTime !== undefined) updates.end_time = endTime.length === 5 ? `${endTime}:00` : endTime;
+    if (startTime !== undefined) updates.start_time = sanitizeTimeString(startTime);
+    if (endTime !== undefined) updates.end_time = sanitizeTimeString(endTime);
     if (bookingCutoffMins !== undefined) updates.booking_cutoff_minutes = Number(bookingCutoffMins);
     if (direction !== undefined) updates.direction = direction;
     if (isSpecial !== undefined) updates.is_special = Boolean(isSpecial);
@@ -200,7 +215,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "admin" && session.role !== "transport_manager")) {
+    if (!session || !ALLOWED_SHIFT_ADMIN_ROLES.includes(session.role?.toLowerCase())) {
       return NextResponse.json(
         { success: false, error: "Unauthorized. Admin privileges required." },
         { status: 403 }

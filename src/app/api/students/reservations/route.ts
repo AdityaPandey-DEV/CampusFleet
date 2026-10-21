@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
 
     const resolvedStudentId = student?.id || rawStudentId;
 
-    // 1. Fetch student's reservation for today
+    // 1. Fetch student's reservations for today
     const { data: reservations } = await supabaseAdmin
       .from("bus_reservations")
       .select("*")
@@ -62,9 +62,74 @@ export async function GET(req: NextRequest) {
       .in("reservation_date", allowedDates)
       .order("created_at", { ascending: false });
 
-    let activeReservation = reservations && reservations.length > 0 ? reservations[0] : null;
+    // Fetch all active fleet shifts
+    const { data: allShifts } = await supabaseAdmin
+      .from("shifts")
+      .select("id, name, type, start_time, end_time, direction, booking_cutoff_minutes")
+      .eq("is_active", true);
 
-    // 2. If no reservation exists and auto-assignment is enabled, create an AI auto-assignment
+    const parseTimeMinutes = (timeStr?: string) => {
+      if (!timeStr) return -1;
+      const clean = timeStr.trim();
+      const parts = clean.split(":");
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+    };
+
+    const currentIstMinutes = istDate.getUTCHours() * 60 + istDate.getUTCMinutes();
+
+    // 2. Fetch teacher-assigned timetable shift schedule for student's class
+    const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+    const currentDayName = days[istDate.getUTCDay()];
+    let teacherSchedule: any = null;
+    if (student?.class_id) {
+      const { data: sched } = await supabaseAdmin
+        .from("class_shift_schedules")
+        .select("incoming_shift_id, outgoing_shift_id, is_today_off")
+        .eq("class_id", student.class_id)
+        .eq("day_of_week", currentDayName)
+        .maybeSingle();
+      teacherSchedule = sched;
+      if (!teacherSchedule) {
+        const { data: demand } = await supabaseAdmin
+          .from("shift_demands")
+          .select("incoming_shift_id, outgoing_shift_id, is_today_off")
+          .eq("class_id", student.class_id)
+          .eq("day_of_week", currentDayName)
+          .maybeSingle();
+        teacherSchedule = demand;
+      }
+    }
+
+    const incomingShiftId = teacherSchedule?.incoming_shift_id || "shift-1";
+    const outgoingShiftId = teacherSchedule?.outgoing_shift_id || "shift-2";
+    const incomingShift = (allShifts || []).find((s) => s.id === incomingShiftId);
+    const outgoingShift = (allShifts || []).find((s) => s.id === outgoingShiftId);
+
+    // Determine if the morning/incoming shift is over
+    const incomingEndTime = parseTimeMinutes(incomingShift?.end_time);
+    const incomingStartTime = parseTimeMinutes(incomingShift?.start_time);
+    const morningReservation = (reservations || []).find((r) => r.shift_id === incomingShiftId);
+    const morningBoarded = Boolean(
+      morningReservation &&
+      (morningReservation.status === "BOARDED" || morningReservation.boarded_at)
+    );
+
+    // A shift is over if:
+    // a) Current time has passed incoming shift end time, OR
+    // b) Student marked attendance/boarded AND current time has passed departure
+    const isIncomingOver =
+      (incomingEndTime > 0 && currentIstMinutes >= incomingEndTime) ||
+      (morningBoarded && incomingStartTime > 0 && currentIstMinutes >= incomingStartTime + 15);
+
+    // Next shift assigned for student by the teacher
+    const targetShiftId = isIncomingOver && outgoingShiftId ? outgoingShiftId : incomingShiftId;
+
+    // Check if student already has a reservation for the target shift
+    let activeReservation = (reservations || []).find((r) => r.shift_id === targetShiftId) || null;
+
+    // 3. If no reservation exists for the target shift and auto-assignment is enabled, create auto-assignment
     if (!activeReservation && currentSettings.auto_assignment_enabled && student) {
       const targetStopId = student.auto_assigned_stop_id || student.primary_stop_id;
       let targetRouteId = student.primary_route_id;
@@ -80,13 +145,14 @@ export async function GET(req: NextRequest) {
         if (routeStop) targetRouteId = routeStop.route_id;
       }
 
-      // Fetch active trip for today on student's route
+      // Fetch active trip for today on student's route for targetShiftId
       let trip: any = null;
       if (targetRouteId) {
         const { data: routeTrips } = await supabaseAdmin
           .from("trips")
           .select("id, bus_id, shift_id, route_id, status")
           .eq("route_id", targetRouteId)
+          .eq("shift_id", targetShiftId)
           .in("trip_date", allowedDates)
           .neq("status", "CANCELLED")
           .order("trip_date", { ascending: false })
@@ -97,35 +163,106 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      // Fallback: any active operational trip today
+      // Helper: choose nearest trip to student's stop/home based on route stops (never arbitrary)
+      const pickNearestTrip = async (candidateTrips: any[]): Promise<any> => {
+        if (!candidateTrips || candidateTrips.length === 0) return null;
+        if (candidateTrips.length === 1) return candidateTrips[0];
+
+        // Resolve student coordinate reference (assigned stop or home coordinates)
+        const { data: studentStop } = await supabaseAdmin
+          .from("stops")
+          .select("id, latitude, longitude")
+          .eq("id", targetStopId)
+          .maybeSingle();
+
+        const studentLat = studentStop?.latitude
+          ? Number(studentStop.latitude)
+          : (student as any)?.home_latitude
+          ? Number((student as any).home_latitude)
+          : null;
+        const studentLon = studentStop?.longitude
+          ? Number(studentStop.longitude)
+          : (student as any)?.home_longitude
+          ? Number((student as any).home_longitude)
+          : null;
+
+        if (studentLat === null || studentLon === null || isNaN(studentLat) || isNaN(studentLon)) {
+          return candidateTrips[0];
+        }
+
+        const candidateRouteIds = Array.from(new Set(candidateTrips.map((t) => t.route_id).filter(Boolean)));
+        const { data: candidateRouteStops } = await supabaseAdmin
+          .from("route_stops")
+          .select("route_id, stop:stops(id, latitude, longitude)")
+          .in("route_id", candidateRouteIds);
+
+        let bestTrip = candidateTrips[0];
+        let minDistanceKm = Infinity;
+
+        for (const candidateTrip of candidateTrips) {
+          const routeStopsList = (candidateRouteStops || []).filter(
+            (rs: any) => rs.route_id === candidateTrip.route_id
+          );
+
+          for (const rs of routeStopsList) {
+            const stopObj: any = rs.stop;
+            if (stopObj?.latitude && stopObj?.longitude) {
+              const dist = calculateDistanceKm(
+                studentLat,
+                studentLon,
+                Number(stopObj.latitude),
+                Number(stopObj.longitude)
+              );
+              if (dist < minDistanceKm) {
+                minDistanceKm = dist;
+                bestTrip = candidateTrip;
+              }
+            }
+          }
+        }
+
+        return bestTrip;
+      };
+
+      // If no route-specific trip found for this shift, match the NEAREST trip by geographic proximity (not arbitrary)
+      if (!trip) {
+        const { data: shiftTrips } = await supabaseAdmin
+          .from("trips")
+          .select("id, bus_id, shift_id, route_id, status")
+          .eq("shift_id", targetShiftId)
+          .in("trip_date", allowedDates)
+          .neq("status", "CANCELLED");
+
+        if (shiftTrips && shiftTrips.length > 0) {
+          trip = await pickNearestTrip(shiftTrips);
+        }
+      }
+
+      // Fallback: any active operational trip today (nearest if coordinates available)
       if (!trip) {
         const { data: fallbackTrips } = await supabaseAdmin
           .from("trips")
           .select("id, bus_id, shift_id, route_id, status")
           .in("trip_date", allowedDates)
-          .neq("status", "CANCELLED")
-          .order("trip_date", { ascending: false })
-          .limit(1);
+          .neq("status", "CANCELLED");
 
         if (fallbackTrips && fallbackTrips.length > 0) {
-          trip = fallbackTrips[0];
+          trip = await pickNearestTrip(fallbackTrips);
         }
       }
 
       if (trip && trip.bus_id && targetStopId) {
-        // Resolve incoming shift from class demand
-        let incomingShift = trip.shift_id || "shift-1";
-        if (student.class_id) {
-          const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
-          const currentDayName = days[istDate.getUTCDay()];
-          const { data: demandRow } = await supabaseAdmin
-            .from("shift_demands")
-            .select("incoming_shift_id")
-            .eq("class_id", student.class_id)
-            .eq("day_of_week", currentDayName)
+        // For outgoing (CAMPUS_TO_HOME) shifts, boarding stop is typically campus terminus stop
+        let boardingStop = targetStopId;
+        if (isIncomingOver && outgoingShift?.direction === "CAMPUS_TO_HOME") {
+          const { data: campusStop } = await supabaseAdmin
+            .from("stops")
+            .select("id")
+            .ilike("name", "%campus%")
+            .limit(1)
             .maybeSingle();
-          if (demandRow?.incoming_shift_id) {
-            incomingShift = demandRow.incoming_shift_id;
+          if (campusStop?.id) {
+            boardingStop = campusStop.id;
           }
         }
 
@@ -135,11 +272,11 @@ export async function GET(req: NextRequest) {
             student_id: resolvedStudentId,
             trip_id: trip.id,
             bus_id: trip.bus_id,
-            boarding_stop_id: targetStopId,
-            shift_id: incomingShift,
+            boarding_stop_id: boardingStop,
+            shift_id: targetShiftId,
             reservation_date: today,
-            assigned_by: "AI_AUTO",
-            assignment_score: 0.965,
+            assigned_by: isIncomingOver ? "TEACHER_NEXT_SHIFT" : "AI_AUTO",
+            assignment_score: 0.985,
             status: "ASSIGNED",
           })
           .select()
@@ -151,10 +288,25 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Fallback: if activeReservation is still null, take the most recent reservation
+    if (!activeReservation && reservations && reservations.length > 0) {
+      activeReservation = reservations[0];
+    }
+
     // 3. If we have a reservation, enrich with bus and stop info
     let enriched = null;
     if (activeReservation) {
-      const [busRes, stopRes] = await Promise.all([
+      let targetShiftId = activeReservation.shift_id;
+      if (!targetShiftId && activeReservation.trip_id) {
+        const { data: tripRow } = await supabaseAdmin
+          .from("trips")
+          .select("shift_id")
+          .eq("id", activeReservation.trip_id)
+          .maybeSingle();
+        targetShiftId = tripRow?.shift_id;
+      }
+
+      const [busRes, stopRes, shiftRes] = await Promise.all([
         supabaseAdmin
           .from("buses")
           .select("id, bus_number, registration_no, model, capacity, seat_layout, teacher_seats_count")
@@ -165,6 +317,13 @@ export async function GET(req: NextRequest) {
           .select("id, name, landmark, latitude, longitude")
           .eq("id", activeReservation.boarding_stop_id)
           .maybeSingle(),
+        targetShiftId
+          ? supabaseAdmin
+              .from("shifts")
+              .select("id, name, type, start_time, end_time, direction, booking_cutoff_minutes, is_special")
+              .eq("id", targetShiftId)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
       ]);
 
       enriched = {
@@ -178,6 +337,18 @@ export async function GET(req: NextRequest) {
             }
           : null,
         stop: stopRes.data || null,
+        shift: shiftRes?.data
+          ? {
+              id: shiftRes.data.id,
+              name: shiftRes.data.name,
+              shiftType: shiftRes.data.type,
+              startTime: shiftRes.data.start_time ? shiftRes.data.start_time.substring(0, 5) : "",
+              endTime: shiftRes.data.end_time ? shiftRes.data.end_time.substring(0, 5) : "",
+              direction: shiftRes.data.direction,
+              bookingCutoffMins: Number(shiftRes.data.booking_cutoff_minutes || 30),
+              isSpecial: Boolean(shiftRes.data.is_special),
+            }
+          : null,
       };
     }
 
@@ -185,6 +356,15 @@ export async function GET(req: NextRequest) {
       success: true,
       reservation: enriched,
       settings: currentSettings,
+      teacherSchedule: {
+        incomingShiftId,
+        outgoingShiftId,
+        isIncomingOver,
+        targetShiftId,
+        isTodayOff: Boolean(teacherSchedule?.is_today_off),
+      },
+      previousReservation: morningReservation || null,
+      allReservationsToday: reservations || [],
     });
   } catch (err: any) {
     console.error("[api/students/reservations] GET error:", err);

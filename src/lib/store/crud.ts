@@ -79,13 +79,18 @@ CampusFleetStore.prototype.createShift = async function (this: CampusFleetStore,
   };
 
   try {
-    await fetch("/api/shifts", {
+    const res = await fetch("/api/shifts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newShift),
     });
-  } catch (e) {
-    console.warn("Could not save shift to /api/shifts, saving locally:", e);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+  } catch (e: any) {
+    console.warn("Could not save shift to /api/shifts:", e);
+    throw e;
   }
 
   const idx = this.shifts.findIndex(s => s.id === shiftId);
@@ -101,31 +106,42 @@ CampusFleetStore.prototype.createShift = async function (this: CampusFleetStore,
 CampusFleetStore.prototype.updateShift = async function (this: CampusFleetStore, shiftId: string, updates: Partial<Shift>): Promise<Shift | null> {
   const shift = this.shifts.find(s => s.id === shiftId);
   if (!shift) return null;
-  Object.assign(shift, updates);
 
   try {
-    await fetch("/api/shifts", {
+    const res = await fetch("/api/shifts", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: shiftId, ...updates }),
     });
-  } catch (e) {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+  } catch (e: any) {
     console.warn("Could not sync shift update to /api/shifts:", e);
+    throw e;
   }
 
+  Object.assign(shift, updates);
   this.notify();
   return shift;
 };
 
 CampusFleetStore.prototype.deleteShift = async function (this: CampusFleetStore, shiftId: string): Promise<boolean> {
-  this.shifts = this.shifts.filter(s => s.id !== shiftId);
   try {
-    await fetch(`/api/shifts?id=${encodeURIComponent(shiftId)}`, {
+    const res = await fetch(`/api/shifts?id=${encodeURIComponent(shiftId)}`, {
       method: "DELETE",
     });
-  } catch (e) {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+  } catch (e: any) {
     console.warn("Could not sync shift deletion to /api/shifts:", e);
+    throw e;
   }
+
+  this.shifts = this.shifts.filter(s => s.id !== shiftId);
   this.notify();
   return true;
 };
