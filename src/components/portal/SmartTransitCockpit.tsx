@@ -478,7 +478,7 @@ export default function SmartTransitCockpit({
             </div>
 
             {/* Embedded Interactive Seat Grid */}
-            <div className="p-4 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 max-h-[460px] overflow-y-auto">
+            <div className="p-2 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 max-h-[460px] overflow-y-auto overflow-x-hidden flex justify-center">
               <InteractiveBusSeatGrid
                 bus={assignedBus}
                 activeBookings={

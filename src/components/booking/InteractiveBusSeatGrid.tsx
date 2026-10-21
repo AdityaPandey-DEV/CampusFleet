@@ -153,7 +153,7 @@ export function InteractiveBusSeatGrid({
             ? `Seat ${seatNum} (Faculty Priority Starting Seat)`
             : `Select Seat ${seatNum} (${seatTypeDescription})`
         }
-        className={`relative w-11 h-12 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xs transition-all ${
+        className={`relative w-10 h-11 sm:w-11 sm:h-12 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xs transition-all ${
           isOccupied
             ? "bg-gray-200 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700/40 text-gray-400 dark:text-gray-600 cursor-not-allowed"
             : isRestrictedFacultySeat
@@ -169,7 +169,7 @@ export function InteractiveBusSeatGrid({
       >
         {/* Seat Top Notch Cushion Effect */}
         <span
-          className={`absolute top-1 inset-x-2 h-1 rounded-full ${
+          className={`absolute top-1 inset-x-1.5 sm:inset-x-2 h-1 rounded-full ${
             isSelected
               ? "bg-gray-950/20"
               : isOccupied
@@ -200,9 +200,9 @@ export function InteractiveBusSeatGrid({
   };
 
   return (
-    <div className="flex flex-col items-center select-none">
+    <div className="flex flex-col items-center select-none w-full">
       {/* Bus Vehicle Outer Chassis */}
-      <div className="relative w-full max-w-sm bg-gray-50 dark:bg-gray-900/90 rounded-[2.5rem] p-5 sm:p-6 border-2 border-gray-300 dark:border-gray-700 shadow-xl">
+      <div className="relative w-full max-w-[340px] sm:max-w-sm bg-gray-50 dark:bg-gray-900/90 rounded-[2rem] sm:rounded-[2.5rem] p-3.5 sm:p-6 border-2 border-gray-300 dark:border-gray-700 shadow-xl">
         {/* Bus Front Windshield & Driver Cabin */}
         <div className="relative flex items-center justify-between pb-5 mb-4 border-b-2 border-dashed border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2">
@@ -227,17 +227,17 @@ export function InteractiveBusSeatGrid({
 
         {/* Faculty Row Banner */}
         {effectiveTeacherCount > 0 ? (
-          <div className="mb-4 px-3.5 py-2 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 text-[11px] font-semibold text-indigo-800 dark:text-indigo-200 flex items-center justify-between">
+          <div className="mb-4 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 text-[10px] sm:text-[11px] font-semibold text-indigo-800 dark:text-indigo-200 flex flex-wrap items-center justify-between gap-1.5">
             <span className="flex items-center gap-1.5">
-              <GraduationCap className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
-              <span>Starting Seats: Reserved for {effectiveTeacherCount} Teacher{effectiveTeacherCount !== 1 ? "s" : ""}</span>
+              <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+              <span>Starting Seats: {effectiveTeacherCount} Teacher{effectiveTeacherCount !== 1 ? "s" : ""}</span>
             </span>
             {isFacultyUser ? (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white shadow-xs">
-                Teacher Access ({effectiveTeacherCount} Reserved)
+              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-indigo-600 text-white shadow-xs">
+                Teacher Access ({effectiveTeacherCount})
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
                 Restricted ({effectiveTeacherCount} Seats)
               </span>
             )}
@@ -257,9 +257,9 @@ export function InteractiveBusSeatGrid({
         {/* Seats Cabin Rows */}
         <div className="space-y-3">
           {rows.map((row) => (
-            <div key={row.rowNumber} className="flex items-center justify-between gap-3">
+            <div key={row.rowNumber} className="flex items-center justify-between gap-1.5 sm:gap-3">
               {/* Left Column Seats */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {row.leftSeats.map((seatNum, sIdx) =>
                   renderSeatButton(seatNum, sIdx === 0 ? "Window" : "Aisle")
                 )}
@@ -279,7 +279,7 @@ export function InteractiveBusSeatGrid({
               )}
 
               {/* Right Column Seats */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {row.rightSeats.map((seatNum, sIdx) =>
                   renderSeatButton(
                     seatNum,
