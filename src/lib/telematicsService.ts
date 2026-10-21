@@ -49,6 +49,48 @@ class TelematicsService {
   }
 
   /**
+   * Immediately pushes live coordinates to Redis & MongoDB without throttle.
+   * Used for initial lock, manual broadcast toggle, or trip start.
+   */
+  public async pushLiveLocationNow(location: LiveBusLocation): Promise<boolean> {
+    this.notifyListeners(location);
+
+    if (this.localBroadcastChannel) {
+      try {
+        this.localBroadcastChannel.postMessage(location);
+      } catch (e) {
+        console.warn("Failed to post to local BroadcastChannel:", e);
+      }
+    }
+
+    if (!location.busId) return false;
+    this.lastApiPostTime = Date.now();
+    try {
+      const res = await fetch("/api/telematics/live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          busId: location.busId,
+          tripId: location.tripId,
+          driverId: (location as any).driverId,
+          driverName: (location as any).driverName,
+          busNumber: (location as any).busNumber,
+          accuracy: (location as any).accuracy,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          speedKmh: location.speedKmh,
+          headingDeg: location.headingDeg,
+          currentStopId: location.currentStopId,
+          delayMinutes: location.delayMinutes,
+        }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Broadcast high-frequency live coordinates.
    * Architecture:
    * 1. In-tab listeners: 0 latency, in-memory (<1ms).

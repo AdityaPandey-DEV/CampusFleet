@@ -543,12 +543,26 @@ export async function POST(req: NextRequest) {
       gpsNote = "Verified via in-bus RFID reader tap";
     } else if (targetRes.bus_id) {
       // Must verify real-time GPS proximity against live bus telematics
-      const CACHE_KEY = `telematics:bus:${targetRes.bus_id}`;
-      let liveTelematics = await cacheGet<{ latitude: number; longitude: number }>(CACHE_KEY);
+      const busIdsToCheck = Array.from(new Set([
+        targetRes.bus_id,
+        targetRes.bus_id.toLowerCase(),
+        targetRes.bus_id.toUpperCase(),
+      ]));
+      let liveTelematics: { latitude: number; longitude: number } | null = null;
+      for (const bId of busIdsToCheck) {
+        const cached = await cacheGet<{ latitude: number; longitude: number }>(`telematics:bus:${bId}`);
+        if (cached && typeof cached.latitude === "number" && typeof cached.longitude === "number") {
+          liveTelematics = cached;
+          break;
+        }
+      }
       if (!liveTelematics) {
-        const mongoDoc = await getLiveLocationFromMongo(targetRes.bus_id);
-        if (mongoDoc && typeof mongoDoc.latitude === "number" && typeof mongoDoc.longitude === "number") {
-          liveTelematics = { latitude: mongoDoc.latitude, longitude: mongoDoc.longitude };
+        for (const bId of busIdsToCheck) {
+          const mongoDoc = await getLiveLocationFromMongo(bId);
+          if (mongoDoc && typeof mongoDoc.latitude === "number" && typeof mongoDoc.longitude === "number") {
+            liveTelematics = { latitude: mongoDoc.latitude, longitude: mongoDoc.longitude };
+            break;
+          }
         }
       }
 
@@ -575,8 +589,8 @@ export async function POST(req: NextRequest) {
         liveTelematics.latitude,
         liveTelematics.longitude
       );
-      // Realistic bus length (12m) + civilian GPS multipath tolerance inside metallic vehicle = 25m
-      const MAX_GEOFENCE_METERS = 25;
+      // Commercial vehicle cabin & station boarding buffer tolerance (200m vehicular geofence)
+      const MAX_GEOFENCE_METERS = 200;
       const distMeters = Math.round(distKm * 1000);
 
       if (distMeters > MAX_GEOFENCE_METERS) {

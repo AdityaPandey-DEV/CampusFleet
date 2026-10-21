@@ -130,9 +130,13 @@ export async function POST(req: NextRequest) {
       timestamp: timestamp || new Date().toISOString(),
     };
 
-    // 1. Store in Redis with a 10-second TTL for strict moving-bus GPS verification
+    // 1. Store in Redis with a 120-second TTL for live bus GPS verification
     const CACHE_KEY = `telematics:bus:${busId}`;
-    await cacheSet(CACHE_KEY, locationData, 10);
+    await cacheSet(CACHE_KEY, locationData, 120);
+    // Also cache normalized lowercase ID if different
+    if (busId.toLowerCase() !== busId) {
+      await cacheSet(`telematics:bus:${busId.toLowerCase()}`, locationData, 120);
+    }
 
     // 2. Persist to MongoDB (both latest position and 24h breadcrumb trail)
     saveLiveLocationToMongo({

@@ -261,7 +261,27 @@ CampusFleetStore.prototype.getLiveLocationForTrip = function (this: CampusFleetS
 
   const isTripInProgress = trip?.status === "IN_PROGRESS";
 
-  // If trip has not started, bus MUST be at the route starting point with speed = 0!
+  // If live driver telematics is active, ALWAYS prioritize driver device coordinates (driver location = bus location)
+  const hasLiveBroadcast = Boolean(
+    this.liveLocation &&
+    typeof this.liveLocation.latitude === "number" &&
+    !isNaN(this.liveLocation.latitude) &&
+    typeof this.liveLocation.longitude === "number" &&
+    !isNaN(this.liveLocation.longitude) &&
+    (this.liveLocation.latitude !== 0 || this.liveLocation.longitude !== 0) &&
+    (!trip?.busId || !this.liveLocation.busId || trip.busId.toLowerCase() === this.liveLocation.busId.toLowerCase())
+  );
+
+  if (hasLiveBroadcast) {
+    return {
+      ...this.liveLocation,
+      busId: trip?.busId || this.liveLocation.busId,
+      tripId: trip?.id || this.liveLocation.tripId,
+      speedKmh: typeof this.liveLocation.speedKmh === "number" ? this.liveLocation.speedKmh : 0,
+    };
+  }
+
+  // If trip has not started and no live driver broadcast, bus is stationary at starting stop
   if (!isTripInProgress && startingStop) {
     return {
       busId: trip?.busId || this.liveLocation.busId,
@@ -275,24 +295,6 @@ CampusFleetStore.prototype.getLiveLocationForTrip = function (this: CampusFleetS
       delayMinutes: 0,
     };
   }
-
-  // If trip is in progress, use real-time liveLocation from device hardware
-  if (
-    this.liveLocation &&
-    typeof this.liveLocation.latitude === "number" &&
-    !isNaN(this.liveLocation.latitude) &&
-    typeof this.liveLocation.longitude === "number" &&
-    !isNaN(this.liveLocation.longitude) &&
-    (this.liveLocation.latitude !== 0 || this.liveLocation.longitude !== 0)
-  ) {
-    return {
-      ...this.liveLocation,
-      busId: trip?.busId || this.liveLocation.busId,
-      tripId: trip?.id || this.liveLocation.tripId,
-      speedKmh: typeof this.liveLocation.speedKmh === "number" ? this.liveLocation.speedKmh : 0,
-    };
-  }
-
   // Fallback if trip in progress but location not yet received from device: use current route stop with real 0 km/h
   const currentStop = (route?.stops && route.stops[trip?.currentStopIndex || 0]?.stop) || startingStop;
   return {

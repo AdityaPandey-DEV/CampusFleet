@@ -44,6 +44,7 @@ import { useTranslation } from "@/components/common/LanguageProvider";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { computeDirectExpressRoute } from "@/lib/route-optimizer";
 import { calculateHaversineDistanceKm } from "@/lib/eta-calculator";
+import { telematicsService } from "@/lib/telematicsService";
 import { CrewBusSelectorModal } from "@/components/common/CrewBusSelectorModal";
 import type { Trip, Bus, Route, Booking, Stop, AttendanceRecord, LiveBusLocation } from "@/lib/types";
 
@@ -380,61 +381,139 @@ export default function DriverConsoleView({
     }
   }, [activeTrip, route?.stops, directExpressResult, bus?.id, currentUser, playChime]);
 
-  // Request browser location permission on mount
-  const requestGpsPermission = useCallback(() => {
+  // Core: Synchronizes driver's device GPS to both local store and remote Redis + MongoDB Atlas
+  const pushDriverCoordinates = useCallback((coords: {
+    latitude: number;
+    longitude: number;
+    speedKmh?: number;
+    headingDeg?: number;
+    accuracy?: number;
+  }) => {
+    if (!bus?.id) return;
+    const currentStopId = route?.stops?.[activeTrip?.currentStopIndex || 0]?.stopId;
+
+    store.updateLiveLocation({
+      busId: bus.id,
+      tripId: activeTrip?.id,
+      driverId: currentUser?.id,
+      driverName: currentUser?.fullName || "Assigned Driver",
+      busNumber: bus.busNumber,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      speedKmh: coords.speedKmh ?? 0,
+      headingDeg: coords.headingDeg ?? 0,
+      accuracy: coords.accuracy != null ? Math.round(coords.accuracy) : undefined,
+      currentStopId,
+      delayMinutes: 0,
+    } as any);
+
+    telematicsService.pushLiveLocationNow({
+      busId: bus.id,
+      tripId: activeTrip?.id || "",
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      speedKmh: coords.speedKmh ?? 0,
+      headingDeg: coords.headingDeg ?? 0,
+      accuracy: coords.accuracy != null ? Math.round(coords.accuracy) : undefined,
+      currentStopId,
+      delayMinutes: 0,
+      lastPingAt: new Date().toISOString(),
+      driverId: currentUser?.id,
+      driverName: currentUser?.fullName || "Assigned Driver",
+      busNumber: bus.busNumber,
+    } as any).catch(() => {});
+  }, [bus?.id, bus?.busNumber, activeTrip?.id, activeTrip?.currentStopIndex, currentUser, route?.stops]);
+
+  // Dual-tier instant device GPS acquisition (Tier 1 quick cell/Wi-Fi fix, Tier 2 high-accuracy satellite)
+  const acquireDriverDeviceCoordinates = useCallback(async (): Promise<{
+    latitude: number;
+    longitude: number;
+    speedKmh: number;
+    headingDeg: number;
+    accuracy: number;
+  } | null> => {
     if (typeof window === "undefined" || !("geolocation" in navigator)) {
       setGpsStatusText("Hardware GPS Sensor Unavailable");
       setGpsPermissionState("unsupported");
-      return;
+      return null;
     }
 
-    setGpsStatusText("Requesting Device Location Permission...");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude, speed, heading, accuracy } = pos.coords;
+    const getPos = (options: PositionOptions): Promise<GeolocationPosition> =>
+      new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, options);
+      });
+
+    // 1. Return fresh reading if available (< 5s)
+    if (realDeviceGpsRef.current) {
+      return realDeviceGpsRef.current;
+    }
+
+    try {
+      // 2. Fast non-blocking cell/Wi-Fi fix (resolves in <2.5s)
+      setGpsStatusText("Acquiring Driver Phone Coordinates...");
+      const quickPos = await Promise.race([
+        getPos({ enableHighAccuracy: false, timeout: 2500, maximumAge: 30000 }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("quick-timeout")), 2600)),
+      ]);
+      const { latitude, longitude, speed, heading, accuracy } = quickPos.coords;
+      const speedKmh = speed != null && !isNaN(speed) && speed >= 0 ? Math.round(speed * 3.6) : 0;
+      const headingDeg = heading && !isNaN(heading) ? Math.round(heading) : 0;
+      const acc = Math.round(accuracy);
+      const reading = { latitude, longitude, speedKmh, headingDeg, accuracy: acc };
+      realDeviceGpsRef.current = reading;
+      setHasRealGpsLock(true);
+      setGpsPermissionState("granted");
+      setGpsAccuracyMeters(acc);
+      setGpsStatusText(`Device GPS Locked (±${acc}m)`);
+
+      // Concurrently upgrade to high-accuracy satellite GPS
+      getPos({ enableHighAccuracy: true, timeout: 6000, maximumAge: 3000 })
+        .then((satPos) => {
+          const sLat = satPos.coords.latitude;
+          const sLon = satPos.coords.longitude;
+          const sAcc = Math.round(satPos.coords.accuracy);
+          const sSpeed = satPos.coords.speed != null && !isNaN(satPos.coords.speed) && satPos.coords.speed >= 0 ? Math.round(satPos.coords.speed * 3.6) : 0;
+          const sHeading = satPos.coords.heading && !isNaN(satPos.coords.heading) ? Math.round(satPos.coords.heading) : 0;
+          const refined = { latitude: sLat, longitude: sLon, speedKmh: sSpeed, headingDeg: sHeading, accuracy: sAcc };
+          realDeviceGpsRef.current = refined;
+          setGpsAccuracyMeters(sAcc);
+          setGpsStatusText(`Satellite Locked (±${sAcc}m)`);
+          if (isBroadcasting) {
+            pushDriverCoordinates(refined);
+          }
+        })
+        .catch(() => {});
+
+      return reading;
+    } catch {
+      // 3. Fallback to satellite GPS directly
+      try {
+        const satPos = await getPos({ enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
+        const { latitude, longitude, speed, heading, accuracy } = satPos.coords;
         const speedKmh = speed != null && !isNaN(speed) && speed >= 0 ? Math.round(speed * 3.6) : 0;
         const headingDeg = heading && !isNaN(heading) ? Math.round(heading) : 0;
-        setGpsPermissionState("granted");
-        setGpsAccuracyMeters(Math.round(accuracy));
-        setGpsStatusText(`Device GPS Locked (±${Math.round(accuracy)}m)`);
+        const acc = Math.round(accuracy);
+        const reading = { latitude, longitude, speedKmh, headingDeg, accuracy: acc };
+        realDeviceGpsRef.current = reading;
         setHasRealGpsLock(true);
-        realDeviceGpsRef.current = { latitude, longitude, speedKmh, headingDeg, accuracy };
-
-        store.updateLiveLocation({
-          busId: bus?.id,
-          tripId: activeTrip?.id,
-          driverId: currentUser?.id,
-          driverName: currentUser?.fullName || "Assigned Driver",
-          busNumber: bus?.busNumber,
-          latitude,
-          longitude,
-          speedKmh,
-          headingDeg,
-          accuracy: Math.round(accuracy),
-          currentStopId: route?.stops?.[activeTrip?.currentStopIndex || 0]?.stopId,
-        } as any);
-
-        checkAndTriggerGeofenceArrival(latitude, longitude);
-      },
-      (err) => {
-        console.warn("Hardware GPS sensor permission notice:", err);
+        setGpsPermissionState("granted");
+        setGpsAccuracyMeters(acc);
+        setGpsStatusText(`Satellite Locked (±${acc}m)`);
+        return reading;
+      } catch (err: any) {
+        console.warn("Device GPS acquisition notice:", err);
         if (err.code === 1) {
           setGpsPermissionState("denied");
-          setGpsStatusText("Location Permission Denied");
-        } else if (err.code === 2) {
-          setGpsStatusText("Searching GPS Satellite Signal");
+          setGpsStatusText("GPS Permission Denied");
         } else {
-          setGpsStatusText("GPS Request Timed Out");
+          setGpsStatusText("Awaiting Device GPS Signal");
         }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+        return null;
       }
-    );
-  }, [bus?.id, activeTrip?.id, route?.stops, activeTrip?.currentStopIndex, checkAndTriggerGeofenceArrival, currentUser]);
+    }
+  }, [isBroadcasting, pushDriverCoordinates]);
 
+  // Request browser location permission on mount
   useEffect(() => {
     if (typeof window === "undefined" || !("geolocation" in navigator)) {
       setGpsPermissionState("unsupported");
@@ -451,8 +530,8 @@ export default function DriverConsoleView({
       }).catch(() => {});
     }
 
-    requestGpsPermission();
-  }, [requestGpsPermission]);
+    acquireDriverDeviceCoordinates();
+  }, [acquireDriverDeviceCoordinates]);
 
   // Continuous real-time GPS streaming via hardware sensor
   useEffect(() => {
@@ -463,27 +542,16 @@ export default function DriverConsoleView({
         const { latitude, longitude, speed, heading, accuracy } = pos.coords;
         const speedKmh = speed != null && !isNaN(speed) && speed >= 0 ? Math.round(speed * 3.6) : 0;
         const headingDeg = heading && !isNaN(heading) ? Math.round(heading) : 0;
+        const acc = Math.round(accuracy);
         setGpsPermissionState("granted");
-        setGpsAccuracyMeters(Math.round(accuracy));
-        setGpsStatusText(isBroadcasting ? `Live Hardware Telemetry (±${Math.round(accuracy)}m)` : `Paused (±${Math.round(accuracy)}m)`);
+        setGpsAccuracyMeters(acc);
+        setGpsStatusText(isBroadcasting ? `Live Hardware Telemetry (±${acc}m)` : `Paused (±${acc}m)`);
         setHasRealGpsLock(true);
-        realDeviceGpsRef.current = { latitude, longitude, speedKmh, headingDeg, accuracy };
+        const reading = { latitude, longitude, speedKmh, headingDeg, accuracy: acc };
+        realDeviceGpsRef.current = reading;
 
         if (isBroadcasting) {
-          store.updateLiveLocation({
-            busId: bus?.id,
-            tripId: activeTrip?.id,
-            driverId: currentUser?.id,
-            driverName: currentUser?.fullName || "Assigned Driver",
-            busNumber: bus?.busNumber,
-            latitude,
-            longitude,
-            speedKmh,
-            headingDeg,
-            accuracy: Math.round(accuracy),
-            currentStopId: route?.stops?.[activeTrip?.currentStopIndex || 0]?.stopId,
-          } as any);
-
+          pushDriverCoordinates(reading);
           checkAndTriggerGeofenceArrival(latitude, longitude);
         }
       },
@@ -498,23 +566,72 @@ export default function DriverConsoleView({
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 2000,
-        timeout: 15000,
+        maximumAge: 3000,
+        timeout: 10000,
       }
     );
 
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [isBroadcasting, bus?.id, activeTrip?.id, route?.stops, activeTrip?.currentStopIndex, checkAndTriggerGeofenceArrival, currentUser]);
+  }, [isBroadcasting, pushDriverCoordinates, checkAndTriggerGeofenceArrival]);
+
+  // Active continuous GPS heartbeat (every 3.5 seconds)
+  // Guarantees that Redis & MongoDB Atlas telematics stay continuously updated even when bus is idling/parked
+  useEffect(() => {
+    if (!isBroadcasting || typeof window === "undefined" || !("geolocation" in navigator)) return;
+
+    const interval = setInterval(() => {
+      // 1. If we have a cached device location, re-push to keep Redis cache alive
+      if (realDeviceGpsRef.current && bus?.id) {
+        pushDriverCoordinates(realDeviceGpsRef.current);
+      }
+
+      // 2. Actively poll fresh position from hardware
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude, speed, heading, accuracy } = pos.coords;
+          const speedKmh = speed != null && !isNaN(speed) && speed >= 0 ? Math.round(speed * 3.6) : 0;
+          const headingDeg = heading && !isNaN(heading) ? Math.round(heading) : 0;
+          const acc = Math.round(accuracy);
+          const fresh = { latitude, longitude, speedKmh, headingDeg, accuracy: acc };
+          realDeviceGpsRef.current = fresh;
+          setHasRealGpsLock(true);
+          setGpsAccuracyMeters(acc);
+          setGpsStatusText(`Live Telematics (±${acc}m)`);
+          pushDriverCoordinates(fresh);
+          checkAndTriggerGeofenceArrival(latitude, longitude);
+        },
+        () => {
+          // If query fails, last known position was already re-pushed above
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 4000,
+          timeout: 3000,
+        }
+      );
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [isBroadcasting, bus?.id, pushDriverCoordinates, checkAndTriggerGeofenceArrival]);
 
   const handleStartTrip = async () => {
     if (!activeTrip) return;
     lastAutoAdvancedStopIdRef.current = null;
     autoAdvancingRef.current = false;
     const startedAt = new Date().toISOString();
-    const startingStop = route?.stops?.[0]?.stop;
-    const realGps = realDeviceGpsRef.current;
+
+    setToastMessage("📍 Locking driver device GPS coordinates...");
+    const driverCoords = await acquireDriverDeviceCoordinates();
+
+    if (!driverCoords && !realDeviceGpsRef.current) {
+      playChime(392.00, 0.4);
+      alert("⚠️ DEVICE LOCATION REQUIRED:\n\nDriver location = Bus location.\nPlease enable GPS location permissions in your browser so students boarding your bus can be verified in real time.");
+      return;
+    }
+
+    const activeCoords = driverCoords || realDeviceGpsRef.current!;
 
     setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, status: "IN_PROGRESS", startedAt, currentStopIndex: 0 } : t));
 
@@ -524,23 +641,11 @@ export default function DriverConsoleView({
       currentStopIndex: 0,
     });
 
-    store.updateLiveLocation({
-      busId: bus?.id,
-      tripId: activeTrip?.id,
-      driverId: currentUser?.id,
-      driverName: currentUser?.fullName || "Assigned Driver",
-      busNumber: bus?.busNumber,
-      latitude: realGps ? realGps.latitude : (startingStop?.latitude || liveLocation.latitude),
-      longitude: realGps ? realGps.longitude : (startingStop?.longitude || liveLocation.longitude),
-      speedKmh: realGps ? realGps.speedKmh : 0,
-      headingDeg: realGps ? realGps.headingDeg : 0,
-      delayMinutes: 0,
-      currentStopId: startingStop?.id,
-      accuracy: realGps?.accuracy,
-    } as any);
+    // PUSH DRIVER REAL PHONE LOCATION (Driver Location = Bus Location)
+    pushDriverCoordinates(activeCoords);
 
     playChime(523.25, 0.3); // C5 chime for trip start
-    setToastMessage("✓ Trip started! Hands-free GPS geofencing & MongoDB Atlas streaming active.");
+    setToastMessage(`✓ Trip started! Driver phone GPS locked (±${activeCoords.accuracy}m). Bus telematics streaming.`);
     setTimeout(() => setToastMessage(null), 4000);
   };
 
@@ -558,26 +663,16 @@ export default function DriverConsoleView({
         completedAt,
       });
 
-      const campusOrEndStop =
-        route?.stops?.[route.stops.length - 1]?.stop ||
-        store.getStops().find((s) => s.name.toLowerCase().includes("campus terminal")) ||
-        store.getStops().find((s) => s.campus && s.name.toLowerCase().includes("campus")) ||
-        store.getStops()[0];
+      const finalLat = realDeviceGpsRef.current?.latitude ?? liveLocation.latitude;
+      const finalLon = realDeviceGpsRef.current?.longitude ?? liveLocation.longitude;
 
-      if (campusOrEndStop) {
-        store.updateLiveLocation({
-          busId: bus?.id,
-          tripId: activeTrip?.id,
-          driverId: currentUser?.id,
-          driverName: currentUser?.fullName || "Assigned Driver",
-          busNumber: bus?.busNumber,
-          latitude: campusOrEndStop.latitude,
-          longitude: campusOrEndStop.longitude,
-          speedKmh: 0,
-          headingDeg: 0,
-          delayMinutes: 0,
-        } as any);
-      }
+      pushDriverCoordinates({
+        latitude: finalLat,
+        longitude: finalLon,
+        speedKmh: 0,
+        headingDeg: realDeviceGpsRef.current?.headingDeg ?? 0,
+        accuracy: realDeviceGpsRef.current?.accuracy,
+      });
 
       playChime(440.00, 0.35); // A4 chime
       setToastMessage("✓ Trip completed successfully. Coordinates stored in MongoDB Atlas.");
@@ -600,20 +695,16 @@ export default function DriverConsoleView({
       setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, currentStopIndex: campusIdx } : t));
       await store.updateTrip(activeTrip.id, { currentStopIndex: campusIdx });
 
-      store.updateLiveLocation({
-        busId: bus?.id,
-        tripId: activeTrip?.id,
-        driverId: currentUser?.id,
-        driverName: currentUser?.fullName || "Assigned Driver",
-        busNumber: bus?.busNumber,
-        latitude: realGps ? realGps.latitude : (campusStop?.latitude || liveLocation.latitude),
-        longitude: realGps ? realGps.longitude : (campusStop?.longitude || liveLocation.longitude),
-        currentStopId: route.stops[campusIdx].stopId,
-        estimatedArrivalNextStopMins: 0,
-        speedKmh: realGps ? realGps.speedKmh : 0,
-        headingDeg: realGps ? realGps.headingDeg : 0,
+      const finalLat = realGps?.latitude ?? liveLocation.latitude;
+      const finalLon = realGps?.longitude ?? liveLocation.longitude;
+
+      pushDriverCoordinates({
+        latitude: finalLat,
+        longitude: finalLon,
+        speedKmh: realGps?.speedKmh ?? 0,
+        headingDeg: realGps?.headingDeg ?? 0,
         accuracy: realGps?.accuracy,
-      } as any);
+      });
 
       playChime(659.25, 0.2);
       setToastMessage(`⚡ Express Non-Stop: Arrived directly at ${campusStop.name}`);
@@ -628,20 +719,16 @@ export default function DriverConsoleView({
       setTrips(prev => prev.map(t => t.id === activeTrip.id ? { ...t, currentStopIndex: nextIdx } : t));
       await store.updateTrip(activeTrip.id, { currentStopIndex: nextIdx });
 
-      store.updateLiveLocation({
-        busId: bus?.id,
-        tripId: activeTrip?.id,
-        driverId: currentUser?.id,
-        driverName: currentUser?.fullName || "Assigned Driver",
-        busNumber: bus?.busNumber,
-        latitude: realGps ? realGps.latitude : (nextStop?.latitude || liveLocation.latitude),
-        longitude: realGps ? realGps.longitude : (nextStop?.longitude || liveLocation.longitude),
-        currentStopId: route.stops[nextIdx].stopId,
-        estimatedArrivalNextStopMins: 0,
-        speedKmh: realGps ? realGps.speedKmh : 0,
-        headingDeg: realGps ? realGps.headingDeg : 0,
+      const advanceLat = realGps?.latitude ?? liveLocation.latitude;
+      const advanceLon = realGps?.longitude ?? liveLocation.longitude;
+
+      pushDriverCoordinates({
+        latitude: advanceLat,
+        longitude: advanceLon,
+        speedKmh: realGps?.speedKmh ?? 0,
+        headingDeg: realGps?.headingDeg ?? 0,
         accuracy: realGps?.accuracy,
-      } as any);
+      });
 
       playChime(659.25, 0.2);
       setToastMessage(`✓ Arrived at Stop ${nextIdx + 1}: ${nextStop.name}`);
@@ -835,6 +922,25 @@ export default function DriverConsoleView({
                 <span className="font-mono text-gray-300">
                   {gpsAccuracyMeters !== null ? `±${gpsAccuracyMeters}m Satellites` : "Standby GPS"}
                 </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-gray-800/80 px-2 py-1 rounded-xl border border-gray-700/80">
+                <MapPin className={`w-3.5 h-3.5 ${hasRealGpsLock ? "text-emerald-400" : "text-amber-400 animate-pulse"}`} />
+                <span className="text-gray-300 font-bold">Driver = Bus:</span>
+                <span className="font-mono text-emerald-400 font-semibold">
+                  {hasRealGpsLock && realDeviceGpsRef.current
+                    ? `${realDeviceGpsRef.current.latitude.toFixed(4)}, ${realDeviceGpsRef.current.longitude.toFixed(4)} (±${gpsAccuracyMeters}m)`
+                    : gpsStatusText}
+                </span>
+                {(!hasRealGpsLock || gpsPermissionState !== "granted") && (
+                  <button
+                    type="button"
+                    onClick={() => acquireDriverDeviceCoordinates()}
+                    className="ml-1 px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-black text-white cursor-pointer"
+                  >
+                    Lock GPS
+                  </button>
+                )}
               </div>
             </div>
 
