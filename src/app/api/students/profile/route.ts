@@ -129,15 +129,8 @@ export async function POST(req: NextRequest) {
       studentData.class_id = validClassId;
     }
 
-    if (!existingStudentId) {
-      // New student: set initial fee based on zone
-      studentData.total_fee_due = feeDue;
-      studentData.total_fee_paid = 0;
-      studentData.payment_status = "UNPAID";
-    } else if (zoneCode && !hasActiveSubscription) {
-      // Existing student changing zone BEFORE payment: update fee to match new zone
-      studentData.total_fee_due = feeDue;
-    }
+    // Note: Fee and payment status are normalized in transit_zones and payments tables,
+    // and dynamically computed by the students_full view based on zone_id.
 
     const { data: savedStudent, error: studentErr } = await supabaseAdmin
       .from("students")

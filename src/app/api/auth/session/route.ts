@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
 
     if (currentRole === "student") {
       const { data: studentsList } = await supabaseAdmin
-        .from("students")
+        .from("students_full")
         .select("id, campus_id, campus, full_name, primary_stop_id, has_active_subscription, payment_status")
         .or(`user_id.eq.${session.userId},email.ilike.${session.email || ""}`)
         .order("created_at", { ascending: false })

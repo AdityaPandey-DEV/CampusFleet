@@ -198,12 +198,8 @@ export async function PUT(req: NextRequest) {
           id: studentId,
           user_id: studentId,
           full_name: userRow?.full_name || "Faculty Member",
-          email: userRow?.email || `${studentId}@campus.edu`,
-          phone: userRow?.phone || "",
-          department: "Faculty",
           semester: "Staff",
           primary_stop_id: updatePayload.primary_stop_id || "",
-          has_active_subscription: true,
           transport_access_suspended: false,
           ...updatePayload,
         })
