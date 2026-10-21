@@ -34,22 +34,28 @@ export default async function TeacherAttendancePage() {
   // 1. Fetch allocated classes for this teacher
   const { data: allocations } = await supabaseAdmin
     .from("class_teachers")
-    .select("class_id, is_primary, classes(*)")
+    .select("class_id, is_primary")
     .eq("teacher_id", teacherUserId);
 
-  let allocatedClasses: any[] = (allocations || [])
-    .filter((row: any) => row.classes)
-    .map((row: any) => ({
-      ...row.classes,
-      isPrimary: row.is_primary,
+  let allocatedClasses: any[] = [];
+  if (allocations && allocations.length > 0) {
+    const classIds = allocations.map((a: any) => a.class_id);
+    const { data: expandedCls } = await supabaseAdmin
+      .from("v_classes_expanded")
+      .select("*")
+      .in("id", classIds);
+    allocatedClasses = (expandedCls || []).map((c: any) => ({
+      ...c,
+      isPrimary: allocations.find((a: any) => a.class_id === c.id)?.is_primary || false,
     }));
+  }
 
   const isElevated =
     session.role === "admin" || session.role === "transport_manager";
 
   if (allocatedClasses.length === 0 && isElevated) {
     const { data: allCls } = await supabaseAdmin
-      .from("classes")
+      .from("v_classes_expanded")
       .select("*")
       .eq("is_active", true)
       .order("name", { ascending: true });

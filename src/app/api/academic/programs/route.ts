@@ -21,7 +21,7 @@ export async function GET() {
 
     // 3. Fetch any additional distinct courses and years created by admins in classes table
     const { data: dbClasses } = await supabaseAdmin
-      .from("classes")
+      .from("v_classes_expanded")
       .select("course, year")
       .eq("is_active", true);
 

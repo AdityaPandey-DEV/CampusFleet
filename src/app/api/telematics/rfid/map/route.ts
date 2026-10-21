@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Fetch target student
     const { data: targetStudents, error: fetchErr } = await supabaseAdmin
-      .from("students")
+      .from("students_full")
       .select("id, user_id, full_name, enrollment_no, rfid_card_id")
       .or(`id.eq.${studentId},user_id.eq.${studentId}`)
       .limit(1);
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     // 2. If mapping a card, check for duplicate assignment across other students
     if (cleanRfid) {
       const { data: existingHolder } = await supabaseAdmin
-        .from("students")
+        .from("students_full")
         .select("id, full_name, enrollment_no")
         .eq("rfid_card_id", cleanRfid)
         .neq("id", student.id)

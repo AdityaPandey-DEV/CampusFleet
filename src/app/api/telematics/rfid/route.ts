@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Resolve student by rfid_card_id or enrollment_no
-    let studentQuery = supabaseAdmin.from("students").select("id, user_id, full_name, enrollment_no, rfid_card_id");
+    let studentQuery = supabaseAdmin.from("students_full").select("id, user_id, full_name, enrollment_no, rfid_card_id");
 
     if (effectiveRfid && enrollmentNo) {
       studentQuery = studentQuery.or(`rfid_card_id.eq.${effectiveRfid},enrollment_no.eq.${enrollmentNo}`);

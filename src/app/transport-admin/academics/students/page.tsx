@@ -12,7 +12,7 @@ export default async function StaffAcademicsStudentsPage() {
     { data: dbClasses },
   ] = await Promise.all([
     supabaseAdmin.from("guardians").select("*"),
-    supabaseAdmin.from("classes").select("*").order("name"),
+    supabaseAdmin.from("v_classes_expanded").select("*").order("name"),
   ]);
 
   return (

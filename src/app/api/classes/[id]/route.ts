@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     // 1. Class info
     const { data: classItem, error } = await supabaseAdmin
-      .from("classes")
+      .from("v_classes_expanded")
       .select("*")
       .eq("id", classId)
       .single();
