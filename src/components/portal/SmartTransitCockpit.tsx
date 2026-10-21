@@ -375,121 +375,111 @@ export default function SmartTransitCockpit({
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
         {/* Main "Thank You for Today! See You Tomorrow" Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 p-6 md:p-10 shadow-xl text-white">
-          {/* Ambient background glow */}
-          <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 space-y-6">
-            {/* Top Status Badges */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black uppercase tracking-wider">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Today's Commute Concluded</span>
-              </div>
-
-              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-300 bg-indigo-950/80 px-3 py-1 rounded-xl border border-indigo-800/60">
-                <Moon className="w-3.5 h-3.5 text-indigo-400" />
-                <span>All Daily Shifts Completed</span>
-              </div>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
+          {/* Top Status Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-slate-100 dark:border-slate-800">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Today's Commute Concluded</span>
             </div>
 
-            {/* Greeting Headline */}
-            <div className="space-y-2 max-w-2xl">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-                <span>Thank You for Today!</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-emerald-300 to-teal-200">
-                  See You Tomorrow
-                </span>
-                <span>👋</span>
-              </h1>
-              <p className="text-xs sm:text-sm md:text-base text-slate-300 leading-relaxed">
-                All scheduled bus shifts for today have successfully concluded. Rest well tonight—CampusFleet will be ready to pick you up tomorrow morning!
-              </p>
+            <div className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <Moon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+              <span>All Shifts Completed</span>
+            </div>
+          </div>
+
+          {/* Greeting Headline */}
+          <div className="space-y-2 max-w-2xl">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Thank You for Today! See You Tomorrow 👋
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              All scheduled bus shifts for today have successfully concluded. Rest well tonight—CampusFleet will be ready to pick you up tomorrow morning!
+            </p>
+          </div>
+
+          {/* Tomorrow's Morning Commute Preview */}
+          <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 p-5 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                <span>Tomorrow Morning's Commute</span>
+              </div>
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                Scheduled
+              </span>
             </div>
 
-            {/* Tomorrow's Morning Commute Preview */}
-            <div className="rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-[11px] font-mono uppercase tracking-wider font-bold text-indigo-300 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Tomorrow Morning's Commute</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-1">
+                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-medium">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Departure Time</span>
                 </div>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Ready Tomorrow
-                </span>
+                <div className="text-sm font-bold text-slate-900 dark:text-white">
+                  {formatShiftTime(tomorrowShiftStartTime) || "07:15 AM"}
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1">
-                  <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Departure Time</span>
-                  </div>
-                  <div className="text-sm font-bold text-white">
-                    {formatShiftTime(tomorrowShiftStartTime) || "07:15 AM"}
-                  </div>
+              <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-1">
+                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Pick-Up Stop</span>
                 </div>
-
-                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1">
-                  <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-pink-400" />
-                    <span>Pick-Up Stop</span>
-                  </div>
-                  <div className="text-sm font-bold text-white truncate" title={tomorrowPickupStop}>
-                    {tomorrowPickupStop}
-                  </div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white truncate" title={tomorrowPickupStop}>
+                  {tomorrowPickupStop}
                 </div>
+              </div>
 
-                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1">
-                  <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                    <BusFront className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Shift Type</span>
-                  </div>
-                  <div className="text-sm font-bold text-white truncate">
-                    {tomorrowMorningShift?.name || "Morning Academic Daily Shift"}
-                  </div>
+              <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-1">
+                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-medium">
+                  <BusFront className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Shift Type</span>
+                </div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                  {tomorrowMorningShift?.name || "Morning Academic Daily Shift"}
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Today's Commute Record (if attended) */}
-            {todaySeat && (
-              <div className="px-4 py-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-200">
-                <span className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Today's Ride Recorded on <strong>{todayBusNumber}</strong> (Seat: <strong>{todaySeat}</strong>)</span>
-                </span>
-                <span className="text-[11px] font-bold text-emerald-400">Attendance Completed ✓</span>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="pt-2 flex flex-wrap items-center gap-3">
-              <button
-                onClick={fetchReservation}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shadow-sm active:scale-95"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Check Updates</span>
-              </button>
-
-              <button
-                onClick={() => setIsDigitalPassOpen(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md active:scale-95"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span>View Today's Digital Pass</span>
-              </button>
-
-              <Link
-                href={settingsHref}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all ml-auto"
-              >
-                <Settings className="w-3.5 h-3.5 text-slate-400" />
-                <span>Settings</span>
-              </Link>
+          {/* Today's Commute Record (if attended) */}
+          {todaySeat && (
+            <div className="px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-800 dark:text-emerald-200">
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Today's Ride Recorded on <strong>{todayBusNumber}</strong> (Seat: <strong>{todaySeat}</strong>)</span>
+              </span>
+              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Attendance Completed ✓</span>
             </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="pt-2 flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setIsDigitalPassOpen(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 text-white text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>View Today's Digital Pass</span>
+            </button>
+
+            <button
+              onClick={fetchReservation}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Check Updates</span>
+            </button>
+
+            <Link
+              href={settingsHref}
+              className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white font-medium transition-colors ml-auto"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Settings</span>
+            </Link>
           </div>
         </div>
 
