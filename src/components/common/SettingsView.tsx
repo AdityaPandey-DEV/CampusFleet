@@ -491,7 +491,7 @@ export function SettingsView() {
     setAvailableBuses(store.getBuses() || []);
     setAvailableStops(store.getStops() || []);
 
-    fetch(`/api/students/reservations?studentId=${studentId}`)
+    fetch(`/api/students/attendance?studentId=${studentId}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.reservation) {
@@ -583,7 +583,7 @@ export function SettingsView() {
       setHomeStatusMsg(data.message || "Home coordinates and stop assignment saved successfully!");
 
       // Refresh today's reservation immediately
-      fetch(`/api/students/reservations?studentId=${studentId}`)
+      fetch(`/api/students/attendance?studentId=${studentId}`)
         .then(r => r.json())
         .then(resData => {
           if (resData.success && resData.reservation) {

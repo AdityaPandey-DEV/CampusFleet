@@ -386,10 +386,32 @@ export async function GET(req: NextRequest) {
       occupiedSeats = Array.from(new Set([...resSeats, ...bkSeats]));
     }
 
+    // Check if student was verified via RFID tap today
+    const CACHE_RFID_KEY = `attendance:rfid:${resolvedStudentId}:${today}`;
+    let isRfidVerified = false;
+    const rfidCache = await cacheGet<any>(CACHE_RFID_KEY);
+    if (rfidCache && rfidCache.verified) {
+      isRfidVerified = true;
+    } else {
+      const { data: rfidAtt } = await supabaseAdmin
+        .from("attendance_records")
+        .select("id, timestamp, bus_id, method")
+        .eq("student_id", resolvedStudentId)
+        .eq("method", "RFID_VERIFIED")
+        .gte("timestamp", `${today}T00:00:00.000Z`)
+        .order("timestamp", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (rfidAtt) {
+        isRfidVerified = true;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       reservation: enriched,
       occupiedSeats,
+      isRfidVerified,
       settings: currentSettings,
       teacherSchedule: {
         incomingShiftId,
@@ -494,12 +516,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Optional / Requested GPS verification against live bus telematics
+    // Check Dual-Security: 1. RFID In-Bus Verification  2. Real-Time GPS Proximity
+    const CACHE_RFID_KEY = `attendance:rfid:${resolvedStudentId}:${today}`;
+    const rfidCache = await cacheGet<any>(CACHE_RFID_KEY);
+    let isRfidVerified = Boolean(rfidCache?.verified);
+
+    if (!isRfidVerified) {
+      const { data: rfidAtt } = await supabaseAdmin
+        .from("attendance_records")
+        .select("id, timestamp")
+        .eq("student_id", resolvedStudentId)
+        .eq("method", "RFID_VERIFIED")
+        .gte("timestamp", `${today}T00:00:00.000Z`)
+        .limit(1)
+        .maybeSingle();
+      if (rfidAtt) {
+        isRfidVerified = true;
+      }
+    }
+
     const { latitude, longitude, verifyGps } = body;
     let isGpsVerified = false;
     let gpsNote = "Portal Seat Selection";
 
-    if (targetRes.bus_id && latitude !== undefined && longitude !== undefined) {
+    if (isRfidVerified) {
+      gpsNote = "Verified via in-bus RFID reader tap";
+    } else if (targetRes.bus_id) {
+      // Must verify real-time GPS proximity against live bus telematics
       const CACHE_KEY = `telematics:bus:${targetRes.bus_id}`;
       let liveTelematics = await cacheGet<{ latitude: number; longitude: number }>(CACHE_KEY);
       if (!liveTelematics) {
@@ -509,29 +552,45 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      if (liveTelematics && typeof liveTelematics.latitude === "number" && typeof liveTelematics.longitude === "number") {
-        const distKm = calculateDistanceKm(
-          Number(latitude),
-          Number(longitude),
-          liveTelematics.latitude,
-          liveTelematics.longitude
-        );
-        const MAX_GEOFENCE_KM = 0.20; // 200m buffer for moving vehicle & metallic roof tolerance
-        const distMeters = Math.round(distKm * 1000);
-
-        if (distKm > MAX_GEOFENCE_KM) {
-          return NextResponse.json({
-            success: false,
-            status: "GPS_VERIFICATION_FAILED",
-            message: `SECURITY ALERT: GPS verification failed. You are ${distMeters}m away from your bus. Attendance can only be confirmed when physically inside or near the bus.`,
-          }, { status: 403 });
-        }
-
-        isGpsVerified = true;
-        gpsNote = `Verified inside bus via live GPS telematics (${distMeters}m)`;
-      } else {
-        gpsNote = "Attendance recorded (bus telematics dormant/offline)";
+      // If bus telematics is not yet broadcasting coordinates
+      if (!liveTelematics || typeof liveTelematics.latitude !== "number" || typeof liveTelematics.longitude !== "number") {
+        return NextResponse.json({
+          success: false,
+          status: "LOCATION_UNAVAILABLE",
+          message: "Bus live GPS location is currently calibrating. Please wait a moment for bus signal, or tap your physical RFID card on the bus reader to mark attendance and choose your seat.",
+        }, { status: 422 });
       }
+
+      if (latitude === undefined || longitude === undefined) {
+        return NextResponse.json({
+          success: false,
+          status: "STUDENT_LOCATION_REQUIRED",
+          message: "Device GPS coordinates are required to verify you are physically at your bus. Please enable location permissions or tap your RFID card inside the bus.",
+        }, { status: 400 });
+      }
+
+      const distKm = calculateDistanceKm(
+        Number(latitude),
+        Number(longitude),
+        liveTelematics.latitude,
+        liveTelematics.longitude
+      );
+      // Realistic bus length (12m) + civilian GPS multipath tolerance inside metallic vehicle = 25m
+      const MAX_GEOFENCE_METERS = 25;
+      const distMeters = Math.round(distKm * 1000);
+
+      if (distMeters > MAX_GEOFENCE_METERS) {
+        return NextResponse.json({
+          success: false,
+          status: "GPS_VERIFICATION_FAILED",
+          distMeters,
+          maxAllowedMeters: MAX_GEOFENCE_METERS,
+          message: `SECURITY ALERT: GPS verification failed. You are ${distMeters}m away from your bus (max allowed: ${MAX_GEOFENCE_METERS}m). Attendance can only be recorded when physically boarding or inside the bus, or tap your RFID card inside the bus.`,
+        }, { status: 403 });
+      }
+
+      isGpsVerified = true;
+      gpsNote = `Verified inside bus via real-time GPS proximity (${distMeters}m from bus antenna)`;
     }
 
     const nowIso = new Date().toISOString();
@@ -560,11 +619,11 @@ export async function POST(req: NextRequest) {
       student_id: resolvedStudentId,
       trip_id: targetRes.trip_id,
       bus_id: targetRes.bus_id,
-      method: isGpsVerified ? "GPS_VERIFIED" : "MANUAL_SELECT",
+      method: isRfidVerified ? "RFID_VERIFIED" : (isGpsVerified ? "GPS_VERIFIED" : "MANUAL_SELECT"),
       status: "BOARDED",
-      verified_by: isGpsVerified ? "GPS Geofence System" : "Student Commute Portal",
+      verified_by: isRfidVerified ? "ESP32 Hardware RFID Gate" : (isGpsVerified ? "GPS Geofence System" : "Student Commute Portal"),
       notes: gpsNote,
-      signature_token: `GEOFENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      signature_token: isRfidVerified ? `RFID-BOARDED-${Date.now()}` : `GEOFENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
       timestamp: nowIso,
     });
 

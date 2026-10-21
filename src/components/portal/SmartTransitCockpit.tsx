@@ -60,6 +60,7 @@ export default function SmartTransitCockpit({
   const [teacherSchedule, setTeacherSchedule] = useState<any>(null);
   const [previousReservation, setPreviousReservation] = useState<any>(null);
   const [occupiedSeats, setOccupiedSeats] = useState<string[]>([]);
+  const [isRfidVerified, setIsRfidVerified] = useState<boolean>(false);
   const [isLoadingReservation, setIsLoadingReservation] = useState(true);
 
   // Seat attendance state
@@ -89,8 +90,8 @@ export default function SmartTransitCockpit({
     try {
       setIsLoadingReservation(true);
       const url = studentId
-        ? `/api/students/reservations?studentId=${encodeURIComponent(studentId)}`
-        : `/api/students/reservations`;
+        ? `/api/students/attendance?studentId=${encodeURIComponent(studentId)}`
+        : `/api/students/attendance`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
@@ -101,6 +102,7 @@ export default function SmartTransitCockpit({
           setTentativeSeat(null);
         }
         if (data.occupiedSeats) setOccupiedSeats(data.occupiedSeats);
+        if (typeof data.isRfidVerified === "boolean") setIsRfidVerified(data.isRfidVerified);
         if (data.settings) setSettings(data.settings);
         if (data.teacherSchedule) setTeacherSchedule(data.teacherSchedule);
         if (data.previousReservation) setPreviousReservation(data.previousReservation);
@@ -261,7 +263,7 @@ export default function SmartTransitCockpit({
         }
       }
 
-      const res = await fetch("/api/students/reservations", {
+      const res = await fetch("/api/students/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -476,6 +478,19 @@ export default function SmartTransitCockpit({
                 </button>
               )}
             </div>
+
+            {/* In-Bus RFID Tap Clear Badge */}
+            {isRfidVerified && (
+              <div className="mb-3 px-3.5 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-200 font-semibold animate-in fade-in">
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Verified Onboard via In-Bus RFID Tap</span>
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white shadow-xs">
+                  RFID Verified
+                </span>
+              </div>
+            )}
 
             {/* Embedded Interactive Seat Grid */}
             <div className="p-2 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 max-h-[460px] overflow-y-auto overflow-x-hidden flex justify-center">
