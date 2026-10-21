@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       timestamp: timestamp || new Date().toISOString(),
     };
 
-    // 1. Store in Redis with a 10-second TTL for rapid polling
+    // 1. Store in Redis with a 10-second TTL for strict moving-bus GPS verification
     const CACHE_KEY = `telematics:bus:${busId}`;
     await cacheSet(CACHE_KEY, locationData, 10);
 

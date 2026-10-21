@@ -154,8 +154,15 @@ export async function getLiveLocationFromMongo(busId: string): Promise<LiveLocat
   if (!db) return null;
 
   try {
+    const trimmedId = busId?.trim();
     const doc = await db.collection("bus_live_locations").findOne(
-      { busId },
+      {
+        $or: [
+          { busId: trimmedId },
+          { busId: trimmedId.toLowerCase() },
+          { busId: trimmedId.toUpperCase() }
+        ]
+      },
       { projection: { _id: 0 } }
     );
     return doc as LiveLocationDocument | null;

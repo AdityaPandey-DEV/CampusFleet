@@ -120,9 +120,16 @@ export default function SmartTransitCockpit({
     );
   }, [bookings, student, studentId]);
 
-  // Resolved bus entity
+  // Resolved bus entity (supports ?busId=xxx when scanning physical bus QR)
   const assignedBus = useMemo(() => {
-    const busId = reservation?.bus_id || activeBooking?.busId;
+    let queryBusId: string | null = null;
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        queryBusId = params.get("busId");
+      } catch {}
+    }
+    const busId = queryBusId || reservation?.bus_id || activeBooking?.busId;
     if (!busId) return null;
     return buses.find((b) => b.id === busId) || reservation?.bus || null;
   }, [reservation, activeBooking, buses]);
@@ -168,6 +175,25 @@ export default function SmartTransitCockpit({
     }
     setIsSavingSeat(true);
     try {
+      // 1. Acquire current device GPS coordinates for live verification against moving bus
+      let lat: number | undefined;
+      let lng: number | undefined;
+      if (typeof window !== "undefined" && navigator.geolocation) {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 6000,
+              maximumAge: 0,
+            });
+          });
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        } catch (geoErr) {
+          console.warn("GPS coordinates unavailable or permission denied:", geoErr);
+        }
+      }
+
       const res = await fetch("/api/students/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -175,6 +201,9 @@ export default function SmartTransitCockpit({
           studentId,
           reservationId: reservation?.id,
           seatNumber,
+          latitude: lat,
+          longitude: lng,
+          verifyGps: true,
         }),
       });
       const data = await res.json();

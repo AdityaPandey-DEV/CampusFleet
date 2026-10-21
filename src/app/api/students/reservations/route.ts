@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import { isStartingSeat, getTeacherStartingSeats, generateSeatLayout } from "@/lib/utils";
+import { isStartingSeat, getTeacherStartingSeats, generateSeatLayout, calculateDistanceKm } from "@/lib/utils";
+import { cacheGet } from "@/lib/redis";
+import { getLiveLocationFromMongo } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
 
@@ -277,13 +279,56 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Update reservation with chosen seat
+    // Optional / Requested GPS verification against live bus telematics
+    const { latitude, longitude, verifyGps } = body;
+    let isGpsVerified = false;
+    let gpsNote = "Portal Seat Selection";
+
+    if (targetRes.bus_id && latitude !== undefined && longitude !== undefined) {
+      const CACHE_KEY = `telematics:bus:${targetRes.bus_id}`;
+      let liveTelematics = await cacheGet<{ latitude: number; longitude: number }>(CACHE_KEY);
+      if (!liveTelematics) {
+        const mongoDoc = await getLiveLocationFromMongo(targetRes.bus_id);
+        if (mongoDoc && typeof mongoDoc.latitude === "number" && typeof mongoDoc.longitude === "number") {
+          liveTelematics = { latitude: mongoDoc.latitude, longitude: mongoDoc.longitude };
+        }
+      }
+
+      if (liveTelematics && typeof liveTelematics.latitude === "number" && typeof liveTelematics.longitude === "number") {
+        const distKm = calculateDistanceKm(
+          Number(latitude),
+          Number(longitude),
+          liveTelematics.latitude,
+          liveTelematics.longitude
+        );
+        const MAX_GEOFENCE_KM = 0.20; // 200m buffer for moving vehicle & metallic roof tolerance
+        const distMeters = Math.round(distKm * 1000);
+
+        if (distKm > MAX_GEOFENCE_KM) {
+          return NextResponse.json({
+            success: false,
+            status: "GPS_VERIFICATION_FAILED",
+            message: `SECURITY ALERT: GPS verification failed. You are ${distMeters}m away from your bus. Attendance can only be confirmed when physically inside or near the bus.`,
+          }, { status: 403 });
+        }
+
+        isGpsVerified = true;
+        gpsNote = `Verified inside bus via live GPS telematics (${distMeters}m)`;
+      } else {
+        gpsNote = "Attendance recorded (bus telematics dormant/offline)";
+      }
+    }
+
+    const nowIso = new Date().toISOString();
+
+    // Update reservation with chosen seat & mark as BOARDED / confirmed
     const { data: updated, error: updateErr } = await supabaseAdmin
       .from("bus_reservations")
       .update({
         chosen_seat: seatNumber,
-        seat_chosen_at: new Date().toISOString(),
-        status: "SEAT_SELECTED",
+        seat_chosen_at: nowIso,
+        status: "BOARDED",
+        boarded_at: nowIso,
       })
       .eq("id", targetRes.id)
       .select()
@@ -293,19 +338,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: updateErr.message }, { status: 500 });
     }
 
+    // Insert verified attendance record
+    const attendanceId = `att-res-${Date.now()}`;
+    await supabaseAdmin.from("attendance_records").insert({
+      id: attendanceId,
+      student_id: resolvedStudentId,
+      trip_id: targetRes.trip_id,
+      bus_id: targetRes.bus_id,
+      method: isGpsVerified ? "GPS_VERIFIED" : "MANUAL_SELECT",
+      status: "BOARDED",
+      verified_by: isGpsVerified ? "GPS Geofence System" : "Student Commute Portal",
+      notes: gpsNote,
+      signature_token: `GEOFENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      timestamp: nowIso,
+    });
+
     // Also update any matching booking in public.bookings if present
     if (targetRes.trip_id) {
       await supabaseAdmin
         .from("bookings")
-        .update({ seat_number: seatNumber })
+        .update({
+          seat_number: seatNumber,
+          status: "BOARDED",
+          boarded_at: nowIso,
+        })
         .eq("trip_id", targetRes.trip_id)
         .or(`student_id.eq.${resolvedStudentId},student_id.eq.${rawStudentId}`);
     }
 
     return NextResponse.json({
       success: true,
-      message: `Seat ${seatNumber} confirmed on your assigned bus.`,
+      message: `✓ Attendance confirmed & Seat ${seatNumber} reserved on your bus.`,
       reservation: updated,
+      isGpsVerified,
     });
   } catch (err: any) {
     console.error("[api/students/reservations] POST error:", err);
