@@ -23,7 +23,8 @@ import {
   Route,
   MapPin,
   Navigation,
-  Settings2
+  Settings2,
+  Radio
 } from "lucide-react";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -104,12 +105,21 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         { href: "/transport-admin/system/reports", label: "Download Reports", shortLabel: "Reports", icon: FileBarChart },
         { href: "/transport-admin/settings/transit", label: "Smart Transit", shortLabel: "Transit", icon: Settings2 },
       ]
+    },
+    rfid: {
+      title: "RFID Smart Cards",
+      items: [
+        { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/transport-admin/rfid", label: "RFID Card Issuance", shortLabel: "Cards", icon: Radio },
+        { href: "/transport-admin/academics/students", label: "Student List", shortLabel: "Students", icon: GraduationCap },
+      ]
     }
   };
 
   // 2. Define top-level Hub links (shown when exactly at /transport-admin)
   const topLevelLinks = [
     { href: "/transport-manager", label: "Transport Manager", icon: Compass },
+    { href: "/transport-admin/rfid", label: "RFID Cards", icon: Radio },
     { href: "/transport-admin/buses", label: "Bus Fleet", icon: BusFront },
     { href: "/transport-admin/routes", label: "Routes & Stops", icon: Route },
     { href: "/transport-admin/trips", label: "Today's Trips", icon: Navigation },
@@ -124,7 +134,10 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   let currentNavLinks = topLevelLinks;
   let currentTitle = "Transport Admin Desk";
 
-  if (pathname.startsWith("/transport-admin/buses")) {
+  if (pathname.startsWith("/transport-admin/rfid")) {
+    currentNavLinks = subPortals.rfid.items;
+    currentTitle = subPortals.rfid.title;
+  } else if (pathname.startsWith("/transport-admin/buses")) {
     currentNavLinks = subPortals.buses.items;
     currentTitle = subPortals.buses.title;
   } else if (pathname.startsWith("/transport-admin/routes")) {

@@ -50,8 +50,14 @@ export async function POST(req: NextRequest) {
     const { data: students, error: studentErr } = await studentQuery.limit(1);
 
     if (studentErr || !students || students.length === 0) {
-      // If student not found by rfid_card_id, check if any student has enrollment_no matching the hex or vice versa
       console.warn(`[telematics/rfid] Unregistered RFID card ${effectiveRfid} on ${busId}`);
+      if (effectiveRfid) {
+        await cacheSet("telematics:unmapped_rfid_last", {
+          rfidCardId: effectiveRfid,
+          busId,
+          scannedAt: new Date().toISOString(),
+        }, 900);
+      }
       return NextResponse.json(
         {
           success: false,

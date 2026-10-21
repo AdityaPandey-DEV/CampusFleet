@@ -147,6 +147,10 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
     totalFeePaid: Number(s.total_fee_paid || 0),
     photoUrl: s.photo_url || "",
     photoLocked: Boolean(s.photo_locked),
+    classId: s.class_id,
+    className: s.class_name || "",
+    enrollmentNo: s.enrollment_no || "",
+    rfidCardId: s.rfid_card_id || "",
   }));
 
   const shiftMap = new Map((dbShifts || []).map((s: any) => [s.id, s]));

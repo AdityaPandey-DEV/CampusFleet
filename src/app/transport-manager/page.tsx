@@ -5,7 +5,8 @@ import {
   Navigation,
   BarChart3,
   GitMerge,
-  Building2
+  Building2,
+  Radio
 } from "lucide-react";
 import { Metadata } from "next";
 
@@ -19,6 +20,12 @@ const logisticsModules: HubModule[] = [
     description: "Assign drivers and conductors to specific buses and shifts for today's service.",
     icon: Users,
     href: "/transport-manager/drivers"
+  },
+  {
+    title: "RFID Smart Cards",
+    description: "Pair physical IoT cards to student roll numbers, replace lost tags, and monitor live terminal taps.",
+    icon: Radio,
+    href: "/transport-admin/rfid"
   },
   {
     title: "Today's Trips",

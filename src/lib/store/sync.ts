@@ -632,6 +632,8 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
         homeLongitude: s.home_longitude ?? undefined,
         homeAddress: s.home_address ?? undefined,
         autoAssignedStopId: s.auto_assigned_stop_id ?? undefined,
+        enrollmentNo: s.enrollment_no || "",
+        rfidCardId: s.rfid_card_id || "",
       }));
     }
 

@@ -214,6 +214,8 @@ export interface Student {
   specializationCode?: string;
   specializationLabel?: string;
   section?: string;
+  enrollmentNo?: string;
+  rfidCardId?: string;
 }
 
 export interface Guardian {

@@ -9,7 +9,8 @@ import {
   Route,
   Navigation,
   BookOpen,
-  Building2
+  Building2,
+  Radio
 } from "lucide-react";
 import { Metadata } from "next";
 
@@ -23,6 +24,12 @@ const staffModules: HubModule[] = [
     description: "Switch to Transport Manager to manage driver allocations, live trips, demand, and bus combines.",
     icon: Compass,
     href: "/transport-manager"
+  },
+  {
+    title: "RFID Smart Cards",
+    description: "Pair physical IoT cards to student roll numbers, replace lost tags, and monitor live terminal taps.",
+    icon: Radio,
+    href: "/transport-admin/rfid"
   },
   {
     title: "Bus Fleet",

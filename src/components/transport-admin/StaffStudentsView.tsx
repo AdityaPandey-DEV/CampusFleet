@@ -19,6 +19,7 @@ import {
   Camera,
   Upload,
   Lock,
+  Radio,
 } from "lucide-react";
 import type { Stop, Route, Guardian } from "@/lib/types";
 import { getSafePhotoUrl } from "@/lib/image-utils";
@@ -344,6 +345,14 @@ export default function StaffStudentsView({
                         <span className="px-2.5 py-0.5 rounded-full bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 text-[10px] font-bold border border-green-300 dark:border-green-800">
                           {isSuspended ? "SUSPENDED" : "ACTIVE PASS"}
                         </span>
+                        {s.rfidCardId ? (
+                          <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[9px] font-mono font-bold border border-blue-200 dark:border-blue-800 flex items-center gap-1">
+                            <Radio className="w-2.5 h-2.5 text-blue-500" />
+                            <span>{s.rfidCardId}</span>
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-gray-400">No RFID Card</span>
+                        )}
                         {!hasValidPhoto && (
                           <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 text-[9px] font-extrabold border border-red-300 dark:border-red-800 flex items-center gap-1">
                             <AlertTriangle className="w-2.5 h-2.5 text-red-500" />
@@ -354,6 +363,14 @@ export default function StaffStudentsView({
                     </td>
                     <td className="p-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <a
+                          href="/transport-admin/rfid"
+                          className="px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                          title="Manage RFID Smart Card"
+                        >
+                          <Radio className="w-3.5 h-3.5 text-blue-500" />
+                          <span>RFID</span>
+                        </a>
                         <button
                           onClick={() => handleOpenPhotoModal(s)}
                           className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors ${

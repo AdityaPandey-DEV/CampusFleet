@@ -1,0 +1,143 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getSessionFromRequest } from "@/lib/jwt";
+import { cacheDel } from "@/lib/redis";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * POST /api/telematics/rfid/map
+ * Administrative endpoint to map, reassign, or unlink a physical RFID smart card to a student.
+ * 
+ * Body:
+ * {
+ *   "studentId": "uuid-of-student",
+ *   "rfidCardId": "23BDEB2C",       // null or empty string to unlink
+ *   "enrollmentNo": "220101",        // optional to update or confirm enrollment number
+ *   "forceReassign": false           // if true, transfers card if previously mapped to another student
+ * }
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
+    }
+
+    const isAuthorized = ["admin", "transport_admin", "transport_manager"].includes(session.role);
+    if (!isAuthorized) {
+      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { studentId, rfidCardId, enrollmentNo, forceReassign } = body;
+
+    if (!studentId) {
+      return NextResponse.json({ success: false, error: "studentId is required" }, { status: 400 });
+    }
+
+    const cleanRfid = rfidCardId ? String(rfidCardId).trim().toUpperCase() : null;
+    const cleanEnrollment = enrollmentNo ? String(enrollmentNo).trim() : undefined;
+
+    // 1. Fetch target student
+    const { data: targetStudents, error: fetchErr } = await supabaseAdmin
+      .from("students")
+      .select("id, user_id, full_name, enrollment_no, rfid_card_id")
+      .or(`id.eq.${studentId},user_id.eq.${studentId}`)
+      .limit(1);
+
+    if (fetchErr || !targetStudents || targetStudents.length === 0) {
+      return NextResponse.json({ success: false, error: "Student not found in institutional database" }, { status: 404 });
+    }
+
+    const student = targetStudents[0];
+
+    // 2. If mapping a card, check for duplicate assignment across other students
+    if (cleanRfid) {
+      const { data: existingHolder } = await supabaseAdmin
+        .from("students")
+        .select("id, full_name, enrollment_no")
+        .eq("rfid_card_id", cleanRfid)
+        .neq("id", student.id)
+        .limit(1);
+
+      if (existingHolder && existingHolder.length > 0) {
+        const holder = existingHolder[0];
+        if (!forceReassign) {
+          return NextResponse.json(
+            {
+              success: false,
+              conflict: true,
+              message: `Card [${cleanRfid}] is already assigned to student ${holder.full_name} (${holder.enrollment_no || "No Roll"}). Do you want to transfer this card to ${student.full_name}?`,
+              existingHolder: {
+                id: holder.id,
+                fullName: holder.full_name,
+                enrollmentNo: holder.enrollment_no,
+              },
+            },
+            { status: 409 }
+          );
+        } else {
+          // Unassign from old holder
+          await supabaseAdmin
+            .from("students")
+            .update({ rfid_card_id: null })
+            .eq("id", holder.id);
+        }
+      }
+    }
+
+    // 3. Update student table
+    const updates: Record<string, any> = {
+      rfid_card_id: cleanRfid,
+    };
+    if (cleanEnrollment !== undefined && cleanEnrollment !== "") {
+      updates.enrollment_no = cleanEnrollment;
+    }
+
+    const { data: updatedStudent, error: updateErr } = await supabaseAdmin
+      .from("students")
+      .update(updates)
+      .eq("id", student.id)
+      .select("id, user_id, full_name, enrollment_no, rfid_card_id")
+      .single();
+
+    if (updateErr) {
+      console.error("[api/telematics/rfid/map] Update error:", updateErr);
+      return NextResponse.json({ success: false, error: updateErr.message }, { status: 500 });
+    }
+
+    // 4. Audit Log
+    try {
+      await supabaseAdmin.from("audit_logs").insert({
+        user_role: session.role,
+        action: cleanRfid ? "MAP_RFID_CARD" : "UNMAP_RFID_CARD",
+        details: {
+          adminUserId: session.userId,
+          adminEmail: session.email,
+          studentId: student.id,
+          studentName: student.full_name,
+          enrollmentNo: cleanEnrollment || student.enrollment_no,
+          rfidCardId: cleanRfid,
+          previousRfid: student.rfid_card_id,
+        },
+      });
+    } catch (_) {}
+
+    // 5. If this card was recently in the unmapped cache, clear it
+    try {
+      await cacheDel("telematics:unmapped_rfid_last");
+    } catch (_) {}
+
+    return NextResponse.json({
+      success: true,
+      message: cleanRfid
+        ? `✓ Physical RFID card [${cleanRfid}] successfully paired to ${student.full_name}.`
+        : `✓ RFID card unlinked from ${student.full_name}.`,
+      student: updatedStudent,
+    });
+  } catch (err: any) {
+    console.error("[api/telematics/rfid/map] Unexpected error:", err);
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}
