@@ -52,10 +52,10 @@ export default async function TeacherScheduleTripPage() {
 
   const classIds = allocatedClasses.map((c) => c.id);
 
-  // 2. Fetch enrolled students per class
+  // 2. Fetch enrolled students per class from students_full view
   const { data: dbStudents } = classIds.length > 0
     ? await supabaseAdmin
-        .from("students")
+        .from("students_full")
         .select("id, full_name, email, phone, class_id, class_name, primary_stop_id")
         .in("class_id", classIds)
         .order("full_name", { ascending: true })

@@ -58,10 +58,10 @@ export async function GET(req: NextRequest) {
 
     const classIds = allocatedClasses.map((c) => c.id);
 
-    // 2. Fetch enrolled students per class
+    // 2. Fetch enrolled students per class from students_full view
     const { data: dbStudents } = classIds.length > 0
       ? await supabaseAdmin
-          .from("students")
+          .from("students_full")
           .select("id, full_name, email, phone, class_id, class_name, primary_stop_id")
           .in("class_id", classIds)
           .order("full_name", { ascending: true })
@@ -221,11 +221,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Selected bus vehicle not found." }, { status: 404 });
     }
 
-    // 2. Fetch all students in the selected classes
+    // 2. Fetch all students in the selected classes from students_full view
     let targetStudents: any[] = [];
     if (classIds.length > 0) {
       const { data: students } = await supabaseAdmin
-        .from("students")
+        .from("students_full")
         .select("id, full_name, email, phone, primary_stop_id, class_id")
         .in("class_id", classIds);
       targetStudents = students || [];

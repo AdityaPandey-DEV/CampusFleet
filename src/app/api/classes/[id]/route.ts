@@ -17,11 +17,30 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ success: false, message: "Class not found." }, { status: 404 });
     }
 
-    // 2. Enrolled students
-    const { data: students } = await supabaseAdmin
-      .from("students")
+    // 2. Enrolled students from students_full view (with joined email & phone)
+    let enrolledStudents: any[] = [];
+    const { data: students, error: studErr } = await supabaseAdmin
+      .from("students_full")
       .select("id, full_name, email, phone, semester, transport_access_suspended")
       .eq("class_id", classId);
+
+    if (!studErr && students) {
+      enrolledStudents = students;
+    } else {
+      const { data: fallbackStudents } = await supabaseAdmin
+        .from("students")
+        .select("id, full_name, semester, transport_access_suspended, users(email, phone)")
+        .eq("class_id", classId);
+
+      enrolledStudents = (fallbackStudents || []).map((s: any) => ({
+        id: s.id,
+        full_name: s.full_name,
+        email: s.users?.email || "",
+        phone: s.users?.phone || "",
+        semester: s.semester,
+        transport_access_suspended: s.transport_access_suspended,
+      }));
+    }
 
     // 3. Assigned teachers
     const { data: classTeachers } = await supabaseAdmin
@@ -56,7 +75,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         ...classItem,
         shiftSchedule: scheduleMap,
       },
-      students: students || [],
+      students: enrolledStudents || [],
       teachers: (classTeachers || []).map(ct => ({
         id: (ct.users as any)?.id,
         fullName: (ct.users as any)?.full_name,
