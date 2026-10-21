@@ -72,12 +72,15 @@ export default function RfidCardIssuanceView({
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Poll for newly tapped cards from ESP32 every 3 seconds
+  // Poll for newly tapped cards from ESP32 every 1.5 seconds with zero caching
   useEffect(() => {
     let interval: NodeJS.Timeout;
     const fetchLatestTaps = async () => {
       try {
-        const res = await fetch("/api/telematics/rfid/latest-tap");
+        const res = await fetch(`/api/telematics/rfid/latest-tap?_t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        });
         const data = await res.json();
         if (data.success && Array.isArray(data.unmappedList)) {
           setUnmappedCards(data.unmappedList);
@@ -90,7 +93,7 @@ export default function RfidCardIssuanceView({
 
     fetchLatestTaps();
     if (isPolling) {
-      interval = setInterval(fetchLatestTaps, 3000);
+      interval = setInterval(fetchLatestTaps, 1500);
     }
     return () => clearInterval(interval);
   }, [isPolling]);
@@ -173,6 +176,12 @@ export default function RfidCardIssuanceView({
     if (!student.rfidCardId) return;
     if (!confirm(`Are you sure you want to delete and unlink RFID card [${student.rfidCardId}] from ${student.fullName}?`)) return;
 
+    const oldCard = student.rfidCardId;
+    // Optimistic instant UI update
+    setStudents((prev) =>
+      prev.map((s) => (s.id === student.id ? { ...s, rfidCardId: undefined } : s))
+    );
+
     try {
       setIsSubmitting(true);
       const res = await fetch("/api/telematics/rfid/map", {
@@ -186,14 +195,18 @@ export default function RfidCardIssuanceView({
 
       const data = await res.json();
       if (data.success) {
-        setStudents((prev) =>
-          prev.map((s) => (s.id === student.id ? { ...s, rfidCardId: undefined } : s))
-        );
-        showToast("success", `✓ Card unlinked and deleted from ${student.fullName}.`);
+        showToast("success", `✓ Card ${oldCard} deleted from ${student.fullName}.`);
       } else {
+        // Rollback on failure
+        setStudents((prev) =>
+          prev.map((s) => (s.id === student.id ? { ...s, rfidCardId: oldCard } : s))
+        );
         showToast("error", data.error || "Failed to delete card.");
       }
     } catch (e: any) {
+      setStudents((prev) =>
+        prev.map((s) => (s.id === student.id ? { ...s, rfidCardId: oldCard } : s))
+      );
       showToast("error", e.message || "Failed to delete card.");
     } finally {
       setIsSubmitting(false);
@@ -202,12 +215,18 @@ export default function RfidCardIssuanceView({
 
   // Dismiss/delete an unassigned card from the detected list
   const handleDeleteUnmappedCard = async (rfidCardId: string) => {
+    // Optimistic instant UI update
     setUnmappedCards((prev) => prev.filter((c) => c.rfidCardId !== rfidCardId));
     try {
-      await fetch(`/api/telematics/rfid/latest-tap?rfidCardId=${rfidCardId}`, {
+      const res = await fetch(`/api/telematics/rfid/latest-tap?rfidCardId=${rfidCardId}&_t=${Date.now()}`, {
         method: "DELETE",
+        cache: "no-store",
       });
-      showToast("info", `Card ${rfidCardId} removed from detected list.`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.unmappedList)) {
+        setUnmappedCards(data.unmappedList);
+      }
+      showToast("info", `Card ${rfidCardId} deleted.`);
     } catch (_) {}
   };
 

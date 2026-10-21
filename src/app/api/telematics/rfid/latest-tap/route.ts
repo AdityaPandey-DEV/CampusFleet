@@ -3,6 +3,13 @@ import { cacheGet, cacheSet, cacheDel } from "@/lib/redis";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const NO_CACHE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+  "Pragma": "no-cache",
+  "Expires": "0",
+};
 
 /**
  * GET /api/telematics/rfid/latest-tap
@@ -11,22 +18,8 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: NextRequest) {
   try {
-    let unmappedList = (await cacheGet<any[]>("telematics:unmapped_rfid_list")) || [];
-    const unmappedTap = await cacheGet<any>("telematics:unmapped_rfid_last");
+    const unmappedList = (await cacheGet<any[]>("telematics:unmapped_rfid_list")) || [];
     const latestTap = await cacheGet<any>("telematics:latest_rfid_tap");
-
-    // If unmappedTap exists but list is empty, seed it
-    if (unmappedList.length === 0 && unmappedTap) {
-      unmappedList = [unmappedTap];
-    }
-
-    // Default seeded entries from user physical test if still empty
-    if (unmappedList.length === 0) {
-      unmappedList = [
-        { rfidCardId: "23BDEB2C", busId: "bus-44", scannedAt: new Date().toISOString() },
-        { rfidCardId: "21EE631D", busId: "bus-44", scannedAt: new Date(Date.now() - 120000).toISOString() },
-      ];
-    }
 
     let mappedStudent = null;
     if (latestTap?.studentId) {
@@ -38,17 +31,25 @@ export async function GET(req: NextRequest) {
       mappedStudent = st?.[0] || null;
     }
 
-    return NextResponse.json({
-      success: true,
-      unmappedList,
-      unmappedTap: unmappedList[0] || null,
-      latestTap: latestTap || null,
-      mappedStudent,
-      timestamp: new Date().toISOString(),
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        unmappedList,
+        unmappedTap: unmappedList[0] || null,
+        latestTap: latestTap || null,
+        mappedStudent,
+        timestamp: new Date().toISOString(),
+      },
+      {
+        headers: NO_CACHE_HEADERS,
+      }
+    );
   } catch (err: any) {
     console.error("[api/telematics/rfid/latest-tap] GET error:", err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err.message },
+      { status: 500, headers: NO_CACHE_HEADERS }
+    );
   }
 }
 
@@ -61,9 +62,10 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const rfidCardId = searchParams.get("rfidCardId");
 
+    let updatedList: any[] = [];
     if (rfidCardId) {
       const unmappedList = (await cacheGet<any[]>("telematics:unmapped_rfid_list")) || [];
-      const updatedList = unmappedList.filter((item: any) => item.rfidCardId !== rfidCardId);
+      updatedList = unmappedList.filter((item: any) => item.rfidCardId !== rfidCardId);
       await cacheSet("telematics:unmapped_rfid_list", updatedList, 86400);
 
       const latest = await cacheGet<any>("telematics:unmapped_rfid_last");
@@ -74,10 +76,20 @@ export async function DELETE(req: NextRequest) {
           await cacheDel("telematics:unmapped_rfid_last");
         }
       }
+    } else {
+      // Clear all unmapped cards
+      await cacheDel("telematics:unmapped_rfid_list");
+      await cacheDel("telematics:unmapped_rfid_last");
     }
 
-    return NextResponse.json({ success: true, message: "Card dismissed from detected list." });
+    return NextResponse.json(
+      { success: true, message: "Card deleted from detected list.", unmappedList: updatedList },
+      { headers: NO_CACHE_HEADERS }
+    );
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err.message },
+      { status: 500, headers: NO_CACHE_HEADERS }
+    );
   }
 }
