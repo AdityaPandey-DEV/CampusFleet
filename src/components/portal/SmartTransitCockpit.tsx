@@ -509,6 +509,13 @@ export default function SmartTransitCockpit({
                 }}
                 isTeacher={isTeacher}
                 userRole={user?.role}
+                teacherCount={
+                  typeof (assignedBus as any)?.teacherSeatsCount === "number"
+                    ? (assignedBus as any).teacherSeatsCount
+                    : typeof (assignedBus as any)?.teacher_seats_count === "number"
+                    ? (assignedBus as any).teacher_seats_count
+                    : undefined
+                }
               />
             </div>
 
