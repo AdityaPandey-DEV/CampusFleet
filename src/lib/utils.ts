@@ -164,23 +164,20 @@ export function isStartingSeat(seatCode: string): boolean {
 
 /**
  * Returns the first N starting seats on a bus chassis allocated for N teachers in the bus.
- * - If teacherCount is 0: returns [] (no seats reserved, open seating).
+ * - If teacherCount is 0 or undefined: returns [] (no seats reserved, open seating for all commuters).
  * - If teacherCount > 0: returns the first N seats (e.g. 4, 10, or up to all seats for a full faculty bus).
- * - If teacherCount is undefined: defaults to Row 1 starting seats.
  */
 export function getTeacherStartingSeats(allSeats: string[], teacherCount?: number): string[] {
   if (!allSeats || allSeats.length === 0) return [];
-  if (typeof teacherCount === "number") {
-    if (teacherCount <= 0) return [];
+  if (typeof teacherCount === "number" && teacherCount > 0) {
     return allSeats.slice(0, Math.min(teacherCount, allSeats.length));
   }
-  const row1Seats = allSeats.filter((s) => isStartingSeat(s));
-  return row1Seats.length > 0 ? row1Seats : allSeats.slice(0, 4);
+  return [];
 }
 
 /**
  * Checks if a seat code is restricted for teachers given N teachers on the bus.
- * Returns false if teacherCount is 0.
+ * Returns false if teacherCount is not set or <= 0.
  */
 export function isSeatRestrictedForTeachers(
   seatCode: string,
@@ -188,19 +185,13 @@ export function isSeatRestrictedForTeachers(
   teacherCount?: number
 ): boolean {
   if (!seatCode) return false;
-  if (typeof teacherCount === "number") {
-    if (teacherCount <= 0) return false;
+  if (typeof teacherCount === "number" && teacherCount > 0) {
     if (allSeats && allSeats.length > 0) {
       const teacherSeats = getTeacherStartingSeats(allSeats, teacherCount);
       return teacherSeats.includes(seatCode);
     }
-    return isStartingSeat(seatCode);
   }
-  if (allSeats && allSeats.length > 0) {
-    const teacherSeats = getTeacherStartingSeats(allSeats);
-    return teacherSeats.includes(seatCode);
-  }
-  return isStartingSeat(seatCode);
+  return false;
 }
 
 

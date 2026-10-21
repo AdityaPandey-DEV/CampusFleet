@@ -19,6 +19,7 @@ interface AttendanceLockCardProps {
   busId?: string;
   studentId?: string;
   onUnlocked?: () => void;
+  onStatusChange?: (status: "LOCKED" | "UNLOCKED") => void;
   className?: string;
 }
 
@@ -26,6 +27,7 @@ export function AttendanceLockCard({
   busId,
   studentId,
   onUnlocked,
+  onStatusChange,
   className = "",
 }: AttendanceLockCardProps) {
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,7 @@ export function AttendanceLockCard({
         if (data.busNumber) setTargetBusNumber(data.busNumber);
         if (data.message) setMessage(data.message);
 
+        if (onStatusChange) onStatusChange(data.lockStatus);
         if (data.lockStatus === "UNLOCKED" && onUnlocked) {
           onUnlocked();
         }
@@ -91,7 +94,7 @@ export function AttendanceLockCard({
     } finally {
       setLoading(false);
     }
-  }, [busId, studentId, onUnlocked]);
+  }, [busId, studentId, onUnlocked, onStatusChange]);
 
   useEffect(() => {
     fetchLockStatus();
@@ -150,6 +153,7 @@ export function AttendanceLockCard({
       setDistanceMeters(data.distanceMeters);
       setSuccessMessage(data.message || "✓ Attendance successfully unlocked via live GPS proximity!");
 
+      if (onStatusChange) onStatusChange("UNLOCKED");
       if (onUnlocked) onUnlocked();
     } catch (err: any) {
       console.error("Distance unlock error:", err);

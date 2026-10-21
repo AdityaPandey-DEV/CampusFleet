@@ -18,9 +18,12 @@ import {
   RefreshCw,
   ShieldCheck,
   UserCheck,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { generateSeatLayout, getTeacherStartingSeats } from "@/lib/utils";
+import { AttendanceLockCard } from "./AttendanceLockCard";
 import DigitalPassView from "./DigitalPassView";
 import LiveTrackerView from "./LiveTrackerView";
 import type { Student, Bus, Stop, Shift, Trip, Booking, Route, TransportSettings, Staff } from "@/lib/types";
@@ -71,6 +74,10 @@ export default function SmartTransitCockpit({
   // Modals for actions after attendance is marked
   const [isDigitalPassOpen, setIsDigitalPassOpen] = useState(false);
   const [isLiveRadarOpen, setIsLiveRadarOpen] = useState(false);
+
+  // Real-time Attendance Lock (Distance / RFID) State
+  const [attendanceLockStatus, setAttendanceLockStatus] = useState<"LOCKED" | "UNLOCKED">("LOCKED");
+  const isLockCleared = attendanceLockStatus === "UNLOCKED" || isRfidVerified || reservation?.lock_status === "UNLOCKED";
 
   const studentId = student?.id || user?.studentId || user?.userId || user?.id;
   const isTeacher = Boolean(
@@ -226,6 +233,10 @@ export default function SmartTransitCockpit({
   // Confirm Seat Selection & Mark Attendance
   const handleConfirmSeat = async (seatNumber: string) => {
     if (!seatNumber) return;
+    if (!isLockCleared) {
+      alert("Attendance is currently locked for physical anti-proxy fraud prevention. Please tap 'Distance Unlock (<100m)' or tap your physical RFID card on the bus reader before confirming your seat.");
+      return;
+    }
     if (!isTeacher && assignedBus) {
       const teacherCount =
         typeof (assignedBus as any)?.teacherSeatsCount === "number"
@@ -454,18 +465,13 @@ export default function SmartTransitCockpit({
               )}
             </div>
 
-            {/* In-Bus RFID Tap Clear Badge */}
-            {isRfidVerified && (
-              <div className="mb-3 px-3.5 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-200 font-semibold animate-in fade-in">
-                <span className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Verified Onboard via In-Bus RFID Tap</span>
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white shadow-xs">
-                  RFID Verified
-                </span>
-              </div>
-            )}
+            {/* Attendance Security & Hardware Distance / RFID Unlock */}
+            <AttendanceLockCard
+              busId={assignedBus.id}
+              studentId={studentId}
+              onStatusChange={(status) => setAttendanceLockStatus(status)}
+              onUnlocked={() => setAttendanceLockStatus("UNLOCKED")}
+            />
 
             {/* Embedded Interactive Seat Grid */}
             <div className="p-2 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 max-h-[460px] overflow-y-auto overflow-x-hidden flex justify-center">
@@ -521,12 +527,22 @@ export default function SmartTransitCockpit({
               <button
                 onClick={() => tentativeSeat && handleConfirmSeat(tentativeSeat)}
                 disabled={!tentativeSeat || isSavingSeat}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+                className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl disabled:opacity-50 text-white text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95 cursor-pointer ${
+                  !isLockCleared
+                    ? "bg-amber-600 hover:bg-amber-700"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
               >
-                <CheckCircle2 className="w-4 h-4" />
+                {!isLockCleared ? (
+                  <Lock className="w-4 h-4" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
                 <span>
                   {isSavingSeat
                     ? "Recording Attendance..."
+                    : !isLockCleared
+                    ? "Unlock Distance / RFID to Confirm Seat"
                     : tentativeSeat
                     ? `Confirm Seat ${tentativeSeat} & Mark Attendance`
                     : "Select a Seat to Mark Attendance"}
