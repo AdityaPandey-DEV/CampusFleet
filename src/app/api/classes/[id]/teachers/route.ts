@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // GET /api/classes/[id]/teachers
 export async function GET(
   req: NextRequest,
@@ -25,7 +28,14 @@ export async function GET(
       createdAt: a.created_at,
     }));
 
-    return NextResponse.json({ success: true, teachers: formatted });
+    return NextResponse.json(
+      { success: true, teachers: formatted },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || "Failed to load class teachers." },
@@ -54,7 +64,7 @@ export async function POST(
     // Verify teacher exists and has teacher or admin role
     const { data: user, error: userErr } = await supabaseAdmin
       .from("users")
-      .select("id, full_name, role")
+      .select("id, full_name, email, role")
       .eq("id", teacherId)
       .single();
 
@@ -101,7 +111,16 @@ export async function POST(
       new_value: allocation,
     });
 
-    return NextResponse.json({ success: true, allocation });
+    return NextResponse.json({
+      success: true,
+      allocation,
+      teacher: {
+        id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+        isPrimary: !!isPrimary,
+      },
+    });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || "Failed to allocate teacher." },

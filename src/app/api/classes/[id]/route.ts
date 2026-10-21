@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSession } from "@/lib/jwt";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const classId = params.id;
@@ -69,21 +72,28 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       };
     }
 
-    return NextResponse.json({
-      success: true,
-      class: {
-        ...classItem,
-        shiftSchedule: scheduleMap,
+    return NextResponse.json(
+      {
+        success: true,
+        class: {
+          ...classItem,
+          shiftSchedule: scheduleMap,
+        },
+        students: enrolledStudents || [],
+        teachers: (classTeachers || []).map(ct => ({
+          id: (ct.users as any)?.id,
+          fullName: (ct.users as any)?.full_name,
+          email: (ct.users as any)?.email,
+          phone: (ct.users as any)?.phone,
+          isPrimary: ct.is_primary,
+        })),
       },
-      students: enrolledStudents || [],
-      teachers: (classTeachers || []).map(ct => ({
-        id: (ct.users as any)?.id,
-        fullName: (ct.users as any)?.full_name,
-        email: (ct.users as any)?.email,
-        phone: (ct.users as any)?.phone,
-        isPrimary: ct.is_primary,
-      })),
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || "Failed to load class details." },

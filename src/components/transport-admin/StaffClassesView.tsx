@@ -131,7 +131,7 @@ export default function StaffClassesView({
   const fetchClasses = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/classes");
+      const res = await fetch(`/api/classes?t=${Date.now()}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setClasses(data.classes || []);
@@ -153,7 +153,7 @@ export default function StaffClassesView({
   // Fetch teacher list for dropdowns
   const fetchTeachers = async () => {
     try {
-      const res = await fetch("/api/classes/teachers");
+      const res = await fetch(`/api/classes/teachers?t=${Date.now()}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success && data.teachers) {
         setTeachersList(data.teachers);
@@ -418,6 +418,35 @@ export default function StaffClassesView({
         return;
       }
 
+      // Optimistically update local state immediately so UI updates without waiting
+      const allocatedTeacher = data.teacher || teachersList.find(t => t.id === selectedTeacherToAllocate);
+      const newTeacherObj = {
+        id: selectedTeacherToAllocate,
+        fullName: allocatedTeacher?.full_name || allocatedTeacher?.fullName || "Faculty Member",
+        email: allocatedTeacher?.email || "",
+        isPrimary: isPrimaryTeacher,
+      };
+
+      setSelectedClass(prev => {
+        if (!prev) return prev;
+        const exists = prev.assignedTeachers?.some(t => t.id === selectedTeacherToAllocate);
+        if (exists) return prev;
+        return {
+          ...prev,
+          assignedTeachers: [...(prev.assignedTeachers || []), newTeacherObj],
+        };
+      });
+
+      setClasses(prev => prev.map(c => {
+        if (c.id !== selectedClass.id) return c;
+        const exists = c.assignedTeachers?.some(t => t.id === selectedTeacherToAllocate);
+        if (exists) return c;
+        return {
+          ...c,
+          assignedTeachers: [...(c.assignedTeachers || []), newTeacherObj],
+        };
+      }));
+
       setActionSuccess("Teacher allocated to class successfully!");
       setIsAllocateTeacherModalOpen(false);
       setSelectedTeacherToAllocate("");
@@ -437,6 +466,23 @@ export default function StaffClassesView({
     setActionError("");
     setActionSuccess("");
 
+    // Optimistically update local state immediately
+    setSelectedClass(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        assignedTeachers: (prev.assignedTeachers || []).filter(t => t.id !== teacherId),
+      };
+    });
+
+    setClasses(prev => prev.map(c => {
+      if (c.id !== selectedClass.id) return c;
+      return {
+        ...c,
+        assignedTeachers: (c.assignedTeachers || []).filter(t => t.id !== teacherId),
+      };
+    }));
+
     try {
       const res = await fetch(`/api/classes/${selectedClass.id}/teachers?teacherId=${teacherId}`, {
         method: "DELETE",
@@ -445,6 +491,7 @@ export default function StaffClassesView({
 
       if (!res.ok || !data.success) {
         setActionError(data.message || "Failed to remove teacher.");
+        await fetchClasses();
         return;
       }
 
@@ -452,16 +499,29 @@ export default function StaffClassesView({
       await fetchClasses();
     } catch (err: any) {
       setActionError(err.message || "Network error.");
+      await fetchClasses();
     }
   };
 
 
   // Convert teacher list to options for SearchableDropdown
-  const teacherOptions: DropdownOption[] = teachersList.map((t) => ({
-    value: t.id,
-    label: t.full_name || t.fullName || "Faculty",
-    sublabel: `${t.role ? `[${t.role.toUpperCase()}] ` : ""}${t.email || ""}`,
-  }));
+  // Filter strictly users with role 'teacher' (excludes admin, transport staff, etc.)
+  const teacherOptions: DropdownOption[] = useMemo(() => {
+    return teachersList
+      .filter((t) => !t.role || t.role.toLowerCase() === "teacher")
+      .map((t) => ({
+        value: t.id,
+        label: t.full_name || t.fullName || "Faculty",
+        sublabel: t.email || "Faculty Member",
+      }));
+  }, [teachersList]);
+
+  // Options for Allocating to currently selected class:
+  // Exclude teachers who are ALREADY assigned to this class to avoid duplication & errors
+  const availableTeacherOptions: DropdownOption[] = useMemo(() => {
+    const assignedIds = new Set(selectedClass?.assignedTeachers?.map((t) => t.id) || []);
+    return teacherOptions.filter((opt) => !assignedIds.has(opt.value));
+  }, [teacherOptions, selectedClass?.assignedTeachers]);
 
   // Filtering classes
   const filteredClasses = useMemo(() => {
@@ -1455,13 +1515,22 @@ export default function StaffClassesView({
               <div>
                 <SearchableDropdown
                   label="Select Faculty / Teacher"
-                  placeholder="Search and select faculty member..."
+                  placeholder={
+                    availableTeacherOptions.length > 0
+                      ? "Search and select faculty member..."
+                      : "All registered faculty members are already allocated"
+                  }
                   searchPlaceholder="Search by teacher name or email..."
                   required
-                  options={teacherOptions}
+                  options={availableTeacherOptions}
                   value={selectedTeacherToAllocate}
                   onChange={(val) => setSelectedTeacherToAllocate(val)}
                 />
+                {availableTeacherOptions.length === 0 && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 font-medium">
+                    All registered faculty members in the system are currently allocated to this class.
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
@@ -1487,7 +1556,7 @@ export default function StaffClassesView({
                 </button>
                 <button
                   type="submit"
-                  disabled={!selectedTeacherToAllocate || isSubmitting}
+                  disabled={!selectedTeacherToAllocate || isSubmitting || availableTeacherOptions.length === 0}
                   className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50 transition-all"
                 >
                   {isSubmitting ? "Allocating..." : "Allocate Teacher"}
