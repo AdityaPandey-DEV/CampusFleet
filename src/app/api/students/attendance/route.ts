@@ -387,15 +387,21 @@ export async function GET(req: NextRequest) {
     }
 
     // Check if student was verified via RFID tap today
+    // Check if student was verified via RFID tap today or unlocked via attendance lock
     const CACHE_RFID_KEY = `attendance:rfid:${resolvedStudentId}:${today}`;
+    const CACHE_LOCK_KEY = `attendance:lock:${resolvedStudentId}:${today}`;
     let isRfidVerified = false;
-    const rfidCache = await cacheGet<any>(CACHE_RFID_KEY);
+    const [rfidCache, lockCache] = await Promise.all([
+      cacheGet<any>(CACHE_RFID_KEY),
+      cacheGet<any>(CACHE_LOCK_KEY),
+    ]);
+
     if (rfidCache && rfidCache.verified) {
       isRfidVerified = true;
     } else {
       const { data: rfidAtt } = await supabaseAdmin
         .from("attendance_records")
-        .select("id, timestamp, bus_id, method")
+        .select("id, timestamp, bus_id, method, lock_status, unlocked_by")
         .eq("student_id", resolvedStudentId)
         .eq("method", "RFID_VERIFIED")
         .gte("timestamp", `${today}T00:00:00.000Z`)
@@ -407,11 +413,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const lockStatus = enriched?.lock_status || lockCache?.lockStatus || (isRfidVerified ? "UNLOCKED" : "LOCKED");
+
     return NextResponse.json({
       success: true,
       reservation: enriched,
       occupiedSeats,
       isRfidVerified,
+      lockStatus,
+      unlockedBy: enriched?.unlocked_by || lockCache?.unlockedBy || (isRfidVerified ? "RFID" : null),
       settings: currentSettings,
       teacherSchedule: {
         incomingShiftId,
@@ -516,22 +526,38 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Check Dual-Security: 1. RFID In-Bus Verification  2. Real-Time GPS Proximity
+    // Check Multi-Factor Security:
+    // 1. Attendance Lock Status (Distance Proximity Unlock or RFID Tap)
+    // 2. In-Bus Hardware RFID Verification
+    // 3. Real-Time GPS Proximity
+    const CACHE_LOCK_KEY = `attendance:lock:${resolvedStudentId}:${today}`;
     const CACHE_RFID_KEY = `attendance:rfid:${resolvedStudentId}:${today}`;
-    const rfidCache = await cacheGet<any>(CACHE_RFID_KEY);
+
+    const [lockCache, rfidCache] = await Promise.all([
+      cacheGet<any>(CACHE_LOCK_KEY),
+      cacheGet<any>(CACHE_RFID_KEY),
+    ]);
+
+    let isLockUnlocked = targetRes?.lock_status === "UNLOCKED" || lockCache?.lockStatus === "UNLOCKED";
     let isRfidVerified = Boolean(rfidCache?.verified);
 
-    if (!isRfidVerified) {
-      const { data: rfidAtt } = await supabaseAdmin
+    if (!isLockUnlocked && !isRfidVerified) {
+      const { data: attRec } = await supabaseAdmin
         .from("attendance_records")
-        .select("id, timestamp")
+        .select("id, timestamp, method, lock_status, unlocked_by")
         .eq("student_id", resolvedStudentId)
-        .eq("method", "RFID_VERIFIED")
         .gte("timestamp", `${today}T00:00:00.000Z`)
+        .order("timestamp", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (rfidAtt) {
-        isRfidVerified = true;
+
+      if (attRec) {
+        if (attRec.lock_status === "UNLOCKED" || attRec.method === "LOCATION_DISTANCE_UNLOCK") {
+          isLockUnlocked = true;
+        }
+        if (attRec.method === "RFID_VERIFIED" || attRec.unlocked_by === "RFID") {
+          isRfidVerified = true;
+        }
       }
     }
 
@@ -541,6 +567,8 @@ export async function POST(req: NextRequest) {
 
     if (isRfidVerified) {
       gpsNote = "Verified via in-bus RFID reader tap";
+    } else if (isLockUnlocked) {
+      gpsNote = `Verified via Attendance Security Unlock (${lockCache?.unlockedBy || targetRes?.unlocked_by || "Location Distance"})`;
     } else if (targetRes.bus_id) {
       // Must verify real-time GPS proximity against live bus telematics
       const busIdsToCheck = Array.from(new Set([
@@ -617,6 +645,9 @@ export async function POST(req: NextRequest) {
         seat_chosen_at: nowIso,
         status: "BOARDED",
         boarded_at: nowIso,
+        lock_status: "UNLOCKED",
+        unlocked_by: targetRes?.unlocked_by || (isRfidVerified ? "RFID" : "LOCATION_DISTANCE"),
+        unlock_timestamp: nowIso,
       })
       .eq("id", targetRes.id)
       .select()
@@ -633,12 +664,15 @@ export async function POST(req: NextRequest) {
       student_id: resolvedStudentId,
       trip_id: targetRes.trip_id,
       bus_id: targetRes.bus_id,
-      method: isRfidVerified ? "RFID_VERIFIED" : (isGpsVerified ? "GPS_VERIFIED" : "MANUAL_SELECT"),
+      method: isRfidVerified ? "RFID_VERIFIED" : (isLockUnlocked ? (lockCache?.unlockedBy === "RFID" ? "RFID_VERIFIED" : "LOCATION_DISTANCE_UNLOCK") : (isGpsVerified ? "GPS_VERIFIED" : "MANUAL_SELECT")),
       status: "BOARDED",
-      verified_by: isRfidVerified ? "ESP32 Hardware RFID Gate" : (isGpsVerified ? "GPS Geofence System" : "Student Commute Portal"),
+      verified_by: isRfidVerified ? "ESP32 Hardware RFID Gate" : (isLockUnlocked ? "Location Distance Proximity Engine" : (isGpsVerified ? "GPS Geofence System" : "Student Commute Portal")),
       notes: gpsNote,
       signature_token: isRfidVerified ? `RFID-BOARDED-${Date.now()}` : `GEOFENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
       timestamp: nowIso,
+      lock_status: "UNLOCKED",
+      unlocked_by: targetRes?.unlocked_by || (isRfidVerified ? "RFID" : "LOCATION_DISTANCE"),
+      unlock_timestamp: nowIso,
     });
 
     // Also update any matching booking in public.bookings if present
