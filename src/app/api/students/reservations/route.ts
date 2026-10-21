@@ -275,12 +275,16 @@ export async function GET(req: NextRequest) {
             boarding_stop_id: boardingStop,
             shift_id: targetShiftId,
             reservation_date: today,
-            assigned_by: isIncomingOver ? "TEACHER_NEXT_SHIFT" : "AI_AUTO",
+            assigned_by: "AI_AUTO",
             assignment_score: 0.985,
             status: "ASSIGNED",
           })
           .select()
           .single();
+
+        if (createErr) {
+          console.error("[api/students/reservations] auto-assign insert error:", createErr);
+        }
 
         if (!createErr && createdRes) {
           activeReservation = createdRes;

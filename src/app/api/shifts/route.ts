@@ -60,12 +60,17 @@ const ALLOWED_SHIFT_ADMIN_ROLES = ["admin", "transport_admin", "transport_manage
 function sanitizeTimeString(timeStr?: string): string | undefined {
   if (!timeStr) return undefined;
   const clean = timeStr.trim();
-  const parts = clean.split(":");
+  const isPM = /pm/i.test(clean);
+  const isAM = /am/i.test(clean);
+  const numericPart = clean.replace(/[^\d:]/g, "");
+  const parts = numericPart.split(":");
   if (parts.length >= 2) {
-    const h = parts[0].padStart(2, "0");
+    let h = parseInt(parts[0], 10);
     const m = parts[1].padStart(2, "0");
     const s = (parts[2] || "00").substring(0, 2).padStart(2, "0");
-    return `${h}:${m}:${s}`;
+    if (isPM && h < 12) h += 12;
+    if (isAM && h === 12) h = 0;
+    return `${String(h).padStart(2, "0")}:${m}:${s}`;
   }
   return clean.length === 5 ? `${clean}:00` : clean;
 }
