@@ -28,11 +28,11 @@ export async function GET(req: NextRequest) {
     // 1. Determine classes for this teacher
     let teacherClassIds: string[] = [];
     if (!isElevated) {
+      const teacherUserId = session.userId || (session as any).id;
       const { data: allocations } = await supabaseAdmin
         .from("class_teachers")
         .select("class_id")
-        .eq("teacher_id", session.id)
-        .eq("is_primary", true);
+        .eq("teacher_id", teacherUserId);
 
       teacherClassIds = (allocations || []).map((a) => a.class_id).filter(Boolean);
       if (teacherClassIds.length === 0) {
@@ -114,7 +114,7 @@ export async function PATCH(req: NextRequest) {
       .from("early_departure_requests")
       .update({
         status,
-        teacher_id: session.id,
+        teacher_id: session.userId || (session as any).id,
         teacher_remarks: remarks || null,
         reviewed_at: new Date().toISOString(),
       })

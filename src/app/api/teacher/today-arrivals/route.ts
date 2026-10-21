@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
     const { searchParams } = new URL(req.url);
-    const teacherId = searchParams.get("teacherId") || session?.id;
+    const teacherId = searchParams.get("teacherId") || session?.userId || (session as any)?.id;
     const classIdParam = searchParams.get("classId");
     const isElevated = session?.role === "admin" || session?.role === "transport_manager";
 

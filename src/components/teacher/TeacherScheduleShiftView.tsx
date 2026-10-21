@@ -357,14 +357,25 @@ export default function TeacherScheduleShiftView({
         portalTitle="CampusFleet"
         portalSubtitle="Faculty Transit & Academic Desk"
         navLinks={[
-          { href: "/teacher", label: "Class Attendance" },
+          { href: "/teacher", label: "Teacher Desk" },
+          { href: "/teacher/attendance", label: "Attendance" },
           { href: "/teacher/schedule", label: "Schedule Shift" },
-          { href: "/teacher?tab=my_commute", label: "My Commute" },
-          { href: "/teacher/settings", label: "Commute Settings" },
+          { href: "/teacher/gate-passes", label: "Gate Passes" },
+          { href: "/teacher/commute", label: "My Commute" },
         ]}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Back Link Breadcrumb */}
+        <div className="flex items-center justify-between">
+          <Link
+            href="/teacher"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+          >
+            <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+            <span>Back to Teacher Desk</span>
+          </Link>
+        </div>
         {/* Alerts / Feedback Banners */}
         {successMessage && (
           <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-semibold flex items-center justify-between shadow-xs animate-in fade-in">
