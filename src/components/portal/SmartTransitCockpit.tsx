@@ -78,6 +78,7 @@ export default function SmartTransitCockpit({
 
   // Real-time Attendance Lock (Distance / RFID) State
   const [attendanceLockStatus, setAttendanceLockStatus] = useState<"LOCKED" | "UNLOCKED">("LOCKED");
+  const [isPeekingSeats, setIsPeekingSeats] = useState(false);
   const isLockCleared = attendanceLockStatus === "UNLOCKED" || isRfidVerified || reservation?.lock_status === "UNLOCKED";
 
   const studentId = student?.id || user?.studentId || user?.userId || user?.id;
@@ -645,54 +646,107 @@ export default function SmartTransitCockpit({
               )}
             </div>
 
-            {/* Attendance Security & Hardware Distance / RFID Unlock */}
-            <AttendanceLockCard
-              busId={assignedBus.id}
-              studentId={studentId}
-              onStatusChange={(status) => setAttendanceLockStatus(status)}
-              onUnlocked={() => setAttendanceLockStatus("UNLOCKED")}
-            />
+            {/* Verified Attendance Banner (Above Seat Grid when unlocked) */}
+            {isLockCleared && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-300 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>
+                    <strong>Attendance Security Cleared:</strong> Proximity verified. Select your seat below to record attendance.
+                  </span>
+                </div>
+                <span className="font-bold text-[10px] uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 shrink-0">
+                  UNLOCKED ✓
+                </span>
+              </div>
+            )}
 
-            {/* Embedded Interactive Seat Grid */}
-            <div className="p-2 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 max-h-[460px] overflow-y-auto overflow-x-hidden flex justify-center">
-              <InteractiveBusSeatGrid
-                bus={assignedBus}
-                activeBookings={
-                  reservation?.trip_id
-                    ? bookings.filter((b) => b.tripId === reservation.trip_id)
-                    : []
-                }
-                occupiedSeats={occupiedSeats}
-                selectedSeat={tentativeSeat}
-                onSelectSeat={(seatNum) => {
-                  if (!isTeacher && assignedBus) {
-                    const teacherCount =
-                      typeof (assignedBus as any)?.teacherSeatsCount === "number"
-                        ? (assignedBus as any).teacherSeatsCount
-                        : typeof (assignedBus as any)?.teacher_seats_count === "number"
-                        ? (assignedBus as any).teacher_seats_count
-                        : 0;
-                    if (teacherCount > 0) {
-                      const allSeats = generateSeatLayout(assignedBus.capacity, assignedBus.seatLayout);
-                      const teacherSeats = getTeacherStartingSeats(allSeats, teacherCount);
-                      if (teacherSeats.includes(seatNum)) {
-                        alert(`Starting seats (first ${teacherCount} seats) on this bus are reserved for Faculty and Teachers. Please choose another seat.`);
-                        return;
+            {/* Embedded Interactive Seat Grid with Attendance Lock Layered Above */}
+            <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+              <div
+                className={`p-2 sm:p-6 max-h-[460px] overflow-y-auto overflow-x-hidden flex justify-center transition-all duration-300 ${
+                  !isLockCleared && !isPeekingSeats
+                    ? "pointer-events-none select-none opacity-25 filter blur-[1px]"
+                    : ""
+                }`}
+              >
+                <InteractiveBusSeatGrid
+                  bus={assignedBus}
+                  activeBookings={
+                    reservation?.trip_id
+                      ? bookings.filter((b) => b.tripId === reservation.trip_id)
+                      : []
+                  }
+                  occupiedSeats={occupiedSeats}
+                  selectedSeat={tentativeSeat}
+                  onSelectSeat={(seatNum) => {
+                    if (!isLockCleared) {
+                      setIsPeekingSeats(false);
+                      return;
+                    }
+                    if (!isTeacher && assignedBus) {
+                      const teacherCount =
+                        typeof (assignedBus as any)?.teacherSeatsCount === "number"
+                          ? (assignedBus as any).teacherSeatsCount
+                          : typeof (assignedBus as any)?.teacher_seats_count === "number"
+                          ? (assignedBus as any).teacher_seats_count
+                          : 0;
+                      if (teacherCount > 0) {
+                        const allSeats = generateSeatLayout(assignedBus.capacity, assignedBus.seatLayout);
+                        const teacherSeats = getTeacherStartingSeats(allSeats, teacherCount);
+                        if (teacherSeats.includes(seatNum)) {
+                          alert(`Starting seats (first ${teacherCount} seats) on this bus are reserved for Faculty and Teachers. Please choose another seat.`);
+                          return;
+                        }
                       }
                     }
+                    setTentativeSeat(seatNum);
+                  }}
+                  isTeacher={isTeacher}
+                  userRole={user?.role}
+                  teacherCount={
+                    typeof (assignedBus as any)?.teacherSeatsCount === "number"
+                      ? (assignedBus as any).teacherSeatsCount
+                      : typeof (assignedBus as any)?.teacher_seats_count === "number"
+                      ? (assignedBus as any).teacher_seats_count
+                      : undefined
                   }
-                  setTentativeSeat(seatNum);
-                }}
-                isTeacher={isTeacher}
-                userRole={user?.role}
-                teacherCount={
-                  typeof (assignedBus as any)?.teacherSeatsCount === "number"
-                    ? (assignedBus as any).teacherSeatsCount
-                    : typeof (assignedBus as any)?.teacher_seats_count === "number"
-                    ? (assignedBus as any).teacher_seats_count
-                    : undefined
-                }
-              />
+                />
+              </div>
+
+              {/* Attendance Lock Layered Directly Above Seat UI when Locked */}
+              {!isLockCleared && !isPeekingSeats && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center p-3 sm:p-6 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-[2px] transition-all">
+                  <div className="w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
+                    <AttendanceLockCard
+                      busId={assignedBus.id}
+                      studentId={studentId}
+                      onStatusChange={(status) => setAttendanceLockStatus(status)}
+                      onUnlocked={() => {
+                        setAttendanceLockStatus("UNLOCKED");
+                        setIsPeekingSeats(false);
+                      }}
+                      onPeekSeats={() => setIsPeekingSeats(true)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Subtle floating banner when user is peeking at seats while still locked */}
+              {!isLockCleared && isPeekingSeats && (
+                <div className="absolute top-3 left-3 right-3 z-20 p-3 rounded-xl bg-slate-900/90 dark:bg-slate-950/95 text-white backdrop-blur-md shadow-lg flex items-center justify-between text-xs animate-in slide-in-from-top-2 border border-slate-700">
+                  <div className="flex items-center gap-2 font-medium">
+                    <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Seat Preview Mode (Attendance Verification Required to Confirm)</span>
+                  </div>
+                  <button
+                    onClick={() => setIsPeekingSeats(false)}
+                    className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold text-xs transition-colors shrink-0 cursor-pointer"
+                  >
+                    Return to Unlock
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Action Confirmation Bar */}

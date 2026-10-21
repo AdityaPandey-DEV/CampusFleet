@@ -13,6 +13,7 @@ import {
   Bus,
   ShieldCheck,
   Zap,
+  Eye,
 } from "lucide-react";
 
 interface AttendanceLockCardProps {
@@ -20,6 +21,7 @@ interface AttendanceLockCardProps {
   studentId?: string;
   onUnlocked?: () => void;
   onStatusChange?: (status: "LOCKED" | "UNLOCKED") => void;
+  onPeekSeats?: () => void;
   className?: string;
 }
 
@@ -28,6 +30,7 @@ export function AttendanceLockCard({
   studentId,
   onUnlocked,
   onStatusChange,
+  onPeekSeats,
   className = "",
 }: AttendanceLockCardProps) {
   const [loading, setLoading] = useState(true);
@@ -165,45 +168,45 @@ export function AttendanceLockCard({
 
   return (
     <div
-      className={`rounded-3xl border transition-all duration-300 overflow-hidden shadow-sm ${
+      className={`rounded-3xl border transition-all duration-300 overflow-hidden shadow-lg ${
         lockStatus === "UNLOCKED"
-          ? "bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/40"
-          : "bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-amber-500/10 border-amber-500/30 dark:border-amber-500/40"
+          ? "bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-800/60"
+          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
       } ${className}`}
     >
-      <div className="p-5 space-y-4">
+      <div className="p-5 sm:p-6 space-y-4">
         {/* Header Badge */}
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <div
               className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
                 lockStatus === "UNLOCKED"
-                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                  : "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                  ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/60"
+                  : "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-200/80 dark:border-amber-800/60"
               }`}
             >
               {lockStatus === "UNLOCKED" ? (
                 <Unlock className="w-5 h-5 animate-in zoom-in-75 duration-300" />
               ) : (
-                <Lock className="w-5 h-5 animate-pulse" />
+                <Lock className="w-5 h-5" />
               )}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Attendance Security
                 </span>
                 <span
-                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                  className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
                     lockStatus === "UNLOCKED"
-                      ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800"
-                      : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-800"
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800"
+                      : "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-800"
                   }`}
                 >
                   {lockStatus === "UNLOCKED" ? "UNLOCKED ✓" : "LOCKED 🔒"}
                 </span>
               </div>
-              <div className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+              <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
                 {lockStatus === "UNLOCKED"
                   ? unlockedBy === "RFID"
                     ? "Unlocked via Physical RFID Tap"
@@ -217,18 +220,18 @@ export function AttendanceLockCard({
             onClick={fetchLockStatus}
             disabled={loading}
             title="Refresh Attendance Lock Status"
-            className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-blue-500" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-slate-700 dark:text-slate-300" : ""}`} />
           </button>
         </div>
 
         {/* Status Body */}
         {lockStatus === "UNLOCKED" ? (
           <div className="space-y-3 pt-1">
-            <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-gray-900/80 border border-emerald-200 dark:border-emerald-800/60 text-xs font-medium space-y-1.5 shadow-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 text-xs font-medium space-y-1.5 shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Verification Method:</span>
+                <span className="text-slate-500 dark:text-slate-400">Verification Method:</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                   {unlockedBy === "RFID" ? (
                     <>
@@ -246,47 +249,47 @@ export function AttendanceLockCard({
 
               {rfidCardId && (
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">RFID Card UID:</span>
-                  <span className="font-mono font-bold text-gray-700 dark:text-gray-300">
+                  <span className="text-slate-500 dark:text-slate-400">RFID Card UID:</span>
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
                     {rfidCardId}
                   </span>
                 </div>
               )}
 
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Boarding Status:</span>
-                <span className="font-black text-emerald-600 dark:text-emerald-400">
+                <span className="text-slate-500 dark:text-slate-400">Boarding Status:</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">
                   PRESENT / BOARDED ✓
                 </span>
               </div>
             </div>
 
             <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold text-center">
-              ✓ Your seat and attendance have been verified. You may proceed to your seat.
+              ✓ Attendance verified. You may proceed to select your seat below.
             </p>
           </div>
         ) : (
           <div className="space-y-3 pt-1">
-            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
-              To prevent attendance fraud, attendance remains locked until you are verified physically near the bus or tap your RFID card.
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              To prevent attendance fraud, seat selection remains locked until you are verified physically near the bus or tap your RFID card.
             </p>
 
             {/* Error / Distance warning */}
             {errorMessage && (
-              <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-300 font-medium flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 font-medium flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
             {/* Distance indicator */}
             {distanceMeters !== null && !errorMessage && (
-              <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-800 dark:text-amber-300">
+              <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold text-slate-700 dark:text-slate-300">
                 <span className="flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <MapPin className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   Estimated Proximity to Bus:
                 </span>
-                <span className="font-mono font-black">{distanceMeters} meters</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{distanceMeters} meters</span>
               </div>
             )}
 
@@ -297,7 +300,7 @@ export function AttendanceLockCard({
                 type="button"
                 onClick={handleLocationDistanceUnlock}
                 disabled={unlocking}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-black text-xs shadow-md shadow-blue-500/20 transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 text-white font-semibold text-xs shadow-sm transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
               >
                 {unlocking ? (
                   <>
@@ -306,7 +309,7 @@ export function AttendanceLockCard({
                   </>
                 ) : (
                   <>
-                    <Radio className="w-4 h-4 animate-pulse" />
+                    <Radio className="w-4 h-4" />
                     <span>Distance Unlock (&lt;{thresholdMeters}m)</span>
                   </>
                 )}
@@ -314,16 +317,29 @@ export function AttendanceLockCard({
 
               {/* Option 2: RFID Unlock Info */}
               <div
-                className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold text-xs shadow-xs text-center select-none"
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs text-center select-none"
                 title="Tap your registered physical RFID smart card on the bus entrance reader"
               >
-                <CreditCard className="w-4 h-4 text-indigo-500 shrink-0" />
+                <CreditCard className="w-4 h-4 text-slate-500 shrink-0" />
                 <span>Tap RFID Card on Bus</span>
               </div>
             </div>
 
-            <div className="text-[10px] text-gray-400 text-center font-medium">
-              Hardware RFID reader at bus door instantly unlocks upon card tap.
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-slate-400">
+                Hardware RFID reader at bus door instantly unlocks.
+              </span>
+
+              {onPeekSeats && (
+                <button
+                  type="button"
+                  onClick={onPeekSeats}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Peek Seats</span>
+                </button>
+              )}
             </div>
           </div>
         )}
