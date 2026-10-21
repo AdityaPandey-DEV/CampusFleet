@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import { cacheSet } from "@/lib/redis";
+import { cacheGet, cacheSet } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -52,11 +52,21 @@ export async function POST(req: NextRequest) {
     if (studentErr || !students || students.length === 0) {
       console.warn(`[telematics/rfid] Unregistered RFID card ${effectiveRfid} on ${busId}`);
       if (effectiveRfid) {
-        await cacheSet("telematics:unmapped_rfid_last", {
-          rfidCardId: effectiveRfid,
-          busId,
-          scannedAt: new Date().toISOString(),
-        }, 900);
+        try {
+          const nowIso = new Date().toISOString();
+          const existingList = (await cacheGet<any[]>("telematics:unmapped_rfid_list")) || [];
+          const filtered = existingList.filter((item: any) => item.rfidCardId !== effectiveRfid);
+          const updatedList = [
+            {
+              rfidCardId: effectiveRfid,
+              busId,
+              scannedAt: nowIso,
+            },
+            ...filtered,
+          ].slice(0, 30);
+          await cacheSet("telematics:unmapped_rfid_list", updatedList, 86400);
+          await cacheSet("telematics:unmapped_rfid_last", updatedList[0], 900);
+        } catch (_) {}
       }
       return NextResponse.json(
         {

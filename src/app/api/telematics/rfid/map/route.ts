@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getSessionFromRequest } from "@/lib/jwt";
-import { cacheDel } from "@/lib/redis";
+import { cacheDel, cacheGet, cacheSet } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +127,9 @@ export async function POST(req: NextRequest) {
     // 5. If this card was recently in the unmapped cache, clear it
     try {
       await cacheDel("telematics:unmapped_rfid_last");
+      const unmappedList = (await cacheGet<any[]>("telematics:unmapped_rfid_list")) || [];
+      const updatedList = unmappedList.filter((item: any) => item.rfidCardId !== cleanRfid);
+      await cacheSet("telematics:unmapped_rfid_list", updatedList, 86400);
     } catch (_) {}
 
     return NextResponse.json({
