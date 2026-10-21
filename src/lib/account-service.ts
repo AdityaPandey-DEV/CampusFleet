@@ -14,7 +14,8 @@ export interface AuthUserResult {
   role: string;
   campus_id?: string | null;
   campus?: string | null;
-  avatar_url?: string | null;
+  photo_url?: string | null;
+  avatar_url?: string | null; // Backwards-compatible alias mapped directly to photo_url
   provider?: string;
   created_at?: string;
 }
@@ -37,6 +38,11 @@ export async function findOrCreateUser({
   const cleanEmail = (email || "").trim().toLowerCase();
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").trim().toLowerCase();
 
+  // For conductor security and student verification, reject casual Google OAuth avatars (lh3.googleusercontent.com)
+  // Only accept genuine institutional student photos.
+  const isGoogleAvatar = Boolean(avatarUrl && avatarUrl.includes("googleusercontent.com"));
+  const validPhoto = (!isGoogleAvatar && avatarUrl) ? avatarUrl : null;
+
   // 1. Check if user already exists
   const { data: existingUser } = await supabaseAdmin
     .from("users")
@@ -47,7 +53,9 @@ export async function findOrCreateUser({
   if (existingUser) {
     // Already present account: sign in as normal
     const updates: Record<string, any> = {};
-    if (avatarUrl && !existingUser.avatar_url) updates.avatar_url = avatarUrl;
+    if (validPhoto && !existingUser.photo_url) {
+      updates.photo_url = validPhoto;
+    }
     if (fullName && !existingUser.full_name) updates.full_name = fullName;
 
     if (Object.keys(updates).length > 0) {
@@ -59,7 +67,7 @@ export async function findOrCreateUser({
     if (existingUser.role === "student") {
       const { data: existingStudents } = await supabaseAdmin
         .from("students")
-        .select("id, user_id, campus_id, campus, full_name")
+        .select("id, user_id, campus_id, campus, full_name, photo_url")
         .eq("user_id", existingUser.id)
         .order("created_at", { ascending: false })
         .limit(1);
@@ -96,6 +104,8 @@ export async function findOrCreateUser({
       }
     }
 
+    const effectiveUserPhoto = existingUser.photo_url || null;
+
     return {
       user: {
         id: existingUser.id,
@@ -104,7 +114,8 @@ export async function findOrCreateUser({
         role: existingUser.role || "student",
         campus_id: existingUser.campus_id || null,
         campus: existingUser.campus,
-        avatar_url: existingUser.avatar_url || avatarUrl,
+        photo_url: effectiveUserPhoto,
+        avatar_url: effectiveUserPhoto, // mapped to photo_url
         provider: existingUser.provider || provider,
         created_at: existingUser.created_at,
       },
@@ -115,6 +126,7 @@ export async function findOrCreateUser({
   // 2. First-time sign-in: automatically create user account
   const role = adminEmail && cleanEmail === adminEmail ? "admin" : "student";
   const userId = crypto.randomUUID();
+
   const realName =
     fullName?.trim() ||
     cleanEmail
@@ -139,6 +151,7 @@ export async function findOrCreateUser({
   const effectiveCampus = existingStudentForNewUser?.campus || null;
   const effectivePhone = existingStudentForNewUser?.phone || null;
   const effectiveFullName = existingStudentForNewUser?.full_name || realName;
+  const effectivePhotoUrl = existingStudentForNewUser?.photo_url || validPhoto || null;
 
   const { data: newUser, error: createErr } = await supabaseAdmin
     .from("users")
@@ -149,7 +162,7 @@ export async function findOrCreateUser({
       role,
       campus_id: effectiveCampusId,
       phone: effectivePhone,
-      avatar_url: avatarUrl || existingStudentForNewUser?.photo_url || null,
+      photo_url: effectivePhotoUrl,
       provider,
       created_at: new Date().toISOString(),
     })
@@ -194,7 +207,8 @@ export async function findOrCreateUser({
     role,
     campus_id: effectiveCampusId,
     campus: effectiveCampus,
-    avatar_url: avatarUrl || existingStudentForNewUser?.photo_url || null,
+    photo_url: effectivePhotoUrl,
+    avatar_url: effectivePhotoUrl,
     provider,
     created_at: new Date().toISOString(),
   };

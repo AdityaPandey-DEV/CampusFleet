@@ -409,7 +409,7 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
         full_name: updatedStudent.fullName,
         phone: updatedStudent.phone,
         campus_id: updatedStudent.campusId || null,
-        avatar_url: updatedStudent.photoUrl || null,
+        photo_url: updatedStudent.photoUrl || null,
         photo_locked: updatedStudent.photoLocked || false,
       }).eq("id", updatedStudent.userId);
     }

@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
       role: user.role || "student",
       campusId: user.campus_id || undefined,
       campus: user.campus || undefined,
-      avatarUrl: user.avatar_url || undefined,
+      photoUrl: user.photo_url || undefined,
+      avatarUrl: user.photo_url || undefined,
     });
 
     const response = NextResponse.json({
@@ -60,7 +61,8 @@ export async function POST(req: NextRequest) {
         role: user.role || "student",
         campusId: user.campus_id || user.campus || "",
         campus: user.campus || "",
-        avatarUrl: user.avatar_url,
+        photoUrl: user.photo_url,
+        avatarUrl: user.photo_url,
         studentId: user.role === "student" ? user.id : undefined,
         token: `tok_jwt_${Date.now()}`,
         createdAt: user.created_at || new Date().toISOString(),

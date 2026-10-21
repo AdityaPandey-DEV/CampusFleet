@@ -34,6 +34,46 @@ interface DetectedCard {
   scannedAt: string;
 }
 
+function StudentPhotoBadge({
+  photoUrl,
+  name,
+  className = "w-7 h-7 rounded-lg",
+}: {
+  photoUrl?: string | null;
+  name: string;
+  className?: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+  const safeUrl = getSafePhotoUrl(photoUrl);
+
+  const initials = (name || "S")
+    .split(" ")
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  if (!safeUrl || hasError) {
+    return (
+      <div
+        className={`${className} flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-[10px] shadow-sm select-none shrink-0 border border-blue-400/30`}
+      >
+        {initials || "S"}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={safeUrl}
+      alt={name}
+      onError={() => setHasError(true)}
+      className={`${className} object-cover bg-gray-100 shrink-0 border border-gray-200 dark:border-gray-700`}
+    />
+  );
+}
+
 export default function RfidCardIssuanceView({
   initialStudents = [],
   initialStops = [],
@@ -502,10 +542,10 @@ export default function RfidCardIssuanceView({
                       {/* Student Info */}
                       <td className="p-3.5">
                         <div className="flex items-center gap-2.5">
-                          <img
-                            src={getSafePhotoUrl(student.photoUrl)}
-                            alt={student.fullName}
-                            className="w-7 h-7 rounded-lg object-cover border border-gray-200 dark:border-gray-700 bg-gray-100"
+                          <StudentPhotoBadge
+                            photoUrl={student.photoUrl}
+                            name={student.fullName}
+                            className="w-8 h-8 rounded-xl"
                           />
                           <div>
                             <div className="font-bold text-gray-900 dark:text-white">
@@ -624,10 +664,10 @@ export default function RfidCardIssuanceView({
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <img
-                          src={getSafePhotoUrl(stu.photoUrl)}
-                          alt={stu.fullName}
-                          className="w-7 h-7 rounded-lg object-cover bg-gray-100"
+                        <StudentPhotoBadge
+                          photoUrl={stu.photoUrl}
+                          name={stu.fullName}
+                          className="w-7 h-7 rounded-lg"
                         />
                         <div>
                           <div className="text-xs font-bold text-gray-900 dark:text-white">

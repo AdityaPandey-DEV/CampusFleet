@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
   let dbStudentId: string | undefined = undefined;
   let hasActiveSubscription: boolean | undefined = undefined;
   let paymentStatus: string | undefined = undefined;
+  let dbPhotoUrl: string | undefined = (session as any).photoUrl || session.avatarUrl;
 
   // 1. Fast Redis cache check
   try {
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data: dbUser } = await supabaseAdmin
       .from("users")
-      .select("role, full_name, campus_id, avatar_url")
+      .select("role, full_name, campus_id, photo_url")
       .eq("id", session.userId)
       .maybeSingle();
 
@@ -54,6 +55,9 @@ export async function GET(req: NextRequest) {
       }
       if (dbUser.campus_id) dbCampusId = dbUser.campus_id;
       if (dbUser.full_name) dbFullName = dbUser.full_name;
+      if (dbUser.photo_url) {
+        dbPhotoUrl = dbUser.photo_url;
+      }
 
       // Keep Redis cache fresh
       try {
@@ -94,7 +98,8 @@ export async function GET(req: NextRequest) {
       role: currentRole,
       campusId: dbCampusId,
       campus: dbCampus,
-      avatarUrl: session.avatarUrl,
+      photoUrl: dbPhotoUrl,
+      avatarUrl: dbPhotoUrl,
       studentId: dbStudentId || (currentRole === "student" ? session.userId : undefined),
       hasActiveSubscription,
       paymentStatus,

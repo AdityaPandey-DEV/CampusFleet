@@ -144,7 +144,6 @@ export async function POST(req: NextRequest) {
       provider: "Institutional SSO",
     };
     if (finalPhotoUrl) {
-      userUpsertPayload.avatar_url = finalPhotoUrl;
       userUpsertPayload.photo_url = finalPhotoUrl;
       userUpsertPayload.photo_locked = finalPhotoLocked;
     }

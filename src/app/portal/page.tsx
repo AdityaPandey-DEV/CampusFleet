@@ -91,7 +91,7 @@ export default async function StudentPortalPage() {
     paymentStatus: s.payment_status,
     totalFeeDue: Number(s.total_fee_due || 0),
     totalFeePaid: Number(s.total_fee_paid || 0),
-    photoUrl: s.photo_url || s.avatar_url,
+    photoUrl: s.photo_url || "",
     photoLocked: Boolean(s.photo_locked),
     homeLatitude: s.home_latitude !== null && s.home_latitude !== undefined ? Number(s.home_latitude) : undefined,
     homeLongitude: s.home_longitude !== null && s.home_longitude !== undefined ? Number(s.home_longitude) : undefined,

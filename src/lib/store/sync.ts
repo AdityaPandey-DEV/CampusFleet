@@ -591,7 +591,8 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
         provider: u.provider || "Google",
         phone: u.phone,
         campusId: u.campus_id || u.campus || "",
-        campus: u.campus || "",
+        photoUrl: u.photo_url || "",
+        avatarUrl: u.photo_url || "",
         createdAt: u.created_at || new Date().toISOString(),
       }));
     }

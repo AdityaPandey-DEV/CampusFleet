@@ -111,6 +111,8 @@ export async function GET(req: NextRequest) {
     });
 
     // 4. Create JWT and set cookie
+    // 4. Create JWT and set cookie (use verified official student photo_url, not casual Google avatar)
+    const officialPhoto = user.photo_url || undefined;
     const token = await signToken({
       userId: user.id,
       email: user.email,
@@ -118,7 +120,8 @@ export async function GET(req: NextRequest) {
       role: user.role,
       campusId: user.campus_id || undefined,
       campus: user.campus || undefined,
-      avatarUrl: user.avatar_url || avatarUrl,
+      photoUrl: officialPhoto,
+      avatarUrl: officialPhoto,
     });
 
     // 5. Determine redirect based on role
