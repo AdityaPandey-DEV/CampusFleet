@@ -320,31 +320,6 @@ export default function SmartTransitCockpit({
   if (!assignedBus) {
     return (
       <div className="space-y-6">
-        {/* Top Header Card */}
-        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 md:p-8 shadow-sm text-slate-900 dark:text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold">
-              <BusFront className="w-3.5 h-3.5 text-slate-500" />
-              <span>Commute Portal</span>
-            </div>
-            <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
-              Hello, {student?.fullName || user?.fullName || "Student"} 👋
-            </h1>
-            <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 max-w-xl">
-              Track your daily bus allocation, mark attendance, and manage your campus transit.
-            </p>
-          </div>
-
-          <Link
-            href={settingsHref}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-semibold transition-all text-slate-700 dark:text-slate-300 shrink-0 self-start md:self-auto"
-          >
-            <Settings className="w-4 h-4 text-slate-500" />
-            <span>Home & Transfer Settings</span>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-          </Link>
-        </div>
-
         {/* Clean "No Bus Assigned Currently" State */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-12 border border-slate-200/80 dark:border-slate-800 shadow-sm text-center space-y-5">
           <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-sm">
@@ -561,31 +536,6 @@ export default function SmartTransitCockpit({
 
   return (
     <div className="space-y-6">
-      {/* Top Header Card */}
-      <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 md:p-8 shadow-sm text-slate-900 dark:text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Attendance Confirmed</span>
-          </div>
-          <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
-            Hello, {student?.fullName || user?.fullName || "Student"} 👋
-          </h1>
-          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 max-w-xl">
-            Your attendance has been recorded for today's commute. Access your digital QR pass or track your bus radar below.
-          </p>
-        </div>
-
-        <Link
-          href="/portal/settings"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-semibold transition-all text-slate-700 dark:text-slate-300 shrink-0 self-start md:self-auto"
-        >
-          <Settings className="w-4 h-4 text-slate-500" />
-          <span>Home & Transfer Settings</span>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        </Link>
-      </div>
-
       {/* Confirmed Commute Card */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
         <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800">
