@@ -506,17 +506,26 @@ export default function TeacherConsoleView({
         portalSubtitle="Faculty Transit & Attendance Desk"
         navLinks={[
           { href: "/teacher", label: "Class Attendance" },
+          { href: "/teacher/schedule", label: "Schedule Trip" },
           { href: "/teacher?tab=my_commute", label: "My Commute" },
           { href: "/teacher/settings", label: "Commute Settings" },
         ]}
         mobilePrimaryAction={{
-          label: "My Commute Cockpit",
-          href: "/teacher?tab=my_commute",
-          subtitle: "Track your commute bus & seat attendance",
+          label: "Schedule Class Trip",
+          href: "/teacher/schedule",
+          subtitle: "Allocate fleet bus for class",
           icon: BusFront,
         }}
         customActions={
           <div className="flex items-center gap-2">
+            <Link
+              href="/teacher/schedule"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg transition-colors shadow-xs"
+              title="Schedule Fleet Trip for Class"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Schedule Trip</span>
+            </Link>
             <Link
               href="/teacher/settings"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-semibold text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-2xs"
@@ -852,6 +861,14 @@ export default function TeacherConsoleView({
             <Navigation className="w-4 h-4" />
             <span>My Commute</span>
           </button>
+
+          <Link
+            href="/teacher/schedule"
+            className="pb-3 text-xs font-bold flex items-center gap-2 border-b-2 border-transparent text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors shrink-0"
+          >
+            <BusFront className="w-4 h-4" />
+            <span>Schedule Class Trip 🚀</span>
+          </Link>
         </div>
 
         {/* Tab 1: Attendance Manifest */}
