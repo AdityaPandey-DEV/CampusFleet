@@ -123,6 +123,34 @@ export async function GET(req: NextRequest) {
       (incomingEndTime > 0 && currentIstMinutes >= incomingEndTime) ||
       (morningBoarded && incomingStartTime > 0 && currentIstMinutes >= incomingStartTime + 15);
 
+    // Determine if the outgoing/afternoon/evening shift is over
+    const outgoingEndTime = parseTimeMinutes(outgoingShift?.end_time);
+    const outgoingStartTime = parseTimeMinutes(outgoingShift?.start_time);
+    const outgoingReservation = (reservations || []).find((r) => r.shift_id === outgoingShiftId);
+    const outgoingBoarded = Boolean(
+      outgoingReservation &&
+      (outgoingReservation.status === "BOARDED" || outgoingReservation.boarded_at || outgoingReservation.chosen_seat)
+    );
+
+    const isOutgoingOver = isIncomingOver && (
+      (outgoingEndTime > 0 && currentIstMinutes >= outgoingEndTime) ||
+      (outgoingBoarded && outgoingStartTime > 0 && currentIstMinutes >= outgoingStartTime + 15)
+    );
+
+    // Find the latest shift end time across all fleet shifts today
+    let latestFleetShiftEndMinutes = 0;
+    for (const s of (allShifts || [])) {
+      const endM = parseTimeMinutes(s.end_time);
+      if (endM > latestFleetShiftEndMinutes) latestFleetShiftEndMinutes = endM;
+    }
+
+    // All shifts are over if past all fleet shift end times, or student completed outgoing, or today is off
+    const isAllShiftsOver = Boolean(
+      (latestFleetShiftEndMinutes > 0 && currentIstMinutes >= latestFleetShiftEndMinutes) ||
+      (isIncomingOver && isOutgoingOver) ||
+      teacherSchedule?.is_today_off
+    );
+
     // Next shift assigned for student by the teacher
     const targetShiftId = isIncomingOver && outgoingShiftId ? outgoingShiftId : incomingShiftId;
 
@@ -427,6 +455,8 @@ export async function GET(req: NextRequest) {
         incomingShiftId,
         outgoingShiftId,
         isIncomingOver,
+        isOutgoingOver,
+        isAllShiftsOver,
         targetShiftId,
         isTodayOff: Boolean(teacherSchedule?.is_today_off),
       },

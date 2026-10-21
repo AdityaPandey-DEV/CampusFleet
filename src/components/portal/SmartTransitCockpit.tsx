@@ -20,6 +20,7 @@ import {
   UserCheck,
   Lock,
   Unlock,
+  Moon,
 } from "lucide-react";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { generateSeatLayout, getTeacherStartingSeats } from "@/lib/utils";
@@ -230,6 +231,55 @@ export default function SmartTransitCockpit({
     return false;
   }, [reservation, activeBooking, isChangingSeat]);
 
+  // Check if all commute shifts for today have concluded
+  const isAllShiftsOver = useMemo(() => {
+    if (teacherSchedule?.isAllShiftsOver) return true;
+    if (teacherSchedule?.isTodayOff) return true;
+
+    // Check IST time against fleet shift schedule
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(now.getTime() + istOffset);
+    const currentIstMinutes = istDate.getUTCHours() * 60 + istDate.getUTCMinutes();
+
+    let maxShiftEnd = 0;
+    for (const s of (shifts || [])) {
+      const parts = (s.endTime || (s as any).end_time || "").split(":");
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      if (!isNaN(h)) {
+        const total = h * 60 + (isNaN(m) ? 0 : m);
+        if (total > maxShiftEnd) maxShiftEnd = total;
+      }
+    }
+
+    if (maxShiftEnd > 0 && currentIstMinutes >= maxShiftEnd) {
+      return true;
+    }
+
+    if (teacherSchedule?.isIncomingOver && teacherSchedule?.isOutgoingOver) {
+      return true;
+    }
+
+    return false;
+  }, [teacherSchedule, shifts]);
+
+  // Tomorrow morning shift details for preview
+  const tomorrowMorningShift = useMemo(() => {
+    return (
+      shifts.find((s) => s.shiftType === "MORNING" || s.direction === "HOME_TO_CAMPUS") ||
+      shifts[0] ||
+      null
+    );
+  }, [shifts]);
+
+  const tomorrowShiftStartTime =
+    tomorrowMorningShift?.startTime ||
+    (tomorrowMorningShift as any)?.start_time ||
+    "07:15:00";
+
+  const tomorrowPickupStop = assignedStop ? assignedStop.name : (student?.primaryStopId ? `Stop: ${student.primaryStopId}` : "Campus Stop");
+
   // Confirm Seat Selection & Mark Attendance
   const handleConfirmSeat = async (seatNumber: string) => {
     if (!seatNumber) return;
@@ -312,6 +362,171 @@ export default function SmartTransitCockpit({
           <div className="h-5 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg mx-auto" />
           <div className="h-3.5 w-64 bg-slate-100 dark:bg-slate-800/60 rounded-lg mx-auto" />
         </div>
+      </div>
+    );
+  }
+
+  // ─── 0.5 ALL COMMUTE SHIFTS COMPLETED FOR TODAY ──────────────────
+  // "if todays all shift are over show in my commute: thank you for today lets see tomorrow"
+  if (isAllShiftsOver) {
+    const todaySeat = reservation?.chosen_seat || tentativeSeat;
+    const todayBusNumber = assignedBus?.busNumber || (assignedBus?.id ? `Bus #${assignedBus.id}` : "Assigned Bus");
+
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        {/* Main "Thank You for Today! See You Tomorrow" Card */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 p-6 md:p-10 shadow-xl text-white">
+          {/* Ambient background glow */}
+          <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 space-y-6">
+            {/* Top Status Badges */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Today's Commute Concluded</span>
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-300 bg-indigo-950/80 px-3 py-1 rounded-xl border border-indigo-800/60">
+                <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                <span>All Daily Shifts Completed</span>
+              </div>
+            </div>
+
+            {/* Greeting Headline */}
+            <div className="space-y-2 max-w-2xl">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
+                <span>Thank You for Today!</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-emerald-300 to-teal-200">
+                  See You Tomorrow
+                </span>
+                <span>👋</span>
+              </h1>
+              <p className="text-xs sm:text-sm md:text-base text-slate-300 leading-relaxed">
+                All scheduled bus shifts for today have successfully concluded. Rest well tonight—CampusFleet will be ready to pick you up tomorrow morning!
+              </p>
+            </div>
+
+            {/* Tomorrow's Morning Commute Preview */}
+            <div className="rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-mono uppercase tracking-wider font-bold text-indigo-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Tomorrow Morning's Commute</span>
+                </div>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Ready Tomorrow
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1">
+                  <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Departure Time</span>
+                  </div>
+                  <div className="text-sm font-bold text-white">
+                    {formatShiftTime(tomorrowShiftStartTime) || "07:15 AM"}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1">
+                  <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-pink-400" />
+                    <span>Pick-Up Stop</span>
+                  </div>
+                  <div className="text-sm font-bold text-white truncate" title={tomorrowPickupStop}>
+                    {tomorrowPickupStop}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1">
+                  <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                    <BusFront className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Shift Type</span>
+                  </div>
+                  <div className="text-sm font-bold text-white truncate">
+                    {tomorrowMorningShift?.name || "Morning Academic Daily Shift"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Today's Commute Record (if attended) */}
+            {todaySeat && (
+              <div className="px-4 py-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-200">
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Today's Ride Recorded on <strong>{todayBusNumber}</strong> (Seat: <strong>{todaySeat}</strong>)</span>
+                </span>
+                <span className="text-[11px] font-bold text-emerald-400">Attendance Completed ✓</span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              <button
+                onClick={fetchReservation}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shadow-sm active:scale-95"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Check Updates</span>
+              </button>
+
+              <button
+                onClick={() => setIsDigitalPassOpen(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md active:scale-95"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>View Today's Digital Pass</span>
+              </button>
+
+              <Link
+                href={settingsHref}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all ml-auto"
+              >
+                <Settings className="w-3.5 h-3.5 text-slate-400" />
+                <span>Settings</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Digital Pass Modal if requested */}
+        {isDigitalPassOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-in zoom-in-95 my-8">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <QrCode className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Digital Boarding Pass (QR)
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsDigitalPassOpen(false)}
+                  className="p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <DigitalPassView
+                initialUser={user}
+                initialStudent={student}
+                initialStudents={students || []}
+                initialBuses={buses}
+                initialTrips={trips}
+                initialShifts={shifts}
+                initialStops={stops}
+                initialBookings={bookings}
+                initialStaff={staff || []}
+                isEmbedded={true}
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
