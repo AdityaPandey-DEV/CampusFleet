@@ -163,69 +163,58 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      // Helper: choose nearest trip to student's stop/home based on route stops (never arbitrary)
-      const pickNearestTrip = async (candidateTrips: any[]): Promise<any> => {
-        if (!candidateTrips || candidateTrips.length === 0) return null;
-        if (candidateTrips.length === 1) return candidateTrips[0];
-
-        // Resolve student coordinate reference (assigned stop or home coordinates)
-        const { data: studentStop } = await supabaseAdmin
-          .from("stops")
-          .select("id, latitude, longitude")
-          .eq("id", targetStopId)
+      // 2.1 Auto-provision trip for route & targetShiftId if not yet scheduled today
+      if (!trip && targetRouteId && targetShiftId) {
+        const { data: busForRoute } = await supabaseAdmin
+          .from("buses")
+          .select("id, current_route_id")
+          .eq("current_route_id", targetRouteId)
+          .neq("status", "MAINTENANCE")
+          .limit(1)
           .maybeSingle();
 
-        const studentLat = studentStop?.latitude
-          ? Number(studentStop.latitude)
-          : (student as any)?.home_latitude
-          ? Number((student as any).home_latitude)
-          : null;
-        const studentLon = studentStop?.longitude
-          ? Number(studentStop.longitude)
-          : (student as any)?.home_longitude
-          ? Number((student as any).home_longitude)
-          : null;
+        const assignedBusId = busForRoute?.id || (student as any)?.bus_id || null;
 
-        if (studentLat === null || studentLon === null || isNaN(studentLat) || isNaN(studentLon)) {
-          return candidateTrips[0];
-        }
+        if (assignedBusId) {
+          const shiftObj = (allShifts || []).find((s) => s.id === targetShiftId);
+          const shiftType = (shiftObj?.type || "NONE").toUpperCase();
+          const shiftSuffix =
+            shiftType === "MORNING"
+              ? "m"
+              : shiftType === "EVENING"
+              ? "e"
+              : shiftType === "AFTERNOON" || targetShiftId.includes("halfday")
+              ? "a"
+              : "s";
+          const routeClean = targetRouteId.replace(/[^a-zA-Z0-9]/g, "-");
+          const autoTripId = `trip-${routeClean}-${shiftSuffix}-${today}`;
+          const autoTripCode = `TRIP-${routeClean.toUpperCase().replace(/[^A-Z0-9]/g, "")}-${shiftSuffix.toUpperCase()}-${today.replace(/-/g, "")}`;
 
-        const candidateRouteIds = Array.from(new Set(candidateTrips.map((t) => t.route_id).filter(Boolean)));
-        const { data: candidateRouteStops } = await supabaseAdmin
-          .from("route_stops")
-          .select("route_id, stop:stops(id, latitude, longitude)")
-          .in("route_id", candidateRouteIds);
+          const { data: newTrip } = await supabaseAdmin
+            .from("trips")
+            .upsert({
+              id: autoTripId,
+              trip_code: autoTripCode,
+              route_id: targetRouteId,
+              bus_id: assignedBusId,
+              shift_id: targetShiftId,
+              trip_date: today,
+              status: "SCHEDULED",
+              delay_minutes: 0,
+              manifest_locked: false,
+              current_stop_index: 0,
+            }, { onConflict: "id" })
+            .select()
+            .maybeSingle();
 
-        let bestTrip = candidateTrips[0];
-        let minDistanceKm = Infinity;
-
-        for (const candidateTrip of candidateTrips) {
-          const routeStopsList = (candidateRouteStops || []).filter(
-            (rs: any) => rs.route_id === candidateTrip.route_id
-          );
-
-          for (const rs of routeStopsList) {
-            const stopObj: any = rs.stop;
-            if (stopObj?.latitude && stopObj?.longitude) {
-              const dist = calculateDistanceKm(
-                studentLat,
-                studentLon,
-                Number(stopObj.latitude),
-                Number(stopObj.longitude)
-              );
-              if (dist < minDistanceKm) {
-                minDistanceKm = dist;
-                bestTrip = candidateTrip;
-              }
-            }
+          if (newTrip) {
+            trip = newTrip;
           }
         }
+      }
 
-        return bestTrip;
-      };
-
-      // If no route-specific trip found for this shift, match the NEAREST trip by geographic proximity (not arbitrary)
-      if (!trip) {
+      // 2.2 If still no trip, match any active trip for targetShiftId today (never cross-match different shifts)
+      if (!trip && targetShiftId) {
         const { data: shiftTrips } = await supabaseAdmin
           .from("trips")
           .select("id, bus_id, shift_id, route_id, status")
@@ -234,20 +223,7 @@ export async function GET(req: NextRequest) {
           .neq("status", "CANCELLED");
 
         if (shiftTrips && shiftTrips.length > 0) {
-          trip = await pickNearestTrip(shiftTrips);
-        }
-      }
-
-      // Fallback: any active operational trip today (nearest if coordinates available)
-      if (!trip) {
-        const { data: fallbackTrips } = await supabaseAdmin
-          .from("trips")
-          .select("id, bus_id, shift_id, route_id, status")
-          .in("trip_date", allowedDates)
-          .neq("status", "CANCELLED");
-
-        if (fallbackTrips && fallbackTrips.length > 0) {
-          trip = await pickNearestTrip(fallbackTrips);
+          trip = shiftTrips.find((t) => t.route_id === targetRouteId) || shiftTrips[0];
         }
       }
 
@@ -300,6 +276,37 @@ export async function GET(req: NextRequest) {
     // 3. If we have a reservation, enrich with bus and stop info
     let enriched = null;
     if (activeReservation) {
+      // Self-healing check: verify that activeReservation.trip_id matches activeReservation.shift_id
+      if (activeReservation.shift_id && activeReservation.trip_id) {
+        const { data: linkedTrip } = await supabaseAdmin
+          .from("trips")
+          .select("id, shift_id, bus_id, route_id")
+          .eq("id", activeReservation.trip_id)
+          .maybeSingle();
+
+        if (linkedTrip && linkedTrip.shift_id && linkedTrip.shift_id !== activeReservation.shift_id) {
+          console.warn(`[reservations] Shift mismatch: reservation has shift ${activeReservation.shift_id} but trip has shift ${linkedTrip.shift_id}. Auto-healing...`);
+          const { data: correctTrip } = await supabaseAdmin
+            .from("trips")
+            .select("id, bus_id, shift_id")
+            .eq("shift_id", activeReservation.shift_id)
+            .eq("bus_id", activeReservation.bus_id || linkedTrip.bus_id)
+            .in("trip_date", allowedDates)
+            .neq("status", "CANCELLED")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (correctTrip) {
+            activeReservation.trip_id = correctTrip.id;
+            await supabaseAdmin
+              .from("bus_reservations")
+              .update({ trip_id: correctTrip.id })
+              .eq("id", activeReservation.id);
+          }
+        }
+      }
+
       let targetShiftId = activeReservation.shift_id;
       if (!targetShiftId && activeReservation.trip_id) {
         const { data: tripRow } = await supabaseAdmin

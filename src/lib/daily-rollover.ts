@@ -119,9 +119,15 @@ export async function executeDailyRollover(
     const drivers = (staffList || []).filter((s) => s.role === "driver" || s.role === "transport_staff");
     const conductors = (staffList || []).filter((s) => s.role === "conductor" || s.role === "transport_staff");
 
-    // Filter shifts to daily operational ones (Morning and Evening)
+    // Filter shifts to daily operational ones (Morning, Afternoon/Half-Day, and Evening)
     const dailyShifts = (shifts || []).filter(
-      (sh) => sh.type === "MORNING" || sh.type === "EVENING" || sh.id === "shift-1" || sh.id === "shift-2"
+      (sh) =>
+        sh.type === "MORNING" ||
+        sh.type === "EVENING" ||
+        sh.type === "AFTERNOON" ||
+        sh.id === "shift-1" ||
+        sh.id === "shift-2" ||
+        sh.id === "shift-halfday"
     );
     const activeShifts = dailyShifts.length > 0 ? dailyShifts : (shifts || []).slice(0, 2);
 
@@ -147,7 +153,14 @@ export async function executeDailyRollover(
 
       activeShifts.forEach((shift) => {
         const shiftType = (shift.type || "NONE").toUpperCase();
-        const shiftSuffix = shiftType === "MORNING" ? "M" : shiftType === "EVENING" ? "E" : (shiftType.charAt(0) || "C");
+        const shiftSuffix =
+          shiftType === "MORNING"
+            ? "M"
+            : shiftType === "EVENING"
+            ? "E"
+            : shiftType === "AFTERNOON" || shift.id.includes("halfday")
+            ? "A"
+            : (shiftType.charAt(0) || "C");
         const routeClean = route.id.replace(/[^a-zA-Z0-9]/g, "-");
         const tripId = `trip-${routeClean}-${shiftSuffix.toLowerCase()}-${targetDate}`;
         const tripCode = `TRIP-${(route.code || routeClean).toUpperCase().replace(/[^a-zA-Z0-9]/g, "")}-${shiftSuffix}-${targetDate.replace(/-/g, "")}`;
