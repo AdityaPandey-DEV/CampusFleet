@@ -14,6 +14,7 @@ interface InteractiveBusSeatGridProps {
   isTeacher?: boolean;
   userRole?: string;
   teacherCount?: number;
+  occupiedSeats?: string[];
 }
 
 export function InteractiveBusSeatGrid({
@@ -25,6 +26,7 @@ export function InteractiveBusSeatGrid({
   isTeacher = false,
   userRole,
   teacherCount,
+  occupiedSeats: externalOccupiedSeats = [],
 }: InteractiveBusSeatGridProps) {
   if (!bus) {
     return (
@@ -46,10 +48,19 @@ export function InteractiveBusSeatGrid({
     userRole === "ADMIN"
   );
 
-  const occupiedSeats = activeBookings
-    .filter(b => b.status === "CONFIRMED" || b.status === "BOARDED")
-    .map(b => b.seatNumber)
-    .filter(Boolean) as string[];
+  const occupiedSeats = useMemo(() => {
+    const fromBookings = (activeBookings || [])
+      .filter((b) => {
+        // Must belong to this bus if booking has busId
+        if (b.busId && bus?.id && b.busId !== bus.id) return false;
+        return b.status === "CONFIRMED" || b.status === "BOARDED";
+      })
+      .map((b) => b.seatNumber)
+      .filter(Boolean) as string[];
+
+    const fromExternal = (externalOccupiedSeats || []).filter(Boolean);
+    return Array.from(new Set([...fromBookings, ...fromExternal]));
+  }, [activeBookings, bus?.id, externalOccupiedSeats]);
 
   const layout = bus.seatLayout || "NONE";
   const capacity = Number(bus.capacity || 0);

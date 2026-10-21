@@ -59,6 +59,7 @@ export default function SmartTransitCockpit({
   const [settings, setSettings] = useState<TransportSettings | null>(null);
   const [teacherSchedule, setTeacherSchedule] = useState<any>(null);
   const [previousReservation, setPreviousReservation] = useState<any>(null);
+  const [occupiedSeats, setOccupiedSeats] = useState<string[]>([]);
   const [isLoadingReservation, setIsLoadingReservation] = useState(true);
 
   // Seat attendance state
@@ -99,6 +100,7 @@ export default function SmartTransitCockpit({
         } else {
           setTentativeSeat(null);
         }
+        if (data.occupiedSeats) setOccupiedSeats(data.occupiedSeats);
         if (data.settings) setSettings(data.settings);
         if (data.teacherSchedule) setTeacherSchedule(data.teacherSchedule);
         if (data.previousReservation) setPreviousReservation(data.previousReservation);
@@ -479,7 +481,8 @@ export default function SmartTransitCockpit({
             <div className="p-4 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 max-h-[460px] overflow-y-auto">
               <InteractiveBusSeatGrid
                 bus={assignedBus}
-                activeBookings={bookings}
+                activeBookings={bookings.filter(b => !b.busId || b.busId === assignedBus.id)}
+                occupiedSeats={occupiedSeats}
                 selectedSeat={tentativeSeat}
                 onSelectSeat={(seatNum) => {
                   if (!isTeacher && assignedBus) {

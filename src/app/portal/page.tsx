@@ -113,6 +113,7 @@ export default async function StudentPortalPage() {
     insuranceExpiry: b.insurance_expiry || b.insuranceExpiry || "",
     maintenanceDueDate: b.maintenance_due_date || b.maintenanceDueDate || "",
     currentRouteId: b.route_id || b.currentRouteId,
+    teacherSeatsCount: typeof b.teacher_seats_count === "number" ? b.teacher_seats_count : b.teacherSeatsCount,
   }));
 
   const routes: Route[] = (dbRoutes || []).map((r: any) => ({

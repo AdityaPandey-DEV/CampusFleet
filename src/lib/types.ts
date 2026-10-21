@@ -118,6 +118,7 @@ export interface Bus {
   insuranceExpiry: string;
   maintenanceDueDate: string;
   currentRouteId?: string;
+  teacherSeatsCount?: number;
 }
 
 export interface Shift {
