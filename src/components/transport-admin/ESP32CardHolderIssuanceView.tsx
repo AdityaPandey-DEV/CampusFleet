@@ -87,11 +87,22 @@ export default function ESP32CardHolderIssuanceView({
     setTimeout(() => setToast(null), 3500);
   };
 
+function formatTimeAgo(isoString?: string | null): string {
+  if (!isoString) return "";
+  const sec = Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
+  if (sec < 10) return "just now";
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ago`;
+}
+
   const isHardwareActive = useMemo(() => {
     if (!hardwareStatus?.lastSeen) return false;
     const diffMs = Date.now() - new Date(hardwareStatus.lastSeen).getTime();
-    return diffMs < 15 * 60 * 1000;
-  }, [hardwareStatus]);
+    return diffMs < 45 * 1000; // Active if packet received within 45 seconds
+  }, [hardwareStatus, lastPollTime]);
 
   // Poll for newly detected ESP32 devices & live telematics status every 1.5 seconds
   useEffect(() => {
@@ -107,9 +118,7 @@ export default function ESP32CardHolderIssuanceView({
           if (Array.isArray(data.unmappedDevices)) {
             setUnmappedDevices(data.unmappedDevices);
           }
-          if (data.hardwareStatus) {
-            setHardwareStatus(data.hardwareStatus);
-          }
+          setHardwareStatus(data.hardwareStatus || null);
           setLastPollTime(new Date());
         }
       } catch (err) {
@@ -361,31 +370,40 @@ export default function ESP32CardHolderIssuanceView({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2.5 bg-gray-50 dark:bg-gray-800 px-3.5 py-2 rounded-2xl border border-gray-200 dark:border-gray-700">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span
-                className={`animate-ping absolute inline-flex h-full w-full rounded-full ${
-                  isHardwareActive ? "bg-emerald-400 opacity-75" : "bg-amber-400 opacity-50"
-                }`}
-              ></span>
+              {isHardwareActive && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              )}
               <span
                 className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                  isHardwareActive ? "bg-emerald-500" : "bg-amber-500"
+                  isHardwareActive ? "bg-emerald-500" : "bg-gray-400"
                 }`}
               ></span>
             </span>
             <div className="flex flex-col">
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                {hardwareStatus?.busNumber
-                  ? `Live: ${hardwareStatus.busNumber}`
-                  : isHardwareActive
-                  ? `ESP32 Connected`
-                  : "ESP32 Standby (Ready)"}
+                {isHardwareActive
+                  ? (hardwareStatus?.busNumber ? `Live: ${hardwareStatus.busNumber}` : "ESP32 Active")
+                  : (hardwareStatus?.busNumber ? `Offline: ${hardwareStatus.busNumber}` : "ESP32 Standby (Offline)")}
               </span>
               <span className="text-[10px] text-gray-400 font-mono">
                 {hardwareStatus?.deviceId
-                  ? `ID: ${hardwareStatus.deviceId}`
-                  : "Listening on network..."}
+                  ? `ID: ${hardwareStatus.deviceId} • ${isHardwareActive ? "Active now" : `Last seen ${formatTimeAgo(hardwareStatus.lastSeen)}`}`
+                  : "Waiting for signal..."}
               </span>
             </div>
+            {hardwareStatus && (
+              <button
+                onClick={async () => {
+                  await fetch("/api/telematics/rfid/latest-tap?clearStatus=true", { method: "DELETE" });
+                  setHardwareStatus(null);
+                  showToast("info", "Heartbeat cache cleared.");
+                }}
+                className="ml-1 p-1 text-gray-400 hover:text-rose-500 rounded-lg transition-colors"
+                title="Reset/Clear heartbeat status"
+              >
+                <Power className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <button
@@ -564,9 +582,17 @@ export default function ESP32CardHolderIssuanceView({
                             Live Active
                           </span>
                         ) : (
-                          <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[10px] font-black uppercase tracking-wider">
-                            Paired • Standby
-                          </span>
+                          <div className="flex flex-col">
+                            <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                              Offline / Standby
+                            </span>
+                            {hardwareStatus?.busId === bus.id && hardwareStatus?.lastSeen && (
+                              <span className="text-[9px] text-gray-400 mt-0.5 font-medium">
+                                Last seen {formatTimeAgo(hardwareStatus.lastSeen)}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
 

@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       resolvedBusNumber = b?.bus_number || effectiveBusId;
     }
 
-    // 2. Track hardware heartbeat / online status in Redis (15 min TTL)
+    // 2. Track hardware heartbeat / online status in Redis (60s TTL so turning off power reflects within 60s)
     if (rawDeviceId || effectiveBusId) {
       const hwStatus = {
         deviceId: rawDeviceId || `ESP32-${effectiveBusId}`,
@@ -94,9 +94,9 @@ export async function POST(req: NextRequest) {
         isMapped: Boolean(effectiveBusId),
         lastSeen: new Date().toISOString(),
       };
-      await cacheSet("telematics:latest_esp32_status", hwStatus, 900);
+      await cacheSet("telematics:latest_esp32_status", hwStatus, 60);
       if (rawDeviceId) {
-        await cacheSet(`telematics:device_status:${rawDeviceId}`, hwStatus, 900);
+        await cacheSet(`telematics:device_status:${rawDeviceId}`, hwStatus, 60);
       }
     }
 
@@ -164,8 +164,16 @@ export async function POST(req: NextRequest) {
 
     if (!effectiveRfid && !enrollmentNo) {
       return NextResponse.json(
-        { success: false, error: "Either rfidCardId or enrollmentNo must be provided." },
-        { status: 400 }
+        {
+          success: true,
+          status: "HEARTBEAT_ACK",
+          message: `✓ Heartbeat acknowledged for ESP32 [${rawDeviceId || "Reader"}] on ${resolvedBusNumber || effectiveBusId || "Bus"}.`,
+          deviceId: rawDeviceId || undefined,
+          busId: effectiveBusId || null,
+          busNumber: resolvedBusNumber || effectiveBusId || null,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 200 }
       );
     }
 

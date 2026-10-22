@@ -66,6 +66,16 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const rfidCardId = searchParams.get("rfidCardId");
     const deviceId = searchParams.get("deviceId");
+    const clearStatus = searchParams.get("clearStatus") === "true";
+
+    // If clearing active ESP32 heartbeat status
+    if (clearStatus) {
+      await cacheDel("telematics:latest_esp32_status");
+      return NextResponse.json(
+        { success: true, message: "ESP32 live status reset to offline." },
+        { headers: NO_CACHE_HEADERS }
+      );
+    }
 
     // If dismissing an unmapped ESP32 device
     if (deviceId) {

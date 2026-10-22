@@ -141,11 +141,22 @@ export default function RfidCardIssuanceView({
     setTimeout(() => setToast(null), 3500);
   };
 
+function formatTimeAgo(isoString?: string | null): string {
+  if (!isoString) return "";
+  const sec = Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
+  if (sec < 10) return "just now";
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ago`;
+}
+
   const isHardwareActive = useMemo(() => {
     if (!hardwareStatus?.lastSeen) return false;
     const diffMs = Date.now() - new Date(hardwareStatus.lastSeen).getTime();
-    return diffMs < 15 * 60 * 1000;
-  }, [hardwareStatus]);
+    return diffMs < 45 * 1000; // Active if packet received within 45 seconds
+  }, [hardwareStatus, lastPollTime]);
 
   // Poll for newly tapped cards from ESP32 every 1.5 seconds with zero caching
   useEffect(() => {
@@ -161,9 +172,7 @@ export default function RfidCardIssuanceView({
           if (Array.isArray(data.unmappedList)) {
             setUnmappedCards(data.unmappedList);
           }
-          if (data.hardwareStatus) {
-            setHardwareStatus(data.hardwareStatus);
-          }
+          setHardwareStatus(data.hardwareStatus || null);
           setLastPollTime(new Date());
         }
       } catch (err) {
@@ -493,29 +502,29 @@ export default function RfidCardIssuanceView({
             title="Click to view and configure ESP32 IoT hardware bus mapping"
           >
             <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span
-                className={`animate-ping absolute inline-flex h-full w-full rounded-full ${
-                  isHardwareActive ? "bg-emerald-400 opacity-75" : "bg-amber-400 opacity-50"
-                }`}
-              ></span>
+              {isHardwareActive && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              )}
               <span
                 className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                  isHardwareActive ? "bg-emerald-500" : "bg-amber-500"
+                  isHardwareActive ? "bg-emerald-500" : "bg-gray-400"
                 }`}
               ></span>
             </span>
             <div className="flex flex-col">
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                {hardwareStatus?.busNumber
-                  ? `ESP32 Online • ${hardwareStatus.busNumber}`
-                  : isHardwareActive
-                  ? `ESP32 Active (${hardwareStatus?.deviceId || "Connected"})`
-                  : "ESP32 Standby (Ready)"}
+                {isHardwareActive
+                  ? (hardwareStatus?.busNumber
+                      ? `ESP32 Online • ${hardwareStatus.busNumber}`
+                      : `ESP32 Active (${hardwareStatus?.deviceId || "Connected"})`)
+                  : (hardwareStatus?.busNumber
+                      ? `ESP32 Offline • ${hardwareStatus.busNumber}`
+                      : "ESP32 Standby (Offline)")}
               </span>
               <span className="text-[10px] text-gray-400 font-mono">
                 {hardwareStatus?.deviceId
-                  ? `Hardware: ${hardwareStatus.deviceId}`
+                  ? `Hardware: ${hardwareStatus.deviceId} • ${isHardwareActive ? "Active now" : `Last seen ${formatTimeAgo(hardwareStatus.lastSeen)}`}`
                   : "Click to map readers"}
               </span>
             </div>
