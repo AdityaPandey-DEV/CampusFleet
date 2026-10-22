@@ -20,8 +20,92 @@ import {
   Loader2,
   ArrowLeft,
   ArrowRight,
+  ChevronDown,
+  Navigation,
+  Clock,
 } from "lucide-react";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
+
+type DropdownOption = string | { value: string; label: string; sublabel?: string };
+
+const CustomDropdown = ({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder,
+  disabled = false
+}: { 
+  options: DropdownOption[], 
+  value: string, 
+  onChange: (val: string) => void,
+  placeholder: string,
+  disabled?: boolean
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const selectedOption = options.find(opt => 
+    typeof opt === "string" ? opt === value : opt.value === value
+  );
+  const displayLabel = typeof selectedOption === "string" 
+    ? selectedOption 
+    : (selectedOption?.label || value);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full px-4 py-2.5 text-left border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500 flex justify-between items-center transition-all ${
+          disabled ? "opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800/40" : "hover:border-gray-400 dark:hover:border-gray-600"
+        }`}
+      >
+        <span className={displayLabel ? "text-gray-900 dark:text-white truncate text-sm" : "text-gray-400 truncate text-sm"}>
+          {displayLabel || placeholder}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      {isOpen && !disabled && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800/50">
+            {options.length === 0 ? (
+              <div className="px-4 py-3 text-xs text-gray-400 italic">No options available</div>
+            ) : (
+              options.map((opt, idx) => {
+                const optVal = typeof opt === "string" ? opt : opt.value;
+                const optLabel = typeof opt === "string" ? opt : opt.label;
+                const optSub = typeof opt === "string" ? undefined : opt.sublabel;
+                const isSelected = value === optVal;
+
+                return (
+                  <button
+                    key={`${optVal}-${idx}`}
+                    type="button"
+                    onClick={() => {
+                      onChange(optVal);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex flex-col ${
+                      isSelected 
+                        ? 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 font-medium' 
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span className="font-medium text-xs md:text-sm">{optLabel}</span>
+                    {optSub && (
+                      <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{optSub}</span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 export default function StudentOnboardingPage() {
   const router = useRouter();
@@ -133,6 +217,17 @@ export default function StudentOnboardingPage() {
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
+  // Home Location & Commute Stops state
+  const [homeAddress, setHomeAddress] = useState("Mukhani, Haldwani, Uttarakhand, 263141");
+  const [homeLat, setHomeLat] = useState("29.220936");
+  const [homeLng, setHomeLng] = useState("79.514496");
+  const [autoAssignedStopId, setAutoAssignedStopId] = useState<string | null>(null);
+  const [nearestStops, setNearestStops] = useState<any[]>([]);
+  const [isDetectingGPS, setIsDetectingGPS] = useState(false);
+  const [isResolvingAddress, setIsResolvingAddress] = useState(false);
+  const [isSavingHome, setIsSavingHome] = useState(false);
+  const [homeStatusMsg, setHomeStatusMsg] = useState<string | null>(null);
+
   const isPassApproved = isStudentSubscriptionActive(activeStudent);
   const isPhotoLocked = isPassApproved;
   const isZoneLocked = isPassApproved;
@@ -149,7 +244,7 @@ export default function StudentOnboardingPage() {
     setIsUploadingPhoto(true);
     
     try {
-      // 1. Client-side image compression (drastically speeds up upload for large phone photos)
+      // 1. Client-side image compression
       const compressedFile = await new Promise<File>((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -166,13 +261,13 @@ export default function StudentOnboardingPage() {
             if (width > height) {
               if (width > MAX_WIDTH) {
                 height *= MAX_WIDTH / width;
-                width = MAX_WIDTH;
               }
+              width = MAX_WIDTH;
             } else {
               if (height > MAX_HEIGHT) {
                 width *= MAX_HEIGHT / height;
-                height = MAX_HEIGHT;
               }
+              height = MAX_HEIGHT;
             }
             canvas.width = width;
             canvas.height = height;
@@ -182,7 +277,6 @@ export default function StudentOnboardingPage() {
             canvas.toBlob(
               (blob) => {
                 if (blob) {
-                  // Replace extension with .jpeg
                   const fileName = file.name.replace(/\.[^/.]+$/, "") + ".jpeg";
                   resolve(new File([blob], fileName, { type: "image/jpeg" }));
                 } else {
@@ -190,7 +284,7 @@ export default function StudentOnboardingPage() {
                 }
               },
               "image/jpeg",
-              0.8 // 80% quality
+              0.8
             );
           };
           img.onerror = () => reject(new Error("Failed to load image for compression"));
@@ -198,7 +292,6 @@ export default function StudentOnboardingPage() {
         reader.onerror = () => reject(new Error("Failed to read file"));
       });
 
-      // 1.5. Set local preview immediately so the user never experiences broken preview while waiting for upload
       try {
         const objectUrl = URL.createObjectURL(compressedFile);
         setLocalPreviewUrl(objectUrl);
@@ -207,7 +300,6 @@ export default function StudentOnboardingPage() {
         console.warn("Local object URL creation failed", err);
       }
 
-      // 2. Upload compressed image
       const formData = new FormData();
       formData.append("file", compressedFile);
       
@@ -219,51 +311,117 @@ export default function StudentOnboardingPage() {
       
       if (res.ok && data.success) {
         setPhotoUrl(data.url);
-        
-        // 3. Auto-save photo URL directly to DB so it's not lost if they refresh without submitting
-        const targetStudentId = activeStudent?.id || `stud-${currentUser?.id || Date.now()}`;
-        if (targetStudentId && !targetStudentId.startsWith('stud-')) {
-          try {
-             await store.updateStudentProfile(targetStudentId, { photoUrl: data.url });
-             setToast("Photo uploaded and saved! Keep completing your profile.");
-             setTimeout(() => setToast(null), 4000);
-          } catch(e) { /* ignore auto-save fail, they can still hit Submit */ }
-        } else {
-          setToast("Photo uploaded successfully! Remember to click Save Profile at the bottom.");
-          setTimeout(() => setToast(null), 5000);
-        }
+        setImageLoadFailed(false);
+        setToast("Official photo uploaded successfully.");
+        setTimeout(() => setToast(null), 3000);
       } else {
         alert(data.error || "Failed to upload photo. Please try again.");
       }
     } catch (err: any) {
-      alert("Upload failed: " + err.message);
+      console.error("Photo upload error:", err);
+      alert(err.message || "Failed to upload photo");
     } finally {
       setIsUploadingPhoto(false);
     }
   };
 
+  const fetchAddressForCoordinates = async (lat: number, lng: number) => {
+    setIsResolvingAddress(true);
+    try {
+      const res = await fetch(`/api/geo/reverse-geocode?lat=${lat}&lng=${lng}`);
+      const data = await res.json();
+      if (data.success && data.address) {
+        setHomeAddress(data.address);
+      }
+    } catch (err) {
+      console.warn("Could not reverse geocode coordinates:", err);
+    } finally {
+      setIsResolvingAddress(false);
+    }
+  };
+
+  const handleDetectGPS = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setIsDetectingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setHomeLat(lat.toFixed(6));
+        setHomeLng(lng.toFixed(6));
+        setIsDetectingGPS(false);
+        fetchAddressForCoordinates(lat, lng);
+      },
+      err => {
+        alert("Failed to acquire GPS location: " + err.message);
+        setIsDetectingGPS(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleSaveHomeLocation = async () => {
+    const lat = parseFloat(homeLat);
+    const lng = parseFloat(homeLng);
+    if (isNaN(lat) || isNaN(lng)) {
+      alert("Please provide valid numeric latitude and longitude coordinates.");
+      return;
+    }
+    const studentId = activeStudent?.id || currentUser?.id;
+    if (!studentId) return;
+
+    setIsSavingHome(true);
+    setHomeStatusMsg(null);
+    try {
+      const res = await fetch("/api/students/home-location", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId,
+          latitude: lat,
+          longitude: lng,
+          address: homeAddress.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Failed to calculate nearest stops");
+      if (data.homeLocation?.autoAssignedStopId) {
+        setAutoAssignedStopId(data.homeLocation.autoAssignedStopId);
+        setPrimaryStopId(data.homeLocation.autoAssignedStopId);
+      }
+      if (data.nearestStops) {
+        setNearestStops(data.nearestStops);
+      }
+      setHomeStatusMsg(data.message || "Coordinates saved and nearest stops calculated!");
+    } catch (err: any) {
+      alert(err.message || "Error saving coordinates");
+    } finally {
+      setIsSavingHome(false);
+    }
+  };
+
   useEffect(() => {
     const unsub = store.subscribe(() => {
+      setStudents(store.getStudents());
       setCurrentUser(store.getCurrentUser());
-      const s = store.getStudents();
-      setStudents(s);
-      if (s.length > 0 || store.isReady()) setDataLoaded(true);
       setCampuses(store.getCampuses());
       setStops(store.getStops());
-      setTransitZones(store.getTransitZones(campusId));
     });
     return unsub;
-  }, [campusId]);
+  }, []);
 
   useEffect(() => {
     if (campuses.length === 0) {
       fetch("/api/campus")
         .then(res => res.json())
         .then(data => {
-          if (data.success && data.campuses && data.campuses.length > 0) {
+          if (data.success && data.campuses) {
             setCampuses(data.campuses);
-            const primary = data.primaryCampus || data.campuses.find((c: any) => c.isPrimary) || data.campuses[0];
-            if (primary && !campusId) {
+            if (!campusId && data.campuses.length > 0) {
+              const primary = data.campuses.find((c: Campus) => c.isPrimary) || data.campuses[0];
               setCampusId(primary.id);
               setCampus(primary.name);
             }
@@ -307,11 +465,10 @@ export default function StudentOnboardingPage() {
       });
   }, []);
 
-  // Initialize form state ONLY ONCE when data is loaded
+  // Initialize form state
   useEffect(() => {
     if (!dataLoaded) return;
     
-    // Auto-populate data
     setFullName(prev => prev || activeStudent?.fullName || currentUser?.fullName || "");
     setPhone(prev => prev || activeStudent?.phone || "");
     setCampusId(prev => prev || activeStudent?.campusId || store.getPrimaryCampus()?.id || "");
@@ -348,6 +505,19 @@ export default function StudentOnboardingPage() {
     }
     setStudentIdCode(prev => prev || activeStudent?.enrollmentNo || autoId || "");
 
+    if ((activeStudent as any)?.home_latitude || (activeStudent as any)?.homeLatitude) {
+      setHomeLat(String((activeStudent as any)?.home_latitude || (activeStudent as any)?.homeLatitude));
+    }
+    if ((activeStudent as any)?.home_longitude || (activeStudent as any)?.homeLongitude) {
+      setHomeLng(String((activeStudent as any)?.home_longitude || (activeStudent as any)?.homeLongitude));
+    }
+    if ((activeStudent as any)?.home_address || (activeStudent as any)?.homeAddress) {
+      setHomeAddress((activeStudent as any)?.home_address || (activeStudent as any)?.homeAddress);
+    }
+    if ((activeStudent as any)?.auto_assigned_stop_id || (activeStudent as any)?.autoAssignedStopId) {
+      setAutoAssignedStopId((activeStudent as any)?.auto_assigned_stop_id || (activeStudent as any)?.autoAssignedStopId);
+    }
+
   }, [dataLoaded, activeStudent, currentUser, academicData.classes, stops]);
 
   const institutionalEmailPreview = useMemo(() => {
@@ -360,6 +530,56 @@ export default function StudentOnboardingPage() {
       : "gehu.ac.in";
     return `${nameSlug}.${studentIdCode.trim().toLowerCase()}@${domain}`;
   }, [studentIdCode, fullName, currentUser, campus, campusId]);
+
+  const campusOptions = useMemo(() => {
+    return campuses.map(c => ({
+      value: c.id,
+      label: `${c.name}${c.isPrimary ? " (Primary)" : ""}`,
+    }));
+  }, [campuses]);
+
+  const courseOptions = useMemo(() => {
+    return (academicData.courses || []).map(crs => ({
+      value: crs.id,
+      label: `${crs.short_name} — ${crs.name}`,
+    }));
+  }, [academicData.courses]);
+
+  const branchOptions = useMemo(() => {
+    return filteredBranches.map(br => ({
+      value: br.id,
+      label: `${br.code} — ${br.name}`,
+    }));
+  }, [filteredBranches]);
+
+  const specializationOptions = useMemo(() => {
+    return filteredSpecializations.map(sp => ({
+      value: sp.id,
+      label: `${sp.short_label} (${sp.name})`,
+    }));
+  }, [filteredSpecializations]);
+
+  const semesterOptions = useMemo(() => {
+    return availableSemesters.map(sem => ({
+      value: sem,
+      label: sem,
+    }));
+  }, [availableSemesters]);
+
+  const sectionOptions = useMemo(() => {
+    return availableSections.map(sec => ({
+      value: sec.code,
+      label: `${sec.name} (${sec.code})`,
+    }));
+  }, [availableSections]);
+
+  const transitZoneOptions = useMemo(() => {
+    return transitZones.map(z => ({
+      value: z.code,
+      label: `${z.name} — ₹${z.semesterFee.toLocaleString()} / Semester`,
+      sublabel: z.corridorDescription,
+    }));
+  }, [transitZones]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -380,6 +600,9 @@ export default function StudentOnboardingPage() {
     const chosenClass = classesList.find(c => c.id === selectedClassId);
     const chosenCampus = campuses.find(c => c.id === campusId);
 
+    const latNum = parseFloat(homeLat);
+    const lngNum = parseFloat(homeLng);
+
     const res = await store.updateStudentProfile(targetStudentId, {
       fullName: fullName.trim() || currentUser?.fullName || "Student",
       campusId,
@@ -394,6 +617,10 @@ export default function StudentOnboardingPage() {
       photoUrl: photoUrl.trim() || undefined,
       enrollmentNo: studentIdCode.trim() || undefined,
       studentIdCode: studentIdCode.trim() || undefined,
+      homeLatitude: !isNaN(latNum) ? latNum : undefined,
+      homeLongitude: !isNaN(lngNum) ? lngNum : undefined,
+      homeAddress: homeAddress.trim() || undefined,
+      autoAssignedStopId: autoAssignedStopId || undefined,
       emergencyContact: {
         name: emergencyName.trim() || "Parent / Guardian",
         relationship: emergencyRel,
@@ -410,6 +637,23 @@ export default function StudentOnboardingPage() {
         });
       } catch (err) {
         console.warn("Failed to sync student class with backend", err);
+      }
+    }
+
+    if (!isNaN(latNum) && !isNaN(lngNum)) {
+      try {
+        await fetch("/api/students/home-location", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId: targetStudentId,
+            latitude: latNum,
+            longitude: lngNum,
+            address: homeAddress.trim(),
+          }),
+        });
+      } catch (locErr) {
+        console.warn("Failed to sync home coordinates", locErr);
       }
     }
 
@@ -431,75 +675,75 @@ export default function StudentOnboardingPage() {
 
   if (!dataLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black text-green-600">
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
-      {/* Flat Header */}
-      <div className="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col pb-16">
+      {/* Settings-Themed Header */}
+      <div className="w-full bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => router.back()}
               className="p-1.5 -ml-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
               title="Go Back"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="p-2 bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400">
+            <div className="p-2 border border-gray-200 dark:border-gray-800 text-green-600 dark:text-green-400">
               <GraduationCap className="w-5 h-5" />
             </div>
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white">
-              {activeStudent?.phone ? "Profile & Transit Details" : "Profile Setup"}
-            </h1>
+            <div>
+              <h1 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
+                {activeStudent?.phone ? "Profile & Transit Details" : "Profile Setup"}
+              </h1>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-
-            <div className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 flex items-center gap-1.5 uppercase tracking-wider border border-gray-200 dark:border-gray-700">
-              <Lock className="w-3 h-3" /> Secure
+            <div className="text-xs font-mono font-medium text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-800 px-3 py-1 flex items-center gap-1.5 uppercase tracking-wider">
+              <Lock className="w-3 h-3 text-green-600" /> Secure
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 w-full max-w-3xl mx-auto p-4 sm:p-6 lg:py-10">
+      <div className="flex-1 w-full max-w-4xl mx-auto py-6 sm:py-8 px-4 sm:px-6 animate-in fade-in duration-300">
         {toast && (
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5" /> {toast}
+          <div className="mb-6 p-4 border border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-800 text-green-800 dark:text-green-300 text-sm font-medium flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> {toast}
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-none">
-          {/* Form Body */}
-          <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">
-            <div className="border-b border-gray-100 dark:border-gray-800 pb-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Welcome, {currentUser?.fullName || currentUser?.email}</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Please complete your student profile. This information is used for ID verification, transit zone allocation, and emergency contacts.
-              </p>
+        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-none shadow-none">
+          <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800/60">
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">Profile Details & Transit Setup</h2>
+              <p className="text-xs text-gray-500 mt-1">Complete your student profile for institutional pass issuance and automated route assignment</p>
             </div>
+          </div>
 
-            {/* Official Passport Photo Verification Upload */}
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* 1. Official Passport Photo */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Official ID Photo</h3>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">Official ID Photo</h3>
                 {isPhotoLocked ? (
-                  <span className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                  <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                     <Lock className="w-3 h-3" /> Locked
                   </span>
                 ) : (
-                  <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-md">
-                    Required
+                  <span className="text-[10px] font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-0.5 border border-green-200 dark:border-green-800">
+                    Required for Pass
                   </span>
                 )}
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
-                {/* Photo Preview Thumbnail */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-4 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
                 <div className="flex-shrink-0">
                   {(localPreviewUrl || photoUrl) && !imageLoadFailed ? (
                     <img
@@ -515,7 +759,7 @@ export default function StudentOnboardingPage() {
                       onError={() => {
                         setImageLoadFailed(true);
                       }}
-                      className="w-24 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-950"
+                      className="w-24 h-32 object-cover border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
                     />
                   ) : photoUrl && imageLoadFailed ? (
                     <img
@@ -523,32 +767,29 @@ export default function StudentOnboardingPage() {
                       alt="Passport Photo Preview"
                       crossOrigin="anonymous"
                       referrerPolicy="no-referrer"
-                      className="w-24 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-950"
+                      className="w-24 h-32 object-cover border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
                     />
                   ) : (
-                    <div className="w-24 h-32 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 flex flex-col items-center justify-center text-gray-400">
+                    <div className="w-24 h-32 border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center text-gray-400">
                       <User className="w-8 h-8 mb-2 opacity-50" />
                       <span className="text-[10px] font-medium">No Photo</span>
                     </div>
                   )}
                 </div>
 
-                {/* Upload Controls or Locked Notice */}
                 <div className="flex-1 w-full">
                   {isPhotoLocked ? (
-                    <div className="space-y-2">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Your official photo has been verified and locked. Only campus transport staff can update this photo.
-                      </p>
-                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Your official photo has been verified and locked. Only campus transport staff can update this photo.
+                    </p>
                   ) : (
-                    <div className="space-y-4">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Upload a clear passport-sized photo. This will be shown to the conductor during boarding.
+                    <div className="space-y-3">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Upload a clear passport-sized photo. This will be shown to the conductor and scanner during boarding.
                       </p>
                       <div className="flex items-center gap-3">
-                        <label className={`px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium flex items-center gap-2 transition-colors shadow-sm ${isUploadingPhoto ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
-                          {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        <label className={`px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-none flex items-center gap-2 transition-colors shadow-sm cursor-pointer ${isUploadingPhoto ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          {isUploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                           <span>{isUploadingPhoto ? 'Uploading...' : 'Choose File'}</span>
                           <input
                             type="file"
@@ -566,7 +807,7 @@ export default function StudentOnboardingPage() {
                               setLocalPreviewUrl("");
                               setImageLoadFailed(false);
                             }}
-                            className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-medium px-3 py-2 transition-colors"
+                            className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-3 py-2 transition-colors border border-gray-200 dark:border-gray-800"
                           >
                             Clear
                           </button>
@@ -578,55 +819,29 @@ export default function StudentOnboardingPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+            <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
+
+            {/* 2. Basic Student Identity */}
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">Student Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Full Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Full Name
                 </label>
                 <input
                   type="text"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
-                  placeholder="Student Name"
-                  className="w-full text-sm p-3.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-600 transition-colors"
+                  placeholder="Student Full Name"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
                 />
               </div>
 
-            {/* University Campus */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
-                <span>University Campus</span>
-                {isCampusLocked && (
-                  <span className="text-[10px] text-yellow-600 dark:text-yellow-400 font-bold flex items-center gap-1">
-                    <Lock className="w-3 h-3" /> Locked
-                  </span>
-                )}
-              </label>
-              <select
-                value={campusId}
-                disabled={isCampusLocked}
-                onChange={e => {
-                  setCampusId(e.target.value);
-                  const c = campuses.find(camp => camp.id === e.target.value);
-                  if (c) setCampus(c.name);
-                }}
-                className={`w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-colors ${
-                  isCampusLocked ? "opacity-75 cursor-not-allowed bg-gray-100 dark:bg-gray-850" : ""
-                }`}
-              >
-                {campuses.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} {c.isPrimary ? "(Primary)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-              {/* Contact Mobile Phone */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                  Student Mobile Phone *
+              {/* Student Mobile Phone */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Phone Number *
                 </label>
                 <input
                   type="tel"
@@ -634,19 +849,39 @@ export default function StudentOnboardingPage() {
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  className="w-full text-sm p-3.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-600 transition-colors"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm font-mono"
+                />
+              </div>
+
+              {/* University Campus */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                  <span>University Campus</span>
+                  {isCampusLocked && (
+                    <span className="text-[10px] text-yellow-600 dark:text-yellow-400 font-medium flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Locked
+                    </span>
+                  )}
+                </label>
+                <CustomDropdown
+                  disabled={isCampusLocked}
+                  options={campusOptions}
+                  value={campusId}
+                  placeholder="Select Campus"
+                  onChange={(val) => {
+                    setCampusId(val);
+                    const c = campuses.find(camp => camp.id === val);
+                    if (c) setCampus(c.name);
+                  }}
                 />
               </div>
 
               {/* University Student ID */}
-              <div className="space-y-1.5 md:col-span-2 p-4 bg-gray-50/80 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/80 rounded-xl space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <GraduationCap className="w-4 h-4 text-blue-600" />
-                    University Student ID (ERP Roll ID) *
-                  </span>
-                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/40">
-                    Official College ID
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                  <span>University Student ID (ERP Roll ID) *</span>
+                  <span className="text-[10px] text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">
+                    College ERP ID
                   </span>
                 </label>
                 <input
@@ -654,299 +889,400 @@ export default function StudentOnboardingPage() {
                   required
                   value={studentIdCode}
                   onChange={e => setStudentIdCode(e.target.value.trim().toUpperCase())}
-                  placeholder="e.g. 230111075 or PV-23620010"
-                  className="w-full text-sm p-3.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-mono font-bold outline-none focus:border-blue-600 transition-colors"
+                  placeholder="e.g. 230111075"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 font-mono text-sm"
                 />
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Enter your official university Student ID / ERP Roll number (from your college ID card or university email address).
-                </p>
-                {institutionalEmailPreview && (
-                  <div className="text-xs font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
-                    <span>Campus Email: <strong>{institutionalEmailPreview}</strong></span>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded">
-                      ERP Synced
+              </div>
+            </div>
+
+            {/* Live Campus Email Preview */}
+            {institutionalEmailPreview && (
+              <div className="p-3 border border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-800 text-green-800 dark:text-green-300 text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
+                <span>Campus Email: <strong>{institutionalEmailPreview}</strong></span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/60 px-2 py-0.5 rounded">
+                  ERP Synced
+                </span>
+              </div>
+            )}
+
+            <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
+
+            {/* 3. Academic Cohort & Section Selection */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">
+                Academic Cohort & Section Selection
+              </h3>
+              {currentMatchedClass && (
+                <span className="text-[11px] font-mono px-2 py-0.5 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40">
+                  ✓ Verified Cohort
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Step 1: Degree / Course */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  1. Degree / Course *
+                </label>
+                <CustomDropdown
+                  options={courseOptions}
+                  value={selectedCourseId}
+                  placeholder="Select Degree / Course"
+                  onChange={(val) => {
+                    setSelectedCourseId(val);
+                    setSelectedBranchId("");
+                    setSelectedSpecializationId("");
+                    setSelectedYear("");
+                    setSelectedSection("");
+                    setSelectedClassId("");
+                    const crs = academicData.courses.find(c => c.id === val);
+                    if (crs) setSelectedCourse(crs.short_name);
+                  }}
+                />
+              </div>
+
+              {/* Step 2: Branch / Department */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  2. Discipline / Branch *
+                </label>
+                <CustomDropdown
+                  disabled={!selectedCourseId || branchOptions.length === 0}
+                  options={branchOptions}
+                  value={selectedBranchId}
+                  placeholder="Select Branch"
+                  onChange={(val) => {
+                    setSelectedBranchId(val);
+                    setSelectedSpecializationId("");
+                    setSelectedSection("");
+                    setSelectedClassId("");
+                    const br = academicData.branches.find(b => b.id === val);
+                    if (br) setDepartment(br.name);
+                  }}
+                />
+              </div>
+
+              {/* Step 3: Specialization / Track */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  3. Specialization / Track *
+                </label>
+                <CustomDropdown
+                  disabled={!selectedBranchId || specializationOptions.length === 0}
+                  options={specializationOptions}
+                  value={selectedSpecializationId}
+                  placeholder="Select Specialization"
+                  onChange={(val) => {
+                    setSelectedSpecializationId(val);
+                    setSelectedSection("");
+                    setSelectedClassId("");
+                  }}
+                />
+              </div>
+
+              {/* Step 4: Semester */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  4. Current Semester *
+                </label>
+                <CustomDropdown
+                  disabled={!selectedCourseId}
+                  options={semesterOptions}
+                  value={selectedYear}
+                  placeholder="Select Semester"
+                  onChange={(val) => {
+                    setSelectedYear(val);
+                    setSemester(val);
+                    setSelectedSection("");
+                    setSelectedClassId("");
+                  }}
+                />
+              </div>
+
+              {/* Step 5: Section */}
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  5. Class Section *
+                </label>
+                <CustomDropdown
+                  disabled={!selectedSpecializationId || !selectedYear}
+                  options={sectionOptions}
+                  value={selectedSection}
+                  placeholder="Select Section"
+                  onChange={(val) => {
+                    setSelectedSection(val);
+                    const matched = academicData.classes.find(
+                      c => c.specialization_id === selectedSpecializationId &&
+                           c.semester === selectedYear &&
+                           c.section === val
+                    );
+                    if (matched) {
+                      setSelectedClassId(matched.id);
+                    } else {
+                      setSelectedClassId("");
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Verified Matched Class Banner */}
+            {currentMatchedClass && (
+              <div className="p-3 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black flex items-center justify-between text-xs">
+                <span className="text-gray-500">
+                  Assigned Timetable Cohort:
+                </span>
+                <span className="font-medium text-green-700 dark:text-green-400">
+                  {currentMatchedClass.name}
+                </span>
+              </div>
+            )}
+
+            <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
+
+            {/* 4. Home Location & Commute Stops (Requested) */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">
+                    Home Location & Commute Stops
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Configure your residential GPS coordinates for automatic nearest stop assignment
+                  </p>
+                </div>
+                <div className="p-2 border border-gray-100 dark:border-gray-800 text-gray-500">
+                  <MapPin className="w-5 h-5" />
+                </div>
+              </div>
+
+              {homeStatusMsg && (
+                <div className="p-3 text-xs border border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-800 text-green-800 dark:text-green-300 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  <span>{homeStatusMsg}</span>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Street / Area Address</label>
+                    {isResolvingAddress && (
+                      <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1 font-medium animate-pulse">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Fetching street address from map...
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={homeAddress}
+                    onChange={e => setHomeAddress(e.target.value)}
+                    placeholder="Mukhani, Haldwani, Uttarakhand, 263141"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Latitude</label>
+                    <input
+                      type="text"
+                      value={homeLat}
+                      onChange={e => setHomeLat(e.target.value)}
+                      placeholder="29.220936"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Longitude</label>
+                    <input
+                      type="text"
+                      value={homeLng}
+                      onChange={e => setHomeLng(e.target.value)}
+                      placeholder="79.514496"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleDetectGPS}
+                    disabled={isDetectingGPS || isResolvingAddress}
+                    className="px-4 py-2.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-medium rounded-none transition-colors text-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <Navigation className={`w-4 h-4 ${isDetectingGPS ? "animate-spin text-green-600" : "text-gray-500"}`} />
+                    <span>
+                      {isDetectingGPS
+                        ? "Acquiring GPS..."
+                        : isResolvingAddress
+                        ? "Resolving Address..."
+                        : "Detect Current Location"}
                     </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveHomeLocation}
+                    disabled={isSavingHome || isResolvingAddress || !homeLat || !homeLng}
+                    className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-none transition-colors text-sm shadow-sm active:scale-95 cursor-pointer text-center"
+                  >
+                    {isSavingHome ? "Saving & Calculating..." : "Save Coordinates & Calculate Stops"}
+                  </button>
+                </div>
+
+                {/* Nearest Stops preview */}
+                {nearestStops && nearestStops.length > 0 && (
+                  <div className="pt-3 border-t border-gray-100 dark:border-gray-800/60 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Nearby Stops by Road Distance
+                      </h4>
+                      <span className="text-xs text-gray-400">Calculated via OSRM / Network</span>
+                    </div>
+
+                    <div className="divide-y divide-gray-100 dark:divide-gray-800/60 border border-gray-200 dark:border-gray-800">
+                      {nearestStops.map((stop: any, idx: number) => {
+                        const isAssigned = stop.id === autoAssignedStopId;
+                        return (
+                          <div key={stop.id || idx} className="p-3 flex items-center justify-between bg-white dark:bg-black">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-mono px-2 py-0.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">
+                                #{idx + 1}
+                              </span>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                  {stop.name}
+                                  {isAssigned && (
+                                    <span className="text-[10px] px-1.5 py-0.5 font-bold uppercase bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 border border-green-300 dark:border-green-800">
+                                      Assigned Stop
+                                    </span>
+                                  )}
+                                </p>
+                                {stop.landmark && (
+                                  <p className="text-xs text-gray-500">Landmark: {stop.landmark}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
+                                {stop.distanceKm !== undefined ? `${stop.distanceKm} km` : "Nearby"}
+                              </p>
+                              <p className="text-xs text-gray-500 flex items-center justify-end gap-1">
+                                <Clock className="w-3 h-3" />
+                                {stop.walkTimeMins ? `~${stop.walkTimeMins} min walk` : "Walkable"}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
+            </div>
 
-            {/* ── 5-TIER CASCADED ACADEMIC PICKER: Course → Branch → Specialization → Semester → Section ── */}
-            <div className="p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-blue-950/20 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
-                  <GraduationCap className="w-4 h-4" /> Academic Cohort & Section Selection
-                </span>
-                {currentMatchedClass && (
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
-                    ✓ Verified Cohort
+            <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
+
+            {/* 5. Residential Transit Zone */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                <span>Residential Transit Zone *</span>
+                {isZoneLocked && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300">
+                    <Lock className="w-3 h-3" /> Locked
                   </span>
                 )}
-              </div>
+              </label>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Step 1: Degree / Course */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    1. Degree / Course *
-                  </label>
-                  <select
-                    required
-                    value={selectedCourseId}
-                    onChange={e => {
-                      const cId = e.target.value;
-                      setSelectedCourseId(cId);
-                      setSelectedBranchId("");
-                      setSelectedSpecializationId("");
-                      setSelectedYear("");
-                      setSelectedSection("");
-                      setSelectedClassId("");
-                      const crs = academicData.courses.find(c => c.id === cId);
-                      if (crs) setSelectedCourse(crs.short_name);
-                    }}
-                    className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors"
-                  >
-                    <option value="">-- Select Degree / Course --</option>
-                    {academicData.courses.map(crs => (
-                      <option key={crs.id} value={crs.id}>
-                        {crs.short_name} — {crs.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Step 2: Branch / Department */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    2. Discipline / Branch *
-                  </label>
-                  <select
-                    required
-                    disabled={!selectedCourseId || filteredBranches.length === 0}
-                    value={selectedBranchId}
-                    onChange={e => {
-                      const bId = e.target.value;
-                      setSelectedBranchId(bId);
-                      setSelectedSpecializationId("");
-                      setSelectedSection("");
-                      setSelectedClassId("");
-                      const br = academicData.branches.find(b => b.id === bId);
-                      if (br) setDepartment(br.name);
-                    }}
-                    className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors disabled:opacity-60"
-                  >
-                    <option value="">-- Select Branch --</option>
-                    {filteredBranches.map(br => (
-                      <option key={br.id} value={br.id}>
-                        {br.code} — {br.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Step 3: Specialization / Track */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    3. Specialization / Track *
-                  </label>
-                  <select
-                    required
-                    disabled={!selectedBranchId || filteredSpecializations.length === 0}
-                    value={selectedSpecializationId}
-                    onChange={e => {
-                      const sId = e.target.value;
-                      setSelectedSpecializationId(sId);
-                      setSelectedSection("");
-                      setSelectedClassId("");
-                    }}
-                    className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors disabled:opacity-60"
-                  >
-                    <option value="">-- Select Specialization --</option>
-                    {filteredSpecializations.map(sp => (
-                      <option key={sp.id} value={sp.id}>
-                        {sp.short_label} ({sp.name})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Step 4: Semester */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    4. Current Semester *
-                  </label>
-                  <select
-                    required
-                    disabled={!selectedCourseId}
-                    value={selectedYear}
-                    onChange={e => {
-                      const sem = e.target.value;
-                      setSelectedYear(sem);
-                      setSemester(sem);
-                      setSelectedSection("");
-                      setSelectedClassId("");
-                    }}
-                    className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-medium transition-colors disabled:opacity-60"
-                  >
-                    <option value="">-- Select Semester --</option>
-                    {availableSemesters.map(sem => (
-                      <option key={sem} value={sem}>
-                        {sem}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Step 5: Section & Class Mapping */}
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    5. Class Section *
-                  </label>
-                  <select
-                    required
-                    disabled={!selectedSpecializationId || !selectedYear}
-                    value={selectedSection}
-                    onChange={e => {
-                      const secCode = e.target.value;
-                      setSelectedSection(secCode);
-                      // Auto-resolve class
-                      const matched = academicData.classes.find(
-                        c => c.specialization_id === selectedSpecializationId &&
-                             c.semester === selectedYear &&
-                             c.section === secCode
-                      );
-                      if (matched) {
-                        setSelectedClassId(matched.id);
-                      } else {
-                        setSelectedClassId("");
-                      }
-                    }}
-                    className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold transition-colors disabled:opacity-60"
-                  >
-                    <option value="">-- Select Section --</option>
-                    {availableSections.map(sec => (
-                      <option key={sec.code} value={sec.code}>
-                        {sec.name} ({sec.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Verified Matched Class Banner */}
-              {currentMatchedClass && (
-                <div className="p-3 bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-between text-xs">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Assigned Timetable Cohort:
-                  </span>
-                  <span className="font-bold text-blue-700 dark:text-blue-300">
-                    {currentMatchedClass.name}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Residential Transit Zone */}
-          <div className="space-y-1.5 mt-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Compass className="w-4 h-4 text-green-600" />
-                Residential Transit Zone *
-              </span>
               {isZoneLocked ? (
-                <span className="flex items-center gap-1 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-800">
-                  <Lock className="w-3 h-3" /> Locked
-                </span>
-              ) : null}
-            </label>
-            {isZoneLocked ? (
-              <div className="p-4 rounded-xl bg-green-50/80 dark:bg-green-950/40 border border-green-200 dark:border-green-800/80 text-xs text-green-900 dark:text-green-200">
-                <div className="font-bold flex items-center gap-2 mb-1.5">
-                  <ShieldCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  Zone {selectedZoneCode} — Locked after Fee Clearance
+                <div className="p-4 border border-green-200 dark:border-green-800/80 bg-green-50/50 dark:bg-green-950/20 text-xs text-green-900 dark:text-green-200">
+                  <div className="font-bold flex items-center gap-2 mb-1.5">
+                    <ShieldCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    Zone {selectedZoneCode} — Locked after Fee Clearance
+                  </div>
+                  <p className="text-xs opacity-80 leading-relaxed">
+                    Transit zone is locked once semester fee is paid. Only campus transport admin can modify zone allocation after payment.
+                  </p>
                 </div>
-                <p className="text-xs opacity-80 leading-relaxed">
-                  Transit zone is locked once semester fee is paid. Only campus transport admin can modify zone allocation after payment.
-                </p>
-              </div>
-            ) : (
-              <select
-                required
-                value={selectedZoneCode}
-                onChange={e => {
-                  const newZone = e.target.value;
-                  setSelectedZoneCode(newZone);
-                  const filteredStops = stops.filter(st => (st.zoneCode || "ZONE_B") === newZone);
-                  if (filteredStops.length > 0) {
-                    setPrimaryStopId(filteredStops[0].id);
-                  }
-                }}
-                className="w-full text-sm p-3.5 rounded-xl border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/30 text-gray-900 dark:text-white outline-none focus:border-green-500 font-bold transition-colors"
-              >
-                {transitZones.map(z => (
-                  <option key={z.id || `${z.campusId || ""}-${z.code}`} value={z.code}>
-                    {z.name} — ₹{z.semesterFee.toLocaleString()} / Semester
-                  </option>
-                ))}
-              </select>
-            )}
-            <p className="text-xs text-gray-500 dark:text-gray-400 pl-1">
-              Covers: {transitZones.find(z => z.code === selectedZoneCode)?.corridorDescription}
-            </p>
-          </div>
-
-
-          {/* Emergency Guardian Section */}
-          <div className="p-5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-200">
-              <HeartHandshake className="w-5 h-5 text-red-500" />
-              Emergency & Guardian Contact
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input
-                type="text"
-                value={emergencyName}
-                onChange={e => setEmergencyName(e.target.value)}
-                placeholder="Parent / Guardian Name"
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:border-red-500 transition-colors"
-              />
-              <input
-                type="tel"
-                value={emergencyPhone}
-                onChange={e => setEmergencyPhone(e.target.value)}
-                placeholder="Guardian Phone (+91 ...)"
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:border-red-500 transition-colors"
-              />
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <button
-              type="submit"
-              disabled={isSubmitting || !photoUrl}
-              className={`w-full py-4 font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-all duration-300 ${
-                !photoUrl
-                  ? "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
-              } ${isSubmitting ? "opacity-50" : ""}`}
-            >
-              {!photoUrl ? (
-                <Lock className="w-5 h-5" />
               ) : (
-                <CheckCircle2 className="w-5 h-5" />
+                <CustomDropdown
+                  options={transitZoneOptions}
+                  value={selectedZoneCode}
+                  placeholder="Select Transit Zone"
+                  onChange={(val) => {
+                    setSelectedZoneCode(val);
+                    const filteredStops = stops.filter(st => (st.zoneCode || "ZONE_B") === val);
+                    if (filteredStops.length > 0 && !autoAssignedStopId) {
+                      setPrimaryStopId(filteredStops[0].id);
+                    }
+                  }}
+                />
               )}
-              {isSubmitting
-                ? "Saving to Database..."
-                : !photoUrl
-                ? "Upload Official ID Photo to Proceed"
-                : isPassApproved
-                ? "Save Profile & Verify Transit Account"
-                : "Save Details & Proceed to Payment"}
-            </button>
-          </div>
-        </form>
+              <p className="text-xs text-gray-500">
+                Covers: {transitZones.find(z => z.code === selectedZoneCode)?.corridorDescription}
+              </p>
+            </div>
+
+            <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
+
+            {/* 6. Emergency & Guardian Contact */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">
+                Emergency & Guardian Contact
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Guardian Name</label>
+                  <input
+                    type="text"
+                    value={emergencyName}
+                    onChange={e => setEmergencyName(e.target.value)}
+                    placeholder="Parent / Guardian Name"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Guardian Phone</label>
+                  <input
+                    type="tel"
+                    value={emergencyPhone}
+                    onChange={e => setEmergencyPhone(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 flex flex-col sm:flex-row justify-end items-center gap-3">
+              <button
+                type="submit"
+                disabled={isSubmitting || !photoUrl}
+                className="w-full sm:w-auto px-8 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-none transition-colors text-sm shadow-sm active:scale-95 cursor-pointer text-center flex items-center justify-center gap-2"
+              >
+                {!photoUrl ? (
+                  <Lock className="w-4 h-4" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
+                <span>
+                  {isSubmitting
+                    ? "Saving to Database..."
+                    : !photoUrl
+                    ? "Upload Official ID Photo to Proceed"
+                    : isPassApproved
+                    ? "Save Profile & Verify Transit Account"
+                    : "Save Details & Proceed to Payment"}
+                </span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
     </div>
   );
 }

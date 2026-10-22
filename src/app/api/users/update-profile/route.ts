@@ -58,6 +58,15 @@ export async function POST(request: NextRequest) {
         }
       };
 
+      if (department) {
+        studentUpdate.department = department.trim();
+      }
+
+      const rawId = body.studentIdCode || body.enrollmentNo || body.student_id;
+      if (rawId) {
+        studentUpdate.enrollment_no = rawId.trim().toUpperCase();
+      }
+
       const { error: studentError } = await supabaseAdmin
         .from("students")
         .update(studentUpdate)

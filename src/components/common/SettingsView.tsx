@@ -361,6 +361,7 @@ export function SettingsView() {
     fullName: "",
     phone: "",
     photoUrl: "",
+    studentIdCode: "",
     department: "",
     semester: "",
     section: "",
@@ -372,6 +373,18 @@ export function SettingsView() {
     category: "",
     licenseNo: ""
   });
+
+  const [academicData, setAcademicData] = useState<{
+    courses: any[];
+    branches: any[];
+    specializations: any[];
+    sections: any[];
+    classes: any[];
+  }>({ courses: [], branches: [], specializations: [], sections: [], classes: [] });
+
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState("");
+  const [selectedSpecializationId, setSelectedSpecializationId] = useState("");
 
   const isStudent = (currentUser as any)?.role === "student" || (currentUser as any)?.role === "portal" || !currentUser?.role;
   const isCommuter = isStudent || (currentUser as any)?.role === "teacher" || (currentUser as any)?.role === "faculty" || (currentUser as any)?.role === "staff";
@@ -432,6 +445,7 @@ export function SettingsView() {
         fullName: activeStudent?.fullName || activeStaff?.fullName || user.fullName || "",
         phone: activeStudent?.phone || activeStaff?.phone || (user as any).phone || "",
         photoUrl: activeStudent?.photoUrl || (activeStaff as any)?.photoUrl || user.avatarUrl || "",
+        studentIdCode: activeStudent?.enrollmentNo || activeStudent?.studentIdCode || "",
         department: activeStudent?.department || "",
         semester: activeStudent?.semester || "",
         section: rawSection,
@@ -455,23 +469,43 @@ export function SettingsView() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/classes")
+    fetch("/api/academic/cascade")
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.classes) {
-          setClassesList(data.classes);
-          // If student has a classId, accurately align department, semester, and section
+        if (data.success) {
+          setAcademicData(data);
+          setClassesList(data.classes || []);
+          
           setProfileForm(prev => {
-            if (!prev.classId) return prev;
-            const matched = data.classes.find((c: any) => c.id === prev.classId);
+            const activeClassId = prev.classId;
+            const matched = (data.classes || []).find((c: any) => c.id === activeClassId);
             if (matched) {
+              if (matched.course_id) setSelectedCourseId(matched.course_id);
+              if (matched.branch_id) setSelectedBranchId(matched.branch_id);
+              if (matched.specialization_id) setSelectedSpecializationId(matched.specialization_id);
               return {
                 ...prev,
-                department: matched.course || matched.department || prev.department,
+                department: matched.branch_name || matched.course_name || matched.department || prev.department,
                 semester: matched.semester || prev.semester,
                 section: matched.section || prev.section,
                 className: matched.name || prev.className,
               };
+            } else if (prev.department) {
+              // Try finding course or branch matching current department text
+              const matchedCrs = (data.courses || []).find((c: any) => 
+                prev.department.toLowerCase().includes(c.short_name.toLowerCase()) || 
+                c.short_name.toLowerCase().includes(prev.department.toLowerCase())
+              );
+              if (matchedCrs) setSelectedCourseId(matchedCrs.id);
+
+              const matchedBr = (data.branches || []).find((b: any) => 
+                prev.department.toLowerCase().includes(b.code.toLowerCase()) || 
+                b.name.toLowerCase().includes(prev.department.toLowerCase())
+              );
+              if (matchedBr) {
+                setSelectedBranchId(matchedBr.id);
+                if (matchedBr.course_id) setSelectedCourseId(matchedBr.course_id);
+              }
             }
             return prev;
           });
@@ -647,9 +681,61 @@ export function SettingsView() {
     }
   };
 
-  const coursesList = Array.from(new Set(classesList.map(c => c.course).filter(Boolean))) as string[];
-  const yearsList = Array.from(new Set(classesList.filter(c => c.course === profileForm.department).map(c => c.semester).filter(Boolean))) as string[];
-  const sectionsList = Array.from(new Set(classesList.filter(c => c.course === profileForm.department && c.semester === profileForm.semester).map(c => c.section).filter(Boolean))) as string[];
+  const courseOptions = useMemo(() => {
+    return (academicData.courses || []).map(crs => ({
+      value: crs.id,
+      label: `${crs.short_name} — ${crs.name}`,
+    }));
+  }, [academicData.courses]);
+
+  const branchOptions = useMemo(() => {
+    const list = selectedCourseId
+      ? (academicData.branches || []).filter(b => b.course_id === selectedCourseId)
+      : (academicData.branches || []);
+    return list.map(br => ({
+      value: br.id,
+      label: `${br.code} — ${br.name}`,
+    }));
+  }, [academicData.branches, selectedCourseId]);
+
+  const specializationOptions = useMemo(() => {
+    const list = selectedBranchId
+      ? (academicData.specializations || []).filter(s => s.branch_id === selectedBranchId)
+      : (academicData.specializations || []);
+    return list.map(sp => ({
+      value: sp.id,
+      label: `${sp.short_label} (${sp.name})`,
+    }));
+  }, [academicData.specializations, selectedBranchId]);
+
+  const semesterOptions = useMemo(() => {
+    const crs = (academicData.courses || []).find(c => c.id === selectedCourseId);
+    const total = crs?.total_semesters || 8;
+    const list: { value: string; label: string }[] = [];
+    for (let i = 1; i <= total; i++) {
+      const suffix = i === 1 ? "st" : i === 2 ? "nd" : i === 3 ? "rd" : "th";
+      list.push({ value: `${i}${suffix} Sem`, label: `${i}${suffix} Semester` });
+    }
+    return list;
+  }, [academicData.courses, selectedCourseId]);
+
+  const sectionOptions = useMemo(() => {
+    if (selectedSpecializationId && profileForm.semester) {
+      const matched = (academicData.classes || []).filter(
+        c => c.specialization_id === selectedSpecializationId && c.semester === profileForm.semester
+      );
+      if (matched.length > 0) {
+        return matched.map(c => ({
+          value: c.section,
+          label: `Section ${c.section} (${c.name || c.section})`,
+        }));
+      }
+    }
+    return (academicData.sections || []).map(s => ({
+      value: s.code || s.name,
+      label: `Section ${s.code || s.name}`,
+    }));
+  }, [academicData.classes, academicData.sections, selectedSpecializationId, profileForm.semester]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -673,8 +759,28 @@ export function SettingsView() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update profile");
+
+      const user = store.getCurrentUser();
+      const activeStudent = store.getStudents().find(s => s.userId === user?.id || s.id === user?.id);
+      if (activeStudent) {
+        await store.updateStudentProfile(activeStudent.id, {
+          fullName: profileForm.fullName,
+          phone: profileForm.phone,
+          department: profileForm.department,
+          semester: profileForm.semester,
+          classId: profileForm.classId,
+          className: profileForm.className,
+          enrollmentNo: profileForm.studentIdCode,
+          studentIdCode: profileForm.studentIdCode,
+          emergencyContact: {
+            name: profileForm.emergencyContactName,
+            relationship: "Parent / Guardian",
+            phone: profileForm.emergencyContactPhone
+          }
+        });
+      }
+
       alert("Profile updated successfully!");
-      // Optionally trigger a store refresh here if you have one
     } catch (err: any) {
       console.error(err);
       alert(err.message || "An error occurred");
@@ -772,41 +878,132 @@ export function SettingsView() {
                 <div className="h-px bg-gray-100 dark:bg-gray-800/60" />
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white uppercase tracking-wider">Student Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* University Student ID */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Department</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                      <span>University Student ID</span>
+                      <span className="text-[10px] text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">
+                        College ERP ID
+                      </span>
+                    </label>
+                    <input 
+                      type="text" 
+                      value={profileForm.studentIdCode} 
+                      onChange={e => setProfileForm({...profileForm, studentIdCode: e.target.value.trim().toUpperCase()})}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500 font-mono text-sm" 
+                      placeholder="e.g. 230111075"
+                    />
+                  </div>
+
+                  {/* 1. Degree / Course */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Degree / Course</label>
                     <CustomDropdown 
-                      options={coursesList}
-                      value={profileForm.department}
-                      placeholder="Select Department"
+                      options={courseOptions}
+                      value={selectedCourseId}
+                      placeholder="Select Course"
                       onChange={(val) => {
-                        setProfileForm({...profileForm, department: val, semester: "", section: "", classId: "", className: ""});
+                        setSelectedCourseId(val);
+                        setSelectedBranchId("");
+                        setSelectedSpecializationId("");
+                        const crs = (academicData.courses || []).find(c => c.id === val);
+                        setProfileForm({
+                          ...profileForm,
+                          department: crs?.short_name || profileForm.department,
+                          semester: "",
+                          section: "",
+                          classId: "",
+                          className: ""
+                        });
                       }}
                     />
                   </div>
+
+                  {/* 2. Discipline / Branch */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Semester</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Discipline / Branch</label>
                     <CustomDropdown 
-                      options={yearsList}
+                      options={branchOptions}
+                      value={selectedBranchId}
+                      placeholder="Select Branch"
+                      disabled={!selectedCourseId || branchOptions.length === 0}
+                      onChange={(val) => {
+                        setSelectedBranchId(val);
+                        setSelectedSpecializationId("");
+                        const br = (academicData.branches || []).find(b => b.id === val);
+                        setProfileForm({
+                          ...profileForm,
+                          department: br?.name || profileForm.department,
+                          section: "",
+                          classId: "",
+                          className: ""
+                        });
+                      }}
+                    />
+                  </div>
+
+                  {/* 3. Specialization / Track */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Specialization / Track</label>
+                    <CustomDropdown 
+                      options={specializationOptions}
+                      value={selectedSpecializationId}
+                      placeholder="Select Specialization"
+                      disabled={!selectedBranchId || specializationOptions.length === 0}
+                      onChange={(val) => {
+                        setSelectedSpecializationId(val);
+                        setProfileForm({
+                          ...profileForm,
+                          section: "",
+                          classId: "",
+                          className: ""
+                        });
+                      }}
+                    />
+                  </div>
+
+                  {/* 4. Current Semester */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Current Semester</label>
+                    <CustomDropdown 
+                      options={semesterOptions}
                       value={profileForm.semester}
                       placeholder="Select Semester"
+                      disabled={!selectedCourseId}
                       onChange={(val) => {
-                        setProfileForm({...profileForm, semester: val, section: "", classId: "", className: ""});
+                        setProfileForm({
+                          ...profileForm,
+                          semester: val,
+                          section: "",
+                          classId: "",
+                          className: ""
+                        });
                       }}
                     />
                   </div>
+
+                  {/* 5. Class Section */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Section</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Class Section</label>
                     <CustomDropdown 
-                      options={sectionsList}
+                      options={sectionOptions}
                       value={profileForm.section}
                       placeholder="Select Section"
+                      disabled={!profileForm.semester}
                       onChange={(val) => {
-                        const matchedClass = classesList.find(c => c.course === profileForm.department && c.semester === profileForm.semester && c.section === val);
+                        const matchedClass = (academicData.classes || []).find(
+                          c => c.specialization_id === selectedSpecializationId && c.semester === profileForm.semester && c.section === val
+                        ) || (academicData.classes || []).find(
+                          c => c.branch_id === selectedBranchId && c.semester === profileForm.semester && c.section === val
+                        ) || (academicData.classes || []).find(
+                          c => c.semester === profileForm.semester && c.section === val
+                        ) || classesList.find(c => c.semester === profileForm.semester && c.section === val);
+
                         setProfileForm({
                           ...profileForm, 
                           section: val, 
-                          classId: matchedClass?.id || "",
-                          className: matchedClass?.name || ""
+                          classId: matchedClass?.id || profileForm.classId,
+                          className: matchedClass?.name || profileForm.className || `Section ${val}`
                         });
                       }}
                     />

@@ -141,6 +141,19 @@ export async function POST(req: NextRequest) {
       studentData.enrollment_no = effectiveEnrollmentNo;
     }
 
+    if (body.homeLatitude !== undefined && body.homeLatitude !== null && !isNaN(Number(body.homeLatitude))) {
+      studentData.home_latitude = Number(body.homeLatitude);
+    }
+    if (body.homeLongitude !== undefined && body.homeLongitude !== null && !isNaN(Number(body.homeLongitude))) {
+      studentData.home_longitude = Number(body.homeLongitude);
+    }
+    if (body.homeAddress) {
+      studentData.home_address = String(body.homeAddress).trim();
+    }
+    if (body.autoAssignedStopId) {
+      studentData.auto_assigned_stop_id = body.autoAssignedStopId;
+    }
+
     let finalPhotoUrl = null;
     let finalPhotoLocked = false;
     if (body.photoUrl) {

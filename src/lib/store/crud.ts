@@ -241,6 +241,10 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
     studentIdCode?: string;
     primaryStopId?: string;
     primaryRouteId?: string;
+    homeLatitude?: number;
+    homeLongitude?: number;
+    homeAddress?: string;
+    autoAssignedStopId?: string;
   }
 ) {
   let student = this.students.find(s => s.id === studentId || s.userId === studentId || s.email?.toLowerCase() === this.currentUser?.email?.toLowerCase());
@@ -381,6 +385,10 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
           performedByStaff: profileData.performedByStaff || false,
           enrollmentNo: updatedStudent.enrollmentNo,
           studentIdCode: updatedStudent.studentIdCode,
+          homeLatitude: profileData.homeLatitude,
+          homeLongitude: profileData.homeLongitude,
+          homeAddress: profileData.homeAddress,
+          autoAssignedStopId: profileData.autoAssignedStopId,
         }),
       });
 
