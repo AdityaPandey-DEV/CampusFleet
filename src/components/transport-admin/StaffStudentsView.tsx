@@ -210,6 +210,8 @@ export default function StaffStudentsView({
   const filteredStudents = uniqueStudents.filter(
     (s) =>
       s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.enrollmentNo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.className?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -242,7 +244,7 @@ export default function StaffStudentsView({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search student name, student ID, class..."
+            placeholder="Search student name, email, student ID, class..."
             className="w-full text-xs pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none"
           />
         </div>

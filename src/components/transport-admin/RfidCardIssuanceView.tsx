@@ -405,8 +405,14 @@ function formatTimeAgo(isoString?: string | null): string {
         s.fullName?.toLowerCase().includes(q) ||
         s.enrollmentNo?.toLowerCase().includes(q) ||
         s.email?.toLowerCase().includes(q) ||
-        s.className?.toLowerCase().includes(q)
-    ).slice(0, 8);
+        s.className?.toLowerCase().includes(q) ||
+        s.department?.toLowerCase().includes(q) ||
+        s.courseName?.toLowerCase().includes(q) ||
+        s.courseCode?.toLowerCase().includes(q) ||
+        s.branchName?.toLowerCase().includes(q) ||
+        (s as any).course?.toLowerCase().includes(q) ||
+        (s as any).branch?.toLowerCase().includes(q)
+    ).slice(0, 10);
   }, [students, studentSearchInput]);
 
   // Combined Unified List:
@@ -439,8 +445,12 @@ function formatTimeAgo(isoString?: string | null): string {
       (s) =>
         s.rfidCardId?.toLowerCase().includes(q) ||
         s.fullName?.toLowerCase().includes(q) ||
+        s.email?.toLowerCase().includes(q) ||
         s.enrollmentNo?.toLowerCase().includes(q) ||
-        s.className?.toLowerCase().includes(q)
+        s.className?.toLowerCase().includes(q) ||
+        s.department?.toLowerCase().includes(q) ||
+        s.courseName?.toLowerCase().includes(q) ||
+        (s as any).course?.toLowerCase().includes(q)
     );
   }, [assignedCardsList, filterQuery]);
 
@@ -605,7 +615,7 @@ function formatTimeAgo(isoString?: string | null): string {
               type="text"
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
-              placeholder="Search UID, student name, student ID..."
+              placeholder="Search UID, student name, email, student ID..."
               className="w-full text-xs pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-white"
             />
           </div>
@@ -817,7 +827,7 @@ function formatTimeAgo(isoString?: string | null): string {
             {/* Student Search */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                Search Student (Name, Student ID, or Department)
+                Search Student (Name, Email, Student ID, or Course)
               </label>
               <div className="relative">
                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
@@ -825,7 +835,7 @@ function formatTimeAgo(isoString?: string | null): string {
                   type="text"
                   value={studentSearchInput}
                   onChange={(e) => setStudentSearchInput(e.target.value)}
-                  placeholder="Type student name or student ID..."
+                  placeholder="Type student name, email, student ID, or course..."
                   className="w-full text-xs font-semibold pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
                 />
               </div>
@@ -847,22 +857,22 @@ function formatTimeAgo(isoString?: string | null): string {
                           : "hover:bg-gray-50 dark:hover:bg-gray-800/40"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <StudentPhotoBadge
                           photoUrl={stu.photoUrl}
                           name={stu.fullName}
-                          className="w-7 h-7 rounded-lg"
+                          className="w-7 h-7 rounded-lg shrink-0"
                         />
-                        <div>
-                          <div className="text-xs font-bold text-gray-900 dark:text-white">
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
                             {stu.fullName}
                           </div>
-                          <div className="text-[10px] text-gray-500 font-mono">
-                            ID: {stu.enrollmentNo || "Pending"} • {stu.className || stu.department}
+                          <div className="text-[10px] text-gray-500 font-mono truncate">
+                            ID: {stu.enrollmentNo || "Pending"}{stu.email ? ` • ${stu.email}` : ""} • {stu.className || stu.department}
                           </div>
                         </div>
                       </div>
-                      {isSelected && <Check className="w-4 h-4 text-blue-600" />}
+                      {isSelected && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
                     </div>
                   );
                 })}

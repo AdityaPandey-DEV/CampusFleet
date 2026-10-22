@@ -1062,9 +1062,12 @@ export default function TransportAdminTripsView({
         const filteredStudents = students.filter(s => {
           const query = studentSearch.toLowerCase();
           return (
-            s.fullName.toLowerCase().includes(query) ||
-            s.department.toLowerCase().includes(query) ||
-            s.email.toLowerCase().includes(query)
+            s.fullName?.toLowerCase().includes(query) ||
+            s.email?.toLowerCase().includes(query) ||
+            s.enrollmentNo?.toLowerCase().includes(query) ||
+            s.department?.toLowerCase().includes(query) ||
+            s.className?.toLowerCase().includes(query) ||
+            s.courseName?.toLowerCase().includes(query)
           );
         });
 
@@ -1130,7 +1133,7 @@ export default function TransportAdminTripsView({
                 <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search student by name, student ID, or department..."
+                  placeholder="Search student by name, email, student ID, or course..."
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-yellow-500"
@@ -1169,7 +1172,7 @@ export default function TransportAdminTripsView({
                               )}
                             </div>
                             <div className="text-[10px] text-gray-400 font-mono truncate">
-                              {student.department} (Sem {student.semester})
+                              ID: {student.enrollmentNo || "Pending"}{student.email ? ` • ${student.email}` : ""} • {student.department || student.courseName} (Sem {student.semester})
                             </div>
                           </div>
                         </div>
