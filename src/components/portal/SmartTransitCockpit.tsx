@@ -209,7 +209,7 @@ export default function SmartTransitCockpit({
     const foundTrip = trips.find((t) => t.id === tripId);
     return foundTrip?.status || (foundTrip as any)?.trip_status || null;
   }, [reservation, activeBooking, trips]);
-  const isTripInProgress = assignedTripStatus === "IN_PROGRESS";
+  const isTripInProgress = assignedTripStatus === "IN_PROGRESS" || assignedTripStatus === "COMPLETED";
 
   const assignedShiftName =
     assignedShift?.name ||
@@ -372,7 +372,7 @@ export default function SmartTransitCockpit({
   const handleCancelSeat = async () => {
     if (!reservation?.id) return;
     if (isTripInProgress) {
-      alert("🚌 Trip is in progress — the bus has departed. You cannot cancel your attendance after the conductor starts the trip. You can still switch to another seat.");
+      alert("🚌 Trip is in progress or completed — the bus has departed. You cannot cancel your attendance after departure. You can still switch to another seat.");
       return;
     }
     if (!confirm("Are you sure you want to cancel your seat? This will rollback your attendance for this trip.")) return;
@@ -442,6 +442,8 @@ export default function SmartTransitCockpit({
         }));
         setTentativeSeat(newSeatNumber);
         setIsChangingSeat(false);
+        // Refresh from server for occupied seats and reservation consistency
+        fetchReservation();
       } else {
         alert(data.message || "Could not switch seat.");
       }
@@ -971,7 +973,7 @@ export default function SmartTransitCockpit({
                       ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
                       : "bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-700 dark:text-red-300"
                   }`}
-                  title={isTripInProgress ? "Trip in progress — cancel disabled" : "Cancel seat & rollback attendance"}
+                  title={isTripInProgress ? "Trip in progress or completed — cancel disabled" : "Cancel seat & rollback attendance"}
                 >
                   <XCircle className="w-3 h-3" />
                   {isCancellingSeat ? "Cancelling..." : "Cancel"}
@@ -982,12 +984,12 @@ export default function SmartTransitCockpit({
               Attendance verified for today
             </div>
 
-            {/* Conductor Lock Banner — Trip In Progress */}
+            {/* Conductor Lock Banner — Trip In Progress or Completed */}
             {isTripInProgress && (
               <div className="mt-1 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 flex items-start gap-2">
                 <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <div className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
-                  <span className="font-bold">🚌 Bus has departed</span> — Attendance is locked by the conductor. You cannot cancel your seat, but you can switch to another available seat.
+                  <span className="font-bold">🚌 Bus has departed</span> — Attendance is locked by transit operations. You cannot cancel your seat, but you can switch to another available seat.
                 </div>
               </div>
             )}

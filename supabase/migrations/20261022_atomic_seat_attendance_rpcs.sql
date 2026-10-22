@@ -108,7 +108,7 @@ BEGIN
   RETURNING id INTO v_booking_id;
 
   -- 5. Insert attendance record with all FK references populated
-  v_attendance_id := 'att-txn-' || EXTRACT(EPOCH FROM v_now)::BIGINT;
+  v_attendance_id := 'att-txn-' || (EXTRACT(EPOCH FROM v_now) * 1000)::BIGINT || '-' || SUBSTR(MD5(RANDOM()::TEXT), 1, 6);
   INSERT INTO attendance_records (
     id, student_id, trip_id, bus_id, method, status,
     verified_by, notes, signature_token, timestamp,
@@ -171,10 +171,10 @@ BEGIN
     RETURN json_build_object('success', false, 'error', 'Reservation not found.');
   END IF;
 
-  -- 2. CONDUCTOR LOCK: Block cancellation if trip is IN_PROGRESS
-  IF v_reservation.trip_status = 'IN_PROGRESS' THEN
+  -- 2. CONDUCTOR LOCK: Block cancellation if trip is IN_PROGRESS or COMPLETED
+  IF v_reservation.trip_status IN ('IN_PROGRESS', 'COMPLETED') THEN
     RETURN json_build_object('success', false, 'error',
-      'Trip is in progress — the bus has departed. Attendance cannot be cancelled after the conductor starts the trip. You can still switch your seat.',
+      'Trip is in progress or completed — the bus has departed. Attendance cannot be cancelled after the conductor departs. You can still switch your seat.',
       'tripLocked', true);
   END IF;
 
@@ -190,11 +190,12 @@ BEGIN
     distance_meters = NULL
   WHERE id = p_reservation_id;
 
-  -- 4. Delete today's attendance records for this student+trip
+  -- 4. Delete today's attendance records for this student+trip / reservation
   DELETE FROM attendance_records
-  WHERE student_id = p_student_id
-    AND trip_id = v_reservation.trip_id
-    AND timestamp >= CURRENT_DATE::TIMESTAMPTZ;
+  WHERE (reservation_id = p_reservation_id)
+     OR (student_id = p_student_id
+         AND trip_id = v_reservation.trip_id
+         AND timestamp >= CURRENT_DATE::TIMESTAMPTZ);
 
   -- 5. Reset seat_attendance (bookings) table entry
   UPDATE seat_attendance SET
@@ -292,9 +293,10 @@ BEGIN
   -- 4. Update latest attendance record notes
   UPDATE attendance_records SET
     notes = format('Seat switched: %s → %s at %s', v_old_seat, p_new_seat_number, v_now)
-  WHERE student_id = p_student_id
-    AND trip_id = v_reservation.trip_id
-    AND timestamp >= CURRENT_DATE::TIMESTAMPTZ;
+  WHERE (reservation_id = p_reservation_id)
+     OR (student_id = p_student_id
+         AND trip_id = v_reservation.trip_id
+         AND timestamp >= CURRENT_DATE::TIMESTAMPTZ);
 
   -- 5. Sync seat_attendance (bookings)
   UPDATE seat_attendance SET
@@ -331,3 +333,12 @@ FROM seat_attendance sa
 WHERE ar.student_id = sa.student_id
   AND ar.trip_id = sa.trip_id
   AND ar.booking_id IS NULL;
+
+
+-- ============================================================================
+-- Unique Partial Index: Prevent double-booking / phantom race conditions
+-- Ensures no two active reservations can hold the same seat on the same trip
+-- ============================================================================
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bus_reservations_trip_seat
+  ON bus_reservations (trip_id, chosen_seat)
+  WHERE chosen_seat IS NOT NULL AND status NOT IN ('CANCELLED', 'SWITCHED');
