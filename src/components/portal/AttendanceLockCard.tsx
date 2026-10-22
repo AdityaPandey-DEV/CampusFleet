@@ -38,7 +38,7 @@ export function AttendanceLockCard({
   const [lockStatus, setLockStatus] = useState<"LOCKED" | "UNLOCKED">("LOCKED");
   const [unlockedBy, setUnlockedBy] = useState<"LOCATION_DISTANCE" | "RFID" | null>(null);
   const [distanceMeters, setDistanceMeters] = useState<number | null>(null);
-  const [thresholdMeters, setThresholdMeters] = useState(100);
+  const [thresholdMeters, setThresholdMeters] = useState(1);
   const [rfidCardId, setRfidCardId] = useState<string | null>(null);
   const [targetBusNumber, setTargetBusNumber] = useState<string>("");
   const [message, setMessage] = useState<string>("");
@@ -46,6 +46,7 @@ export function AttendanceLockCard({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isBusGpsLive, setIsBusGpsLive] = useState<boolean | null>(null);
   const [driverActive, setDriverActive] = useState<boolean | null>(null);
+  const [isDeviceGpsOff, setIsDeviceGpsOff] = useState<boolean>(false);
 
   // Fetch current lock status
   const fetchLockStatus = useCallback(async () => {
@@ -56,21 +57,29 @@ export function AttendanceLockCard({
       // If geolocation is available, include query coordinates to compute proximity immediately
       let latParam = "";
       let lngParam = "";
+      let gotClientGps = false;
       if (typeof window !== "undefined" && navigator.geolocation) {
         try {
           const pos = await new Promise<GeolocationPosition>((res, rej) => {
             navigator.geolocation.getCurrentPosition(res, rej, {
               enableHighAccuracy: true,
-              timeout: 4000,
-              maximumAge: 15000,
+              timeout: 3000,
+              maximumAge: 0,
             });
           });
-          latParam = `&latitude=${pos.coords.latitude}`;
-          lngParam = `&longitude=${pos.coords.longitude}`;
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          if (lat && lng && (lat !== 0 || lng !== 0)) {
+            latParam = `&latitude=${lat}`;
+            lngParam = `&longitude=${lng}`;
+            gotClientGps = true;
+          }
         } catch {
-          // Non-fatal: fetch without GPS params
+          // Device GPS is off, permission denied, or timed out
         }
       }
+
+      setIsDeviceGpsOff(!gotClientGps);
 
       const q = new URLSearchParams();
       if (busId) q.set("busId", busId);
@@ -83,13 +92,19 @@ export function AttendanceLockCard({
       if (data.success) {
         setLockStatus(data.lockStatus);
         setUnlockedBy(data.unlockedBy || null);
-        setDistanceMeters(data.distanceMeters ?? data.currentDistanceMeters ?? null);
         if (data.allowedThresholdMeters) setThresholdMeters(data.allowedThresholdMeters);
         if (data.rfidCardId) setRfidCardId(data.rfidCardId);
         if (data.busNumber) setTargetBusNumber(data.busNumber);
         if (data.message) setMessage(data.message);
         if (data.isBusGpsLive !== undefined) setIsBusGpsLive(data.isBusGpsLive);
         if (data.driverActive !== undefined) setDriverActive(data.driverActive);
+
+        // Only set proximity if device GPS is actively on AND bus GPS is broadcasting
+        if (gotClientGps && data.isBusGpsLive !== false && typeof data.currentDistanceMeters === "number") {
+          setDistanceMeters(data.currentDistanceMeters);
+        } else {
+          setDistanceMeters(null);
+        }
 
         if (onStatusChange) onStatusChange(data.lockStatus);
         if (data.lockStatus === "UNLOCKED" && onUnlocked) {
@@ -131,13 +146,22 @@ export function AttendanceLockCard({
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 8000,
           maximumAge: 0,
         });
       });
 
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
+
+      if (!lat || !lng || (lat === 0 && lng === 0)) {
+        setIsDeviceGpsOff(true);
+        setDistanceMeters(null);
+        setErrorMessage("Device GPS is currently off or has no satellite fix. Please turn on Location in your device settings.");
+        setUnlocking(false);
+        return;
+      }
+      setIsDeviceGpsOff(false);
 
       const res = await fetch("/api/attendance/lock", {
         method: "POST",
@@ -153,8 +177,8 @@ export function AttendanceLockCard({
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setErrorMessage(data.message || "Location Distance Unlock failed.");
-        if (data.distanceMeters !== undefined) {
+        setErrorMessage(data.message || "Location Distance Unlock (<1m) failed.");
+        if (typeof data.distanceMeters === "number") {
           setDistanceMeters(data.distanceMeters);
         }
         if (data.isBusGpsLive !== undefined) {
@@ -172,7 +196,9 @@ export function AttendanceLockCard({
       if (onUnlocked) onUnlocked();
     } catch (err: any) {
       console.error("Distance unlock error:", err);
-      setErrorMessage(err.message || "Failed to obtain GPS fix. Please ensure location permissions are enabled.");
+      setIsDeviceGpsOff(true);
+      setDistanceMeters(null);
+      setErrorMessage("Device GPS is turned off or location permission was denied. Please turn on Location services in your device settings to verify distance.");
     } finally {
       setUnlocking(false);
     }
@@ -261,7 +287,7 @@ export function AttendanceLockCard({
                   ) : (
                     <>
                       <MapPin className="w-3.5 h-3.5" />
-                      Live GPS Proximity ({distanceMeters !== null ? `${distanceMeters}m` : "<100m"})
+                      Live GPS Proximity ({distanceMeters !== null ? `${distanceMeters}m` : "<1m"})
                     </>
                   )}
                 </span>
@@ -316,13 +342,19 @@ export function AttendanceLockCard({
             )}
 
             {/* Distance indicator */}
-            {distanceMeters !== null && !errorMessage && isBusGpsLive !== false && (
+            {!errorMessage && isBusGpsLive !== false && (
               <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold text-slate-700 dark:text-slate-300">
                 <span className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   Estimated Proximity to Bus:
                 </span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">{distanceMeters} meters</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">
+                  {isDeviceGpsOff
+                    ? "Device GPS Off / No Fix"
+                    : distanceMeters !== null
+                    ? `${distanceMeters} meters`
+                    : "Detecting Proximity..."}
+                </span>
               </div>
             )}
 
@@ -352,7 +384,7 @@ export function AttendanceLockCard({
                 ) : (
                   <>
                     <Radio className="w-4 h-4" />
-                    <span>Distance Unlock (&lt;{thresholdMeters}m)</span>
+                    <span>Distance Unlock (&lt;1m)</span>
                   </>
                 )}
               </button>

@@ -142,6 +142,14 @@ export function generateSeatLayout(
 }
 
 export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  if (
+    typeof lat1 !== "number" || typeof lon1 !== "number" ||
+    typeof lat2 !== "number" || typeof lon2 !== "number" ||
+    isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2) ||
+    (lat1 === 0 && lon1 === 0) || (lat2 === 0 && lon2 === 0)
+  ) {
+    return Infinity;
+  }
   const R = 6371; // Earth radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -149,7 +157,13 @@ export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lo
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 10) / 10;
+  return R * c;
+}
+
+export function calculateExactDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const km = calculateDistanceKm(lat1, lon1, lat2, lon2);
+  if (!isFinite(km)) return Infinity;
+  return Math.round(km * 1000 * 10) / 10;
 }
 
 /**

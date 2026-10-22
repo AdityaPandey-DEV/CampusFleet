@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import { calculateDistanceKm } from "@/lib/utils";
+import { calculateDistanceKm, calculateExactDistanceMeters } from "@/lib/utils";
 import { cacheGet, cacheSet } from "@/lib/redis";
 import { getLiveLocationFromMongo } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
 
-// Proximity threshold for location distance unlock (100 meters allows for GPS drift in bus stop areas)
-const DISTANCE_UNLOCK_THRESHOLD_METERS = 100;
+// Proximity threshold for location distance unlock: strictly less than 1 meter
+const DISTANCE_UNLOCK_THRESHOLD_METERS = 1;
 
 function getTodayIST(): { today: string; utcToday: string; allowedDates: string[]; nowIso: string } {
   const now = new Date();
@@ -223,11 +223,14 @@ export async function GET(req: NextRequest) {
     // 5. ATTENDANCE IS LOCKED
     let distanceMeters: number | null = null;
     let canUnlockByLocation = false;
+    const hasValidClientGps = clientLat !== null && clientLng !== null && !isNaN(clientLat) && !isNaN(clientLng) && (clientLat !== 0 || clientLng !== 0);
 
-    if (clientLat !== null && clientLng !== null && busCoordinates) {
-      const distKm = calculateDistanceKm(clientLat, clientLng, busCoordinates.latitude, busCoordinates.longitude);
-      distanceMeters = Math.round(distKm * 1000);
-      canUnlockByLocation = distanceMeters <= DISTANCE_UNLOCK_THRESHOLD_METERS;
+    if (hasValidClientGps && busCoordinates) {
+      const distM = calculateExactDistanceMeters(clientLat!, clientLng!, busCoordinates.latitude, busCoordinates.longitude);
+      if (isFinite(distM)) {
+        distanceMeters = distM;
+        canUnlockByLocation = distanceMeters < DISTANCE_UNLOCK_THRESHOLD_METERS;
+      }
     }
 
     return NextResponse.json({
@@ -243,11 +246,14 @@ export async function GET(req: NextRequest) {
       canUnlockByLocation,
       isBusGpsLive,
       driverActive: isBusGpsLive,
+      deviceGpsAvailable: hasValidClientGps,
       message: !isBusGpsLive
         ? `Bus live GPS is offline: The driver has not started the trip or vehicle telematics are not broadcasting for ${targetBusId}. Location Distance Unlock is unavailable until the bus GPS is active. You can tap your physical RFID card on the bus reader instead.`
+        : !hasValidClientGps
+        ? `Device GPS is turned off. Turn on Location services on your device to detect proximity to ${targetBusId}.`
         : canUnlockByLocation
-        ? `You are within ${distanceMeters}m of ${targetBusId}. Location Distance Unlock is available!`
-        : `Attendance is locked. You are ${distanceMeters}m from ${targetBusId} (max allowed: ${DISTANCE_UNLOCK_THRESHOLD_METERS}m). Unlock via Location Distance or tap physical RFID card on bus reader.`,
+        ? `You are within ${distanceMeters}m of ${targetBusId}. Location Distance Unlock (<1m) is available!`
+        : `Attendance is locked. You are ${distanceMeters}m from ${targetBusId} (max allowed: <${DISTANCE_UNLOCK_THRESHOLD_METERS}m). Unlock requires proximity <1m, or tap physical RFID card on bus reader.`,
     });
   } catch (err: any) {
     console.error("GET /api/attendance/lock error:", err);
@@ -335,11 +341,16 @@ export async function POST(req: NextRequest) {
 
     // ── METHOD A: LOCATION DISTANCE UNLOCK ──────────────────────────────────────
     if (method === "LOCATION_DISTANCE") {
-      if (latitude === undefined || longitude === undefined || latitude === null || longitude === null) {
+      if (
+        latitude === undefined || longitude === undefined ||
+        latitude === null || longitude === null ||
+        isNaN(Number(latitude)) || isNaN(Number(longitude)) ||
+        (Number(latitude) === 0 && Number(longitude) === 0)
+      ) {
         return NextResponse.json({
           success: false,
           lockStatus: "LOCKED",
-          message: "Live GPS coordinates (latitude, longitude) are required for Location Distance Unlock.",
+          message: "Live device GPS coordinates (latitude, longitude) are required for Location Distance Unlock. Device location appears disabled or unavailable.",
         }, { status: 400 });
       }
 
@@ -357,9 +368,8 @@ export async function POST(req: NextRequest) {
         }, { status: 422 });
       }
 
-      const distKm = calculateDistanceKm(Number(latitude), Number(longitude), busCoordinates.latitude, busCoordinates.longitude);
-      const calculatedDistMeters = Math.round(distKm * 1000);
-      const isWithinThreshold = calculatedDistMeters <= DISTANCE_UNLOCK_THRESHOLD_METERS;
+      const calculatedDistMeters = calculateExactDistanceMeters(Number(latitude), Number(longitude), busCoordinates.latitude, busCoordinates.longitude);
+      const isWithinThreshold = calculatedDistMeters < DISTANCE_UNLOCK_THRESHOLD_METERS;
 
       if (!isWithinThreshold) {
         return NextResponse.json({
@@ -367,7 +377,7 @@ export async function POST(req: NextRequest) {
           lockStatus: "LOCKED",
           distanceMeters: calculatedDistMeters,
           thresholdMeters: DISTANCE_UNLOCK_THRESHOLD_METERS,
-          message: `❌ Location Distance Unlock Failed: You are ${calculatedDistMeters}m away from ${effectiveBusId}. Proximity security requires you to be within ${DISTANCE_UNLOCK_THRESHOLD_METERS}m of the bus, or tap your physical RFID card.`,
+          message: `❌ Location Distance Unlock Failed: You are ${calculatedDistMeters}m away from ${effectiveBusId}. Proximity security requires you to be within <1m (less than 1 meter) of the bus, or tap your physical RFID card on the bus reader.`,
         }, { status: 403 });
       }
 

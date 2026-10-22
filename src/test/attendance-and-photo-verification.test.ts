@@ -181,7 +181,7 @@ describe("Attendance and Passport Photo Anti-Impersonation Verification", () => 
       (store as any).bookings.push(booking);
     });
 
-    it("rejects Location Distance Unlock when commuter is beyond 100m threshold", async () => {
+    it("rejects Location Distance Unlock when commuter is beyond <1m threshold", async () => {
       // Commuter is 350 meters away
       const res = await store.unlockAttendance(lockStudentId, lockTripId, "LOCATION_DISTANCE", {
         distanceMeters: 350,
@@ -191,22 +191,28 @@ describe("Attendance and Passport Photo Anti-Impersonation Verification", () => 
       expect(res.message).toContain("Attendance Locked");
       expect(res.message).toContain("350m");
 
+      // Even at 5 meters away, it must be rejected since threshold is < 1 meter
+      const res5m = await store.unlockAttendance(lockStudentId, lockTripId, "LOCATION_DISTANCE", {
+        distanceMeters: 5,
+      });
+      expect(res5m.success).toBe(false);
+
       // Booking must remain not boarded
       const b = store.getBookings().find((x) => x.id === "bk-lock-01");
       expect(b?.status).not.toBe("BOARDED");
     });
 
-    it("successfully unlocks attendance when commuter is within 100m live GPS proximity", async () => {
-      // Commuter is 22 meters away (within <= 100m)
+    it("successfully unlocks attendance when commuter is within <1m live GPS proximity", async () => {
+      // Commuter is 0.5 meters away (strictly < 1m)
       const res = await store.unlockAttendance(lockStudentId, lockTripId, "LOCATION_DISTANCE", {
-        distanceMeters: 22,
+        distanceMeters: 0.5,
         busId: "bus-44",
       });
 
       expect(res.success).toBe(true);
       expect(res.record?.lockStatus).toBe("UNLOCKED");
       expect(res.record?.unlockedBy).toBe("LOCATION_DISTANCE");
-      expect(res.record?.distanceMeters).toBe(22);
+      expect(res.record?.distanceMeters).toBe(0.5);
       expect(res.record?.status).toBe("BOARDED");
 
       // Booking status must be updated to BOARDED with lockStatus UNLOCKED

@@ -158,13 +158,13 @@ CampusFleetStore.prototype.unlockAttendance = async function (
   );
   const resolvedStudentId = student?.id || studentId;
 
-  // Proximity validation for Location Distance: must be <= 100 meters
+  // Proximity validation for Location Distance: must be strictly < 1 meter
   if (method === "LOCATION_DISTANCE") {
-    const dist = meta?.distanceMeters ?? 0;
-    if (dist > 100) {
+    const dist = meta?.distanceMeters ?? Infinity;
+    if (dist >= 1) {
       return {
         success: false,
-        message: `Attendance Locked: You are ${dist}m away from the bus (allowed: ≤100m).`,
+        message: `Attendance Locked: You are ${dist}m away from the bus (allowed: <1m).`,
       };
     }
   }
