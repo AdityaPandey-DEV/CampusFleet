@@ -165,6 +165,7 @@ export function UnifiedAppHeader({
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
 
+  const [mounted, setMounted] = useState(false);
   const [currentUser, setCurrentUser] = useState(store.getCurrentUser());
   const [students, setStudents] = useState(store.getStudents());
   const [activeChildId, setActiveChildId] = useState(store.getActiveChildId());
@@ -175,6 +176,7 @@ export function UnifiedAppHeader({
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMounted(true);
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
       setStudents(store.getStudents());
@@ -426,8 +428,10 @@ export function UnifiedAppHeader({
           )}
 
           {/* Right Action Items (Minimalist User & Sign Out) */}
-          <div className="hidden lg:flex items-center gap-6 flex-shrink-0 z-10">
-            {currentUser ? (
+          <div className="hidden lg:flex items-center gap-6 flex-shrink-0 z-10 min-w-[90px] justify-end">
+            {!mounted ? (
+              <div className="w-24 h-9" />
+            ) : currentUser ? (
               <div className="flex items-center gap-4">
                 <Link href={`/${pathname.split('/')[1] === 'portal' ? 'portal' : (currentUser.role || 'portal')}/settings`} title="Open Settings" className="block w-9 h-9 rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
                   {(userPhotoUrl || activeStudent?.photoUrl) ? (
@@ -559,7 +563,7 @@ export function UnifiedAppHeader({
             <div className="h-px w-full bg-gray-200 dark:bg-gray-800 my-2" />
 
             {/* Profile Section */}
-            {currentUser && (
+            {mounted && currentUser && (
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
                   {(userPhotoUrl || activeStudent?.photoUrl) ? (

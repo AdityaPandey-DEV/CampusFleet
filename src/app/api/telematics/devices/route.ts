@@ -126,6 +126,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    await cacheDel("telematics:hardware_desk_server_data");
+
     // 4. Audit Log
     try {
       await supabaseAdmin.from("audit_logs").insert({

@@ -1,4 +1,4 @@
-import { getStaffServerData } from "@/lib/transport-admin-data";
+import { getHardwareDeskServerData } from "@/lib/transport-admin-data";
 import ESP32CardHolderIssuanceView from "@/components/transport-admin/ESP32CardHolderIssuanceView";
 import { Metadata } from "next";
 
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function StaffESP32ManagementPage() {
-  const data = await getStaffServerData("/transport-admin/esp32");
+  const data = await getHardwareDeskServerData("/transport-admin/esp32");
 
   return (
     <ESP32CardHolderIssuanceView

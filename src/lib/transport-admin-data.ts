@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getOrFetchWithCache } from "@/lib/redis";
 import type { Route, Bus, Stop, Student, Trip, Booking, Staff, UserAccount, Campus, ClassItem, Shift, TripDirection } from "@/lib/types";
 
 export async function getStaffServerData(redirectPath: string = "/transport-admin") {
@@ -299,4 +300,116 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
     classes,
     shifts,
   };
+}
+
+/**
+ * Ultra-fast server data loader specifically for Hardware Management desks:
+ * /transport-admin/rfid and /transport-admin/esp32.
+ * Queries only the 4 required tables (buses, routes, stops, students) in parallel,
+ * bypassing heavyweight bookings, full trips, and users tables for instant navigation.
+ */
+export async function getHardwareDeskServerData(redirectPath: string = "/transport-admin/rfid") {
+  const session = await getSession();
+
+  if (!session) {
+    redirect(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+  }
+
+  if (session.role !== "transport_admin" && session.role !== "admin" && session.role !== "transport_manager") {
+    redirect(session.role === "driver" ? "/driver" : session.role === "conductor" ? "/conductor" : "/portal");
+  }
+
+  const deskData = await getOrFetchWithCache({
+    key: "telematics:hardware_desk_server_data",
+    ttl: 30, // 30s cache with jitter for instant page switching
+    allowEmpty: true,
+    fetchFn: async () => {
+      const [
+        { data: dbBuses },
+        { data: dbRoutes },
+        { data: dbStops },
+        { data: dbStudents },
+      ] = await Promise.all([
+        supabaseAdmin
+          .from("buses")
+          .select("id, bus_number, registration_no, model, capacity, seat_layout, status, gps_device_id, rfid_device_id, insurance_expiry, maintenance_due_date, current_route_id")
+          .order("bus_number", { ascending: true }),
+        supabaseAdmin
+          .from("routes")
+          .select("id, code, name, description, direction, color, total_distance_km, estimated_duration_mins, is_active"),
+        supabaseAdmin
+          .from("stops")
+          .select("id, name, code, latitude, longitude, landmark, geofence_radius, campus_id, zone_code"),
+        supabaseAdmin
+          .from("students_full")
+          .select("id, user_id, full_name, email, phone, department, semester, zone_code, primary_stop_id, primary_route_id, rfid_card_id, enrollment_no, photo_url, photo_locked, class_name")
+          .order("full_name", { ascending: true }),
+      ]);
+
+      const buses: Bus[] = (dbBuses || []).map((b: any) => ({
+        id: b.id,
+        busNumber: b.bus_number,
+        registrationNo: b.registration_no || b.bus_number,
+        model: b.model || "",
+        capacity: Number(b.capacity || 0),
+        seatLayout: (b.seat_layout as any) || "NONE",
+        status: b.status || "ACTIVE",
+        gpsDeviceId: b.gps_device_id || "",
+        rfidDeviceId: b.rfid_device_id || "",
+        insuranceExpiry: b.insurance_expiry || "",
+        maintenanceDueDate: b.maintenance_due_date || "",
+        currentRouteId: b.current_route_id,
+      }));
+
+      const routes: Route[] = (dbRoutes || []).map((r: any) => ({
+        id: r.id,
+        code: r.code,
+        name: r.name,
+        description: r.description,
+        direction: r.direction,
+        color: r.color,
+        totalDistanceKm: Number(r.total_distance_km || 0),
+        estimatedDurationMins: Number(r.estimated_duration_mins || 0),
+        isActive: Boolean(r.is_active),
+        stops: [],
+      }));
+
+      const stops: Stop[] = (dbStops || []).map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        code: s.code,
+        latitude: Number(s.latitude),
+        longitude: Number(s.longitude),
+        landmark: s.landmark,
+        geofenceRadiusMeters: Number(s.geofence_radius || 0),
+        campusId: s.campus_id,
+        zoneCode: s.zone_code,
+      }));
+
+      const students: Student[] = (dbStudents || []).map((s: any) => ({
+        id: s.id,
+        userId: s.user_id,
+        fullName: s.full_name || "",
+        email: s.email || "",
+        phone: s.phone,
+        department: s.department || "",
+        semester: s.semester ? String(s.semester) : "",
+        zoneCode: s.zone_code,
+        primaryStopId: s.primary_stop_id,
+        primaryRouteId: s.primary_route_id,
+        emergencyContact: null,
+        transportAccessSuspended: false,
+        hasActiveSubscription: true,
+        rfidCardId: s.rfid_card_id || undefined,
+        enrollmentNo: s.enrollment_no,
+        photoUrl: s.photo_url,
+        photoLocked: Boolean(s.photo_locked),
+        className: s.class_name,
+      }));
+
+      return { buses, routes, stops, students };
+    },
+  });
+
+  return { session, ...deskData };
 }

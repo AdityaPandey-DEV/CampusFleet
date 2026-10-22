@@ -31,14 +31,6 @@ import {
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<any>(() => store.getCurrentUser());
-
-  useEffect(() => {
-    const unsub = store.subscribe(() => {
-      setCurrentUser(store.getCurrentUser());
-    });
-    return unsub;
-  }, []);
 
   // 1. Define all desk sub-portal link definitions for Transport Admin (Staff)
   const subPortals = {

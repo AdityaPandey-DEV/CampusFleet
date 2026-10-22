@@ -725,9 +725,9 @@ CampusFleetStore.prototype.syncFromSupabase = async function (this: CampusFleetS
       this.syncUserData()
     ]);
     const timeoutPromise = new Promise((resolve) => setTimeout(() => {
-      console.log("[Sync] Supabase initial sync exceeded 25 seconds - forcing UI to load progressively.");
+      console.log("[Sync] Supabase initial sync exceeded 2.5 seconds - proceeding with cached state in background.");
       resolve(null);
-    }, 25000));
+    }, 2500));
     
     await Promise.race([syncPromises, timeoutPromise]);
 

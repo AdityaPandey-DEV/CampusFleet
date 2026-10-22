@@ -114,26 +114,51 @@ export async function POST(req: NextRequest) {
 
     // If device is not mapped to any bus yet
     if (!effectiveBusId) {
+      const nowIso = new Date().toISOString();
+
       if (rawDeviceId) {
-        // Save unmapped device so Transport Admin can bind it with 1 click (newest first)
+        // 1. Save unmapped device so Transport Admin can bind it with 1 click (newest first)
         const unmappedDevices = (await cacheGet<any[]>("telematics:unmapped_device_list")) || [];
         const filtered = unmappedDevices.filter((d: any) => d.deviceId !== rawDeviceId);
         filtered.unshift({
           deviceId: rawDeviceId,
-          detectedAt: new Date().toISOString(),
+          detectedAt: nowIso,
           lastCardUid: effectiveRfid || null,
         });
         await cacheSet("telematics:unmapped_device_list", filtered.slice(0, 30), 86400);
       }
 
+      // 2. CRITICAL: Save the tapped card to unmapped_rfid_list so it appears in RFID Card Issuance!
+      if (effectiveRfid) {
+        try {
+          const existingList = (await cacheGet<any[]>("telematics:unmapped_rfid_list")) || [];
+          const filteredCards = existingList.filter((item: any) => item.rfidCardId !== effectiveRfid);
+          const updatedCards = [
+            {
+              rfidCardId: effectiveRfid,
+              busId: "UNMAPPED",
+              busNumber: rawDeviceId ? `ESP32 (${rawDeviceId})` : "Unassigned Bus",
+              deviceId: rawDeviceId || null,
+              scannedAt: nowIso,
+            },
+            ...filteredCards,
+          ].slice(0, 30);
+          await cacheSet("telematics:unmapped_rfid_list", updatedCards, 86400);
+          await cacheSet("telematics:unmapped_rfid_last", updatedCards[0], 900);
+        } catch (_) {}
+      }
+
       return NextResponse.json(
         {
-          success: false,
-          error: "UNMAPPED_DEVICE",
-          message: `ESP32 Hardware [${rawDeviceId || "Unknown"}] is not mapped to any bus asset. Please pair this device with a bus in the Transport Admin portal.`,
-          deviceId: rawDeviceId,
+          success: true,
+          status: "CARD_DETECTED_BUS_UNASSIGNED",
+          message: `✓ RFID Card [${effectiveRfid || "Ping"}] received from ESP32 [${rawDeviceId || "Reader"}]. Ready to assign to a student and bus in Transport Admin.`,
+          rfidCardId: effectiveRfid || undefined,
+          deviceId: rawDeviceId || undefined,
+          busId: null,
+          timestamp: nowIso,
         },
-        { status: 400 }
+        { status: 200 }
       );
     }
 
@@ -180,14 +205,15 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json(
         {
-          success: false,
-          error: "UNREGISTERED_RFID_CARD",
-          message: `RFID card [${effectiveRfid}] is not mapped to any registered student. Please link your card in the Student Transport Desk.`,
+          success: true,
+          status: "CARD_DETECTED_STUDENT_UNASSIGNED",
+          message: `✓ RFID card [${effectiveRfid}] captured live on ${resolvedBusNumber || effectiveBusId}. Ready to link to a student in Transport Admin.`,
+          rfidCardId: effectiveRfid,
           busId: effectiveBusId,
           busNumber: resolvedBusNumber,
           deviceId: rawDeviceId || undefined,
         },
-        { status: 404 }
+        { status: 200 }
       );
     }
 

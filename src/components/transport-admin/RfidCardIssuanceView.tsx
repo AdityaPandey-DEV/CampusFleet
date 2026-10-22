@@ -100,6 +100,11 @@ export default function RfidCardIssuanceView({
   const [routes] = useState<Route[]>(initialRoutes);
   const [buses, setBuses] = useState<Bus[]>(initialBuses);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Unassigned cards detected by ESP32 (newest first)
   const [unmappedCards, setUnmappedCards] = useState<DetectedCard[]>([]);
   const [hardwareStatus, setHardwareStatus] = useState<HardwareStatus | null>(null);
@@ -620,7 +625,11 @@ export default function RfidCardIssuanceView({
                       <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 font-medium">
                         <span>{card.busNumber || card.busId}</span>
                         <span className="mx-1">•</span>
-                        <span>{new Date(card.scannedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                        <span suppressHydrationWarning>
+                          {mounted && card.scannedAt
+                            ? new Date(card.scannedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                            : "--:--"}
+                        </span>
                         {card.deviceId && (
                           <span className="ml-1 text-[9px] text-gray-400 font-mono">({card.deviceId})</span>
                         )}

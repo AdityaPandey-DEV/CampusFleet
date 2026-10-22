@@ -57,6 +57,11 @@ export default function ESP32CardHolderIssuanceView({
   const [unmappedDevices, setUnmappedDevices] = useState<DetectedESP32[]>([]);
   const [hardwareStatus, setHardwareStatus] = useState<HardwareStatus | null>(null);
   const [isPolling, setIsPolling] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [lastPollTime, setLastPollTime] = useState<Date>(new Date());
 
   // Search & Filter state
@@ -484,11 +489,15 @@ export default function ESP32CardHolderIssuanceView({
                         New ESP32 • Pending
                       </span>
                       <div className="text-[10px] text-gray-400 mt-0.5 font-medium">
-                        {new Date(device.detectedAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                        })}
+                        <span suppressHydrationWarning>
+                          {mounted && device.detectedAt
+                            ? new Date(device.detectedAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                              })
+                            : "--:--:--"}
+                        </span>
                         {device.lastCardUid && (
                           <span className="ml-1 text-[9px] text-gray-400 font-mono">
                             (Card: {device.lastCardUid})

@@ -1,4 +1,4 @@
-import { getStaffServerData } from "@/lib/transport-admin-data";
+import { getHardwareDeskServerData } from "@/lib/transport-admin-data";
 import RfidCardIssuanceView from "@/components/transport-admin/RfidCardIssuanceView";
 import { Metadata } from "next";
 
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function StaffRfidManagementPage() {
-  const data = await getStaffServerData("/transport-admin/rfid");
+  const data = await getHardwareDeskServerData("/transport-admin/rfid");
 
   return (
     <RfidCardIssuanceView

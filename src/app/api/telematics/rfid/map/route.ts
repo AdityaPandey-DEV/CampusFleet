@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
       const unmappedList = (await cacheGet<any[]>("telematics:unmapped_rfid_list")) || [];
       const updatedList = unmappedList.filter((item: any) => item.rfidCardId !== cleanRfid);
       await cacheSet("telematics:unmapped_rfid_list", updatedList, 86400);
+      await cacheDel("telematics:hardware_desk_server_data");
     } catch (_) {}
 
     return NextResponse.json({
