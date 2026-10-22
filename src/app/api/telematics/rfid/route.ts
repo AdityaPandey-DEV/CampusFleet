@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       body.rfid_data?.card_uid ||
       ""
     ).trim();
+
     const rawDeviceId = (
       deviceId ||
       deviceMac ||
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
       body.device_info?.imei ||
       ""
     ).trim();
+
     let effectiveBusId = (
       busId ||
       body.bus_id ||
