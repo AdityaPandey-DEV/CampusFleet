@@ -45,6 +45,7 @@ import {
   Info,
   Building2,
 } from "lucide-react";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 // Haversine geodesic distance in km
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -1467,21 +1468,16 @@ export default function StaffRoutesView({
 
                 {/* Switch Terminal Selector & Edit Controls */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 self-stretch lg:self-auto flex-shrink-0">
-                  <div className="relative">
-                    <select
-                      value={currentCampusStop.id}
-                      onChange={e => setDesignatedCampusId(e.target.value)}
-                      className="w-full sm:w-auto appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm transition-all"
-                      title="Switch designated Central Campus Terminal"
-                    >
-                      {stops.map(st => (
-                        <option key={st.id} value={st.id}>
-                          Switch: {st.name} ({st.code})
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <CustomDropdown
+                    value={currentCampusStop.id}
+                    onChange={val => setDesignatedCampusId(val)}
+                    size="sm"
+                    options={stops.map(st => ({
+                      value: st.id,
+                      label: `Switch: ${st.name} (${st.code})`,
+                    }))}
+                    containerClassName="w-full sm:w-60"
+                  />
 
                   <button
                     onClick={() => handleOpenEditCampus(currentCampusStop)}
@@ -2152,10 +2148,10 @@ export default function StaffRoutesView({
 
                   <div>
                     <label className="text-[10px] font-bold uppercase text-gray-400">Direction</label>
-                    <select
+                    <CustomDropdown
                       value={routeBuilderData.direction}
-                      onChange={e => {
-                        const newDir = e.target.value as any;
+                      onChange={val => {
+                        const newDir = val as any;
                         setRouteBuilderData(prev => {
                           const primary = campuses.find(c => c.isPrimary) || campuses[0] || store.getPrimaryCampus();
                           const nonCampusStops = stops;
@@ -2200,13 +2196,13 @@ export default function StaffRoutesView({
                           };
                         });
                       }}
-                      className="w-full p-1.5 mt-0.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-bold outline-none text-xs"
-                    >
-                      <option value="HOME_TO_CAMPUS">HOME_TO_CAMPUS (Inbound)</option>
-                      <option value="CAMPUS_TO_HOME">CAMPUS_TO_HOME (Outbound)</option>
-                      <option value="CAMPUS_TO_CAMPUS">CAMPUS_TO_CAMPUS (Inter-Campus)</option>
-                      <option value="CIRCULAR">CIRCULAR (Loop)</option>
-                    </select>
+                      options={[
+                        { value: "HOME_TO_CAMPUS", label: "HOME_TO_CAMPUS (Inbound)" },
+                        { value: "CAMPUS_TO_HOME", label: "CAMPUS_TO_HOME (Outbound)" },
+                        { value: "CAMPUS_TO_CAMPUS", label: "CAMPUS_TO_CAMPUS (Inter-Campus)" },
+                        { value: "CIRCULAR", label: "CIRCULAR (Loop)" },
+                      ]}
+                    />
                   </div>
                 </div>
 
@@ -2245,45 +2241,43 @@ export default function StaffRoutesView({
 
                         {/* Start Stop Selector (Campuses if Outbound/Inter-Campus, regular stops if Inbound) */}
                         {isOriginCampus ? (
-                          <select
+                          <CustomDropdown
                             value={routeBuilderData.startStopId}
-                            onChange={e => {
-                              const cid = e.target.value;
+                            onChange={val => {
                               setRouteBuilderData(prev => ({
                                 ...prev,
-                                startStopId: cid,
-                                originCampusId: cid,
+                                startStopId: val,
+                                originCampusId: val,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
-                          >
-                            <option value="">-- Choose Origin Campus Terminal --</option>
-                            {campuses.map(c => (
-                              <option key={c.id} value={c.id}>
-                                {c.name} ({c.code}){c.isPrimary ? " ★ Primary Campus" : ""} {c.city ? `• ${c.city}` : ""}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="-- Choose Origin Campus Terminal --"
+                            options={[
+                              { value: "", label: "-- Choose Origin Campus Terminal --" },
+                              ...campuses.map(c => ({
+                                value: c.id,
+                                label: `${c.name} (${c.code})${c.isPrimary ? " ★ Primary Campus" : ""} ${c.city ? `• ${c.city}` : ""}`,
+                              })),
+                            ]}
+                          />
                         ) : (
-                          <select
+                          <CustomDropdown
                             value={routeBuilderData.startStopId}
-                            onChange={e => {
-                              const sid = e.target.value;
+                            onChange={val => {
                               setRouteBuilderData(prev => ({
                                 ...prev,
-                                startStopId: sid,
+                                startStopId: val,
                                 originCampusId: undefined,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
-                          >
-                            <option value="">-- Choose Origin Passenger Station --</option>
-                            {stops.map(st => (
-                              <option key={st.id} value={st.id}>
-                                {st.name} ({st.code}) {st.landmark ? `• ${st.landmark}` : ""}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="-- Choose Origin Passenger Station --"
+                            options={[
+                              { value: "", label: "-- Choose Origin Passenger Station --" },
+                              ...stops.map(st => ({
+                                value: st.id,
+                                label: `${st.name} (${st.code}) ${st.landmark ? `• ${st.landmark}` : ""}`,
+                              })),
+                            ]}
+                          />
                         )}
                       </div>
                     );
@@ -2506,45 +2500,43 @@ export default function StaffRoutesView({
 
                         {/* End Stop Selector (Campuses if Inbound/Inter-Campus, regular stops if Outbound) */}
                         {isDestCampus ? (
-                          <select
+                          <CustomDropdown
                             value={routeBuilderData.endStopId}
-                            onChange={e => {
-                              const cid = e.target.value;
+                            onChange={val => {
                               setRouteBuilderData(prev => ({
                                 ...prev,
-                                endStopId: cid,
-                                destinationCampusId: cid,
+                                endStopId: val,
+                                destinationCampusId: val,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
-                          >
-                            <option value="">-- Choose Destination Campus Terminal --</option>
-                            {campuses.map(c => (
-                              <option key={c.id} value={c.id}>
-                                {c.name} ({c.code}){c.isPrimary ? " ★ Primary Campus" : ""} {c.city ? `• ${c.city}` : ""}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="-- Choose Destination Campus Terminal --"
+                            options={[
+                              { value: "", label: "-- Choose Destination Campus Terminal --" },
+                              ...campuses.map(c => ({
+                                value: c.id,
+                                label: `${c.name} (${c.code})${c.isPrimary ? " ★ Primary Campus" : ""} ${c.city ? `• ${c.city}` : ""}`,
+                              })),
+                            ]}
+                          />
                         ) : (
-                          <select
+                          <CustomDropdown
                             value={routeBuilderData.endStopId}
-                            onChange={e => {
-                              const sid = e.target.value;
+                            onChange={val => {
                               setRouteBuilderData(prev => ({
                                 ...prev,
-                                endStopId: sid,
+                                endStopId: val,
                                 destinationCampusId: undefined,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
-                          >
-                            <option value="">-- Choose Final Drop-off Station --</option>
-                            {stops.map(st => (
-                              <option key={st.id} value={st.id}>
-                                {st.name} ({st.code}) {st.landmark ? `• ${st.landmark}` : ""}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="-- Choose Final Drop-off Station --"
+                            options={[
+                              { value: "", label: "-- Choose Final Drop-off Station --" },
+                              ...stops.map(st => ({
+                                value: st.id,
+                                label: `${st.name} (${st.code}) ${st.landmark ? `• ${st.landmark}` : ""}`,
+                              })),
+                            ]}
+                          />
                         )}
                       </div>
                     );
@@ -2662,19 +2654,18 @@ export default function StaffRoutesView({
 
             <div className="space-y-2 text-xs">
               <label className="font-bold uppercase tracking-wider text-gray-400">Choose Fleet Bus</label>
-              <select
-                required
+              <CustomDropdown
                 value={selectedBusToAllocate}
-                onChange={e => setSelectedBusToAllocate(e.target.value)}
-                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
-              >
-                <option value="">-- Select Available Vehicle --</option>
-                {buses.map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.busNumber} ({b.registrationNo}) • {b.capacity} Seats ({b.status})
-                  </option>
-                ))}
-              </select>
+                onChange={val => setSelectedBusToAllocate(val)}
+                placeholder="-- Select Available Vehicle --"
+                options={[
+                  { value: "", label: "-- Select Available Vehicle --" },
+                  ...buses.map(b => ({
+                    value: b.id,
+                    label: `${b.busNumber} (${b.registrationNo}) • ${b.capacity} Seats (${b.status})`,
+                  })),
+                ]}
+              />
             </div>
 
             <div className="flex items-center gap-2 pt-2">

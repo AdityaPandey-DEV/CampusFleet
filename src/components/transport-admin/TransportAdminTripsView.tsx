@@ -35,6 +35,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import type { Trip, Bus, Route, Shift, Staff, Booking, TripDirection, TripScheduleType, Student, SpecialShiftAllocation } from "@/lib/types";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 export interface TransportAdminTripsProps {
   initialTrips?: Trip[];
@@ -920,63 +921,55 @@ export default function TransportAdminTripsView({
                 <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   4. Select Corridor Route *
                 </label>
-                <select
-                  required
+                <CustomDropdown
                   value={newTrip.routeId}
-                  onChange={(e) => setNewTrip((prev) => ({ ...prev, routeId: e.target.value }))}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold text-xs"
-                >
-                  <option value="">-- Choose Corridor --</option>
-                  {routes.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setNewTrip((prev) => ({ ...prev, routeId: val }))}
+                  placeholder="-- Choose Corridor --"
+                  options={[
+                    { value: "", label: "-- Choose Corridor --" },
+                    ...routes.map((r) => ({
+                      value: r.id,
+                      label: r.name,
+                    })),
+                  ]}
+                />
               </div>
 
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   5. Assign to Shift *
                 </label>
-                <select
-                  required
+                <CustomDropdown
                   value={newTrip.shiftId || shifts[0]?.id || ""}
-                  onChange={(e) => {
-                    const selectedShiftId = e.target.value;
-                    const sh = shifts.find((s) => s.id === selectedShiftId);
+                  onChange={(val) => {
                     setNewTrip((prev) => ({
                       ...prev,
-                      shiftId: selectedShiftId,
+                      shiftId: val,
                     }));
                   }}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold text-xs"
-                >
-                  {shifts.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.startTime} - {s.endTime}) [{s.shiftType}]
-                    </option>
-                  ))}
-                </select>
+                  options={shifts.map((s) => ({
+                    value: s.id,
+                    label: `${s.name} (${s.startTime} - ${s.endTime}) [${s.shiftType}]`,
+                  }))}
+                />
               </div>
 
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   6. Allocate Fleet Bus *
                 </label>
-                <select
-                  required
+                <CustomDropdown
                   value={newTrip.busId}
-                  onChange={(e) => setNewTrip((prev) => ({ ...prev, busId: e.target.value }))}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold text-xs"
-                >
-                  <option value="">-- Choose Vehicle --</option>
-                  {buses.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.busNumber} • {b.capacity} Seats ({b.registrationNo}) [{b.status}]
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setNewTrip((prev) => ({ ...prev, busId: val }))}
+                  placeholder="-- Choose Vehicle --"
+                  options={[
+                    { value: "", label: "-- Choose Vehicle --" },
+                    ...buses.map((b) => ({
+                      value: b.id,
+                      label: `${b.busNumber} • ${b.capacity} Seats (${b.registrationNo}) [${b.status}]`,
+                    })),
+                  ]}
+                />
               </div>
             </div>
 
@@ -993,40 +986,40 @@ export default function TransportAdminTripsView({
                 <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Assign Driver (Optional)
                 </label>
-                <select
+                <CustomDropdown
                   value={newTrip.driverId}
-                  onChange={(e) => setNewTrip((prev) => ({ ...prev, driverId: e.target.value }))}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold text-xs"
-                >
-                  <option value="">-- Select Driver (Can assign later) --</option>
-                  {staff
-                    .filter((s) => s.role === "driver")
-                    .map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.fullName} ({d.phone})
-                      </option>
-                    ))}
-                </select>
+                  onChange={(val) => setNewTrip((prev) => ({ ...prev, driverId: val }))}
+                  placeholder="-- Select Driver (Can assign later) --"
+                  options={[
+                    { value: "", label: "-- Select Driver (Can assign later) --" },
+                    ...staff
+                      .filter((s) => s.role === "driver")
+                      .map((d) => ({
+                        value: d.id,
+                        label: `${d.fullName} (${d.phone})`,
+                      })),
+                  ]}
+                />
               </div>
 
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Assign Conductor (Optional)
                 </label>
-                <select
+                <CustomDropdown
                   value={newTrip.conductorId}
-                  onChange={(e) => setNewTrip((prev) => ({ ...prev, conductorId: e.target.value }))}
-                  className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white outline-none font-bold text-xs"
-                >
-                  <option value="">-- Select Conductor (Can assign later) --</option>
-                  {staff
-                    .filter((s) => s.role === "conductor" || s.role === "driver")
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.fullName} ({c.phone})
-                      </option>
-                    ))}
-                </select>
+                  onChange={(val) => setNewTrip((prev) => ({ ...prev, conductorId: val }))}
+                  placeholder="-- Select Conductor (Can assign later) --"
+                  options={[
+                    { value: "", label: "-- Select Conductor (Can assign later) --" },
+                    ...staff
+                      .filter((s) => s.role === "conductor" || s.role === "driver")
+                      .map((c) => ({
+                        value: c.id,
+                        label: `${c.fullName} (${c.phone})`,
+                      })),
+                  ]}
+                />
               </div>
             </div>
 

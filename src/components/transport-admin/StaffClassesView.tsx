@@ -28,6 +28,7 @@ import {
   Award,
 } from "lucide-react";
 import SearchableDropdown, { DropdownOption } from "@/components/ui/SearchableDropdown";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { store } from "@/lib/store";
 
 export interface ClassItem {
@@ -1239,18 +1240,19 @@ export default function StaffClassesView({
                 <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                   Academic Course / Program
                 </label>
-                <select
+                <CustomDropdown
+                  size="sm"
                   value={formData.course}
-                  onChange={(e) => setFormData({ ...formData, course: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="B.Tech CSE">B.Tech Computer Science & Engineering (B.Tech CSE)</option>
-                  <option value="Diploma CSE">Diploma in Computer Science & Engineering (Diploma CSE)</option>
-                  <option value="M.Tech CSE">M.Tech Computer Science & Engineering (M.Tech CSE)</option>
-                  <option value="B.Tech ECE">B.Tech Electronics & Communication (B.Tech ECE)</option>
-                  <option value="BCA">Bachelor of Computer Applications (BCA)</option>
-                  <option value="MCA">Master of Computer Applications (MCA)</option>
-                </select>
+                  onChange={val => setFormData({ ...formData, course: val })}
+                  options={[
+                    { value: "B.Tech CSE", label: "B.Tech Computer Science & Engineering (B.Tech CSE)" },
+                    { value: "Diploma CSE", label: "Diploma in Computer Science & Engineering (Diploma CSE)" },
+                    { value: "M.Tech CSE", label: "M.Tech Computer Science & Engineering (M.Tech CSE)" },
+                    { value: "B.Tech ECE", label: "B.Tech Electronics & Communication (B.Tech ECE)" },
+                    { value: "BCA", label: "Bachelor of Computer Applications (BCA)" },
+                    { value: "MCA", label: "Master of Computer Applications (MCA)" },
+                  ]}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1258,26 +1260,26 @@ export default function StaffClassesView({
                   <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                     Semester
                   </label>
-                  <select
+                  <CustomDropdown
+                    size="sm"
                     value={formData.semester}
-                    onChange={(e) => {
-                      const sem = e.target.value;
+                    onChange={sem => {
                       const semNum = parseInt(sem) || 1;
                       const yrNum = Math.ceil(semNum / 2);
                       const yrSuffix = yrNum === 1 ? '1st' : yrNum === 2 ? '2nd' : yrNum === 3 ? '3rd' : '4th';
                       setFormData({ ...formData, semester: sem, year: `${yrSuffix} Year` });
                     }}
-                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="1st Sem">1st Sem (Year 1)</option>
-                    <option value="2nd Sem">2nd Sem (Year 1)</option>
-                    <option value="3rd Sem">3rd Sem (Year 2)</option>
-                    <option value="4th Sem">4th Sem (Year 2)</option>
-                    <option value="5th Sem">5th Sem (Year 3)</option>
-                    <option value="6th Sem">6th Sem (Year 3)</option>
-                    <option value="7th Sem">7th Sem (Year 4)</option>
-                    <option value="8th Sem">8th Sem (Year 4)</option>
-                  </select>
+                    options={[
+                      { value: "1st Sem", label: "1st Sem (Year 1)" },
+                      { value: "2nd Sem", label: "2nd Sem (Year 1)" },
+                      { value: "3rd Sem", label: "3rd Sem (Year 2)" },
+                      { value: "4th Sem", label: "4th Sem (Year 2)" },
+                      { value: "5th Sem", label: "5th Sem (Year 3)" },
+                      { value: "6th Sem", label: "6th Sem (Year 3)" },
+                      { value: "7th Sem", label: "7th Sem (Year 4)" },
+                      { value: "8th Sem", label: "8th Sem (Year 4)" },
+                    ]}
+                  />
                 </div>
 
                 <div>
@@ -1288,7 +1290,7 @@ export default function StaffClassesView({
                     type="text"
                     readOnly
                     value={formData.year}
-                    className="w-full px-3.5 py-2 text-xs bg-gray-100 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 cursor-not-allowed"
+                    className="w-full px-3.5 py-2 text-xs bg-gray-100 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-none text-gray-500 cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -1304,7 +1306,7 @@ export default function StaffClassesView({
                     value={formData.section}
                     onChange={(e) => setFormData({ ...formData, section: e.target.value.toUpperCase() })}
                     placeholder="e.g. A, B, C, CC"
-                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-none focus:outline-none focus:border-green-500 uppercase"
                   />
                 </div>
 
@@ -1312,16 +1314,17 @@ export default function StaffClassesView({
                   <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                     Specialization / Track
                   </label>
-                  <select
+                  <CustomDropdown
+                    size="sm"
                     value={formData.specialization}
-                    onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Core">Core (Standard)</option>
-                    <option value="AIML">AI & Machine Learning (AIML)</option>
-                    <option value="CS">Computer Science (CS)</option>
-                    <option value="Cloud Computing">Cloud Computing (CC)</option>
-                  </select>
+                    onChange={val => setFormData({ ...formData, specialization: val })}
+                    options={[
+                      { value: "Core", label: "Core (Standard)" },
+                      { value: "AIML", label: "AI & Machine Learning (AIML)" },
+                      { value: "CS", label: "Computer Science (CS)" },
+                      { value: "Cloud Computing", label: "Cloud Computing (CC)" },
+                    ]}
+                  />
                 </div>
               </div>
 

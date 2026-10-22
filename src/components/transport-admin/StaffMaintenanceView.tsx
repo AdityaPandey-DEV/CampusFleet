@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import type { Bus, MaintenanceRequest } from "@/lib/types";
 import { getSafePhotoUrl } from "@/lib/image-utils";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 interface StaffMaintenanceViewProps {
   initialBuses?: Bus[];
@@ -335,16 +336,18 @@ export default function StaffMaintenanceView({
           </div>
 
           <div className="flex items-center gap-2">
-            <select
+            <CustomDropdown
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs font-bold px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none"
-            >
-              <option value="ALL">All Statuses ({maintenanceRequests.length})</option>
-              <option value="OPEN">Open ({openCount})</option>
-              <option value="IN_PROGRESS">In Workshop ({inProgressCount})</option>
-              <option value="COMPLETED">Completed ({completedCount})</option>
-            </select>
+              onChange={(val) => setStatusFilter(val)}
+              size="sm"
+              options={[
+                { value: "ALL", label: `All Statuses (${maintenanceRequests.length})` },
+                { value: "OPEN", label: `Open (${openCount})` },
+                { value: "IN_PROGRESS", label: `In Workshop (${inProgressCount})` },
+                { value: "COMPLETED", label: `Completed (${completedCount})` },
+              ]}
+              containerClassName="w-48"
+            />
           </div>
         </div>
 
@@ -484,22 +487,22 @@ export default function StaffMaintenanceView({
                   <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                     Select Bus
                   </label>
-                  <select
+                  <CustomDropdown
                     value={busId}
-                    onChange={(e) => {
-                      setBusId(e.target.value);
-                      const b = buses.find((item) => item.id === e.target.value);
+                    onChange={(val) => {
+                      setBusId(val);
+                      const b = buses.find((item) => item.id === val);
                       if (b) setVehicleNo(b.busNumber);
                     }}
-                    className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-bold"
-                  >
-                    <option value="">— Select from fleet —</option>
-                    {buses.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.busNumber} ({b.registrationNo || b.model})
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="— Select from fleet —"
+                    options={[
+                      { value: "", label: "— Select from fleet —" },
+                      ...buses.map((b) => ({
+                        value: b.id,
+                        label: `${b.busNumber} (${b.registrationNo || b.model})`,
+                      })),
+                    ]}
+                  />
                 </div>
 
                 <div>

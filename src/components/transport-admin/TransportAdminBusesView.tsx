@@ -7,6 +7,7 @@ import { parseSeatLayout, calculateBusCapacity } from "@/lib/utils";
 import { BusFront, Plus, Edit2, Trash2, ShieldAlert, CheckCircle2, Wrench, Search, MapPin, Sparkles, RefreshCw, QrCode, X } from "lucide-react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 export interface TransportAdminBusesProps {
   initialBuses?: Bus[];
@@ -570,15 +571,15 @@ export default function TransportAdminBusesView({
 
                 <div>
                   <label className="font-bold uppercase tracking-wider text-gray-400">Vehicle Status</label>
-                  <select
+                  <CustomDropdown
                     value={formData.status}
-                    onChange={e => setFormData({ ...formData, status: e.target.value as VehicleStatus })}
-                    className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
-                  >
-                    <option value="ACTIVE">ACTIVE (Operational)</option>
-                    <option value="MAINTENANCE">MAINTENANCE (Workshop)</option>
-                    <option value="DECOMMISSIONED">DECOMMISSIONED</option>
-                  </select>
+                    onChange={val => setFormData({ ...formData, status: val as VehicleStatus })}
+                    options={[
+                      { value: "ACTIVE", label: "ACTIVE (Operational)" },
+                      { value: "MAINTENANCE", label: "MAINTENANCE (Workshop)" },
+                      { value: "DECOMMISSIONED", label: "DECOMMISSIONED" },
+                    ]}
+                  />
                 </div>
               </div>
             </div>
@@ -624,19 +625,18 @@ export default function TransportAdminBusesView({
 
             <div className="space-y-2 text-xs">
               <label className="font-bold uppercase tracking-wider text-gray-400">Select Transit Corridor / Route</label>
-              <select
-                required
+              <CustomDropdown
                 value={selectedRouteIdToAllocate}
-                onChange={e => setSelectedRouteIdToAllocate(e.target.value)}
-                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
-              >
-                <option value="">-- Choose Campus Route --</option>
-                {routes.map(r => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} • {r.stops.length} Stops
-                  </option>
-                ))}
-              </select>
+                onChange={val => setSelectedRouteIdToAllocate(val)}
+                placeholder="-- Choose Campus Route --"
+                options={[
+                  { value: "", label: "-- Choose Campus Route --" },
+                  ...routes.map(r => ({
+                    value: r.id,
+                    label: `${r.name} • ${r.stops.length} Stops`,
+                  })),
+                ]}
+              />
             </div>
 
             <div className="flex items-center gap-2 pt-2">

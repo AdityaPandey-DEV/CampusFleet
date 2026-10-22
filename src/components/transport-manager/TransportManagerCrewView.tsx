@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { formatTime, formatDate } from "@/lib/utils";
 import type { Trip, Bus, Route, Staff, UserAccount, AttendanceRecord } from "@/lib/types";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 interface TransportManagerCrewViewProps {
   initialTrips?: Trip[];
@@ -349,15 +350,17 @@ export default function TransportManagerCrewView({
             </h3>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <select
+              <CustomDropdown
                 value={shiftFilter}
-                onChange={(e) => setShiftFilter(e.target.value)}
-                className="px-4 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 font-bold cursor-pointer"
-              >
-                <option value="ALL">All Shifts</option>
-                <option value="MORNING">Morning Inbound</option>
-                <option value="EVENING">Evening Return</option>
-              </select>
+                onChange={(val) => setShiftFilter(val)}
+                size="sm"
+                options={[
+                  { value: "ALL", label: "All Shifts" },
+                  { value: "MORNING", label: "Morning Inbound" },
+                  { value: "EVENING", label: "Evening Return" },
+                ]}
+                containerClassName="w-40"
+              />
               <div className="relative flex-1 sm:w-72 sm:flex-none">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -679,18 +682,18 @@ export default function TransportManagerCrewView({
                 <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Designated Driver (Strictly Drivers Only)
                 </label>
-                <select
+                <CustomDropdown
                   value={selectedDriverId}
-                  onChange={(e) => setSelectedDriverId(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-bold"
-                >
-                  <option value="">— Unassign Driver —</option>
-                  {eligibleDrivers.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} ({d.license || "HMV"}) • {d.phone}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedDriverId(val)}
+                  placeholder="— Unassign Driver —"
+                  options={[
+                    { value: "", label: "— Unassign Driver —" },
+                    ...eligibleDrivers.map((d) => ({
+                      value: d.id,
+                      label: `${d.name} (${d.license || "HMV"}) • ${d.phone}`,
+                    })),
+                  ]}
+                />
               </div>
 
               {/* Conductor Select */}
@@ -698,18 +701,18 @@ export default function TransportManagerCrewView({
                 <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Designated Conductor (Conductors or Qualified Drivers)
                 </label>
-                <select
+                <CustomDropdown
                   value={selectedConductorId}
-                  onChange={(e) => setSelectedConductorId(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-bold"
-                >
-                  <option value="">— Unassign Conductor —</option>
-                  {eligibleConductors.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} • {c.phone}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedConductorId(val)}
+                  placeholder="— Unassign Conductor —"
+                  options={[
+                    { value: "", label: "— Unassign Conductor —" },
+                    ...eligibleConductors.map((c) => ({
+                      value: c.id,
+                      label: `${c.name} • ${c.phone}`,
+                    })),
+                  ]}
+                />
               </div>
             </div>
 

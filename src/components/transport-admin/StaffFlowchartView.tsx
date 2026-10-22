@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import type { Route, Bus, Stop, Student, Trip, Staff, UserAccount } from "@/lib/types";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 interface StaffFlowchartViewProps {
   initialRoutes?: Route[];
@@ -452,17 +453,14 @@ export default function StaffFlowchartView({
                 <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Select Fleet Bus
                 </label>
-                <select
+                <CustomDropdown
                   value={assignBusFormData.busId}
-                  onChange={(e) => setAssignBusFormData({ ...assignBusFormData, busId: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold outline-none"
-                >
-                  {buses.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.busNumber} • {b.model} ({b.capacity} seats)
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setAssignBusFormData({ ...assignBusFormData, busId: val })}
+                  options={buses.map((b) => ({
+                    value: b.id,
+                    label: `${b.busNumber} • ${b.model} (${b.capacity} seats)`,
+                  }))}
+                />
               </div>
 
               <div>
@@ -481,40 +479,40 @@ export default function StaffFlowchartView({
                 <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Assign Driver
                 </label>
-                <select
+                <CustomDropdown
                   value={assignBusFormData.driverId}
-                  onChange={(e) => setAssignBusFormData({ ...assignBusFormData, driverId: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold outline-none"
-                >
-                  <option value="">— Select Driver —</option>
-                  {staff
-                    .filter((s) => s.role === "driver")
-                    .map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.fullName} ({d.licenseNo || "Commercial HMV"})
-                      </option>
-                    ))}
-                </select>
+                  onChange={(val) => setAssignBusFormData({ ...assignBusFormData, driverId: val })}
+                  placeholder="— Select Driver —"
+                  options={[
+                    { value: "", label: "— Select Driver —" },
+                    ...staff
+                      .filter((s) => s.role === "driver")
+                      .map((d) => ({
+                        value: d.id,
+                        label: `${d.fullName} (${d.licenseNo || "Commercial HMV"})`,
+                      })),
+                  ]}
+                />
               </div>
 
               <div>
                 <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
                   Assign Conductor
                 </label>
-                <select
+                <CustomDropdown
                   value={assignBusFormData.conductorId}
-                  onChange={(e) => setAssignBusFormData({ ...assignBusFormData, conductorId: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold outline-none"
-                >
-                  <option value="">— Select Conductor —</option>
-                  {staff
-                    .filter((s) => s.role === "conductor" || s.role === "driver")
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.fullName}
-                      </option>
-                    ))}
-                </select>
+                  onChange={(val) => setAssignBusFormData({ ...assignBusFormData, conductorId: val })}
+                  placeholder="— Select Conductor —"
+                  options={[
+                    { value: "", label: "— Select Conductor —" },
+                    ...staff
+                      .filter((s) => s.role === "conductor" || s.role === "driver")
+                      .map((c) => ({
+                        value: c.id,
+                        label: c.fullName,
+                      })),
+                  ]}
+                />
               </div>
             </div>
 

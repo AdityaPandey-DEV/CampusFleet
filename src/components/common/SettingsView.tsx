@@ -16,86 +16,7 @@ import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
 import { MobileBottomNav } from "@/components/common/MobileBottomNav";
 import { UserRole } from "@/lib/types";
 
-type DropdownOption = string | { value: string; label: string; sublabel?: string };
-
-const CustomDropdown = ({ 
-  options, 
-  value, 
-  onChange, 
-  placeholder,
-  disabled = false
-}: { 
-  options: DropdownOption[], 
-  value: string, 
-  onChange: (val: string) => void,
-  placeholder: string,
-  disabled?: boolean
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  const selectedOption = options.find(opt => 
-    typeof opt === "string" ? opt === value : opt.value === value
-  );
-  const displayLabel = typeof selectedOption === "string" 
-    ? selectedOption 
-    : (selectedOption?.label || value);
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full px-4 py-2.5 text-left border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-none focus:outline-none focus:border-green-500 flex justify-between items-center transition-all ${
-          disabled ? "opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800/40" : "hover:border-gray-400 dark:hover:border-gray-600"
-        }`}
-      >
-        <span className={displayLabel ? "text-gray-900 dark:text-white truncate" : "text-gray-400 truncate"}>
-          {displayLabel || placeholder}
-        </span>
-        <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
-      </button>
-      {isOpen && !disabled && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800/50">
-            {options.length === 0 ? (
-              <div className="px-4 py-3 text-xs text-gray-400 italic">No options available</div>
-            ) : (
-              options.map((opt, idx) => {
-                const optVal = typeof opt === "string" ? opt : opt.value;
-                const optLabel = typeof opt === "string" ? opt : opt.label;
-                const optSub = typeof opt === "string" ? undefined : opt.sublabel;
-                const isSelected = value === optVal;
-
-                return (
-                  <button
-                    key={`${optVal}-${idx}`}
-                    type="button"
-                    onClick={() => {
-                      onChange(optVal);
-                      setIsOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex flex-col ${
-                      isSelected 
-                        ? 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <span className="font-medium text-xs md:text-sm">{optLabel}</span>
-                    {optSub && (
-                      <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{optSub}</span>
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 export function SettingsView() {
   const pathname = usePathname();
@@ -1285,15 +1206,16 @@ export function SettingsView() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Request Type</label>
-                    <select
+                    <CustomDropdown
                       value={switchType}
-                      onChange={e => setSwitchType(e.target.value as any)}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
-                    >
-                      <option value="TEMPORARY_SWAP">Temporary Swap (Today / Single Day)</option>
-                      <option value="PERMANENT_TRANSFER">Permanent Bus Transfer</option>
-                      <option value="STOP_CHANGE">Boarding Stop Change</option>
-                    </select>
+                      onChange={val => setSwitchType(val as any)}
+                      options={[
+                        { value: "TEMPORARY_SWAP", label: "Temporary Swap (Today / Single Day)" },
+                        { value: "PERMANENT_TRANSFER", label: "Permanent Bus Transfer" },
+                        { value: "STOP_CHANGE", label: "Boarding Stop Change" },
+                      ]}
+                      placeholder="Select Request Type"
+                    />
                   </div>
 
                   <div className="space-y-1.5">
@@ -1310,34 +1232,34 @@ export function SettingsView() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Requested Bus</label>
-                    <select
+                    <CustomDropdown
                       value={targetBusId}
-                      onChange={e => setTargetBusId(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
-                    >
-                      <option value="">-- Keep Current Bus / Auto-pick --</option>
-                      {availableBuses.map((b: any) => (
-                        <option key={b.id} value={b.id}>
-                          {b.busNumber || b.bus_number} ({b.capacity || 40} seats)
-                        </option>
-                      ))}
-                    </select>
+                      onChange={val => setTargetBusId(val)}
+                      placeholder="-- Keep Current Bus / Auto-pick --"
+                      options={[
+                        { value: "", label: "-- Keep Current Bus / Auto-pick --" },
+                        ...availableBuses.map((b: any) => ({
+                          value: b.id,
+                          label: `${b.busNumber || b.bus_number} (${b.capacity || 40} seats)`,
+                        })),
+                      ]}
+                    />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Requested Boarding Stop</label>
-                    <select
+                    <CustomDropdown
                       value={targetStopId}
-                      onChange={e => setTargetStopId(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-none focus:outline-none focus:border-green-500 text-sm"
-                    >
-                      <option value="">-- Keep Current Stop --</option>
-                      {availableStops.map((s: any) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} {s.landmark ? `(${s.landmark})` : ""}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={val => setTargetStopId(val)}
+                      placeholder="-- Keep Current Stop --"
+                      options={[
+                        { value: "", label: "-- Keep Current Stop --" },
+                        ...availableStops.map((s: any) => ({
+                          value: s.id,
+                          label: `${s.name}${s.landmark ? ` (${s.landmark})` : ""}`,
+                        })),
+                      ]}
+                    />
                   </div>
                 </div>
 

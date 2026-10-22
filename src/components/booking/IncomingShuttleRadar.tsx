@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Bus, MapPin, Sparkles, RefreshCw, AlertCircle, CheckCircle2, ArrowRight, Clock } from "lucide-react";
 import { Stop } from "@/lib/types";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 interface IncomingShuttle {
   tripId: string;
@@ -151,20 +152,16 @@ export function IncomingShuttleRadar({
 
         {/* Station Selector Pill */}
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-pink-600" />
-            <select
-              value={selectedStopId}
-              onChange={(e) => setSelectedStopId(e.target.value)}
-              className="text-xs font-bold bg-transparent text-gray-900 dark:text-white outline-none cursor-pointer"
-            >
-              {stops.map((s) => (
-                <option key={s.id} value={s.id} className="text-gray-900 bg-white dark:bg-gray-900 dark:text-white">
-                  {s.name} ({s.code}) {s.isBusMergeStop ? "⚡ Merge Stop" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CustomDropdown
+            value={selectedStopId}
+            onChange={(val) => setSelectedStopId(val)}
+            size="sm"
+            options={stops.map((s) => ({
+              value: s.id,
+              label: `${s.name} (${s.code}) ${s.isBusMergeStop ? "⚡ Merge Stop" : ""}`,
+            }))}
+            containerClassName="w-64"
+          />
 
           <button
             onClick={() => fetchIncomingShuttles(selectedStopId)}

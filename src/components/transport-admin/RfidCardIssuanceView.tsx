@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import type { Student, Stop, Route, Bus } from "@/lib/types";
 import { getSafePhotoUrl } from "@/lib/image-utils";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 export interface RfidCardIssuanceViewProps {
   initialStudents?: Student[];
@@ -1025,22 +1026,20 @@ function formatTimeAgo(isoString?: string | null): string {
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
                     Select Bus Asset
                   </label>
-                  <select
+                  <CustomDropdown
+                    size="sm"
                     value={selectedBusForDevice}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      setSelectedBusForDevice(id);
-                      const matched = buses.find((b) => b.id === id);
+                    onChange={(val) => {
+                      setSelectedBusForDevice(val);
+                      const matched = buses.find((b) => b.id === val);
                       setDeviceIdInput(matched?.rfidDeviceId || "");
                     }}
-                    className="w-full text-xs font-bold px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                  >
-                    {buses.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.busNumber} ({b.registrationNo}) {b.rfidDeviceId ? `• [${b.rfidDeviceId}]` : "• [Unpaired]"}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Select Bus Asset"
+                    options={buses.map((b) => ({
+                      value: b.id,
+                      label: `${b.busNumber} (${b.registrationNo}) ${b.rfidDeviceId ? `• [${b.rfidDeviceId}]` : "• [Unpaired]"}`,
+                    }))}
+                  />
                 </div>
 
                 {/* Device Hardware ID or MAC */}

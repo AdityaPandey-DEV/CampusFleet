@@ -2,6 +2,7 @@
 import React from 'react';
 import { BusFront, X, Check, Search, ShieldAlert, GitBranch } from 'lucide-react';
 import { Route, Bus, Trip } from '@/lib/types';
+import { CustomDropdown } from '@/components/common/CustomDropdown';
 
 export function AllocateBusModal({
   isAllocateBusModalOpen,
@@ -33,19 +34,18 @@ export function AllocateBusModal({
 
             <div className="space-y-2 text-xs">
               <label className="font-bold uppercase tracking-wider text-gray-400">Choose Fleet Bus</label>
-              <select
-                required
+              <CustomDropdown
                 value={selectedBusToAllocate}
-                onChange={e => setSelectedBusToAllocate(e.target.value)}
-                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
-              >
-                <option value="">-- Select Available Vehicle --</option>
-                {buses.map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {b.busNumber} ({b.registrationNo}) • {b.capacity} Seats ({b.status})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedBusToAllocate(val)}
+                placeholder="-- Select Available Vehicle --"
+                options={[
+                  { value: "", label: "-- Select Available Vehicle --" },
+                  ...buses.map((b: any) => ({
+                    value: b.id,
+                    label: `${b.busNumber} (${b.registrationNo}) • ${b.capacity} Seats (${b.status})`,
+                  })),
+                ]}
+              />
             </div>
 
             <div className="flex items-center gap-2 pt-2">

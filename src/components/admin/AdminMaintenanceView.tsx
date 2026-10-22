@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import type { MaintenanceRequest, Bus, MaintenanceRequestStatus } from "@/lib/types";
 import { getSafePhotoUrl } from "@/lib/image-utils";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 export interface AdminMaintenanceProps {
   initialRequests?: MaintenanceRequest[];
@@ -429,18 +430,19 @@ export default function AdminMaintenanceView({
           {/* Bus Filter Dropdown */}
           <div className="flex items-center gap-2">
             <Filter className="w-3.5 h-3.5 text-gray-400" />
-            <select
+            <CustomDropdown
               value={selectedBusFilter}
-              onChange={(e) => setSelectedBusFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs font-bold rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="ALL">All Vehicles</option>
-              {buses.map((b) => (
-                <option key={b.id} value={b.busNumber}>
-                  {b.busNumber} {b.model ? `(${b.model})` : ""}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedBusFilter(val)}
+              size="sm"
+              options={[
+                { value: "ALL", label: "All Vehicles" },
+                ...buses.map((b) => ({
+                  value: b.busNumber,
+                  label: `${b.busNumber} ${b.model ? `(${b.model})` : ""}`,
+                })),
+              ]}
+              containerClassName="w-48"
+            />
           </div>
 
           {/* Status Tabs */}

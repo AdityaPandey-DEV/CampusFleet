@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { GitBranch, MapPin, Building2, Search, ArrowUp, ArrowDown, X, RotateCcw, Route as RouteIcon, Info, ChevronRight, BusFront, Calendar as CalendarIcon, Hash, Map as MapIcon, Users, Sliders, Check } from 'lucide-react';
 import { Route, Stop, Campus } from '@/lib/types';
 import dynamic from 'next/dynamic';
+import { CustomDropdown } from '@/components/common/CustomDropdown';
 
 const CampusFleetMap = dynamic(() => import('@/components/maps/CampusFleetMap'), {
   ssr: false,
@@ -121,10 +122,10 @@ export function RouteBuilderModal({
 
                   <div>
                     <label className="text-[10px] font-bold uppercase text-gray-400">Direction</label>
-                    <select
+                    <CustomDropdown
                       value={routeBuilderData.direction}
-                      onChange={e => {
-                        const newDir = e.target.value as any;
+                      onChange={val => {
+                        const newDir = val as any;
                         setRouteBuilderData((prev: any) => {
                           const primary = campuses.find((c: any) => c.isPrimary) || campuses[0];
                           const nonCampusStops = stops;
@@ -169,13 +170,13 @@ export function RouteBuilderModal({
                           };
                         });
                       }}
-                      className="w-full p-1.5 mt-0.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-bold outline-none text-xs"
-                    >
-                      <option value="HOME_TO_CAMPUS">HOME_TO_CAMPUS (Inbound)</option>
-                      <option value="CAMPUS_TO_HOME">CAMPUS_TO_HOME (Outbound)</option>
-                      <option value="CAMPUS_TO_CAMPUS">CAMPUS_TO_CAMPUS (Inter-Campus)</option>
-                      <option value="CIRCULAR">CIRCULAR (Loop)</option>
-                    </select>
+                      options={[
+                        { value: "HOME_TO_CAMPUS", label: "HOME_TO_CAMPUS (Inbound)" },
+                        { value: "CAMPUS_TO_HOME", label: "CAMPUS_TO_HOME (Outbound)" },
+                        { value: "CAMPUS_TO_CAMPUS", label: "CAMPUS_TO_CAMPUS (Inter-Campus)" },
+                        { value: "CIRCULAR", label: "CIRCULAR (Loop)" },
+                      ]}
+                    />
                   </div>
                 </div>
 
@@ -214,45 +215,43 @@ export function RouteBuilderModal({
 
                         {/* Start Stop Selector (Campuses if Outbound/Inter-Campus, regular stops if Inbound) */}
                         {isOriginCampus ? (
-                          <select
+                          <CustomDropdown
                             value={routeBuilderData.startStopId}
-                            onChange={e => {
-                              const cid = e.target.value;
+                            onChange={val => {
                               setRouteBuilderData(prev => ({
                                 ...prev,
-                                startStopId: cid,
-                                originCampusId: cid,
+                                startStopId: val,
+                                originCampusId: val,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
-                          >
-                            <option value="">-- Choose Origin Campus Terminal --</option>
-                            {campuses.map(c => (
-                              <option key={c.id} value={c.id}>
-                                {c.name} ({c.code}){c.isPrimary ? " ★ Primary Campus" : ""} {c.city ? `• ${c.city}` : ""}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="-- Choose Origin Campus Terminal --"
+                            options={[
+                              { value: "", label: "-- Choose Origin Campus Terminal --" },
+                              ...campuses.map(c => ({
+                                value: c.id,
+                                label: `${c.name} (${c.code})${c.isPrimary ? " ★ Primary Campus" : ""} ${c.city ? `• ${c.city}` : ""}`,
+                              })),
+                            ]}
+                          />
                         ) : (
-                          <select
+                          <CustomDropdown
                             value={routeBuilderData.startStopId}
-                            onChange={e => {
-                              const sid = e.target.value;
+                            onChange={val => {
                               setRouteBuilderData(prev => ({
                                 ...prev,
-                                startStopId: sid,
+                                startStopId: val,
                                 originCampusId: undefined,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
-                          >
-                            <option value="">-- Choose Origin Passenger Station --</option>
-                            {stops.map(st => (
-                              <option key={st.id} value={st.id}>
-                                {st.name} ({st.code}) {st.landmark ? `• ${st.landmark}` : ""}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="-- Choose Origin Passenger Station --"
+                            options={[
+                              { value: "", label: "-- Choose Origin Passenger Station --" },
+                              ...stops.map(st => ({
+                                value: st.id,
+                                label: `${st.name} (${st.code}) ${st.landmark ? `• ${st.landmark}` : ""}`,
+                              })),
+                            ]}
+                          />
                         )}
                       </div>
                     );
@@ -475,45 +474,43 @@ export function RouteBuilderModal({
 
                         {/* End Stop Selector (Campuses if Inbound/Inter-Campus, regular stops if Outbound) */}
                         {isDestCampus ? (
-                          <select
+                          <CustomDropdown
                             value={routeBuilderData.endStopId}
-                            onChange={e => {
-                              const cid = e.target.value;
+                            onChange={val => {
                               setRouteBuilderData(prev => ({
                                 ...prev,
-                                endStopId: cid,
-                                destinationCampusId: cid,
+                                endStopId: val,
+                                destinationCampusId: val,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
-                          >
-                            <option value="">-- Choose Destination Campus Terminal --</option>
-                            {campuses.map(c => (
-                              <option key={c.id} value={c.id}>
-                                {c.name} ({c.code}){c.isPrimary ? " ★ Primary Campus" : ""} {c.city ? `• ${c.city}` : ""}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="-- Choose Destination Campus Terminal --"
+                            options={[
+                              { value: "", label: "-- Choose Destination Campus Terminal --" },
+                              ...campuses.map(c => ({
+                                value: c.id,
+                                label: `${c.name} (${c.code})${c.isPrimary ? " ★ Primary Campus" : ""} ${c.city ? `• ${c.city}` : ""}`,
+                              })),
+                            ]}
+                          />
                         ) : (
-                          <select
+                          <CustomDropdown
                             value={routeBuilderData.endStopId}
-                            onChange={e => {
-                              const sid = e.target.value;
+                            onChange={val => {
                               setRouteBuilderData(prev => ({
                                 ...prev,
-                                endStopId: sid,
+                                endStopId: val,
                                 destinationCampusId: undefined,
                               }));
                             }}
-                            className="w-full p-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold outline-none"
-                          >
-                            <option value="">-- Choose Final Drop-off Station --</option>
-                            {stops.map(st => (
-                              <option key={st.id} value={st.id}>
-                                {st.name} ({st.code}) {st.landmark ? `• ${st.landmark}` : ""}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="-- Choose Final Drop-off Station --"
+                            options={[
+                              { value: "", label: "-- Choose Final Drop-off Station --" },
+                              ...stops.map(st => ({
+                                value: st.id,
+                                label: `${st.name} (${st.code}) ${st.landmark ? `• ${st.landmark}` : ""}`,
+                              })),
+                            ]}
+                          />
                         )}
                       </div>
                     );

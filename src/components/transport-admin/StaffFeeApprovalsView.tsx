@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { UserAccount, Route, Bus, Student } from "@/lib/types";
 import { getSafePhotoUrl } from "@/lib/image-utils";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 interface StaffFeeApprovalsViewProps {
   initialUser?: any;
@@ -316,16 +317,18 @@ export default function StaffFeeApprovalsView({
               />
             </div>
 
-            <select
+            <CustomDropdown
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="text-xs font-bold px-3 py-2 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl outline-none"
-            >
-              <option value="ALL">All Statuses ({submissions.length})</option>
-              <option value="PENDING_APPROVAL">Pending Review ({pendingCount})</option>
-              <option value="APPROVED">Approved ({approvedCount})</option>
-              <option value="REJECTED">Rejected</option>
-            </select>
+              onChange={(val) => setStatusFilter(val as any)}
+              size="sm"
+              options={[
+                { value: "ALL", label: `All Statuses (${submissions.length})` },
+                { value: "PENDING_APPROVAL", label: `Pending Review (${pendingCount})` },
+                { value: "APPROVED", label: `Approved (${approvedCount})` },
+                { value: "REJECTED", label: "Rejected" },
+              ]}
+              containerClassName="w-48"
+            />
 
             <button
               onClick={handleExportToExcel}

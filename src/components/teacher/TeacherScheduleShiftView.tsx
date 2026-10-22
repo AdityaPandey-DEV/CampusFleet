@@ -28,6 +28,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 export interface TeacherClassItem {
   id: string;
@@ -752,24 +753,25 @@ export default function TeacherScheduleShiftView({
                                 <span>Incoming Shift (Morning)</span>
                               </label>
 
-                              <select
+                              <CustomDropdown
                                 value={currentDayData.incoming_shift_id || ""}
-                                onChange={(e) =>
+                                onChange={(val) =>
                                   handleDayChange(
                                     day.key,
                                     "incoming_shift_id",
-                                    e.target.value || null
+                                    val || null
                                   )
                                 }
-                                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                              >
-                                <option value="">-- Select Incoming Shift --</option>
-                                {incomingShifts.map((s) => (
-                                  <option key={s.id} value={s.id}>
-                                    {s.name} ({formatTime(s.start_time)} - {formatTime(s.end_time)})
-                                  </option>
-                                ))}
-                              </select>
+                                placeholder="-- Select Incoming Shift --"
+                                size="sm"
+                                options={[
+                                  { value: "", label: "-- Select Incoming Shift --" },
+                                  ...incomingShifts.map((s) => ({
+                                    value: s.id,
+                                    label: `${s.name} (${formatTime(s.start_time)} - ${formatTime(s.end_time)})`,
+                                  })),
+                                ]}
+                              />
 
                               {selectedIncoming && (
                                 <div className="text-[10px] text-slate-400 font-mono">
@@ -785,24 +787,25 @@ export default function TeacherScheduleShiftView({
                                 <span>Outgoing Shift (Return)</span>
                               </label>
 
-                              <select
+                              <CustomDropdown
                                 value={currentDayData.outgoing_shift_id || ""}
-                                onChange={(e) =>
+                                onChange={(val) =>
                                   handleDayChange(
                                     day.key,
                                     "outgoing_shift_id",
-                                    e.target.value || null
+                                    val || null
                                   )
                                 }
-                                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                              >
-                                <option value="">-- Select Outgoing Shift --</option>
-                                {outgoingShifts.map((s) => (
-                                  <option key={s.id} value={s.id}>
-                                    {s.name} ({formatTime(s.start_time)} - {formatTime(s.end_time)})
-                                  </option>
-                                ))}
-                              </select>
+                                placeholder="-- Select Outgoing Shift --"
+                                size="sm"
+                                options={[
+                                  { value: "", label: "-- Select Outgoing Shift --" },
+                                  ...outgoingShifts.map((s) => ({
+                                    value: s.id,
+                                    label: `${s.name} (${formatTime(s.start_time)} - ${formatTime(s.end_time)})`,
+                                  })),
+                                ]}
+                              />
 
                               {selectedOutgoing && (
                                 <div className="text-[10px] text-slate-400 font-mono">

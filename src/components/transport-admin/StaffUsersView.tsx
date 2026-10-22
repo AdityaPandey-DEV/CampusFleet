@@ -24,6 +24,7 @@ import {
   BookOpen,
   Briefcase,
 } from "lucide-react";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 export interface StaffStaffProps {
   initialUsers?: UserAccount[];
@@ -335,20 +336,22 @@ export default function StaffUsersView({
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <select
+          <CustomDropdown
             value={roleFilter}
-            onChange={e => setRoleFilter(e.target.value)}
-            className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-700 dark:text-gray-200 outline-none cursor-pointer"
-          >
-            <option value="ALL">All Roles ({users.length})</option>
-            <option value="admin">Administrator ({adminCount})</option>
-            <option value="transport_manager">Transport Manager ({transportManagerCount})</option>
-            <option value="transport_admin">Transport Admin ({transportAdminCount})</option>
-            <option value="driver">Fleet Driver ({driverCount})</option>
-            <option value="conductor">Conductor ({conductorCount})</option>
-            <option value="teacher">Teacher / Faculty ({teacherCount})</option>
-            <option value="student">Student Commuter ({studentCount})</option>
-          </select>
+            onChange={val => setRoleFilter(val)}
+            size="sm"
+            options={[
+              { value: "ALL", label: `All Roles (${users.length})` },
+              { value: "admin", label: `Administrator (${adminCount})` },
+              { value: "transport_manager", label: `Transport Manager (${transportManagerCount})` },
+              { value: "transport_admin", label: `Transport Admin (${transportAdminCount})` },
+              { value: "driver", label: `Fleet Driver (${driverCount})` },
+              { value: "conductor", label: `Conductor (${conductorCount})` },
+              { value: "teacher", label: `Teacher / Faculty (${teacherCount})` },
+              { value: "student", label: `Student Commuter (${studentCount})` },
+            ]}
+            containerClassName="w-full sm:w-60"
+          />
 
           <button
             onClick={() => setIsAddUserOpen(true)}
@@ -438,22 +441,24 @@ export default function StaffUsersView({
 
                       {/* MODIFY ACCESS DROPDOWN */}
                       <td className="py-4 px-6 text-right">
-                        <select
+                        <CustomDropdown
                           disabled={updatingUserId === user.id}
                           value={user.role}
-                          onChange={e =>
-                            handleRoleChange(user.id, e.target.value as UserRole, user.fullName)
+                          onChange={val =>
+                            handleRoleChange(user.id, val as UserRole, user.fullName)
                           }
-                          className="px-3 py-1.5 text-xs font-bold bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-800 dark:text-gray-200 outline-none cursor-pointer hover:border-blue-500 transition-colors disabled:opacity-50"
-                        >
-                          <option value="student">Student Commuter</option>
-                          <option value="teacher">Teacher / Faculty</option>
-                          <option value="transport_admin">Transport Admin</option>
-                          <option value="transport_manager">Transport Manager</option>
-                          <option value="conductor">Conductor</option>
-                          <option value="driver">Fleet Driver</option>
-                          {isAdmin && <option value="admin">Administrator</option>}
-                        </select>
+                          size="sm"
+                          options={[
+                            { value: "student", label: "Student Commuter" },
+                            { value: "teacher", label: "Teacher / Faculty" },
+                            { value: "transport_admin", label: "Transport Admin" },
+                            { value: "transport_manager", label: "Transport Manager" },
+                            { value: "conductor", label: "Conductor" },
+                            { value: "driver", label: "Fleet Driver" },
+                            ...(isAdmin ? [{ value: "admin", label: "Administrator" }] : []),
+                          ]}
+                          containerClassName="w-48 ml-auto"
+                        />
                       </td>
                     </tr>
                   );
@@ -515,39 +520,36 @@ export default function StaffUsersView({
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                     Role
                   </label>
-                  <select
+                  <CustomDropdown
                     value={newUser.role}
-                    onChange={e => setNewUser({ ...newUser, role: e.target.value as UserRole })}
-                    className="w-full text-xs p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none mt-1 cursor-pointer"
-                  >
-                    <option value="student">Student Commuter</option>
-                    <option value="teacher">Teacher / Faculty</option>
-                    <option value="transport_admin">Transport Admin</option>
-                    <option value="transport_manager">Transport Manager</option>
-                    <option value="conductor">Conductor</option>
-                    <option value="driver">Fleet Driver</option>
-                    {isAdmin && <option value="admin">Administrator</option>}
-                  </select>
+                    onChange={val => setNewUser({ ...newUser, role: val as UserRole })}
+                    options={[
+                      { value: "student", label: "Student Commuter" },
+                      { value: "teacher", label: "Teacher / Faculty" },
+                      { value: "transport_admin", label: "Transport Admin" },
+                      { value: "transport_manager", label: "Transport Manager" },
+                      { value: "conductor", label: "Conductor" },
+                      { value: "driver", label: "Fleet Driver" },
+                      ...(isAdmin ? [{ value: "admin", label: "Administrator" }] : []),
+                    ]}
+                  />
                 </div>
 
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                     Campus
                   </label>
-                  <select
+                  <CustomDropdown
                     value={newUser.campus}
-                    onChange={e => {
-                      const c = campuses.find(camp => camp.name === e.target.value || camp.id === e.target.value);
-                      setNewUser({ ...newUser, campus: c?.name || e.target.value, campusId: c?.id || "" });
+                    onChange={val => {
+                      const c = campuses.find(camp => camp.name === val || camp.id === val);
+                      setNewUser({ ...newUser, campus: c?.name || val, campusId: c?.id || "" });
                     }}
-                    className="w-full text-xs p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none mt-1 cursor-pointer"
-                  >
-                    {campuses.map(c => (
-                      <option key={c.id} value={c.name}>
-                        {c.name} {c.isPrimary ? "(Primary)" : ""}
-                      </option>
-                    ))}
-                  </select>
+                    options={campuses.map(c => ({
+                      value: c.name,
+                      label: `${c.name} ${c.isPrimary ? "(Primary)" : ""}`,
+                    }))}
+                  />
                 </div>
               </div>
 

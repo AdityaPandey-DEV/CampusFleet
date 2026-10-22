@@ -37,6 +37,7 @@ const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"),
 
 import type { Bus, Route, Stop, Trip, Staff, Student, Booking } from "@/lib/types";
 import { telematicsService } from "@/lib/telematicsService";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 import BusFullnessRoamingBanner from "./BusFullnessRoamingBanner";
 import BusDepartureAlertModal from "./BusDepartureAlertModal";
 
@@ -332,23 +333,21 @@ export default function LiveTrackerView({
           {/* Route Selector Dropdown & Live Pulse */}
           <div className="flex flex-wrap items-center gap-3">
             {!activeBooking && (
-              <select
-                value={selectedRouteId || assignedRoute?.id || ""}
-                onChange={e => {
-                  setSelectedRouteId(e.target.value);
-                  setInspectedStopId("");
-                }}
-                className="text-xs font-medium bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-1.5 outline-none cursor-pointer text-gray-900 dark:text-white transition-colors"
-              >
-                {routes.map(r => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
+              <div className="w-56">
+                <CustomDropdown
+                  size="sm"
+                  value={selectedRouteId || assignedRoute?.id || ""}
+                  onChange={val => {
+                    setSelectedRouteId(val);
+                    setInspectedStopId("");
+                  }}
+                  options={routes.map(r => ({ value: r.id, label: r.name }))}
+                  placeholder="Select Route"
+                />
+              </div>
             )}
 
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-xs font-medium text-green-700 dark:text-green-300">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-none bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-xs font-medium text-green-700 dark:text-green-300">
               <span className={`w-2 h-2 rounded-full ${isTripInProgress ? "bg-green-500 animate-ping" : "bg-amber-500"}`} />
               <Radio className="w-3.5 h-3.5" />
               <span>{isTripInProgress ? "GPS Beacon Active" : "Stationary at Starting Terminal"}</span>
@@ -389,18 +388,18 @@ export default function LiveTrackerView({
             <h2 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">Live Radar</h2>
           </div>
           {!activeBooking && (
-            <select
-              value={selectedRouteId || assignedRoute?.id || ""}
-              onChange={e => {
-                setSelectedRouteId(e.target.value);
-                setInspectedStopId("");
-              }}
-              className="text-xs font-medium bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-1.5 outline-none cursor-pointer text-gray-900 dark:text-white transition-colors"
-            >
-              {routes.map(r => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
+            <div className="w-56">
+              <CustomDropdown
+                size="sm"
+                value={selectedRouteId || assignedRoute?.id || ""}
+                onChange={val => {
+                  setSelectedRouteId(val);
+                  setInspectedStopId("");
+                }}
+                options={routes.map(r => ({ value: r.id, label: r.name }))}
+                placeholder="Select Route"
+              />
+            </div>
           )}
         </div>
       )}

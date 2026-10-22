@@ -26,6 +26,7 @@ import {
   CheckSquare,
   Square,
 } from "lucide-react";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 interface StaffBillingViewProps {
   initialSubmissions: any[];
@@ -1045,16 +1046,16 @@ export function StaffBillingView({
                   <label className="text-xs font-black text-gray-700 dark:text-gray-300 block mb-1">
                     Allowed Installments
                   </label>
-                  <select
+                  <CustomDropdown
                     value={zoneForm.installmentsAllowed}
-                    onChange={(e) => setZoneForm({ ...zoneForm, installmentsAllowed: Number(e.target.value) })}
-                    className="w-full text-xs p-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 font-medium outline-none focus:border-blue-500"
-                  >
-                    <option value={1}>1 Installment (Full Payment Upfront)</option>
-                    <option value={2}>2 Installments (50% Split)</option>
-                    <option value={3}>3 Installments (Standard Split)</option>
-                    <option value={4}>4 Installments (Flexible Monthly)</option>
-                  </select>
+                    onChange={(val) => setZoneForm({ ...zoneForm, installmentsAllowed: Number(val) })}
+                    options={[
+                      { value: 1, label: "1 Installment (Full Payment Upfront)" },
+                      { value: 2, label: "2 Installments (50% Split)" },
+                      { value: 3, label: "3 Installments (Standard Split)" },
+                      { value: 4, label: "4 Installments (Flexible Monthly)" },
+                    ]}
+                  />
                 </div>
               </div>
 

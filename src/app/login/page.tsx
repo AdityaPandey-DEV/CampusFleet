@@ -30,6 +30,7 @@ import {
   User,
 } from "lucide-react";
 import { authService } from "@/lib/auth-service";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -543,23 +544,15 @@ export default function LoginPage() {
                   <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 ml-1 mb-1.5 block">
                     Enrolled Campus
                   </label>
-                  <div className="relative group">
-                    <Building className="w-5 h-5 text-gray-400 absolute left-4 top-4 transition-colors group-focus-within:text-blue-500" />
-                    <select
-                      value={onboardingCampusId}
-                      onChange={e => setOnboardingCampusId(e.target.value)}
-                      className="w-full text-sm pl-12 pr-4 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold cursor-pointer appearance-none"
-                    >
-                      {campuses.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} {c.isPrimary ? "• (Main Hub)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-4 top-4 pointer-events-none text-gray-400">
-                      ▼
-                    </div>
-                  </div>
+                  <CustomDropdown
+                    value={onboardingCampusId}
+                    onChange={val => setOnboardingCampusId(val)}
+                    placeholder="Select Campus"
+                    options={campuses.map(c => ({
+                      value: c.id,
+                      label: `${c.name}${c.isPrimary ? " • (Main Hub)" : ""}`,
+                    }))}
+                  />
                 </div>
 
                 {/* Home Location / Neighborhood */}
@@ -639,23 +632,16 @@ export default function LoginPage() {
                     </div>
                   )}
 
-                  <div className="relative group">
-                    <MapPin className="w-5 h-5 text-gray-400 absolute left-4 top-4 transition-colors group-focus-within:text-blue-500" />
-                    <select
-                      value={selectedStopId}
-                      onChange={e => setSelectedStopId(e.target.value)}
-                      className="w-full text-sm pl-12 pr-10 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-gray-900 dark:text-white cursor-pointer appearance-none"
-                    >
-                      {filteredNearestStops.map(st => (
-                        <option key={st.id} value={st.id}>
-                          {st.name} ({st.code}) — {st.landmark}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-4 top-4 pointer-events-none text-gray-400">
-                      ▼
-                    </div>
-                  </div>
+                  <CustomDropdown
+                    value={selectedStopId}
+                    onChange={val => setSelectedStopId(val)}
+                    placeholder="Select Nearest Boarding Stop"
+                    options={filteredNearestStops.map(st => ({
+                      value: st.id,
+                      label: `${st.name} (${st.code})`,
+                      sublabel: st.landmark || undefined,
+                    }))}
+                  />
                 </div>
 
                 <button

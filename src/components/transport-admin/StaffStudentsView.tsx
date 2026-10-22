@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import type { Stop, Route, Guardian } from "@/lib/types";
 import { getSafePhotoUrl } from "@/lib/image-utils";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 export interface StaffStudentsProps {
   initialStudents?: Student[];
@@ -440,19 +441,18 @@ export default function StaffStudentsView({
                 <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
                   Select University Class (from Database)
                 </label>
-                <select
-                  required
+                <CustomDropdown
                   value={selectedNewClassId}
-                  onChange={(e) => setSelectedNewClassId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
-                >
-                  <option value="">-- Choose Class --</option>
-                  {classesList.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.course} • {c.year} • Sec {c.section})
-                    </option>
-                  ))}
-                </select>
+                  onChange={val => setSelectedNewClassId(val)}
+                  placeholder="-- Choose Class --"
+                  options={[
+                    { value: "", label: "-- Choose Class --" },
+                    ...classesList.map(c => ({
+                      value: c.id,
+                      label: `${c.name} (${c.course} • ${c.year} • Sec ${c.section})`,
+                    })),
+                  ]}
+                />
               </div>
 
               <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 rounded-xl text-[11px] text-blue-800 dark:text-blue-300">

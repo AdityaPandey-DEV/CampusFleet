@@ -46,6 +46,7 @@ import {
   Info,
   Building2,
 } from "lucide-react";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 // Haversine geodesic distance in km
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -360,21 +361,16 @@ export default function StopsManager({ mode = "view" }: { mode?: "view" | "creat
 
                 {/* Switch Terminal Selector & Edit Controls */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 self-stretch lg:self-auto flex-shrink-0">
-                  <div className="relative">
-                    <select
-                      value={currentCampusStop.id}
-                      onChange={e => setDesignatedCampusId(e.target.value)}
-                      className="w-full sm:w-auto appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm transition-all"
-                      title="Switch designated Central Campus Terminal"
-                    >
-                      {stops.map(st => (
-                        <option key={st.id} value={st.id}>
-                          Switch: {st.name} ({st.code})
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <CustomDropdown
+                    value={currentCampusStop.id}
+                    onChange={val => setDesignatedCampusId(val)}
+                    size="sm"
+                    options={stops.map(st => ({
+                      value: st.id,
+                      label: `Switch: ${st.name} (${st.code})`,
+                    }))}
+                    containerClassName="w-full sm:w-60"
+                  />
 
                   <button
                     onClick={() => handleOpenEditCampus(currentCampusStop)}

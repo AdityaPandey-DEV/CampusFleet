@@ -23,6 +23,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { Trip, Bus, Route, Shift, Staff, Booking } from "@/lib/types";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 interface ManagerTodayTripsViewProps {
   initialTrips?: Trip[];
@@ -709,46 +710,36 @@ export default function ManagerTodayTripsView({
                                 <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-300 mb-1">
                                   + Assign / Allocate Bus to this Stop:
                                 </label>
-                                <div className="relative">
-                                  <select
-                                    defaultValue=""
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      if (val) {
-                                        handleSelectBusForStop(route, stopIndex, stopName, val);
-                                        // Reset select to default
-                                        e.target.value = "";
-                                      }
-                                    }}
-                                    className="w-full appearance-none bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer shadow-sm pr-9"
-                                  >
-                                    <option value="" disabled>
-                                      Select an existing fleet bus to assign to {stopName}...
-                                    </option>
-                                    {buses
-                                      .filter((b) => b.status !== "MAINTENANCE")
-                                      .map((b) => {
-                                        const alloc = busAllocationMap.get(b.id);
-                                        const isAssignedHere =
-                                          alloc &&
-                                          alloc.route?.id === route.id &&
-                                          alloc.stopIndex === stopIndex;
+                                <CustomDropdown
+                                  value=""
+                                  onChange={(val) => {
+                                    if (val) {
+                                      handleSelectBusForStop(route, stopIndex, stopName, val);
+                                    }
+                                  }}
+                                  placeholder={`Select an existing fleet bus to assign to ${stopName}...`}
+                                  options={buses
+                                    .filter((b) => b.status !== "MAINTENANCE")
+                                    .map((b) => {
+                                      const alloc = busAllocationMap.get(b.id);
+                                      const isAssignedHere =
+                                        alloc &&
+                                        alloc.route?.id === route.id &&
+                                        alloc.stopIndex === stopIndex;
 
-                                        return (
-                                          <option key={b.id} value={b.id} disabled={isAssignedHere}>
-                                            {b.busNumber} ({b.registrationNo}) {
-                                              isAssignedHere
-                                                ? "— [✓ Already assigned here]"
-                                                : alloc
-                                                ? `— [Assigned to ${alloc.stopName} (${alloc.route?.code || "Other"})]`
-                                                : `— [${b.capacity} Seats • Available in Yard]`
-                                            }
-                                          </option>
-                                        );
-                                      })}
-                                  </select>
-                                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                                </div>
+                                      return {
+                                        value: b.id,
+                                        label: `${b.busNumber} (${b.registrationNo}) ${
+                                          isAssignedHere
+                                            ? "— [✓ Already assigned here]"
+                                            : alloc
+                                            ? `— [Assigned to ${alloc.stopName} (${alloc.route?.code || "Other"})]`
+                                            : `— [${b.capacity} Seats • Available in Yard]`
+                                        }`,
+                                        disabled: Boolean(isAssignedHere),
+                                      };
+                                    })}
+                                />
                               </div>
                             </div>
                           </div>
