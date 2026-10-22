@@ -51,14 +51,19 @@ export async function POST(req: NextRequest) {
     ).trim();
     let resolvedBusNumber = "";
 
-    // 1. Resolve Bus Dynamically if deviceId is provided or busId is missing
+    // 1. Resolve Bus Dynamically if deviceId is provided or busId is missing (pure Redis-backed)
     if (rawDeviceId) {
       // Check cache first for rapid sub-millisecond resolution
-      const cachedBusId = await cacheGet<string>(`telematics:device_bus_map:${rawDeviceId}`);
+      const [cachedBusId, cachedBusNumber] = await Promise.all([
+        cacheGet<string>(`telematics:device_bus_map:${rawDeviceId}`),
+        cacheGet<string>(`telematics:device_bus_number:${rawDeviceId}`),
+      ]);
+
       if (cachedBusId) {
         effectiveBusId = cachedBusId;
+        resolvedBusNumber = cachedBusNumber || "";
       } else {
-        // Query database: check rfid_device_id, gps_device_id, or bus id
+        // Query database once: check rfid_device_id, gps_device_id, or bus id
         const { data: matchedBus } = await supabaseAdmin
           .from("buses")
           .select("id, bus_number")
@@ -69,20 +74,29 @@ export async function POST(req: NextRequest) {
         if (matchedBus?.id) {
           effectiveBusId = matchedBus.id;
           resolvedBusNumber = matchedBus.bus_number;
-          await cacheSet(`telematics:device_bus_map:${rawDeviceId}`, effectiveBusId, 86400);
+          await Promise.all([
+            cacheSet(`telematics:device_bus_map:${rawDeviceId}`, effectiveBusId, 86400),
+            cacheSet(`telematics:device_bus_number:${rawDeviceId}`, resolvedBusNumber, 86400),
+          ]);
         }
       }
     }
 
     // If busId was provided directly without deviceId, query bus number for display
     if (effectiveBusId && !resolvedBusNumber) {
-      const { data: b } = await supabaseAdmin
-        .from("buses")
-        .select("bus_number")
-        .eq("id", effectiveBusId)
-        .limit(1)
-        .maybeSingle();
-      resolvedBusNumber = b?.bus_number || effectiveBusId;
+      const cachedNumber = await cacheGet<string>(`telematics:bus_number:${effectiveBusId}`);
+      if (cachedNumber) {
+        resolvedBusNumber = cachedNumber;
+      } else {
+        const { data: b } = await supabaseAdmin
+          .from("buses")
+          .select("bus_number")
+          .eq("id", effectiveBusId)
+          .limit(1)
+          .maybeSingle();
+        resolvedBusNumber = b?.bus_number || effectiveBusId;
+        await cacheSet(`telematics:bus_number:${effectiveBusId}`, resolvedBusNumber, 86400);
+      }
     }
 
     // 2. Track hardware heartbeat / online status in Redis (60s TTL so turning off power reflects within 60s)
