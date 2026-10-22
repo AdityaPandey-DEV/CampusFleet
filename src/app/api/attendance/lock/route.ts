@@ -24,6 +24,31 @@ function getTodayIST(): { today: string; utcToday: string; allowedDates: string[
   };
 }
 
+async function getLiveBusCoordinates(busId: string): Promise<{ latitude: number; longitude: number } | null> {
+  if (!busId) return null;
+  const busIdsToCheck = Array.from(new Set([
+    busId,
+    busId.toLowerCase(),
+    busId.toUpperCase(),
+  ]));
+
+  for (const bId of busIdsToCheck) {
+    const cached = await cacheGet<{ latitude: number; longitude: number }>(`telematics:bus:${bId}`);
+    if (cached && typeof cached.latitude === "number" && typeof cached.longitude === "number") {
+      return cached;
+    }
+  }
+
+  for (const bId of busIdsToCheck) {
+    const mongoLoc = await getLiveLocationFromMongo(bId);
+    if (mongoLoc && typeof mongoLoc.latitude === "number" && typeof mongoLoc.longitude === "number") {
+      return { latitude: mongoLoc.latitude, longitude: mongoLoc.longitude };
+    }
+  }
+
+  return null;
+}
+
 /**
  * GET /api/attendance/lock
  * Returns live attendance lock status for the authenticated student or queried student.
@@ -42,26 +67,7 @@ export async function GET(req: NextRequest) {
 
     const { today, allowedDates } = getTodayIST();
 
-    // 1. Check Redis fast-cache
-    let cachedLock = await cacheGet<any>(`attendance:lock:${targetStudentId}:${today}`);
-    if (!cachedLock && session.userId) {
-      cachedLock = await cacheGet<any>(`attendance:lock:${session.userId}:${today}`);
-    }
-
-    if (cachedLock && cachedLock.lockStatus === "UNLOCKED") {
-      return NextResponse.json({
-        success: true,
-        lockStatus: "UNLOCKED",
-        unlockedBy: cachedLock.unlockedBy,
-        distanceMeters: cachedLock.distanceMeters || null,
-        rfidCardId: cachedLock.rfidCardId || null,
-        busId: cachedLock.busId || null,
-        timestamp: cachedLock.timestamp,
-        allowedThresholdMeters: DISTANCE_UNLOCK_THRESHOLD_METERS,
-      });
-    }
-
-    // 2. Query student profile and active reservations
+    // 1. Resolve student profile and active reservations for today
     const { data: dbStudents } = await supabaseAdmin
       .from("students_full")
       .select("id, user_id, full_name, enrollment_no, rfid_card_id, primary_route_id, primary_stop_id, primary_stop_name")
@@ -71,32 +77,6 @@ export async function GET(req: NextRequest) {
     const student = dbStudents?.[0];
     const resolvedStudentId = student?.id || targetStudentId;
 
-    // Check DB attendance_records for today
-    const { data: attendanceList } = await supabaseAdmin
-      .from("attendance_records")
-      .select("*")
-      .eq("student_id", resolvedStudentId)
-      .in("status", ["BOARDED", "CHECKED_IN"])
-      .order("timestamp", { ascending: false })
-      .limit(1);
-
-    const activeAttendance = attendanceList?.[0];
-
-    if (activeAttendance && (activeAttendance.status === "BOARDED" || activeAttendance.lock_status === "UNLOCKED")) {
-      const unlockedBy = activeAttendance.unlocked_by || (activeAttendance.method?.includes("RFID") ? "RFID" : "LOCATION_DISTANCE");
-      return NextResponse.json({
-        success: true,
-        lockStatus: "UNLOCKED",
-        unlockedBy,
-        distanceMeters: activeAttendance.distance_meters ? Number(activeAttendance.distance_meters) : null,
-        rfidCardId: activeAttendance.rfid_card_id || student?.rfid_card_id || null,
-        busId: activeAttendance.bus_id || null,
-        timestamp: activeAttendance.timestamp,
-        allowedThresholdMeters: DISTANCE_UNLOCK_THRESHOLD_METERS,
-      });
-    }
-
-    // 3. Attendance is currently LOCKED — resolve student's bus and calculate distance if GPS available
     const { data: reservations } = await supabaseAdmin
       .from("bus_reservations")
       .select("*, buses(*)")
@@ -109,20 +89,83 @@ export async function GET(req: NextRequest) {
     const activeRes = reservations?.[0];
     const targetBusId = searchParams.get("busId") || activeRes?.bus_id || "bus-44";
 
-    let busCoordinates: { latitude: number; longitude: number } | null = null;
-    let distanceMeters: number | null = null;
-    let canUnlockByLocation = false;
+    // 2. Query live bus GPS coordinates from telematics
+    const busCoordinates = await getLiveBusCoordinates(targetBusId);
+    const isBusGpsLive = busCoordinates !== null;
 
-    // Query bus live location from Redis / Mongo
-    const telematicsCache = await cacheGet<{ latitude: number; longitude: number }>(`telematics:bus:${targetBusId}`);
-    if (telematicsCache && typeof telematicsCache.latitude === "number" && typeof telematicsCache.longitude === "number") {
-      busCoordinates = telematicsCache;
+    // 3. Check if verified RFID card tap occurred TODAY
+    let isRfidUnlocked = false;
+    let rfidCardId: string | null = null;
+    const rfidCache = await cacheGet<any>(`attendance:rfid:${resolvedStudentId}:${today}`);
+    if (rfidCache?.verified || rfidCache?.lockStatus === "UNLOCKED") {
+      isRfidUnlocked = true;
+      rfidCardId = rfidCache.rfidCardId || student?.rfid_card_id || null;
     } else {
-      const mongoLoc = await getLiveLocationFromMongo(targetBusId);
-      if (mongoLoc && mongoLoc.latitude && mongoLoc.longitude) {
-        busCoordinates = { latitude: mongoLoc.latitude, longitude: mongoLoc.longitude };
+      const { data: rfidAtt } = await supabaseAdmin
+        .from("attendance_records")
+        .select("*")
+        .eq("student_id", resolvedStudentId)
+        .eq("method", "RFID_VERIFIED")
+        .gte("timestamp", `${today}T00:00:00.000Z`)
+        .order("timestamp", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (rfidAtt) {
+        isRfidUnlocked = true;
+        rfidCardId = rfidAtt.rfid_card_id || student?.rfid_card_id || null;
       }
     }
+
+    if (isRfidUnlocked) {
+      return NextResponse.json({
+        success: true,
+        lockStatus: "UNLOCKED",
+        unlockedBy: "RFID",
+        rfidCardId,
+        busId: targetBusId,
+        isBusGpsLive,
+        driverActive: isBusGpsLive,
+        allowedThresholdMeters: DISTANCE_UNLOCK_THRESHOLD_METERS,
+        message: "Attendance unlocked via physical RFID card tap on the bus reader.",
+      });
+    }
+
+    // 4. Check if Location Distance Unlock is valid for TODAY
+    // Location Distance Unlock is ONLY valid if:
+    // a) Bus GPS telematics is actively broadcasting (isBusGpsLive === true)
+    // b) A valid unlock event was recorded TODAY
+    let isLocationUnlocked = false;
+    let unlockedDistMeters: number | null = null;
+
+    if (isBusGpsLive) {
+      const cachedLock = await cacheGet<any>(`attendance:lock:${resolvedStudentId}:${today}`);
+      if (cachedLock?.lockStatus === "UNLOCKED" && cachedLock?.unlockedBy === "LOCATION_DISTANCE") {
+        isLocationUnlocked = true;
+        unlockedDistMeters = cachedLock.distanceMeters ?? null;
+      } else if (activeRes?.lock_status === "UNLOCKED" && activeRes?.unlocked_by === "LOCATION_DISTANCE") {
+        isLocationUnlocked = true;
+        unlockedDistMeters = activeRes.distance_meters ? Number(activeRes.distance_meters) : null;
+      }
+    }
+
+    if (isLocationUnlocked) {
+      return NextResponse.json({
+        success: true,
+        lockStatus: "UNLOCKED",
+        unlockedBy: "LOCATION_DISTANCE",
+        distanceMeters: unlockedDistMeters,
+        busId: targetBusId,
+        isBusGpsLive,
+        driverActive: isBusGpsLive,
+        allowedThresholdMeters: DISTANCE_UNLOCK_THRESHOLD_METERS,
+        message: "Attendance unlocked via verified GPS location proximity.",
+      });
+    }
+
+    // 5. ATTENDANCE IS LOCKED
+    let distanceMeters: number | null = null;
+    let canUnlockByLocation = false;
 
     if (clientLat !== null && clientLng !== null && busCoordinates) {
       const distKm = calculateDistanceKm(clientLat, clientLng, busCoordinates.latitude, busCoordinates.longitude);
@@ -141,9 +184,13 @@ export async function GET(req: NextRequest) {
       currentDistanceMeters: distanceMeters,
       allowedThresholdMeters: DISTANCE_UNLOCK_THRESHOLD_METERS,
       canUnlockByLocation,
-      message: canUnlockByLocation
+      isBusGpsLive,
+      driverActive: isBusGpsLive,
+      message: !isBusGpsLive
+        ? `Bus live GPS is offline: The driver has not started the trip or vehicle telematics are not broadcasting for ${targetBusId}. Location Distance Unlock is unavailable until the bus GPS is active. You can tap your physical RFID card on the bus reader instead.`
+        : canUnlockByLocation
         ? `You are within ${distanceMeters}m of ${targetBusId}. Location Distance Unlock is available!`
-        : "Attendance is locked. Unlock via Location Distance (within 100m) or tap physical RFID card on bus reader.",
+        : `Attendance is locked. You are ${distanceMeters}m from ${targetBusId} (max allowed: ${DISTANCE_UNLOCK_THRESHOLD_METERS}m). Unlock via Location Distance or tap physical RFID card on bus reader.`,
     });
   } catch (err: any) {
     console.error("GET /api/attendance/lock error:", err);
@@ -154,15 +201,6 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/attendance/lock
  * Unlocks student attendance via Location Distance or RFID card tap.
- *
- * Payload:
- * {
- *   "method": "LOCATION_DISTANCE" | "RFID",
- *   "latitude": 30.3165,
- *   "longitude": 78.0322,
- *   "busId": "bus-44",
- *   "rfidCardId": "93A24B1F" (if method === "RFID")
- * }
  */
 export async function POST(req: NextRequest) {
   try {
@@ -221,30 +259,23 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
 
-      // Fetch live hardware telematics
-      let busCoordinates: { latitude: number; longitude: number } | null = null;
-      const telematicsCache = await cacheGet<{ latitude: number; longitude: number }>(`telematics:bus:${effectiveBusId}`);
-      if (telematicsCache && typeof telematicsCache.latitude === "number" && typeof telematicsCache.longitude === "number") {
-        busCoordinates = telematicsCache;
-      } else {
-        const mongoLoc = await getLiveLocationFromMongo(effectiveBusId);
-        if (mongoLoc && mongoLoc.latitude && mongoLoc.longitude) {
-          busCoordinates = { latitude: mongoLoc.latitude, longitude: mongoLoc.longitude };
-        }
+      // Query live bus GPS telematics
+      const busCoordinates = await getLiveBusCoordinates(effectiveBusId);
+
+      // SECURITY GUARDRAIL: Reject immediately if driver is offline or GPS is not broadcasting
+      if (!busCoordinates) {
+        return NextResponse.json({
+          success: false,
+          lockStatus: "LOCKED",
+          isBusGpsLive: false,
+          driverActive: false,
+          message: `Bus live GPS is offline: Driver has not started the trip or vehicle telematics are not broadcasting for ${effectiveBusId}. Location Distance Unlock cannot verify proximity without active bus GPS. Please wait for the driver to begin the route or tap your physical RFID card on the bus reader.`,
+        }, { status: 422 });
       }
 
-      let calculatedDistMeters = 0;
-      let isWithinThreshold = false;
-
-      if (busCoordinates) {
-        const distKm = calculateDistanceKm(Number(latitude), Number(longitude), busCoordinates.latitude, busCoordinates.longitude);
-        calculatedDistMeters = Math.round(distKm * 1000);
-        isWithinThreshold = calculatedDistMeters <= DISTANCE_UNLOCK_THRESHOLD_METERS;
-      } else {
-        // Hardware offline fallback: allow unlock with notice
-        isWithinThreshold = true;
-        calculatedDistMeters = 0;
-      }
+      const distKm = calculateDistanceKm(Number(latitude), Number(longitude), busCoordinates.latitude, busCoordinates.longitude);
+      const calculatedDistMeters = Math.round(distKm * 1000);
+      const isWithinThreshold = calculatedDistMeters <= DISTANCE_UNLOCK_THRESHOLD_METERS;
 
       if (!isWithinThreshold) {
         return NextResponse.json({
@@ -256,31 +287,12 @@ export async function POST(req: NextRequest) {
         }, { status: 403 });
       }
 
-      // PROXIMITY CONFIRMED: Unlock attendance!
-      const attendanceId = `att-loc-${Date.now()}`;
-      await supabaseAdmin.from("attendance_records").insert({
-        id: attendanceId,
-        student_id: resolvedStudentId,
-        trip_id: resolvedTripId,
-        bus_id: effectiveBusId,
-        method: "LOCATION_DISTANCE_UNLOCK",
-        status: "BOARDED",
-        verified_by: "Location Distance Proximity Engine",
-        notes: `Attendance unlocked via GPS location distance (${calculatedDistMeters}m <= ${DISTANCE_UNLOCK_THRESHOLD_METERS}m)`,
-        signature_token: `LOC-DIST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        timestamp: nowIso,
-        lock_status: "UNLOCKED",
-        unlocked_by: "LOCATION_DISTANCE",
-        distance_meters: calculatedDistMeters,
-        unlock_timestamp: nowIso,
-      });
-
+      // PROXIMITY CONFIRMED (<100m) with ACTIVE BUS GPS!
+      // Update lock_status on reservation WITHOUT prematurely setting status = "BOARDED"
       if (reservation) {
         await supabaseAdmin
           .from("bus_reservations")
           .update({
-            status: "BOARDED",
-            boarded_at: nowIso,
             lock_status: "UNLOCKED",
             unlocked_by: "LOCATION_DISTANCE",
             distance_meters: calculatedDistMeters,
@@ -299,9 +311,9 @@ export async function POST(req: NextRequest) {
         method: "LOCATION_DISTANCE_UNLOCK",
       };
 
-      await cacheSet(`attendance:lock:${resolvedStudentId}:${today}`, lockPayload, 86400);
+      await cacheSet(`attendance:lock:${resolvedStudentId}:${today}`, lockPayload, 7200);
       if (session.userId && session.userId !== resolvedStudentId) {
-        await cacheSet(`attendance:lock:${session.userId}:${today}`, lockPayload, 86400);
+        await cacheSet(`attendance:lock:${session.userId}:${today}`, lockPayload, 7200);
       }
 
       return NextResponse.json({
@@ -312,7 +324,7 @@ export async function POST(req: NextRequest) {
         thresholdMeters: DISTANCE_UNLOCK_THRESHOLD_METERS,
         busId: effectiveBusId,
         timestamp: nowIso,
-        message: `✓ Attendance Unlocked! Verified within ${calculatedDistMeters}m of ${effectiveBusId}. Welcome aboard!`,
+        message: `✓ Attendance Unlocked! Verified within ${calculatedDistMeters}m of ${effectiveBusId}. Please select your seat on the bus grid.`,
       });
     }
 
@@ -334,7 +346,7 @@ export async function POST(req: NextRequest) {
         trip_id: resolvedTripId,
         bus_id: effectiveBusId,
         method: "RFID_VERIFIED",
-        status: "BOARDED",
+        status: "CHECKED_IN",
         verified_by: "ESP32 Hardware RFID Gate",
         notes: `Attendance unlocked via physical RFID card tap [${effectiveRfid}]`,
         signature_token: `RFID-${effectiveRfid}`,
@@ -349,8 +361,6 @@ export async function POST(req: NextRequest) {
         await supabaseAdmin
           .from("bus_reservations")
           .update({
-            status: "BOARDED",
-            boarded_at: nowIso,
             lock_status: "UNLOCKED",
             unlocked_by: "RFID",
             unlock_timestamp: nowIso,
