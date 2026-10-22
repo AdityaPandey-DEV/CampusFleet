@@ -241,6 +241,16 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
       expect(notified).toBe(true);
       unsub();
     });
+
+    it("should support switching duty bus and rebind trip bus assignment in store", async () => {
+      const newBusId = "bus-37-replacement";
+      await store.updateTrip(initialTrip.id, {
+        busId: newBusId,
+      });
+
+      const updated = store.getTrips().find(t => t.id === initialTrip.id);
+      expect(updated?.busId).toBe(newBusId);
+    });
   });
 
   // ── 5. Real Device Hardware GPS Ingestion & Telematics Pipeline ───────────

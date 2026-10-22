@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   Navigation,
@@ -27,22 +26,18 @@ import {
   ArrowRight,
   Sparkles,
   Info,
+  ChevronDown,
+  Search,
+  Check,
+  X,
+  SlidersHorizontal,
 } from "lucide-react";
 import { UnifiedAppHeader } from "@/components/common/UnifiedAppHeader";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { telematicsService } from "@/lib/telematicsService";
 import { store } from "@/lib/store";
 import { calculateDistanceKm } from "@/lib/utils";
 import type { Trip, Bus as BusType, Route, Booking, Stop, LiveBusLocation } from "@/lib/types";
-
-// Road-snapped vector map with server-side rendering disabled
-const CampusFleetMap = dynamic(() => import("@/components/maps/CampusFleetMap"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[420px] bg-slate-900 animate-pulse flex items-center justify-center text-slate-400 text-xs font-mono rounded-3xl">
-      Initializing Road-Snapped Telematics Map...
-    </div>
-  ),
-});
 
 interface DriverConsoleViewProps {
   initialUser?: any;
@@ -76,15 +71,96 @@ export default function DriverConsoleView({
     return trips.find((t) => t.id === selectedTripId) || trips[0] || null;
   }, [trips, selectedTripId]);
 
+  // Duty Bus Selection & Switching State
+  const [selectedBusId, setSelectedBusId] = useState<string>(() => {
+    const running = initialTrips.find((t) => t.status === "IN_PROGRESS");
+    return running?.busId || initialTrips[0]?.busId || initialBuses[0]?.id || "";
+  });
+  const [showBusSwitchModal, setShowBusSwitchModal] = useState(false);
+  const [busSearchQuery, setBusSearchQuery] = useState("");
+
+  // Sync selectedBusId if activeTrip changes externally
+  useEffect(() => {
+    if (activeTrip?.busId) {
+      setSelectedBusId(activeTrip.busId);
+    }
+  }, [activeTrip?.id]);
+
   const bus = useMemo(() => {
+    if (selectedBusId) {
+      const found = buses.find((b) => b.id === selectedBusId);
+      if (found) return found;
+    }
     if (!activeTrip?.busId) return buses[0] || null;
     return buses.find((b) => b.id === activeTrip.busId) || buses[0] || null;
-  }, [buses, activeTrip]);
+  }, [buses, selectedBusId, activeTrip]);
 
   const route = useMemo(() => {
     if (!activeTrip?.routeId) return routes[0] || null;
     return routes.find((r) => r.id === activeTrip.routeId) || routes[0] || null;
   }, [routes, activeTrip]);
+
+  // Dropdown options for quick bus switching
+  const busDropdownOptions = useMemo(() => {
+    return buses.map((b) => ({
+      value: b.id,
+      label: `Bus ${b.busNumber}`,
+      sublabel: `${b.registrationNo || b.model || "Active"} • ${b.capacity} Seats`,
+    }));
+  }, [buses]);
+
+  // Filtered fleet buses for the modal search
+  const filteredBuses = useMemo(() => {
+    const q = busSearchQuery.trim().toLowerCase();
+    if (!q) return buses;
+    return buses.filter((b) =>
+      b.busNumber.toLowerCase().includes(q) ||
+      (b.registrationNo && b.registrationNo.toLowerCase().includes(q)) ||
+      (b.model && b.model.toLowerCase().includes(q))
+    );
+  }, [buses, busSearchQuery]);
+
+  // Handler to switch duty vehicle
+  const handleSwitchBus = async (newBusId: string) => {
+    if (!newBusId) return;
+    const targetBus = buses.find((b) => b.id === newBusId);
+    if (!targetBus) return;
+
+    setSelectedBusId(newBusId);
+
+    // Rebind active trip's busId in state and Supabase
+    if (activeTrip) {
+      setTrips((prev) =>
+        prev.map((t) => (t.id === activeTrip.id ? { ...t, busId: newBusId } : t))
+      );
+      await store.updateTrip(activeTrip.id, { busId: newBusId });
+    }
+
+    // Immediately push live coordinates under the new busId
+    if (realDeviceGpsRef.current) {
+      const coords = realDeviceGpsRef.current;
+      const currentStopId = route?.stops?.[activeTrip?.currentStopIndex || 0]?.stopId;
+      const payload: LiveBusLocation = {
+        busId: newBusId,
+        tripId: activeTrip?.id || "",
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        speedKmh: coords.speedKmh ?? 0,
+        headingDeg: coords.headingDeg ?? 0,
+        currentStopId,
+        estimatedArrivalNextStopMins: 2,
+        delayMinutes: 0,
+        lastPingAt: new Date().toISOString(),
+      };
+      store.updateLiveLocation(payload);
+      telematicsService.pushLiveLocationNow(payload).catch(() => {});
+    }
+
+    playChime(659.25, 0.25);
+    setToastMessage(`✓ Duty vehicle switched to Bus ${targetBus.busNumber} (${targetBus.registrationNo || targetBus.model || "Active"})`);
+    setShowBusSwitchModal(false);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   // ── 2. TELEMATICS & GPS BROADCAST STATE (RAPIDO CAPTAIN STYLE) ───────────
   const [isBroadcasting, setIsBroadcasting] = useState(true);
@@ -358,12 +434,7 @@ export default function DriverConsoleView({
     return directions[Math.round(deg / 45) % 8];
   }, [currentCoords.headingDeg]);
 
-  // Route Coordinates polyline for Map
-  const routeCoordinates: [number, number][] = useMemo(() => {
-    return (route?.stops || [])
-      .map((rs) => rs.stop ? [rs.stop.latitude, rs.stop.longitude] as [number, number] : null)
-      .filter(Boolean) as [number, number][];
-  }, [route]);
+  // Station arrival detection & telematics status
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 pb-24 font-sans select-none">
@@ -439,26 +510,39 @@ export default function DriverConsoleView({
                   </span>
                 </div>
                 <div className="text-sm font-black text-white mt-0.5 flex items-center gap-2">
-                  <span>{bus?.busNumber || "Bus Active"}</span>
+                  <span className="flex items-center gap-1 text-blue-400">
+                    <Bus className="w-4 h-4" />
+                    <span>Bus {bus?.busNumber || "Active"}</span>
+                  </span>
                   <span className="text-slate-500">•</span>
                   <span className="text-xs font-mono text-slate-300 font-semibold">{gpsStatusText}</span>
                 </div>
               </div>
             </div>
 
-            {/* Quick Online/Offline Toggle Button (Rapido Style) */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Quick Online/Offline Toggle & Switch Bus Buttons */}
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setShowBusSwitchModal(true)}
+                className="px-4 py-3 rounded-2xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-md"
+                title="Switch Duty Vehicle"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-blue-400" />
+                <span>Switch Bus</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsBroadcasting(!isBroadcasting)}
-                className={`w-full sm:w-auto px-5 py-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer ${
+                className={`flex-1 sm:flex-initial px-5 py-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer ${
                   isBroadcasting
                     ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30"
                     : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
                 }`}
               >
                 <Signal className="w-4 h-4" />
-                <span>{isBroadcasting ? "GPS Broadcasting Active" : "Go Online (Start Broadcast)"}</span>
+                <span>{isBroadcasting ? "Broadcasting Active" : "Go Online"}</span>
               </button>
             </div>
           </div>
@@ -507,56 +591,274 @@ export default function DriverConsoleView({
           </section>
         )}
 
-        {/* ── 4. ROAD-SNAPPED GIS MAP (CENTER STAGE) ────────────────────────── */}
-        <section className="relative rounded-3xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900">
-          <CampusFleetMap
-            busLocation={{
-              busId: bus?.id || "bus-active",
-              tripId: activeTrip?.id || "trip-active",
-              latitude: currentCoords.latitude,
-              longitude: currentCoords.longitude,
-              speedKmh: currentCoords.speedKmh,
-              headingDeg: currentCoords.headingDeg,
-              currentStopId: currentStopObj?.id,
-              lastPingAt: new Date().toISOString(),
-              estimatedArrivalNextStopMins: 2,
-              delayMinutes: 0,
-            }}
-            busName={bus?.busNumber || "Duty Bus"}
-            tripStatus={activeTrip?.status || "SCHEDULED"}
-            stops={stops}
-            routeCoordinates={routeCoordinates}
-            activeStopIndex={currentStopIndex}
-            height="440px"
-            showUserLocation={true}
-            showCampusLandmark={true}
-          />
-
-          {/* Floating Driver Speed & Heading Cluster (Top Left of Map) */}
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
-            <div className="px-3.5 py-2 rounded-2xl bg-slate-950/90 border border-slate-700/80 text-white shadow-xl backdrop-blur-md flex items-baseline gap-1.5">
-              <Gauge className="w-4 h-4 text-blue-400 shrink-0 self-center" />
-              <span className="text-2xl font-black font-mono">{currentCoords.speedKmh}</span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase">KM/H</span>
+        {/* ── 3.5 ASSIGNED DUTY VEHICLE & QUICK SWITCH BAR ─────────────────── */}
+        <section className="p-4 sm:p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl backdrop-blur-md">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/40 text-blue-400 flex items-center justify-center shrink-0 shadow-inner">
+                <Bus className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                    Active Duty Vehicle
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-800/60">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {bus?.status || "ACTIVE"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-baseline gap-2 mt-0.5">
+                  <span className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    Bus {bus?.busNumber || "Active"}
+                  </span>
+                  {bus?.registrationNo && (
+                    <span className="text-xs font-mono text-slate-400 font-semibold px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700">
+                      {bus.registrationNo}
+                    </span>
+                  )}
+                  {bus?.capacity ? (
+                    <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+                      • {bus.capacity} Seats {bus.model ? `(${bus.model})` : ""}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
             </div>
 
-            <div className="px-3 py-2 rounded-2xl bg-slate-950/90 border border-slate-700/80 text-white shadow-xl backdrop-blur-md flex items-center gap-1.5">
-              <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-xs font-black font-mono">{currentCoords.headingDeg}°</span>
-              <span className="text-xs font-bold text-emerald-400">{cardinalHeading}</span>
+            {/* Quick-Switch Vehicle Dropdown & Modal Button */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="w-full sm:w-52">
+                <CustomDropdown
+                  options={busDropdownOptions}
+                  value={bus?.id || ""}
+                  onChange={(val) => handleSwitchBus(val)}
+                  placeholder="Switch Bus..."
+                  size="sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBusSwitchModal(true)}
+                className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer active:scale-95 shadow-sm"
+                title="Search and select from all fleet buses"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
+                <span className="hidden xs:inline">All Fleet</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 4. COCKPIT TELEMETRY INSTRUMENT CLUSTER (DISTRACTION-FREE HUD) ── */}
+        <section className="relative rounded-3xl overflow-hidden border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 p-5 sm:p-7 shadow-2xl">
+          {/* Subtle radar background ring decoration */}
+          <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full border border-blue-500/10 pointer-events-none" />
+          <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full border border-blue-500/15 pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-blue-600/5 blur-3xl pointer-events-none" />
+
+          {/* Header row of instrument cluster */}
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-5 border-b border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400">
+                <Activity className="w-4 h-4 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white tracking-wide uppercase flex items-center gap-2">
+                  <span>Driver Telematics Instrumentation Cluster</span>
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Real-time speed, digital compass heading & high-precision satellite telemetry
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-mono text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>{hasRealGpsLock ? `±${gpsAccuracyMeters ?? 4}m Precision` : "Locking"}</span>
+              </div>
+              <button
+                type="button"
+                onClick={acquireDriverDeviceCoordinates}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-slate-700 shadow-md flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                title="Relock phone satellite GPS sensors"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-blue-400" />
+                <span>Relock GPS</span>
+              </button>
             </div>
           </div>
 
-          {/* Recenter / Relock GPS Button (Bottom Right of Map) */}
-          <div className="absolute bottom-3 right-3 z-10">
-            <button
-              type="button"
-              onClick={acquireDriverDeviceCoordinates}
-              className="px-3.5 py-2 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-bold border border-slate-700 shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-blue-400" />
-              <span>Relock GPS</span>
-            </button>
+          {/* Instrument Gauges Grid */}
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4 pt-6">
+            {/* 1. DIGITAL SPEEDOMETER */}
+            <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800/80 flex flex-col justify-between shadow-inner">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Gauge className="w-4 h-4 text-blue-400" />
+                  <span>VEHICLE SPEED</span>
+                </span>
+                <span
+                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
+                    currentCoords.speedKmh === 0
+                      ? "bg-slate-800 text-slate-400 border-slate-700"
+                      : currentCoords.speedKmh > 50
+                      ? "bg-rose-500/20 text-rose-300 border-rose-800"
+                      : "bg-emerald-500/20 text-emerald-300 border-emerald-800"
+                  }`}
+                >
+                  {currentCoords.speedKmh === 0
+                    ? "IDLE / STOPPED"
+                    : currentCoords.speedKmh > 50
+                    ? "HIGHWAY SPEED"
+                    : "TRANSIT SPEED"}
+                </span>
+              </div>
+
+              <div className="my-4 text-center">
+                <div className="flex items-baseline justify-center gap-2">
+                  <span
+                    className={`text-6xl font-black font-mono tracking-tight ${
+                      currentCoords.speedKmh === 0
+                        ? "text-slate-300"
+                        : currentCoords.speedKmh > 50
+                        ? "text-rose-400"
+                        : "text-emerald-400"
+                    }`}
+                  >
+                    {currentCoords.speedKmh}
+                  </span>
+                  <span className="text-sm font-black font-mono text-slate-400 uppercase">KM/H</span>
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  Max Safe Campus Limit: 40 KM/H
+                </div>
+              </div>
+
+              {/* Progress gauge bar */}
+              <div className="space-y-1">
+                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      currentCoords.speedKmh > 50
+                        ? "bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500"
+                        : "bg-gradient-to-r from-blue-500 to-emerald-500"
+                    }`}
+                    style={{ width: `${Math.min(100, (currentCoords.speedKmh / 70) * 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[9px] font-mono text-slate-500">
+                  <span>0</span>
+                  <span>25</span>
+                  <span>50</span>
+                  <span>75+</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. PRECISION DIGITAL GYRO COMPASS */}
+            <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800/80 flex flex-col justify-between shadow-inner">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Compass className="w-4 h-4 text-emerald-400" />
+                  <span>TRUE HEADING</span>
+                </span>
+                <span className="text-[10px] font-mono text-emerald-400 font-black">
+                  {cardinalHeading} • {currentCoords.headingDeg}°
+                </span>
+              </div>
+
+              <div className="my-3 flex items-center justify-center">
+                {/* Circular Compass Dial */}
+                <div className="relative w-28 h-28 rounded-full border-2 border-slate-700/80 bg-slate-900/90 flex items-center justify-center shadow-lg">
+                  {/* Cardinal points */}
+                  <span className="absolute top-1 text-[10px] font-black text-rose-400 font-mono">N</span>
+                  <span className="absolute right-1 text-[10px] font-black text-slate-500 font-mono">E</span>
+                  <span className="absolute bottom-1 text-[10px] font-black text-slate-500 font-mono">S</span>
+                  <span className="absolute left-1 text-[10px] font-black text-slate-500 font-mono">W</span>
+
+                  {/* Rotating needle */}
+                  <div
+                    className="w-full h-full flex items-center justify-center transition-transform duration-500 ease-out"
+                    style={{ transform: `rotate(${currentCoords.headingDeg}deg)` }}
+                  >
+                    <Navigation className="w-10 h-10 text-rose-500 fill-rose-500/20 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
+                  </div>
+
+                  {/* Center pin cap */}
+                  <div className="absolute w-2.5 h-2.5 rounded-full bg-white shadow-md" />
+                </div>
+              </div>
+
+              <div className="text-center text-[10px] text-slate-400 font-mono">
+                Bearing: <strong className="text-white">{cardinalHeading}</strong> ({currentCoords.headingDeg} degrees from North)
+              </div>
+            </div>
+
+            {/* 3. HARDWARE GPS & SATELLITE TELEMETRY */}
+            <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800/80 flex flex-col justify-between shadow-inner space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Signal className="w-4 h-4 text-cyan-400" />
+                  <span>SATELLITE BEACON</span>
+                </span>
+                <span
+                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
+                    hasRealGpsLock
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-800"
+                      : "bg-amber-500/10 text-amber-400 border-amber-800"
+                  }`}
+                >
+                  {hasRealGpsLock ? "GPS LOCKED" : "SEEKING FIX"}
+                </span>
+              </div>
+
+              <div className="space-y-2 py-1 text-xs font-mono">
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-400 text-[11px]">Latitude</span>
+                  <span className="text-white font-bold">{currentCoords.latitude.toFixed(5)}° N</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-400 text-[11px]">Longitude</span>
+                  <span className="text-white font-bold">{currentCoords.longitude.toFixed(5)}° E</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-400 text-[11px]">Precision</span>
+                  <span className="text-emerald-400 font-bold">
+                    {gpsAccuracyMeters !== null ? `±${gpsAccuracyMeters} meters` : "Awaiting fix"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-[10px] text-slate-500 font-mono text-center">
+                Streaming interval: 3.5s to Redis & Student UI
+              </div>
+            </div>
+          </div>
+
+          {/* Route Corridor Summary Strip */}
+          <div className="relative z-10 mt-5 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-bold">Active Corridor:</span>
+              <span className="font-black text-white">{route?.name || "Transit Route"}</span>
+              {route?.direction && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-950 text-blue-300 border border-blue-800">
+                  {route.direction.replace(/_/g, " ")}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono">
+              <span>Station Progress:</span>
+              <span className="text-emerald-400 font-bold">
+                {currentStopIndex + 1} of {totalStopsCount} Stops
+              </span>
+              <span>•</span>
+              <span className="text-slate-300">
+                Target: <strong>{currentStopObj?.name || "Terminal"}</strong>
+              </span>
+            </div>
           </div>
         </section>
 
@@ -695,6 +997,136 @@ export default function DriverConsoleView({
                 className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black shadow-lg shadow-rose-600/30 transition-all cursor-pointer"
               >
                 SEND SOS ALERT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 8. SWITCH DUTY BUS MODAL ─────────────────────────────────────── */}
+      {showBusSwitchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-lg p-6 rounded-3xl bg-slate-900 border border-slate-700 text-white space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-blue-600/20 border border-blue-500/40 text-blue-400">
+                  <Bus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base">Switch Duty Vehicle</h3>
+                  <p className="text-xs text-slate-400">Select your active vehicle for telematics & attendance</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBusSwitchModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative shrink-0">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={busSearchQuery}
+                onChange={(e) => setBusSearchQuery(e.target.value)}
+                placeholder="Search by bus number, plate, or model..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            {/* Bus List */}
+            <div className="space-y-2 overflow-y-auto flex-1 pr-1">
+              {filteredBuses.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-500">
+                  No fleet vehicles match &quot;{busSearchQuery}&quot;
+                </div>
+              ) : (
+                filteredBuses.map((b) => {
+                  const isCurrent = b.id === bus?.id;
+                  return (
+                    <div
+                      key={b.id}
+                      onClick={() => handleSwitchBus(b.id)}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                        isCurrent
+                          ? "bg-blue-600/15 border-blue-500 shadow-md"
+                          : "bg-slate-950/60 border-slate-800 hover:bg-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 border ${
+                            isCurrent
+                              ? "bg-blue-600 border-blue-400 text-white"
+                              : "bg-slate-800 border-slate-700 text-slate-300"
+                          }`}
+                        >
+                          <Bus className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-sm text-white">
+                              Bus {b.busNumber}
+                            </span>
+                            {b.status && (
+                              <span
+                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                  b.status === "ACTIVE"
+                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-800"
+                                    : "bg-amber-500/10 text-amber-400 border-amber-800"
+                                }`}
+                              >
+                                {b.status}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                            <span>{b.registrationNo || b.model || "Fleet Unit"}</span>
+                            <span>•</span>
+                            <span>{b.capacity} Seats</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {isCurrent ? (
+                          <span className="px-2.5 py-1 rounded-xl bg-blue-500/20 border border-blue-500/50 text-blue-300 text-xs font-black flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>CURRENT</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSwitchBus(b.id);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white text-xs font-bold transition-all"
+                          >
+                            Select
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
+              <span>{buses.length} total vehicles registered in fleet</span>
+              <button
+                type="button"
+                onClick={() => setShowBusSwitchModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+              >
+                Close
               </button>
             </div>
           </div>
