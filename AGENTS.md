@@ -22,3 +22,20 @@ These defaults are optimized for AI coding agents (and humans) working on apps t
   needed. Always curl https://ai-gateway.vercel.sh/v1/models first; never trust model IDs from memory
 - For durable agent loops or untrusted code: use Workflow (pause/resume/state) + Sandbox; use Vercel MCP for secure infra access
 <!-- VERCEL BEST PRACTICES END -->
+
+<!-- TRANSIT DOMAIN DATA ARCHITECTURE START -->
+## Transit Domain Rules: Bus, Shift, Route, and Trip Hierarchy
+
+1. **Hierarchy & Entity Definitions**:
+   - **`Bus`**: Physical vehicle asset (`id`, `bus_number`, `registration_no`, `capacity`, `gps_device_id`).
+   - **`Shift`**: Temporal transit schedule window (`id`, `name`, `type`, `start_time`, `end_time`, `direction`).
+   - **`Route`**: Geographic line/corridor comprising an ordered sequence of physical stops (`route_stops`).
+   - **`Trip`**: **Internal operational dispatch instance** combining (`Bus` + `Route` + `Shift` + `Date`).
+
+2. **Public vs. Internal Isolation (Strict Non-Negotiable Rule)**:
+   - **`Trip` (`trip_id`, `trip_code`) is strictly for INTERNAL usage**:
+     - Used by telematics ingestion, backend dispatch engines, driver console GPS broadcasts, conductor manifests, and audit logging to identify a run at a particular time.
+     - **NEVER expose or show raw `trip_id` or `trip_code` to the public or students** in the student portal, commuter pass, ticket UI, or notifications.
+   - **Public / Student Facing Presentation**:
+     - Commuters must only see human-friendly labels: **Bus Number** (e.g. "Bus 37"), **Shift Name** (e.g. "Morning Pick-Up"), **Route Name** (e.g. "Ganna Center Corridor"), and **Stop Departure Time** (e.g. "07:45 AM").
+<!-- TRANSIT DOMAIN DATA ARCHITECTURE END -->
