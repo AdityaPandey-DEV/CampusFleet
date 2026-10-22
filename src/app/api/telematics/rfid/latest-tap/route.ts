@@ -33,9 +33,24 @@ export async function GET(req: NextRequest) {
       mappedStudent = st?.[0] || null;
     }
 
+    const { data: dbBuses } = await supabaseAdmin
+      .from("buses")
+      .select("id, bus_number, registration_no, model, capacity, status, gps_device_id, rfid_device_id")
+      .order("bus_number", { ascending: true });
+
     return NextResponse.json(
       {
         success: true,
+        buses: (dbBuses || []).map((b: any) => ({
+          id: b.id,
+          busNumber: b.bus_number,
+          registrationNo: b.registration_no || b.bus_number,
+          model: b.model || "",
+          capacity: Number(b.capacity || 0),
+          status: b.status || "ACTIVE",
+          gpsDeviceId: b.gps_device_id || "",
+          rfidDeviceId: b.rfid_device_id || "",
+        })),
         unmappedList,
         unmappedTap: unmappedList[0] || null,
         unmappedDevices,
@@ -70,6 +85,12 @@ export async function DELETE(req: NextRequest) {
 
     // If clearing active ESP32 heartbeat status
     if (clearStatus) {
+      const latestHw = await cacheGet<any>("telematics:latest_esp32_status");
+      if (latestHw?.deviceId) {
+        await cacheDel(`telematics:device_bus_map:${latestHw.deviceId}`);
+        await cacheDel(`telematics:device_bus_number:${latestHw.deviceId}`);
+        await cacheDel(`telematics:device_status:${latestHw.deviceId}`);
+      }
       await cacheDel("telematics:latest_esp32_status");
       return NextResponse.json(
         { success: true, message: "ESP32 live status reset to offline." },
@@ -82,6 +103,15 @@ export async function DELETE(req: NextRequest) {
       const unmappedDevices = (await cacheGet<any[]>("telematics:unmapped_device_list")) || [];
       const updatedDevices = unmappedDevices.filter((d: any) => d.deviceId !== deviceId);
       await cacheSet("telematics:unmapped_device_list", updatedDevices, 86400);
+
+      await cacheDel(`telematics:device_bus_map:${deviceId}`);
+      await cacheDel(`telematics:device_bus_number:${deviceId}`);
+      await cacheDel(`telematics:device_status:${deviceId}`);
+
+      const latestHw = await cacheGet<any>("telematics:latest_esp32_status");
+      if (latestHw?.deviceId === deviceId) {
+        await cacheDel("telematics:latest_esp32_status");
+      }
 
       return NextResponse.json(
         { success: true, message: `ESP32 reader ${deviceId} dismissed from detected list.`, unmappedDevices: updatedDevices },

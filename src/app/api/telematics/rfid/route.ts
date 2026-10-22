@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import { cacheGet, cacheSet } from "@/lib/redis";
+import { cacheGet, cacheSet, cacheDel } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -60,11 +60,14 @@ export async function POST(req: NextRequest) {
         cacheGet<string>(`telematics:device_bus_number:${rawDeviceId}`),
       ]);
 
-      if (cachedBusId) {
+      if (cachedBusId === "UNMAPPED") {
+        effectiveBusId = "";
+        resolvedBusNumber = "";
+      } else if (cachedBusId) {
         effectiveBusId = cachedBusId;
         resolvedBusNumber = cachedBusNumber || "";
       } else {
-        // Query database once: check rfid_device_id, gps_device_id, or bus id
+        // Query database: check rfid_device_id, gps_device_id, or bus id
         const { data: matchedBus } = await supabaseAdmin
           .from("buses")
           .select("id, bus_number")
@@ -76,15 +79,21 @@ export async function POST(req: NextRequest) {
           effectiveBusId = matchedBus.id;
           resolvedBusNumber = matchedBus.bus_number;
           await Promise.all([
-            cacheSet(`telematics:device_bus_map:${rawDeviceId}`, effectiveBusId, 86400),
-            cacheSet(`telematics:device_bus_number:${rawDeviceId}`, resolvedBusNumber, 86400),
+            cacheSet(`telematics:device_bus_map:${rawDeviceId}`, effectiveBusId, 300),
+            cacheSet(`telematics:device_bus_number:${rawDeviceId}`, resolvedBusNumber, 300),
           ]);
+        } else {
+          // Explicitly unmapped in database: cache as UNMAPPED for 60s
+          effectiveBusId = "";
+          resolvedBusNumber = "";
+          await cacheSet(`telematics:device_bus_map:${rawDeviceId}`, "UNMAPPED", 60);
+          await cacheDel(`telematics:device_bus_number:${rawDeviceId}`);
         }
       }
     }
 
     // If busId was provided directly without deviceId, query bus number for display
-    if (effectiveBusId && !resolvedBusNumber) {
+    if (effectiveBusId && effectiveBusId !== "UNMAPPED" && !resolvedBusNumber) {
       const cachedNumber = await cacheGet<string>(`telematics:bus_number:${effectiveBusId}`);
       if (cachedNumber) {
         resolvedBusNumber = cachedNumber;
@@ -102,11 +111,12 @@ export async function POST(req: NextRequest) {
 
     // 2. Track hardware heartbeat / online status in Redis (60s TTL so turning off power reflects within 60s)
     if (rawDeviceId || effectiveBusId) {
+      const isDeviceMapped = Boolean(effectiveBusId && effectiveBusId !== "UNMAPPED");
       const hwStatus = {
         deviceId: rawDeviceId || `ESP32-${effectiveBusId}`,
-        busId: effectiveBusId || "UNMAPPED",
-        busNumber: resolvedBusNumber || effectiveBusId || "Unassigned Bus",
-        isMapped: Boolean(effectiveBusId),
+        busId: isDeviceMapped ? effectiveBusId : "UNMAPPED",
+        busNumber: isDeviceMapped ? (resolvedBusNumber || effectiveBusId) : null,
+        isMapped: isDeviceMapped,
         lastSeen: new Date().toISOString(),
       };
       await cacheSet("telematics:latest_esp32_status", hwStatus, 60);
@@ -118,7 +128,7 @@ export async function POST(req: NextRequest) {
     // 3. If live GPS coordinates were bundled by tracker, update live bus location cache
     const rawLat = body.latitude ?? body.lat ?? body.location_data?.latitude;
     const rawLng = body.longitude ?? body.lng ?? body.location_data?.longitude;
-    if (typeof rawLat === "number" && typeof rawLng === "number" && effectiveBusId) {
+    if (typeof rawLat === "number" && typeof rawLng === "number" && effectiveBusId && effectiveBusId !== "UNMAPPED") {
       await cacheSet(`telematics:bus:${effectiveBusId}`, {
         latitude: rawLat,
         longitude: rawLng,
@@ -128,7 +138,7 @@ export async function POST(req: NextRequest) {
     }
 
     // If device is not mapped to any bus yet
-    if (!effectiveBusId) {
+    if (!effectiveBusId || effectiveBusId === "UNMAPPED") {
       const nowIso = new Date().toISOString();
 
       if (rawDeviceId) {

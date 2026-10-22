@@ -543,10 +543,10 @@ function formatTimeAgo(isoString?: string | null): string {
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 {isHardwareActive
-                  ? (hardwareStatus?.busNumber
+                  ? (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId !== "UNMAPPED"
                       ? `ESP32 Online • ${hardwareStatus.busNumber}`
                       : `ESP32 Active (${hardwareStatus?.deviceId || "Connected"})`)
-                  : (hardwareStatus?.busNumber
+                  : (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId !== "UNMAPPED"
                       ? `ESP32 Offline • ${hardwareStatus.busNumber}`
                       : "ESP32 Standby (Offline)")}
               </span>

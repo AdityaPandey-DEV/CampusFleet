@@ -75,7 +75,16 @@ export async function POST(req: NextRequest) {
 
     const cleanDeviceId = deviceId ? String(deviceId).trim() : null;
 
-    // 1. If mapping a device, check if already mapped to another bus
+    // 1. Fetch current bus to capture previously mapped device (for cache invalidation & reassignment)
+    const { data: currentBus } = await supabaseAdmin
+      .from("buses")
+      .select("id, bus_number, rfid_device_id")
+      .eq("id", busId)
+      .maybeSingle();
+
+    const previousDeviceId = currentBus?.rfid_device_id ? String(currentBus.rfid_device_id).trim() : null;
+
+    // 2. If mapping a new device, check if already mapped to another bus and unbind it
     if (cleanDeviceId) {
       const { data: existingBus } = await supabaseAdmin
         .from("buses")
@@ -85,15 +94,17 @@ export async function POST(req: NextRequest) {
         .limit(1);
 
       if (existingBus && existingBus.length > 0) {
-        // Unbind from previous bus
         await supabaseAdmin
           .from("buses")
           .update({ rfid_device_id: null })
           .eq("id", existingBus[0].id);
+
+        await cacheDel(`telematics:device_bus_map:${cleanDeviceId}`);
+        await cacheDel(`telematics:device_bus_number:${cleanDeviceId}`);
       }
     }
 
-    // 2. Update target bus
+    // 3. Update target bus in database
     const { data: updatedBus, error: updateErr } = await supabaseAdmin
       .from("buses")
       .update({ rfid_device_id: cleanDeviceId })
@@ -105,11 +116,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: updateErr.message }, { status: 500 });
     }
 
-    // 3. Update Redis Cache
+    // 4. Manage Redis Cache & Unmapped Devices List
     if (cleanDeviceId) {
-      await cacheSet(`telematics:device_bus_map:${cleanDeviceId}`, busId, 86400);
+      // If bus was previously mapped to a different device, invalidate old device cache
+      if (previousDeviceId && previousDeviceId !== cleanDeviceId) {
+        await cacheDel(`telematics:device_bus_map:${previousDeviceId}`);
+        await cacheDel(`telematics:device_bus_number:${previousDeviceId}`);
+        await cacheDel(`telematics:device_status:${previousDeviceId}`);
 
-      // Remove from unmapped device list
+        // Add old device to unmapped list so it is immediately detectable
+        const unmapped = (await cacheGet<any[]>("telematics:unmapped_device_list")) || [];
+        const filtered = unmapped.filter((d) => d.deviceId !== previousDeviceId);
+        filtered.unshift({
+          deviceId: previousDeviceId,
+          detectedAt: new Date().toISOString(),
+          lastCardUid: null,
+        });
+        await cacheSet("telematics:unmapped_device_list", filtered.slice(0, 30), 86400);
+      }
+
+      await cacheSet(`telematics:device_bus_map:${cleanDeviceId}`, busId, 300);
+      await cacheSet(`telematics:device_bus_number:${cleanDeviceId}`, updatedBus.bus_number, 300);
+
+      // Remove newly paired device from unmapped list
       const unmapped = (await cacheGet<any[]>("telematics:unmapped_device_list")) || [];
       const filtered = unmapped.filter((d) => d.deviceId !== cleanDeviceId);
       await cacheSet("telematics:unmapped_device_list", filtered, 86400);
@@ -122,13 +151,42 @@ export async function POST(req: NextRequest) {
           busId,
           busNumber: updatedBus.bus_number,
           isMapped: true,
-        }, 900);
+        }, 60);
+      }
+    } else {
+      // Unlinking / deleting ESP32 assignment from this bus
+      const detachedDeviceId = previousDeviceId;
+      if (detachedDeviceId) {
+        await cacheDel(`telematics:device_bus_map:${detachedDeviceId}`);
+        await cacheDel(`telematics:device_bus_number:${detachedDeviceId}`);
+        await cacheDel(`telematics:device_status:${detachedDeviceId}`);
+
+        // Add unlinked device to unmapped list so user can see it under "New Devices" immediately!
+        const unmapped = (await cacheGet<any[]>("telematics:unmapped_device_list")) || [];
+        const filtered = unmapped.filter((d) => d.deviceId !== detachedDeviceId);
+        filtered.unshift({
+          deviceId: detachedDeviceId,
+          detectedAt: new Date().toISOString(),
+          lastCardUid: null,
+        });
+        await cacheSet("telematics:unmapped_device_list", filtered.slice(0, 30), 86400);
+
+        // Update latest hardware status: reset to unmapped so top badge does NOT show Bus 37
+        const latest = await cacheGet<any>("telematics:latest_esp32_status");
+        if (latest && (latest.deviceId === detachedDeviceId || latest.busId === busId)) {
+          await cacheSet("telematics:latest_esp32_status", {
+            ...latest,
+            busId: "UNMAPPED",
+            busNumber: null,
+            isMapped: false,
+          }, 60);
+        }
       }
     }
 
     await cacheDel("telematics:hardware_desk_server_data");
 
-    // 4. Audit Log
+    // 5. Audit Log
     try {
       await supabaseAdmin.from("audit_logs").insert({
         user_role: session.role,
@@ -138,6 +196,7 @@ export async function POST(req: NextRequest) {
           busId,
           busNumber: updatedBus.bus_number,
           deviceId: cleanDeviceId,
+          previousDeviceId,
         },
       });
     } catch (_) {}
@@ -146,8 +205,10 @@ export async function POST(req: NextRequest) {
       success: true,
       message: cleanDeviceId
         ? `✓ ESP32 Reader [${cleanDeviceId}] successfully paired with ${updatedBus.bus_number}.`
-        : `✓ ESP32 Reader unmapped from ${updatedBus.bus_number}.`,
+        : `✓ ESP32 Reader unmapped from ${updatedBus.bus_number} and moved to detected list.`,
       bus: updatedBus,
+      unmappedDevices: await cacheGet("telematics:unmapped_device_list"),
+      latestHardwareStatus: await cacheGet("telematics:latest_esp32_status"),
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

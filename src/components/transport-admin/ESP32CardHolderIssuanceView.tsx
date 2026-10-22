@@ -118,6 +118,9 @@ function formatTimeAgo(isoString?: string | null): string {
           if (Array.isArray(data.unmappedDevices)) {
             setUnmappedDevices(data.unmappedDevices);
           }
+          if (Array.isArray(data.buses)) {
+            setBuses(data.buses);
+          }
           setHardwareStatus(data.hardwareStatus || null);
           setLastPollTime(new Date());
         }
@@ -236,7 +239,25 @@ function formatTimeAgo(isoString?: string | null): string {
         setBuses((prev) =>
           prev.map((b) => (b.id === busId ? { ...b, rfidDeviceId: undefined } : b))
         );
-        showToast("info", `ESP32 reader unlinked.`);
+        if (deviceId) {
+          setUnmappedDevices((prev) => [
+            {
+              deviceId,
+              detectedAt: new Date().toISOString(),
+              lastCardUid: null,
+            },
+            ...prev.filter((d) => d.deviceId !== deviceId),
+          ]);
+        }
+        if (hardwareStatus && (hardwareStatus.deviceId === deviceId || hardwareStatus.busId === busId)) {
+          setHardwareStatus({
+            ...hardwareStatus,
+            busId: "UNMAPPED",
+            busNumber: "",
+            isMapped: false,
+          });
+        }
+        showToast("info", `✓ ESP32 reader unlinked and moved to detected list.`);
       }
     } catch (err: any) {
       showToast("error", "Failed to unlink reader.");
@@ -382,8 +403,12 @@ function formatTimeAgo(isoString?: string | null): string {
             <div className="flex flex-col">
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
                 {isHardwareActive
-                  ? (hardwareStatus?.busNumber ? `Live: ${hardwareStatus.busNumber}` : "ESP32 Active")
-                  : (hardwareStatus?.busNumber ? `Offline: ${hardwareStatus.busNumber}` : "ESP32 Standby (Offline)")}
+                  ? (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId !== "UNMAPPED"
+                      ? `Live: ${hardwareStatus.busNumber}`
+                      : "ESP32 Active (Unassigned)")
+                  : (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId !== "UNMAPPED"
+                      ? `Offline: ${hardwareStatus.busNumber}`
+                      : "ESP32 Standby (Offline)")}
               </span>
               <span className="text-[10px] text-gray-400 font-mono">
                 {hardwareStatus?.deviceId
