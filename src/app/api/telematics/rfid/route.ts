@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Resolve student by rfid_card_id or enrollment_no
-    let studentQuery = supabaseAdmin.from("students_full").select("id, user_id, full_name, enrollment_no, rfid_card_id");
+    let studentQuery = supabaseAdmin.from("students_full").select("id, user_id, full_name, enrollment_no, rfid_card_id, email");
 
     if (effectiveRfid && enrollmentNo) {
       studentQuery = studentQuery.or(`rfid_card_id.eq.${effectiveRfid},enrollment_no.eq.${enrollmentNo}`);
@@ -242,6 +242,46 @@ export async function POST(req: NextRequest) {
     const student = students[0];
     const studentId = student.id;
 
+    // Resolve all linked student IDs (e.g. legacy seed ID, current active profile, user_id)
+    const linkedStudentIds = new Set<string>([student.id]);
+    if (student.user_id) {
+      linkedStudentIds.add(student.user_id);
+      const { data: siblings } = await supabaseAdmin
+        .from("students_full")
+        .select("id, user_id, rfid_card_id")
+        .eq("user_id", student.user_id);
+      if (siblings) {
+        for (const s of siblings) {
+          if (s.id) linkedStudentIds.add(s.id);
+        }
+      }
+    }
+    if (student.email) {
+      const { data: emailSiblings } = await supabaseAdmin
+        .from("students_full")
+        .select("id, user_id, rfid_card_id")
+        .eq("email", student.email);
+      if (emailSiblings) {
+        for (const s of emailSiblings) {
+          if (s.id) linkedStudentIds.add(s.id);
+          if (s.user_id) linkedStudentIds.add(s.user_id);
+        }
+      }
+    }
+    const allLinkedIds = Array.from(linkedStudentIds);
+
+    // Sync rfid_card_id across all student records under the same user_id in the background
+    if (student.user_id && effectiveRfid) {
+      (async () => {
+        try {
+          await supabaseAdmin
+            .from("students")
+            .update({ rfid_card_id: effectiveRfid })
+            .eq("user_id", student.user_id);
+        } catch (_) {}
+      })();
+    }
+
     // 2. Resolve Today's Date in IST (UTC+5:30)
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
@@ -264,16 +304,18 @@ export async function POST(req: NextRequest) {
     const activeTrip = activeTrips?.[0] || null;
     const tripId = activeTrip?.id || null;
 
-    // 4. Resolve or update active bus reservation
+    // 4. Resolve or update active bus reservation across all linked student IDs
     const { data: reservations } = await supabaseAdmin
       .from("bus_reservations")
       .select("*")
-      .or(`student_id.eq.${studentId},student_id.eq.${student.user_id}`)
+      .in("student_id", allLinkedIds)
       .in("reservation_date", allowedDates)
+      .neq("status", "CANCELLED")
       .order("created_at", { ascending: false })
       .limit(1);
 
     const reservation = reservations?.[0] || null;
+    const effectiveStudentId = reservation?.student_id || studentId;
 
     if (reservation) {
       await supabaseAdmin
@@ -295,7 +337,7 @@ export async function POST(req: NextRequest) {
     let existingTapQuery = supabaseAdmin
       .from("attendance_records")
       .select("id, timestamp")
-      .eq("student_id", studentId)
+      .in("student_id", allLinkedIds)
       .eq("method", "RFID_VERIFIED")
       .gte("timestamp", `${today}T00:00:00.000Z`);
 
@@ -310,7 +352,7 @@ export async function POST(req: NextRequest) {
       const attendanceId = `att-rfid-${Date.now()}`;
       await supabaseAdmin.from("attendance_records").insert({
         id: attendanceId,
-        student_id: studentId,
+        student_id: effectiveStudentId,
         reservation_id: reservation?.id || null,
         trip_id: tripId,
         bus_id: effectiveBusId,
@@ -327,7 +369,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 6. Fast-path cache in Redis: student attendance is UNLOCKED via RFID
+    // 6. Fast-path cache in Redis: student attendance is UNLOCKED via RFID across all linked student IDs
     const lockPayload = {
       lockStatus: "UNLOCKED",
       unlockedBy: "RFID",
@@ -338,13 +380,12 @@ export async function POST(req: NextRequest) {
       method: "RFID_VERIFIED",
     };
 
-    await cacheSet(`attendance:rfid:${studentId}:${today}`, lockPayload, 86400);
-    await cacheSet(`attendance:lock:${studentId}:${today}`, lockPayload, 86400);
-
-    if (student.user_id) {
-      await cacheSet(`attendance:rfid:${student.user_id}:${today}`, lockPayload, 86400);
-      await cacheSet(`attendance:lock:${student.user_id}:${today}`, lockPayload, 86400);
-    }
+    await Promise.all(
+      allLinkedIds.flatMap((id) => [
+        cacheSet(`attendance:rfid:${id}:${today}`, lockPayload, 86400),
+        cacheSet(`attendance:lock:${id}:${today}`, lockPayload, 86400),
+      ])
+    );
 
     // 7. Store latest in-bus RFID event for Driver Cockpit Live Feed (5 min TTL)
     await cacheSet(`telematics:rfid:latest:${effectiveBusId}`, {

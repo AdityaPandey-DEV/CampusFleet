@@ -54,12 +54,17 @@ export async function POST(req: NextRequest) {
 
     // 2. If mapping a card, check for duplicate assignment across other students
     if (cleanRfid) {
-      const { data: existingHolder } = await supabaseAdmin
+      let holderQuery = supabaseAdmin
         .from("students_full")
-        .select("id, full_name, enrollment_no")
+        .select("id, user_id, full_name, enrollment_no")
         .eq("rfid_card_id", cleanRfid)
-        .neq("id", student.id)
-        .limit(1);
+        .neq("id", student.id);
+
+      if (student.user_id) {
+        holderQuery = holderQuery.neq("user_id", student.user_id);
+      }
+
+      const { data: existingHolder } = await holderQuery.limit(1);
 
       if (existingHolder && existingHolder.length > 0) {
         const holder = existingHolder[0];
@@ -78,21 +83,35 @@ export async function POST(req: NextRequest) {
             { status: 409 }
           );
         } else {
-          // Unassign from old holder
-          await supabaseAdmin
-            .from("students")
-            .update({ rfid_card_id: null })
-            .eq("id", holder.id);
+          // Unassign from old holder (all profiles under that user)
+          if (holder.user_id) {
+            await supabaseAdmin
+              .from("students")
+              .update({ rfid_card_id: null })
+              .eq("user_id", holder.user_id);
+          } else {
+            await supabaseAdmin
+              .from("students")
+              .update({ rfid_card_id: null })
+              .eq("id", holder.id);
+          }
         }
       }
     }
 
-    // 3. Update student table
+    // 3. Update student table (update all records belonging to this user)
     const updates: Record<string, any> = {
       rfid_card_id: cleanRfid,
     };
     if (cleanEnrollment !== undefined && cleanEnrollment !== "") {
       updates.enrollment_no = cleanEnrollment;
+    }
+
+    if (student.user_id) {
+      await supabaseAdmin
+        .from("students")
+        .update(updates)
+        .eq("user_id", student.user_id);
     }
 
     const { data: updatedStudent, error: updateErr } = await supabaseAdmin

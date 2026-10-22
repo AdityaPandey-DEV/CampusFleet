@@ -67,20 +67,46 @@ export async function GET(req: NextRequest) {
 
     const { today, allowedDates } = getTodayIST();
 
-    // 1. Resolve student profile and active reservations for today
+    // 1. Resolve student profile and active reservations for today across all linked profiles
     const { data: dbStudents } = await supabaseAdmin
       .from("students_full")
-      .select("id, user_id, full_name, enrollment_no, rfid_card_id, primary_route_id, primary_stop_id, primary_stop_name")
-      .or(`id.eq.${targetStudentId},user_id.eq.${targetStudentId}`)
-      .limit(1);
+      .select("id, user_id, full_name, enrollment_no, rfid_card_id, primary_route_id, primary_stop_id, primary_stop_name, email")
+      .or(`id.eq.${targetStudentId},user_id.eq.${targetStudentId},id.eq.${session.userId},user_id.eq.${session.userId}`);
 
-    const student = dbStudents?.[0];
+    const linkedIds = new Set<string>([targetStudentId, session.userId]);
+    let student = dbStudents?.find((s: any) => s.id === targetStudentId || s.user_id === targetStudentId) || dbStudents?.[0];
+
+    if (dbStudents) {
+      for (const s of dbStudents) {
+        if (s.id) linkedIds.add(s.id);
+        if (s.user_id) linkedIds.add(s.user_id);
+      }
+    }
+
+    const studentUserId = student?.user_id || session.userId;
+    if (studentUserId) {
+      linkedIds.add(studentUserId);
+    }
+    const studentEmail = student?.email || session.email;
+    if (studentEmail) {
+      const { data: emailSiblings } = await supabaseAdmin
+        .from("students_full")
+        .select("id, user_id, rfid_card_id")
+        .eq("email", studentEmail);
+      if (emailSiblings) {
+        for (const s of emailSiblings) {
+          if (s.id) linkedIds.add(s.id);
+          if (s.user_id) linkedIds.add(s.user_id);
+        }
+      }
+    }
+    const linkedIdsArray = Array.from(linkedIds);
     const resolvedStudentId = student?.id || targetStudentId;
 
     const { data: reservations } = await supabaseAdmin
       .from("bus_reservations")
       .select("*, buses(*)")
-      .or(`student_id.eq.${resolvedStudentId},student_id.eq.${session.userId}`)
+      .in("student_id", linkedIdsArray)
       .in("reservation_date", allowedDates)
       .neq("status", "CANCELLED")
       .order("created_at", { ascending: false })
@@ -93,18 +119,45 @@ export async function GET(req: NextRequest) {
     const busCoordinates = targetBusId ? await getLiveBusCoordinates(targetBusId) : null;
     const isBusGpsLive = busCoordinates !== null;
 
-    // 3. Check if verified RFID card tap occurred TODAY
+    // 3. Check if active bus reservation is already UNLOCKED (via RFID or Location Distance)
+    if (activeRes?.lock_status === "UNLOCKED") {
+      const unlockedBy = activeRes.unlocked_by || "RFID";
+      return NextResponse.json({
+        success: true,
+        lockStatus: "UNLOCKED",
+        unlockedBy,
+        rfidCardId: student?.rfid_card_id || null,
+        distanceMeters: activeRes.distance_meters ? Number(activeRes.distance_meters) : null,
+        busId: targetBusId,
+        isBusGpsLive,
+        driverActive: isBusGpsLive,
+        allowedThresholdMeters: DISTANCE_UNLOCK_THRESHOLD_METERS,
+        message: unlockedBy === "LOCATION_DISTANCE"
+          ? "Attendance unlocked via verified GPS location proximity."
+          : "Attendance unlocked via physical RFID card tap on the bus reader.",
+      });
+    }
+
+    // 4. Check if verified RFID card tap occurred TODAY (Redis fast cache or database)
     let isRfidUnlocked = false;
-    let rfidCardId: string | null = null;
-    const rfidCache = await cacheGet<any>(`attendance:rfid:${resolvedStudentId}:${today}`);
-    if (rfidCache?.verified || rfidCache?.lockStatus === "UNLOCKED") {
-      isRfidUnlocked = true;
-      rfidCardId = rfidCache.rfidCardId || student?.rfid_card_id || null;
-    } else {
+    let rfidCardId: string | null = student?.rfid_card_id || null;
+
+    // Check fast Redis cache across all linked IDs
+    for (const lid of linkedIdsArray) {
+      const rfidCache = await cacheGet<any>(`attendance:rfid:${lid}:${today}`);
+      if (rfidCache?.verified || rfidCache?.lockStatus === "UNLOCKED") {
+        isRfidUnlocked = true;
+        rfidCardId = rfidCache.rfidCardId || rfidCardId;
+        break;
+      }
+    }
+
+    // Check attendance_records across all linked IDs
+    if (!isRfidUnlocked) {
       const { data: rfidAtt } = await supabaseAdmin
         .from("attendance_records")
         .select("*")
-        .eq("student_id", resolvedStudentId)
+        .in("student_id", linkedIdsArray)
         .eq("method", "RFID_VERIFIED")
         .gte("timestamp", `${today}T00:00:00.000Z`)
         .order("timestamp", { ascending: false })
@@ -113,7 +166,7 @@ export async function GET(req: NextRequest) {
 
       if (rfidAtt) {
         isRfidUnlocked = true;
-        rfidCardId = rfidAtt.rfid_card_id || student?.rfid_card_id || null;
+        rfidCardId = rfidAtt.rfid_card_id || rfidCardId;
       }
     }
 
@@ -131,7 +184,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 4. Check if Location Distance Unlock is valid for TODAY
+    // 5. Check if Location Distance Unlock is valid for TODAY
     // Location Distance Unlock is ONLY valid if:
     // a) Bus GPS telematics is actively broadcasting (isBusGpsLive === true)
     // b) A valid unlock event was recorded TODAY
@@ -139,11 +192,15 @@ export async function GET(req: NextRequest) {
     let unlockedDistMeters: number | null = null;
 
     if (isBusGpsLive) {
-      const cachedLock = await cacheGet<any>(`attendance:lock:${resolvedStudentId}:${today}`);
-      if (cachedLock?.lockStatus === "UNLOCKED" && cachedLock?.unlockedBy === "LOCATION_DISTANCE") {
-        isLocationUnlocked = true;
-        unlockedDistMeters = cachedLock.distanceMeters ?? null;
-      } else if (activeRes?.lock_status === "UNLOCKED" && activeRes?.unlocked_by === "LOCATION_DISTANCE") {
+      for (const lid of linkedIdsArray) {
+        const cachedLock = await cacheGet<any>(`attendance:lock:${lid}:${today}`);
+        if (cachedLock?.lockStatus === "UNLOCKED" && cachedLock?.unlockedBy === "LOCATION_DISTANCE") {
+          isLocationUnlocked = true;
+          unlockedDistMeters = cachedLock.distanceMeters ?? null;
+          break;
+        }
+      }
+      if (!isLocationUnlocked && activeRes?.lock_status === "UNLOCKED" && activeRes?.unlocked_by === "LOCATION_DISTANCE") {
         isLocationUnlocked = true;
         unlockedDistMeters = activeRes.distance_meters ? Number(activeRes.distance_meters) : null;
       }
@@ -214,21 +271,41 @@ export async function POST(req: NextRequest) {
 
     const { today, allowedDates, nowIso } = getTodayIST();
 
-    // 1. Resolve authentic student record
+    // 1. Resolve authentic student record across all linked records
     const { data: dbStudents } = await supabaseAdmin
       .from("students_full")
-      .select("id, user_id, full_name, enrollment_no, rfid_card_id, primary_route_id, primary_stop_id")
-      .or(`id.eq.${session.userId},user_id.eq.${session.userId}`)
-      .limit(1);
+      .select("id, user_id, full_name, enrollment_no, rfid_card_id, primary_route_id, primary_stop_id, email")
+      .or(`id.eq.${session.userId},user_id.eq.${session.userId}`);
 
-    const student = dbStudents?.[0];
+    const linkedIds = new Set<string>([session.userId]);
+    let student = dbStudents?.[0];
+    if (dbStudents) {
+      for (const s of dbStudents) {
+        if (s.id) linkedIds.add(s.id);
+        if (s.user_id) linkedIds.add(s.user_id);
+      }
+    }
+    const studentEmail = student?.email || session.email;
+    if (studentEmail) {
+      const { data: emailSiblings } = await supabaseAdmin
+        .from("students_full")
+        .select("id, user_id, rfid_card_id")
+        .eq("email", studentEmail);
+      if (emailSiblings) {
+        for (const s of emailSiblings) {
+          if (s.id) linkedIds.add(s.id);
+          if (s.user_id) linkedIds.add(s.user_id);
+        }
+      }
+    }
+    const linkedIdsArray = Array.from(linkedIds);
     const resolvedStudentId = student?.id || session.userId;
 
     // 2. Query student's active reservation for today
     const { data: reservations } = await supabaseAdmin
       .from("bus_reservations")
       .select("*")
-      .or(`student_id.eq.${resolvedStudentId},student_id.eq.${session.userId}`)
+      .in("student_id", linkedIdsArray)
       .in("reservation_date", allowedDates)
       .neq("status", "CANCELLED")
       .order("created_at", { ascending: false })
@@ -318,10 +395,9 @@ export async function POST(req: NextRequest) {
         method: "LOCATION_DISTANCE_UNLOCK",
       };
 
-      await cacheSet(`attendance:lock:${resolvedStudentId}:${today}`, lockPayload, 7200);
-      if (session.userId && session.userId !== resolvedStudentId) {
-        await cacheSet(`attendance:lock:${session.userId}:${today}`, lockPayload, 7200);
-      }
+      await Promise.all(
+        linkedIdsArray.map((lid) => cacheSet(`attendance:lock:${lid}:${today}`, lockPayload, 7200))
+      );
 
       return NextResponse.json({
         success: true,
@@ -349,7 +425,7 @@ export async function POST(req: NextRequest) {
       const attendanceId = `att-rfid-${Date.now()}`;
       await supabaseAdmin.from("attendance_records").insert({
         id: attendanceId,
-        student_id: resolvedStudentId,
+        student_id: reservation?.student_id || resolvedStudentId,
         reservation_id: reservation?.id || null,
         trip_id: resolvedTripId,
         bus_id: effectiveBusId,
@@ -386,13 +462,12 @@ export async function POST(req: NextRequest) {
         method: "RFID_VERIFIED",
       };
 
-      await cacheSet(`attendance:lock:${resolvedStudentId}:${today}`, lockPayload, 86400);
-      await cacheSet(`attendance:rfid:${resolvedStudentId}:${today}`, lockPayload, 86400);
-
-      if (session.userId && session.userId !== resolvedStudentId) {
-        await cacheSet(`attendance:lock:${session.userId}:${today}`, lockPayload, 86400);
-        await cacheSet(`attendance:rfid:${session.userId}:${today}`, lockPayload, 86400);
-      }
+      await Promise.all(
+        linkedIdsArray.flatMap((lid) => [
+          cacheSet(`attendance:lock:${lid}:${today}`, lockPayload, 86400),
+          cacheSet(`attendance:rfid:${lid}:${today}`, lockPayload, 86400),
+        ])
+      );
 
       return NextResponse.json({
         success: true,

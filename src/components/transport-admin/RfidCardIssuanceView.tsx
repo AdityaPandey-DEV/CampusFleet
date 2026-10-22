@@ -231,17 +231,24 @@ function formatTimeAgo(isoString?: string | null): string {
         return;
       }
 
-      // Update student in local state
+      // Update student in local state across all matching student rows
       setStudents((prev) =>
         prev.map((s) => {
-          if (s.id === selectedStudentForAssign.id) {
+          if (
+            s.id === selectedStudentForAssign.id ||
+            (selectedStudentForAssign.userId && s.userId === selectedStudentForAssign.userId)
+          ) {
             return {
               ...s,
               rfidCardId: cleanRfid,
               enrollmentNo: enrollmentInput.trim() || s.enrollmentNo,
             };
           }
-          if (s.rfidCardId === cleanRfid && s.id !== selectedStudentForAssign.id) {
+          if (
+            s.rfidCardId === cleanRfid &&
+            s.id !== selectedStudentForAssign.id &&
+            (!selectedStudentForAssign.userId || s.userId !== selectedStudentForAssign.userId)
+          ) {
             return { ...s, rfidCardId: undefined };
           }
           return s;
@@ -405,7 +412,17 @@ function formatTimeAgo(isoString?: string | null): string {
   // 1. Newly detected unassigned cards appear FIRST at the top of the list!
   // 2. Then all assigned student cards!
   const assignedCardsList = useMemo(() => {
-    return students.filter((s) => Boolean(s.rfidCardId));
+    const seen = new Set<string>();
+    const list: Student[] = [];
+    for (const s of students) {
+      if (!s.rfidCardId) continue;
+      const key = `${s.rfidCardId}:${s.userId || s.id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(s);
+      }
+    }
+    return list;
   }, [students]);
 
   const filteredUnmapped = useMemo(() => {
