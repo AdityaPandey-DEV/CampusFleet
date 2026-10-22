@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
       student: {
         id: student.id,
         fullName: student.full_name,
-        photoUrl: student.photo_url || null,
+        photoUrl: getSafePhotoUrl(student.photo_url) || null,
         department: student.department || "Undergraduate Studies",
         semester: student.semester || "Current Term",
         className: student.class_name || "General Section",

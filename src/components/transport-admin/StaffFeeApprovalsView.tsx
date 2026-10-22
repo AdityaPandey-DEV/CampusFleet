@@ -21,6 +21,7 @@ import {
   User,
 } from "lucide-react";
 import type { UserAccount, Route, Bus, Student } from "@/lib/types";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 
 interface StaffFeeApprovalsViewProps {
   initialUser?: any;
@@ -444,7 +445,7 @@ export default function StaffFeeApprovalsView({
                                     className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex-shrink-0 cursor-pointer relative group shadow-sm"
                                   >
                                     <img
-                                      src={sub.receipt_url}
+                                      src={getSafePhotoUrl(sub.receipt_url)}
                                       alt="Receipt"
                                       className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                                     />
@@ -572,7 +573,7 @@ export default function StaffFeeApprovalsView({
             </div>
             <div className="rounded-2xl overflow-hidden max-h-[70vh] flex items-center justify-center bg-black">
               <img
-                src={previewImageUrl}
+                src={getSafePhotoUrl(previewImageUrl)}
                 alt="Receipt Inspection"
                 className="max-w-full max-h-[70vh] object-contain"
               />

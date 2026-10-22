@@ -461,7 +461,7 @@ export default function SmartTransitCockpit({
           {/* Action Buttons */}
           <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
-              onClick={() => router.push("/portal/qr")}
+              onClick={() => router.push("/portal/qr/show")}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 text-white text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <QrCode className="w-3.5 h-3.5" />
@@ -865,7 +865,7 @@ export default function SmartTransitCockpit({
               if (onOpenDigitalPass) {
                 onOpenDigitalPass();
               } else {
-                router.push("/portal/qr");
+                router.push("/portal/qr/show");
               }
             }}
             className="flex items-center justify-between p-4 md:p-5 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 transition-all text-left group active:scale-[0.99] shadow-sm cursor-pointer"

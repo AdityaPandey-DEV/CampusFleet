@@ -27,6 +27,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { MaintenanceRequest, Bus, MaintenanceRequestStatus } from "@/lib/types";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 
 export interface AdminMaintenanceProps {
   initialRequests?: MaintenanceRequest[];
@@ -570,7 +571,7 @@ export default function AdminMaintenanceView({
                               onClick={() => setLightboxImage({ url, title: `Defect Photo ${i + 1} - ${req.vehicleNo}` })}
                               className="relative w-8 h-8 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700 hover:scale-110 transition-transform shadow-sm flex-shrink-0"
                             >
-                              <img src={url} alt="Defect" className="w-full h-full object-cover" />
+                              <img src={getSafePhotoUrl(url)} alt="Defect" className="w-full h-full object-cover" />
                             </button>
                           ))}
                           {req.defectImageUrls.length > 2 && (
@@ -610,7 +611,7 @@ export default function AdminMaintenanceView({
                                   }
                                   className="w-7 h-7 rounded-md overflow-hidden border border-green-300 dark:border-green-700 hover:scale-110 transition-transform flex-shrink-0"
                                 >
-                                  <img src={url} alt="Work done" className="w-full h-full object-cover" />
+                                  <img src={getSafePhotoUrl(url)} alt="Work done" className="w-full h-full object-cover" />
                                 </button>
                               ))}
                             </div>
@@ -901,7 +902,7 @@ export default function AdminMaintenanceView({
                 <div className="flex flex-wrap items-center gap-2">
                   {newDefectImages.map((url, i) => (
                     <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-300 dark:border-gray-700 group">
-                      <img src={url} alt="Defect" className="w-full h-full object-cover" />
+                      <img src={getSafePhotoUrl(url)} alt="Defect" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setNewDefectImages(newDefectImages.filter((_, idx) => idx !== i))}
@@ -1033,7 +1034,7 @@ export default function AdminMaintenanceView({
                 <div className="flex flex-wrap items-center gap-2">
                   {completeWorkImages.map((url, i) => (
                     <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-300 dark:border-gray-700 group">
-                      <img src={url} alt="Work Done" className="w-full h-full object-cover" />
+                      <img src={getSafePhotoUrl(url)} alt="Work Done" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setCompleteWorkImages(completeWorkImages.filter((_, idx) => idx !== i))}
@@ -1075,7 +1076,7 @@ export default function AdminMaintenanceView({
                 <div className="flex items-center gap-3">
                   {completeReceiptUrl ? (
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-green-400 group">
-                      <img src={completeReceiptUrl} alt="Receipt" className="w-full h-full object-cover" />
+                      <img src={getSafePhotoUrl(completeReceiptUrl)} alt="Receipt" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setCompleteReceiptUrl("")}
@@ -1172,7 +1173,7 @@ export default function AdminMaintenanceView({
             </div>
             <div className="p-2 flex items-center justify-center overflow-auto max-h-[80vh]">
               <img
-                src={lightboxImage.url}
+                src={getSafePhotoUrl(lightboxImage.url)}
                 alt={lightboxImage.title}
                 className="max-h-[75vh] max-w-full object-contain rounded-2xl"
               />

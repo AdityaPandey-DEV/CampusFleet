@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -151,18 +151,24 @@ function VerifyStudentContent() {
                 <div className="relative shrink-0">
                   <div className="w-24 h-24 rounded-2xl overflow-hidden bg-slate-800 border-2 border-emerald-500/40 shadow-md relative">
                     {data.photoUrl ? (
-                      <Image
-                        src={data.photoUrl}
+                      <img
+                        src={getSafePhotoUrl(data.photoUrl)}
                         alt={data.fullName}
-                        fill
-                        className="object-cover"
-                        unoptimized
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = "none";
+                          const fallback = document.getElementById("verify-avatar-fallback");
+                          if (fallback) fallback.style.display = "flex";
+                        }}
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900 to-indigo-950 text-blue-200 font-bold text-2xl">
-                        {data.fullName.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
+                    ) : null}
+                    <div
+                      id="verify-avatar-fallback"
+                      style={{ display: data.photoUrl ? "none" : "flex" }}
+                      className="w-full h-full items-center justify-center bg-gradient-to-br from-blue-900 to-indigo-950 text-blue-200 font-bold text-2xl"
+                    >
+                      {data.fullName.slice(0, 2).toUpperCase()}
+                    </div>
                   </div>
                   <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-slate-950 p-1 rounded-full shadow-lg">
                     <CheckCircle2 className="w-3.5 h-3.5" />

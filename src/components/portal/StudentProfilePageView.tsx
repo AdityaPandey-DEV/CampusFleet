@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 import {
   User,
   ShieldCheck,
@@ -198,9 +199,12 @@ export default function StudentProfilePageView({
               <div className="w-20 h-24 sm:w-24 sm:h-28 rounded-none bg-gray-800  border-2 border-white/20 shadow-none-none overflow-hidden flex flex-col items-center justify-center text-blue-200">
                 {activeStudent?.photoUrl ? (
                   <img
-                    src={activeStudent.photoUrl}
-                    alt={activeStudent.fullName || "NONE"}
+                    src={getSafePhotoUrl(activeStudent.photoUrl)}
+                    alt={activeStudent.fullName || "Student Photo"}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = "none";
+                    }}
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center p-2 text-center">
@@ -342,9 +346,12 @@ export default function StudentProfilePageView({
               <div className="w-20 h-24 rounded-none bg-gray-800 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center">
                 {activeStudent?.photoUrl ? (
                   <img
-                    src={activeStudent.photoUrl}
-                    alt={activeStudent.fullName || "NONE"}
+                    src={getSafePhotoUrl(activeStudent.photoUrl)}
+                    alt={activeStudent.fullName || "Student Photo"}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = "none";
+                    }}
                   />
                 ) : (
                   <User className="w-8 h-8 text-blue-300" />

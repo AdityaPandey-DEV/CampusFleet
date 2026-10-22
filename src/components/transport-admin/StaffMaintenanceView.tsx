@@ -19,6 +19,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { Bus, MaintenanceRequest } from "@/lib/types";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 
 interface StaffMaintenanceViewProps {
   initialBuses?: Bus[];
@@ -397,7 +398,7 @@ export default function StaffMaintenanceView({
                               onClick={() => setLightboxImg({ url, title: `Defect Photo ${i + 1} - ${req.vehicleNo}` })}
                               className="w-8 h-8 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700 relative group cursor-pointer"
                             >
-                              <img src={url} alt="defect" className="w-full h-full object-cover" />
+                              <img src={getSafePhotoUrl(url)} alt="defect" className="w-full h-full object-cover" />
                             </button>
                           ))}
                         </div>
@@ -436,7 +437,7 @@ export default function StaffMaintenanceView({
                               onClick={() => setLightboxImg({ url, title: `Repair Proof ${i + 1} - ${req.vehicleNo}` })}
                               className="w-6 h-6 rounded overflow-hidden border border-green-400"
                             >
-                              <img src={url} alt="work proof" className="w-full h-full object-cover" />
+                              <img src={getSafePhotoUrl(url)} alt="work proof" className="w-full h-full object-cover" />
                             </button>
                           ))}
                         </div>
@@ -564,7 +565,7 @@ export default function StaffMaintenanceView({
                   <div className="flex gap-2 mt-2">
                     {defectImages.map((url, i) => (
                       <div key={i} className="w-12 h-12 rounded-xl overflow-hidden relative border border-gray-300">
-                        <img src={url} alt="defect" className="w-full h-full object-cover" />
+                        <img src={getSafePhotoUrl(url)} alt="defect" className="w-full h-full object-cover" />
                       </div>
                     ))}
                   </div>
@@ -641,7 +642,7 @@ export default function StaffMaintenanceView({
                   <div className="flex gap-2 mt-2">
                     {workImages.map((url, i) => (
                       <div key={i} className="w-12 h-12 rounded-xl overflow-hidden relative border border-green-400">
-                        <img src={url} alt="work" className="w-full h-full object-cover" />
+                        <img src={getSafePhotoUrl(url)} alt="work" className="w-full h-full object-cover" />
                       </div>
                     ))}
                   </div>
@@ -686,7 +687,7 @@ export default function StaffMaintenanceView({
               </button>
             </div>
             <div className="rounded-2xl overflow-hidden max-h-[70vh] flex items-center justify-center bg-black">
-              <img src={lightboxImg.url} alt="Inspection" className="max-w-full max-h-[70vh] object-contain" />
+              <img src={getSafePhotoUrl(lightboxImg.url)} alt="Inspection" className="max-w-full max-h-[70vh] object-contain" />
             </div>
           </div>
         </div>

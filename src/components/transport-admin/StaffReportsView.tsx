@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/utils";
 import { FileBarChart, Download, FileSpreadsheet, CheckCircle2, Calendar, User } from "lucide-react";
 
 import type { Booking, Student, Bus } from "@/lib/types";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 
 export interface StaffReportsProps {
   initialBookings?: Booking[];
@@ -153,7 +154,7 @@ export default function StaffReportsView({
                         <div className="flex items-center gap-2.5">
                           {s?.photoUrl ? (
                             <img
-                              src={s.photoUrl}
+                              src={getSafePhotoUrl(s.photoUrl)}
                               alt={s.fullName}
                               className="w-8 h-10 object-cover rounded-md border border-gray-300 dark:border-gray-700 shadow-2xs flex-shrink-0"
                             />

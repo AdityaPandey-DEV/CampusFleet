@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { store } from "@/lib/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Campus, TransitZone, Stop } from "@/lib/types";
+import { getSafePhotoUrl } from "@/lib/image-utils";
 import {
   CreditCard,
   Download,
@@ -909,7 +910,7 @@ export function StaffBillingView({
               </button>
             </div>
             <div className="mt-4 flex items-center justify-center max-h-[75vh] overflow-auto">
-              <img src={previewImageUrl} alt="Full Receipt" className="rounded-xl object-contain max-h-[70vh]" />
+              <img src={getSafePhotoUrl(previewImageUrl)} alt="Full Receipt" className="rounded-xl object-contain max-h-[70vh]" />
             </div>
           </div>
         </div>
