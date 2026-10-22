@@ -20,9 +20,33 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { busId, deviceId, deviceMac, mac, rfidCardId, rfidUid, enrollmentNo } = body;
-    const effectiveRfid = (rfidCardId || rfidUid || "").trim();
-    const rawDeviceId = (deviceId || deviceMac || mac || "").trim();
-    let effectiveBusId = (busId || "").trim();
+    const effectiveRfid = (
+      rfidCardId ||
+      rfidUid ||
+      body.card_uid ||
+      body.cardUid ||
+      body.rfid ||
+      body.tag_id ||
+      body.rfid_data?.card_uid ||
+      ""
+    ).trim();
+    const rawDeviceId = (
+      deviceId ||
+      deviceMac ||
+      mac ||
+      body.imei ||
+      body.device_id ||
+      body.vehicle_reg_no ||
+      body.device_info?.imei ||
+      ""
+    ).trim();
+    let effectiveBusId = (
+      busId ||
+      body.bus_id ||
+      body.busNumber ||
+      body.vehicle_no ||
+      ""
+    ).trim();
     let resolvedBusNumber = "";
 
     // 1. Resolve Bus Dynamically if deviceId is provided or busId is missing
@@ -72,6 +96,18 @@ export async function POST(req: NextRequest) {
       if (rawDeviceId) {
         await cacheSet(`telematics:device_status:${rawDeviceId}`, hwStatus, 900);
       }
+    }
+
+    // 3. If live GPS coordinates were bundled by tracker, update live bus location cache
+    const rawLat = body.latitude ?? body.lat ?? body.location_data?.latitude;
+    const rawLng = body.longitude ?? body.lng ?? body.location_data?.longitude;
+    if (typeof rawLat === "number" && typeof rawLng === "number" && effectiveBusId) {
+      await cacheSet(`telematics:bus:${effectiveBusId}`, {
+        latitude: rawLat,
+        longitude: rawLng,
+        timestamp: new Date().toISOString(),
+        speed: body.speed ?? body.location_data?.speed_kmph ?? 0,
+      }, 300);
     }
 
     // If device is not mapped to any bus yet
