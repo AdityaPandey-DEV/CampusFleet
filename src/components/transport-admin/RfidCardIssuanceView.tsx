@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import Link from "next/link";
 import {
   Radio,
   Search,
@@ -434,6 +435,26 @@ export default function RfidCardIssuanceView({
           <span>{toast.message}</span>
         </div>
       )}
+
+      {/* Primary Mode Switcher: RFID Cards vs ESP32 Readers */}
+      <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl w-fit">
+        <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm transition-all">
+          <Radio className="w-4 h-4" />
+          <span>RFID Smart Cards</span>
+          {unmappedCards.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black animate-pulse">
+              {unmappedCards.length} New
+            </span>
+          )}
+        </div>
+        <Link
+          href="/transport-admin/esp32"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-all cursor-pointer"
+        >
+          <Cpu className="w-4 h-4" />
+          <span>ESP32 Bus Readers</span>
+        </Link>
+      </div>
 
       {/* Clean Modern Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">

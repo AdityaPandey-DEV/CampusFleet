@@ -24,7 +24,8 @@ import {
   MapPin,
   Navigation,
   Settings2,
-  Radio
+  Radio,
+  Cpu
 } from "lucide-react";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -107,10 +108,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       ]
     },
     rfid: {
-      title: "RFID Smart Cards",
+      title: "RFID & IoT Hardware",
       items: [
         { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
         { href: "/transport-admin/rfid", label: "RFID Card Issuance", shortLabel: "Cards", icon: Radio },
+        { href: "/transport-admin/esp32", label: "ESP32 Terminals", shortLabel: "ESP32", icon: Cpu },
         { href: "/transport-admin/academics/students", label: "Student List", shortLabel: "Students", icon: GraduationCap },
       ]
     }
@@ -120,6 +122,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const topLevelLinks = [
     { href: "/transport-manager", label: "Transport Manager", icon: Compass },
     { href: "/transport-admin/rfid", label: "RFID Cards", icon: Radio },
+    { href: "/transport-admin/esp32", label: "ESP32 Terminals", icon: Cpu },
     { href: "/transport-admin/buses", label: "Bus Fleet", icon: BusFront },
     { href: "/transport-admin/routes", label: "Routes & Stops", icon: Route },
     { href: "/transport-admin/trips", label: "Today's Trips", icon: Navigation },
@@ -134,7 +137,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   let currentNavLinks = topLevelLinks;
   let currentTitle = "Transport Admin Desk";
 
-  if (pathname.startsWith("/transport-admin/rfid")) {
+  if (pathname.startsWith("/transport-admin/rfid") || pathname.startsWith("/transport-admin/esp32")) {
     currentNavLinks = subPortals.rfid.items;
     currentTitle = subPortals.rfid.title;
   } else if (pathname.startsWith("/transport-admin/buses")) {

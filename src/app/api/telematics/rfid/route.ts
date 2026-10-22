@@ -115,12 +115,15 @@ export async function POST(req: NextRequest) {
     // If device is not mapped to any bus yet
     if (!effectiveBusId) {
       if (rawDeviceId) {
-        // Save unmapped device so Transport Admin can bind it with 1 click
+        // Save unmapped device so Transport Admin can bind it with 1 click (newest first)
         const unmappedDevices = (await cacheGet<any[]>("telematics:unmapped_device_list")) || [];
-        if (!unmappedDevices.some((d) => d.deviceId === rawDeviceId)) {
-          unmappedDevices.unshift({ deviceId: rawDeviceId, detectedAt: new Date().toISOString() });
-          await cacheSet("telematics:unmapped_device_list", unmappedDevices.slice(0, 20), 86400);
-        }
+        const filtered = unmappedDevices.filter((d: any) => d.deviceId !== rawDeviceId);
+        filtered.unshift({
+          deviceId: rawDeviceId,
+          detectedAt: new Date().toISOString(),
+          lastCardUid: effectiveRfid || null,
+        });
+        await cacheSet("telematics:unmapped_device_list", filtered.slice(0, 30), 86400);
       }
 
       return NextResponse.json(

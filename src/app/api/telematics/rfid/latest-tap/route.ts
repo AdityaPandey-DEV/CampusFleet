@@ -19,6 +19,7 @@ const NO_CACHE_HEADERS = {
 export async function GET(req: NextRequest) {
   try {
     const unmappedList = (await cacheGet<any[]>("telematics:unmapped_rfid_list")) || [];
+    const unmappedDevices = (await cacheGet<any[]>("telematics:unmapped_device_list")) || [];
     const latestTap = await cacheGet<any>("telematics:latest_rfid_tap");
     const hardwareStatus = await cacheGet<any>("telematics:latest_esp32_status");
 
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest) {
         success: true,
         unmappedList,
         unmappedTap: unmappedList[0] || null,
+        unmappedDevices,
         latestTap: latestTap || null,
         mappedStudent,
         hardwareStatus: hardwareStatus || null,
@@ -57,12 +59,25 @@ export async function GET(req: NextRequest) {
 
 /**
  * DELETE /api/telematics/rfid/latest-tap
- * Dismisses or deletes an unassigned card from the detected list.
+ * Dismisses or deletes an unassigned card or unassigned ESP32 device from the detected list.
  */
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const rfidCardId = searchParams.get("rfidCardId");
+    const deviceId = searchParams.get("deviceId");
+
+    // If dismissing an unmapped ESP32 device
+    if (deviceId) {
+      const unmappedDevices = (await cacheGet<any[]>("telematics:unmapped_device_list")) || [];
+      const updatedDevices = unmappedDevices.filter((d: any) => d.deviceId !== deviceId);
+      await cacheSet("telematics:unmapped_device_list", updatedDevices, 86400);
+
+      return NextResponse.json(
+        { success: true, message: `ESP32 reader ${deviceId} dismissed from detected list.`, unmappedDevices: updatedDevices },
+        { headers: NO_CACHE_HEADERS }
+      );
+    }
 
     let updatedList: any[] = [];
     if (rfidCardId) {
