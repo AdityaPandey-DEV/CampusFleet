@@ -22,6 +22,9 @@ import {
   Lock,
   Unlock,
   Moon,
+  ArrowLeftRight,
+  XCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { generateSeatLayout, getTeacherStartingSeats } from "@/lib/utils";
@@ -74,6 +77,8 @@ export default function SmartTransitCockpit({
   const [isSavingSeat, setIsSavingSeat] = useState(false);
   const [tentativeSeat, setTentativeSeat] = useState<string | null>(null);
   const [isChangingSeat, setIsChangingSeat] = useState(false);
+  const [isCancellingSeat, setIsCancellingSeat] = useState(false);
+  const [isSwitchingSeat, setIsSwitchingSeat] = useState(false);
 
   // Modal for live bus radar
   const [isLiveRadarOpen, setIsLiveRadarOpen] = useState(false);
@@ -196,6 +201,15 @@ export default function SmartTransitCockpit({
     // 4. Fallback: match by morning/evening or first shift
     return shifts.find((s) => s.shiftType === "MORNING" || s.direction === "HOME_TO_CAMPUS") || shifts[0] || null;
   }, [reservation, activeBooking, shifts, trips]);
+
+  // Derive trip status for conductor lock (Cancel blocked when IN_PROGRESS)
+  const assignedTripStatus = useMemo(() => {
+    const tripId = reservation?.trip_id || activeBooking?.tripId;
+    if (!tripId) return null;
+    const foundTrip = trips.find((t) => t.id === tripId);
+    return foundTrip?.status || (foundTrip as any)?.trip_status || null;
+  }, [reservation, activeBooking, trips]);
+  const isTripInProgress = assignedTripStatus === "IN_PROGRESS";
 
   const assignedShiftName =
     assignedShift?.name ||
@@ -351,6 +365,90 @@ export default function SmartTransitCockpit({
       alert("Error marking attendance: " + e.message);
     } finally {
       setIsSavingSeat(false);
+    }
+  };
+
+  // Cancel Seat Selection & Rollback Attendance (Atomic)
+  const handleCancelSeat = async () => {
+    if (!reservation?.id) return;
+    if (isTripInProgress) {
+      alert("🚌 Trip is in progress — the bus has departed. You cannot cancel your attendance after the conductor starts the trip. You can still switch to another seat.");
+      return;
+    }
+    if (!confirm("Are you sure you want to cancel your seat? This will rollback your attendance for this trip.")) return;
+    setIsCancellingSeat(true);
+    try {
+      const res = await fetch("/api/students/attendance", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reservationId: reservation.id,
+          studentId,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Reset local state to pre-attendance condition
+        setReservation((prev: any) => ({
+          ...prev,
+          chosen_seat: null,
+          seat_chosen_at: null,
+          status: "ASSIGNED",
+          boarded_at: null,
+          lock_status: "LOCKED",
+          unlocked_by: null,
+          unlock_timestamp: null,
+        }));
+        setTentativeSeat(null);
+        setIsChangingSeat(false);
+        setAttendanceLockStatus("LOCKED");
+        setIsRfidVerified(false);
+        // Refresh from server for consistency
+        fetchReservation();
+      } else {
+        alert(data.message || "Could not cancel seat.");
+      }
+    } catch (e: any) {
+      alert("Error cancelling seat: " + e.message);
+    } finally {
+      setIsCancellingSeat(false);
+    }
+  };
+
+  // Switch Seat (Atomic Swap via PATCH)
+  const handleSwitchSeat = async (newSeatNumber: string) => {
+    if (!reservation?.id || !newSeatNumber) return;
+    if (newSeatNumber === reservation?.chosen_seat) {
+      setIsChangingSeat(false);
+      return;
+    }
+    setIsSwitchingSeat(true);
+    try {
+      const res = await fetch("/api/students/attendance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reservationId: reservation.id,
+          studentId,
+          newSeatNumber,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReservation((prev: any) => ({
+          ...prev,
+          chosen_seat: newSeatNumber,
+          seat_chosen_at: new Date().toISOString(),
+        }));
+        setTentativeSeat(newSeatNumber);
+        setIsChangingSeat(false);
+      } else {
+        alert(data.message || "Could not switch seat.");
+      }
+    } catch (e: any) {
+      alert("Error switching seat: " + e.message);
+    } finally {
+      setIsSwitchingSeat(false);
     }
   };
 
@@ -726,8 +824,17 @@ export default function SmartTransitCockpit({
               </div>
 
               <button
-                onClick={() => tentativeSeat && handleConfirmSeat(tentativeSeat)}
-                disabled={!tentativeSeat || isSavingSeat}
+                onClick={() => {
+                  if (!tentativeSeat) return;
+                  // Use atomic switch RPC when changing an existing seat,
+                  // otherwise use the initial book RPC
+                  if (isChangingSeat && reservation?.chosen_seat) {
+                    handleSwitchSeat(tentativeSeat);
+                  } else {
+                    handleConfirmSeat(tentativeSeat);
+                  }
+                }}
+                disabled={!tentativeSeat || isSavingSeat || isSwitchingSeat}
                 className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl disabled:opacity-50 text-white text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95 cursor-pointer ${
                   !isLockCleared
                     ? "bg-amber-600 hover:bg-amber-700"
@@ -740,10 +847,14 @@ export default function SmartTransitCockpit({
                   <CheckCircle2 className="w-4 h-4" />
                 )}
                 <span>
-                  {isSavingSeat
+                  {isSwitchingSeat
+                    ? "Switching Seat..."
+                    : isSavingSeat
                     ? "Recording Attendance..."
                     : !isLockCleared
                     ? "Unlock Distance / RFID to Confirm Seat"
+                    : isChangingSeat && reservation?.chosen_seat && tentativeSeat
+                    ? `Switch to Seat ${tentativeSeat}`
                     : tentativeSeat
                     ? `Confirm Seat ${tentativeSeat} & Mark Attendance`
                     : "Select a Seat to Mark Attendance"}
@@ -830,30 +941,56 @@ export default function SmartTransitCockpit({
           </div>
 
           {/* Confirmed Seat Section */}
-          <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-1">
+          <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-2.5">
             <div className="text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between font-bold">
               <span>Confirmed Seat</span>
               <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">
-                Marked
+                Marked ✓
               </span>
             </div>
             <div className="flex items-center justify-between pt-0.5">
               <div className="text-base font-black text-emerald-950 dark:text-emerald-200">
                 Seat {confirmedSeatNumber}
               </div>
-              <button
-                onClick={() => {
-                  setTentativeSeat(reservation?.chosen_seat || null);
-                  setIsChangingSeat(true);
-                }}
-                className="px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/60 dark:hover:bg-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-bold transition-all"
-              >
-                Change Seat
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    setTentativeSeat(reservation?.chosen_seat || null);
+                    setIsChangingSeat(true);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/60 dark:hover:bg-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-bold transition-all flex items-center gap-1"
+                >
+                  <ArrowLeftRight className="w-3 h-3" />
+                  Switch
+                </button>
+                <button
+                  onClick={handleCancelSeat}
+                  disabled={isCancellingSeat || isTripInProgress}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                    isTripInProgress
+                      ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+                      : "bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-700 dark:text-red-300"
+                  }`}
+                  title={isTripInProgress ? "Trip in progress — cancel disabled" : "Cancel seat & rollback attendance"}
+                >
+                  <XCircle className="w-3 h-3" />
+                  {isCancellingSeat ? "Cancelling..." : "Cancel"}
+                </button>
+              </div>
             </div>
             <div className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80">
               Attendance verified for today
             </div>
+
+            {/* Conductor Lock Banner — Trip In Progress */}
+            {isTripInProgress && (
+              <div className="mt-1 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 flex items-start gap-2">
+                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                  <span className="font-bold">🚌 Bus has departed</span> — Attendance is locked by the conductor. You cannot cancel your seat, but you can switch to another available seat.
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

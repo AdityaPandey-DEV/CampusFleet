@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { isStartingSeat, getTeacherStartingSeats, generateSeatLayout, calculateDistanceKm } from "@/lib/utils";
-import { cacheGet } from "@/lib/redis";
+import { cacheGet, cacheSet, cacheDel } from "@/lib/redis";
 import { getLiveLocationFromMongo } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
@@ -667,65 +667,231 @@ export async function POST(req: NextRequest) {
 
     const nowIso = new Date().toISOString();
 
-    // Update reservation with chosen seat & mark as BOARDED / confirmed
-    const { data: updated, error: updateErr } = await supabaseAdmin
-      .from("bus_reservations")
-      .update({
-        chosen_seat: seatNumber,
-        seat_chosen_at: nowIso,
-        status: "BOARDED",
-        boarded_at: nowIso,
-        lock_status: "UNLOCKED",
-        unlocked_by: targetRes?.unlocked_by || (isRfidVerified ? "RFID" : "LOCATION_DISTANCE"),
-        unlock_timestamp: nowIso,
-      })
-      .eq("id", targetRes.id)
-      .select()
-      .single();
+    // Determine unlock method and verifier for the atomic transaction
+    const unlockMethod = isRfidVerified ? "RFID_VERIFIED" : (isLockUnlocked ? (lockCache?.unlockedBy === "RFID" ? "RFID_VERIFIED" : "LOCATION_DISTANCE_UNLOCK") : (isGpsVerified ? "GPS_VERIFIED" : "MANUAL_SELECT"));
+    const verifiedBy = isRfidVerified ? "ESP32 Hardware RFID Gate" : (isLockUnlocked ? "Location Distance Proximity Engine" : (isGpsVerified ? "GPS Geofence System" : "Student Commute Portal"));
 
-    if (updateErr) {
-      return NextResponse.json({ success: false, message: updateErr.message }, { status: 500 });
-    }
-
-    // Insert verified attendance record
-    const attendanceId = `att-res-${Date.now()}`;
-    await supabaseAdmin.from("attendance_records").insert({
-      id: attendanceId,
-      student_id: resolvedStudentId,
-      trip_id: targetRes.trip_id,
-      bus_id: targetRes.bus_id,
-      method: isRfidVerified ? "RFID_VERIFIED" : (isLockUnlocked ? (lockCache?.unlockedBy === "RFID" ? "RFID_VERIFIED" : "LOCATION_DISTANCE_UNLOCK") : (isGpsVerified ? "GPS_VERIFIED" : "MANUAL_SELECT")),
-      status: "BOARDED",
-      verified_by: isRfidVerified ? "ESP32 Hardware RFID Gate" : (isLockUnlocked ? "Location Distance Proximity Engine" : (isGpsVerified ? "GPS Geofence System" : "Student Commute Portal")),
-      notes: gpsNote,
-      signature_token: isRfidVerified ? `RFID-BOARDED-${Date.now()}` : `GEOFENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      timestamp: nowIso,
-      lock_status: "UNLOCKED",
-      unlocked_by: targetRes?.unlocked_by || (isRfidVerified ? "RFID" : "LOCATION_DISTANCE"),
-      unlock_timestamp: nowIso,
+    // ══════════════════════════════════════════════════════════════════════
+    // ATOMIC TRANSACTION: All 3 writes (bus_reservations + attendance_records
+    // + seat_attendance) succeed together or all rollback together.
+    // Uses Postgres FOR UPDATE row-level locking to prevent seat double-booking.
+    // ══════════════════════════════════════════════════════════════════════
+    const { data: txnResult, error: txnError } = await supabaseAdmin.rpc("seat_attendance_transaction", {
+      p_reservation_id: targetRes.id,
+      p_student_id: resolvedStudentId,
+      p_seat_number: seatNumber,
+      p_unlock_method: unlockMethod,
+      p_verified_by: verifiedBy,
+      p_notes: gpsNote,
     });
 
-    // Also update any matching booking in public.bookings if present
-    if (targetRes.trip_id) {
-      await supabaseAdmin
-        .from("bookings")
-        .update({
-          seat_number: seatNumber,
-          status: "BOARDED",
-          boarded_at: nowIso,
-        })
-        .eq("trip_id", targetRes.trip_id)
-        .or(`student_id.eq.${resolvedStudentId},student_id.eq.${rawStudentId}`);
+    if (txnError) {
+      console.error("[api/students/attendance] RPC seat_attendance_transaction error:", txnError);
+      return NextResponse.json({ success: false, message: txnError.message }, { status: 500 });
+    }
+
+    if (txnResult && !txnResult.success) {
+      return NextResponse.json({ success: false, message: txnResult.error }, { status: 409 });
+    }
+
+    // Sync Redis cache to reflect the successful atomic transaction
+    const lockPayload = {
+      lockStatus: "UNLOCKED",
+      unlockedBy: isRfidVerified ? "RFID" : "LOCATION_DISTANCE",
+      busId: targetRes.bus_id,
+      tripId: targetRes.trip_id,
+      timestamp: nowIso,
+      method: unlockMethod,
+    };
+    await cacheSet(`attendance:lock:${resolvedStudentId}:${today}`, lockPayload, 86400).catch(() => {});
+    if (rawStudentId !== resolvedStudentId) {
+      await cacheSet(`attendance:lock:${rawStudentId}:${today}`, lockPayload, 86400).catch(() => {});
     }
 
     return NextResponse.json({
       success: true,
-      message: `✓ Attendance confirmed & Seat ${seatNumber} reserved on your bus.`,
-      reservation: updated,
+      message: txnResult?.message || `✓ Attendance confirmed & Seat ${seatNumber} reserved on your bus.`,
+      reservation: { ...targetRes, chosen_seat: seatNumber, status: "BOARDED", boarded_at: nowIso },
       isGpsVerified,
+      attendanceId: txnResult?.attendanceId,
     });
   } catch (err: any) {
     console.error("[api/students/reservations] POST error:", err);
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/students/attendance
+ * Cancel seat selection and fully rollback attendance.
+ * Blocked when trip.status = 'IN_PROGRESS' (conductor lock — bus has departed).
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { reservationId, studentId } = body;
+
+    if (!reservationId) {
+      return NextResponse.json({ success: false, message: "Reservation ID is required." }, { status: 400 });
+    }
+
+    const rawStudentId = studentId || (session as any).studentId || session.userId;
+
+    // Resolve student
+    const { data: student } = await supabaseAdmin
+      .from("students")
+      .select("id, user_id")
+      .or(`id.eq.${rawStudentId},user_id.eq.${rawStudentId}`)
+      .maybeSingle();
+
+    const resolvedStudentId = student?.id || rawStudentId;
+
+    // Resolve date in IST
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(now.getTime() + istOffset);
+    const today = istDate.toISOString().split("T")[0];
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ATOMIC CANCEL: Rollback reservation + delete attendance + reset bookings
+    // Conductor lock: blocked if trip.status = 'IN_PROGRESS'
+    // ══════════════════════════════════════════════════════════════════════
+    const { data: txnResult, error: txnError } = await supabaseAdmin.rpc("cancel_seat_transaction", {
+      p_reservation_id: reservationId,
+      p_student_id: resolvedStudentId,
+    });
+
+    if (txnError) {
+      console.error("[api/students/attendance] RPC cancel_seat_transaction error:", txnError);
+      return NextResponse.json({ success: false, message: txnError.message }, { status: 500 });
+    }
+
+    if (txnResult && !txnResult.success) {
+      const statusCode = txnResult.tripLocked ? 423 : 409;
+      return NextResponse.json({ success: false, message: txnResult.error, tripLocked: txnResult.tripLocked || false }, { status: statusCode });
+    }
+
+    // Clear Redis cache keys on successful cancel
+    const linkedIds = Array.from(new Set([resolvedStudentId, rawStudentId, session.userId]));
+    await Promise.all(
+      linkedIds.flatMap((lid) => [
+        cacheDel(`attendance:lock:${lid}:${today}`).catch(() => {}),
+        cacheDel(`attendance:rfid:${lid}:${today}`).catch(() => {}),
+      ])
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: txnResult?.message || "Seat cancelled and attendance rolled back. You can re-select a seat.",
+    });
+  } catch (err: any) {
+    console.error("[api/students/attendance] DELETE error:", err);
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH /api/students/attendance
+ * Switch to a different seat (atomic swap).
+ * Allowed even when trip.status = 'IN_PROGRESS' (in-bus switching permitted).
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { reservationId, studentId, newSeatNumber } = body;
+
+    if (!reservationId || !newSeatNumber) {
+      return NextResponse.json({ success: false, message: "Reservation ID and new seat number are required." }, { status: 400 });
+    }
+
+    const rawStudentId = studentId || (session as any).studentId || session.userId;
+
+    // Resolve student
+    const { data: student } = await supabaseAdmin
+      .from("students")
+      .select("id, user_id")
+      .or(`id.eq.${rawStudentId},user_id.eq.${rawStudentId}`)
+      .maybeSingle();
+
+    const resolvedStudentId = student?.id || rawStudentId;
+
+    // Verify teacher-reserved seats restriction (same logic as POST)
+    const userRole = ((session as any)?.role || "").toLowerCase();
+    const isFacultyUser = userRole === "teacher" || userRole === "faculty" || userRole === "staff" || userRole === "admin";
+
+    if (!isFacultyUser) {
+      // Fetch reservation to get bus_id
+      const { data: resData } = await supabaseAdmin
+        .from("bus_reservations")
+        .select("bus_id")
+        .eq("id", reservationId)
+        .maybeSingle();
+
+      if (resData?.bus_id) {
+        const { data: busData } = await supabaseAdmin
+          .from("buses")
+          .select("capacity, seat_layout, teacher_seats_count")
+          .eq("id", resData.bus_id)
+          .maybeSingle();
+
+        if (busData) {
+          const busSeats = generateSeatLayout(busData.capacity, busData.seat_layout || "NONE");
+          const nTeachers = typeof (busData as any)?.teacher_seats_count === "number"
+            ? (busData as any).teacher_seats_count
+            : 0;
+          if (nTeachers > 0) {
+            const teacherReservedSeats = getTeacherStartingSeats(busSeats, nTeachers);
+            if (teacherReservedSeats.includes(newSeatNumber)) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  message: "Starting seats on this bus are strictly reserved for Faculty and Teachers. Please select another seat.",
+                },
+                { status: 403 }
+              );
+            }
+          }
+        }
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ATOMIC SWITCH: Old seat freed → new seat claimed → attendance updated
+    // All in a single Postgres transaction with FOR UPDATE row locking.
+    // ══════════════════════════════════════════════════════════════════════
+    const { data: txnResult, error: txnError } = await supabaseAdmin.rpc("switch_seat_transaction", {
+      p_reservation_id: reservationId,
+      p_student_id: resolvedStudentId,
+      p_new_seat_number: newSeatNumber,
+    });
+
+    if (txnError) {
+      console.error("[api/students/attendance] RPC switch_seat_transaction error:", txnError);
+      return NextResponse.json({ success: false, message: txnError.message }, { status: 500 });
+    }
+
+    if (txnResult && !txnResult.success) {
+      return NextResponse.json({ success: false, message: txnResult.error }, { status: 409 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: txnResult?.message || `✓ Seat switched to ${newSeatNumber}`,
+      oldSeat: txnResult?.oldSeat,
+      newSeat: txnResult?.newSeat,
+    });
+  } catch (err: any) {
+    console.error("[api/students/attendance] PATCH error:", err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }
