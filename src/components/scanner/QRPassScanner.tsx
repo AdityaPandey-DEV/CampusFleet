@@ -890,7 +890,7 @@ export function QRPassScanner({
               <form onSubmit={handleManualSubmit} className="space-y-3">
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                    Enter Pass Booking Code / Roll No / Name
+                    Enter Pass Booking Code / Student ID / Name
                   </label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">

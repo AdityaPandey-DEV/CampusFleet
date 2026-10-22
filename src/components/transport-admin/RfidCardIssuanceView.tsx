@@ -604,7 +604,7 @@ function formatTimeAgo(isoString?: string | null): string {
               type="text"
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
-              placeholder="Search UID, student name, roll..."
+              placeholder="Search UID, student name, student ID..."
               className="w-full text-xs pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-white"
             />
           </div>
@@ -618,7 +618,7 @@ function formatTimeAgo(isoString?: string | null): string {
                 <th className="p-3.5">RFID Card UID</th>
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5">Assigned Student</th>
-                <th className="p-3.5">Roll / Enrollment No</th>
+                <th className="p-3.5">Student ID</th>
                 <th className="p-3.5">Class & Department</th>
                 <th className="p-3.5">Pickup Bus Stop</th>
                 <th className="p-3.5 text-right">Actions</th>
@@ -816,7 +816,7 @@ function formatTimeAgo(isoString?: string | null): string {
             {/* Student Search */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                Search Student (Name, Roll No, or Department)
+                Search Student (Name, Student ID, or Department)
               </label>
               <div className="relative">
                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
@@ -824,7 +824,7 @@ function formatTimeAgo(isoString?: string | null): string {
                   type="text"
                   value={studentSearchInput}
                   onChange={(e) => setStudentSearchInput(e.target.value)}
-                  placeholder="Type student name or enrollment number..."
+                  placeholder="Type student name or student ID..."
                   className="w-full text-xs font-semibold pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
                 />
               </div>
@@ -857,7 +857,7 @@ function formatTimeAgo(isoString?: string | null): string {
                             {stu.fullName}
                           </div>
                           <div className="text-[10px] text-gray-500 font-mono">
-                            Roll: {stu.enrollmentNo || "Pending"} • {stu.className || stu.department}
+                            ID: {stu.enrollmentNo || "Pending"} • {stu.className || stu.department}
                           </div>
                         </div>
                       </div>
@@ -868,17 +868,17 @@ function formatTimeAgo(isoString?: string | null): string {
               </div>
             </div>
 
-            {/* Enrollment Number Confirmation */}
+            {/* Student ID Confirmation */}
             {selectedStudentForAssign && (
               <div className="space-y-1.5 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40">
                 <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
-                  Student Roll / Enrollment Number
+                  University Student ID (ERP Roll ID)
                 </label>
                 <input
                   type="text"
                   value={enrollmentInput}
                   onChange={(e) => setEnrollmentInput(e.target.value)}
-                  placeholder="e.g. 220101"
+                  placeholder="e.g. 230111075 or PV-23620010"
                   className="w-full text-xs font-semibold px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none"
                 />
               </div>

@@ -123,6 +123,7 @@ export default function StudentOnboardingPage() {
 
   const [selectedZoneCode, setSelectedZoneCode] = useState("ZONE_B");
   const [phone, setPhone] = useState("");
+  const [studentIdCode, setStudentIdCode] = useState("");
   const [primaryStopId, setPrimaryStopId] = useState("");
   const [emergencyName, setEmergencyName] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
@@ -338,7 +339,27 @@ export default function StudentOnboardingPage() {
     setEmergencyRel(prev => prev || activeStudent?.emergencyContact?.relationship || "Parent / Guardian");
     setPhotoUrl(prev => prev || activeStudent?.photoUrl || "");
 
+    const userEmail = currentUser?.email || "";
+    let autoId = "";
+    if (userEmail) {
+      const localPart = userEmail.split("@")[0] || "";
+      const match = localPart.match(/\b\d{7,10}\b/) || localPart.match(/([a-zA-Z]{1,4}-\d{6,10})/i);
+      if (match) autoId = match[0].toUpperCase();
+    }
+    setStudentIdCode(prev => prev || activeStudent?.enrollmentNo || autoId || "");
+
   }, [dataLoaded, activeStudent, currentUser, academicData.classes, stops]);
+
+  const institutionalEmailPreview = useMemo(() => {
+    if (!studentIdCode.trim()) return "";
+    const nameSlug = (fullName || currentUser?.fullName || "student")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const domain = (campus && campus.toLowerCase().includes("deemed")) || campusId?.toLowerCase().includes("geu")
+      ? "geu.ac.in"
+      : "gehu.ac.in";
+    return `${nameSlug}.${studentIdCode.trim().toLowerCase()}@${domain}`;
+  }, [studentIdCode, fullName, currentUser, campus, campusId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -371,6 +392,8 @@ export default function StudentOnboardingPage() {
       phone: phone.trim(),
       primaryStopId: primaryStopId || stops[0]?.id || "",
       photoUrl: photoUrl.trim() || undefined,
+      enrollmentNo: studentIdCode.trim() || undefined,
+      studentIdCode: studentIdCode.trim() || undefined,
       emergencyContact: {
         name: emergencyName.trim() || "Parent / Guardian",
         relationship: emergencyRel,
@@ -613,6 +636,38 @@ export default function StudentOnboardingPage() {
                   placeholder="+91 98765 43210"
                   className="w-full text-sm p-3.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-blue-600 transition-colors"
                 />
+              </div>
+
+              {/* University Student ID */}
+              <div className="space-y-1.5 md:col-span-2 p-4 bg-gray-50/80 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/80 rounded-xl space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <GraduationCap className="w-4 h-4 text-blue-600" />
+                    University Student ID (ERP Roll ID) *
+                  </span>
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/40">
+                    Official College ID
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={studentIdCode}
+                  onChange={e => setStudentIdCode(e.target.value.trim().toUpperCase())}
+                  placeholder="e.g. 230111075 or PV-23620010"
+                  className="w-full text-sm p-3.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-mono font-bold outline-none focus:border-blue-600 transition-colors"
+                />
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Enter your official university Student ID / ERP Roll number (from your college ID card or university email address).
+                </p>
+                {institutionalEmailPreview && (
+                  <div className="text-xs font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
+                    <span>Campus Email: <strong>{institutionalEmailPreview}</strong></span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded">
+                      ERP Synced
+                    </span>
+                  </div>
+                )}
               </div>
 
             {/* ── 5-TIER CASCADED ACADEMIC PICKER: Course → Branch → Specialization → Semester → Section ── */}

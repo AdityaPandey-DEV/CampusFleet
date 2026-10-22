@@ -215,7 +215,10 @@ export interface Student {
   specializationCode?: string;
   specializationLabel?: string;
   section?: string;
+  /** University Student ID / Roll Number (e.g. 230111075 or PV-23620010) */
   enrollmentNo?: string;
+  /** Alias for enrollmentNo */
+  studentIdCode?: string;
   rfidCardId?: string;
 }
 

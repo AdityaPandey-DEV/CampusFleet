@@ -188,7 +188,7 @@ export default function ShowQRPage() {
               {studentName}
             </div>
             <div className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
-              ROLL: {enrollmentNo}
+              STUDENT ID: {enrollmentNo}
             </div>
           </div>
 

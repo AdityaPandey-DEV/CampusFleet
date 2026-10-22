@@ -23,7 +23,7 @@ const logisticsModules: HubModule[] = [
   },
   {
     title: "RFID Smart Cards",
-    description: "Pair physical IoT cards to student roll numbers, replace lost tags, and monitor live terminal taps.",
+    description: "Pair physical IoT cards to student IDs, replace lost tags, and monitor live terminal taps.",
     icon: Radio,
     href: "/transport-admin/rfid"
   },

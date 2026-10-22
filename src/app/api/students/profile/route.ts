@@ -44,10 +44,11 @@ export async function POST(req: NextRequest) {
     let existingCampusId: string | null = null;
     let existingCampus: string | null = null;
     let existingPaymentStatus: string | null = null;
+    let existingEnrollmentNo: string | null = null;
 
     const { data: existingStudents } = await supabaseAdmin
       .from("students_full")
-      .select("id, photo_url, photo_locked, campus_id, campus, payment_status")
+      .select("id, photo_url, photo_locked, campus_id, campus, payment_status, enrollment_no")
       .or(`user_id.eq.${userId},email.ilike.${cleanEmail}`)
       .order("created_at", { ascending: false })
       .limit(1);
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
       existingCampusId = existingStudent.campus_id;
       existingCampus = existingStudent.campus;
       existingPaymentStatus = existingStudent.payment_status;
+      existingEnrollmentNo = existingStudent.enrollment_no || null;
     }
 
     // Subscription is considered active if payment has been approved
@@ -104,6 +106,25 @@ export async function POST(req: NextRequest) {
       if (zone?.semester_fee) feeDue = Number(zone.semester_fee);
     }
 
+    const rawStudentIdCode = (
+      body.enrollmentNo ||
+      body.studentIdCode ||
+      body.rollNo ||
+      body.student_id ||
+      ""
+    ).trim().toUpperCase();
+
+    // Auto-extract Student ID from college email if not explicitly provided
+    // (e.g. adityapandey.230111075@gehu.ac.in -> 230111075)
+    let autoExtractedStudentId = "";
+    if (cleanEmail) {
+      const localPart = cleanEmail.split("@")[0] || "";
+      const match = localPart.match(/\b\d{7,10}\b/) || localPart.match(/([a-zA-Z]{1,4}-\d{6,10})/i);
+      if (match) autoExtractedStudentId = match[0].toUpperCase();
+    }
+
+    const effectiveEnrollmentNo = rawStudentIdCode || autoExtractedStudentId || existingEnrollmentNo || null;
+
     const studentData: Record<string, any> = {
       id: finalStudentId,
       user_id: userId,
@@ -115,6 +136,10 @@ export async function POST(req: NextRequest) {
       primary_stop_id: primaryStopId || null,
       emergency_contact: emergencyContact || null,
     };
+
+    if (effectiveEnrollmentNo) {
+      studentData.enrollment_no = effectiveEnrollmentNo;
+    }
 
     let finalPhotoUrl = null;
     let finalPhotoLocked = false;

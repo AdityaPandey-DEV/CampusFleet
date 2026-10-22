@@ -178,7 +178,7 @@ function VerifyStudentContent() {
                 <div className="text-center sm:text-left space-y-1">
                   <h1 className="text-xl font-black text-white tracking-tight">{data.fullName}</h1>
                   <div className="text-xs font-mono font-bold text-blue-400 flex items-center justify-center sm:justify-start gap-1">
-                    <span>ROLL: {data.enrollmentNo}</span>
+                    <span>STUDENT ID: {data.enrollmentNo}</span>
                   </div>
                   <div className="text-xs text-slate-400 font-medium flex items-center justify-center sm:justify-start gap-1.5 pt-0.5">
                     <GraduationCap className="w-3.5 h-3.5 text-slate-500" />

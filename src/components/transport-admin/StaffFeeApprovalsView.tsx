@@ -311,7 +311,7 @@ export default function StaffFeeApprovalsView({
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder="Search name, roll no, UTR..."
+                placeholder="Search name, student ID, UTR..."
                 className="text-xs pl-8 pr-3 py-2 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl outline-none focus:border-blue-500 font-mono"
               />
             </div>

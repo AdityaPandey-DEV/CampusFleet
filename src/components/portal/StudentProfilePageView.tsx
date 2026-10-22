@@ -534,6 +534,15 @@ export default function StudentProfilePageView({
                   {activeStudent?.phone || currentUser?.phone || "NONE"}
                 </div>
               </div>
+
+              <div className="p-4 rounded-none bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 space-y-1 sm:col-span-2">
+                <div className="text-[10px] font-extrabold uppercase text-blue-600 dark:text-blue-400 tracking-wider">
+                  University Student ID (ERP Roll ID)
+                </div>
+                <div className="font-mono font-black text-gray-900 dark:text-white text-sm">
+                  {activeStudent?.enrollmentNo || activeStudent?.studentIdCode || "Not specified — update in Profile Setup"}
+                </div>
+              </div>
             </div>
           </div>
 

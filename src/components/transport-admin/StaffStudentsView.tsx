@@ -241,7 +241,7 @@ export default function StaffStudentsView({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search student name, roll, class..."
+            placeholder="Search student name, student ID, class..."
             className="w-full text-xs pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none"
           />
         </div>
@@ -304,6 +304,11 @@ export default function StaffStudentsView({
                     </td>
                     <td className="p-3.5">
                       <div className="font-bold text-gray-900 dark:text-white">{s.fullName}</div>
+                      {s.enrollmentNo && (
+                        <div className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">
+                          ID: {s.enrollmentNo}
+                        </div>
+                      )}
                       <div className="text-[10px] text-gray-500">{s.email}</div>
                       <div className="text-[10px] text-gray-400 font-mono">{s.phone}</div>
                     </td>

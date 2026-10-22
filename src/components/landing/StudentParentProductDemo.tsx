@@ -662,7 +662,7 @@ export function StudentParentProductDemo() {
                 <div className="space-y-2 sm:space-y-3 text-center sm:text-left flex-1">
                   <div>
                     <div className="text-lg sm:text-xl font-black">Parth Dalakoti</div>
-                    <div className="text-[11px] sm:text-xs text-blue-200 font-mono">Enrollment: PV-23620010</div>
+                    <div className="text-[11px] sm:text-xs text-blue-200 font-mono">Student ID: 230111075</div>
                   </div>
 
                   <div className="text-xs space-y-1 text-gray-300">

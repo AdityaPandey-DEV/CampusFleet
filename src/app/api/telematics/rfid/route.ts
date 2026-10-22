@@ -19,7 +19,8 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { busId, deviceId, deviceMac, mac, rfidCardId, rfidUid, enrollmentNo } = body;
+    const { busId, deviceId, deviceMac, mac, rfidCardId, rfidUid, enrollmentNo, studentIdCode, rollNo } = body;
+    const effectiveStudentIdCode = (studentIdCode || rollNo || enrollmentNo || "").trim().toUpperCase();
     const effectiveRfid = (
       rfidCardId ||
       rfidUid ||
@@ -176,7 +177,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!effectiveRfid && !enrollmentNo) {
+    if (!effectiveRfid && !effectiveStudentIdCode) {
       return NextResponse.json(
         {
           success: true,
@@ -191,15 +192,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Resolve student by rfid_card_id or enrollment_no
+    // 1. Resolve student by rfid_card_id or Student ID / enrollment_no
     let studentQuery = supabaseAdmin.from("students_full").select("id, user_id, full_name, enrollment_no, rfid_card_id, email");
 
-    if (effectiveRfid && enrollmentNo) {
-      studentQuery = studentQuery.or(`rfid_card_id.eq.${effectiveRfid},enrollment_no.eq.${enrollmentNo}`);
+    if (effectiveRfid && effectiveStudentIdCode) {
+      studentQuery = studentQuery.or(`rfid_card_id.eq.${effectiveRfid},enrollment_no.eq.${effectiveStudentIdCode}`);
     } else if (effectiveRfid) {
       studentQuery = studentQuery.eq("rfid_card_id", effectiveRfid);
     } else {
-      studentQuery = studentQuery.eq("enrollment_no", enrollmentNo);
+      studentQuery = studentQuery.eq("enrollment_no", effectiveStudentIdCode);
     }
 
     const { data: students, error: studentErr } = await studentQuery.limit(1);

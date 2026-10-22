@@ -78,7 +78,7 @@ export function ManifestTab({
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search name, roll no, seat..."
+            placeholder="Search name, student ID, seat..."
             className="w-full text-xs pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700/80 rounded-2xl text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono shadow-inner transition-all"
           />
         </div>

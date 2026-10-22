@@ -234,16 +234,20 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
     className?: string;
     zoneCode?: string;
     phone?: string;
-    primaryStopId?: string;
     emergencyContact?: { name: string; relationship: string; phone: string };
     photoUrl?: string;
     performedByStaff?: boolean;
+    enrollmentNo?: string;
+    studentIdCode?: string;
+    primaryStopId?: string;
+    primaryRouteId?: string;
   }
 ) {
   let student = this.students.find(s => s.id === studentId || s.userId === studentId || s.email?.toLowerCase() === this.currentUser?.email?.toLowerCase());
 
   const resolvedCampusId = profileData.campusId || (profileData.campus ? (this.campuses.find(c => c.name === profileData.campus || c.id === profileData.campus)?.id || profileData.campus) : undefined);
   const resolvedCampusName = profileData.campus || (resolvedCampusId ? this.campuses.find(c => c.id === resolvedCampusId)?.name : "") || this.getPrimaryCampus()?.name || "";
+  const resolvedStudentIdCode = (profileData.studentIdCode || profileData.enrollmentNo || "").trim().toUpperCase() || undefined;
 
   if (!student) {
     const u = this.currentUser;
@@ -273,6 +277,8 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
       totalFeePaid: 0,
       photoUrl: profileData.photoUrl || "",
       photoLocked: false,
+      enrollmentNo: resolvedStudentIdCode,
+      studentIdCode: resolvedStudentIdCode,
     };
     this.students.push(student);
   }
@@ -315,6 +321,8 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
     emergencyContact: profileData.emergencyContact || student.emergencyContact,
     photoUrl: targetPhotoUrl,
     photoLocked: targetPhotoLocked,
+    enrollmentNo: resolvedStudentIdCode || student.enrollmentNo,
+    studentIdCode: resolvedStudentIdCode || student.studentIdCode || student.enrollmentNo,
     // Preserve all payment & subscription fields — never overwrite with defaults
     totalFeeDue: preservedFeeDue,
     totalFeePaid: student.totalFeePaid || 0,
@@ -371,6 +379,8 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
           emergencyContact: updatedStudent.emergencyContact,
           photoUrl: updatedStudent.photoUrl,
           performedByStaff: profileData.performedByStaff || false,
+          enrollmentNo: updatedStudent.enrollmentNo,
+          studentIdCode: updatedStudent.studentIdCode,
         }),
       });
 

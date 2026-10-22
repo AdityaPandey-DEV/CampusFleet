@@ -30,14 +30,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { studentId, rfidCardId, enrollmentNo, forceReassign } = body;
+    const { studentId, rfidCardId, enrollmentNo, studentIdCode, forceReassign } = body;
 
     if (!studentId) {
       return NextResponse.json({ success: false, error: "studentId is required" }, { status: 400 });
     }
 
     const cleanRfid = rfidCardId ? String(rfidCardId).trim().toUpperCase() : null;
-    const cleanEnrollment = enrollmentNo ? String(enrollmentNo).trim() : undefined;
+    const rawCode = studentIdCode || enrollmentNo;
+    const cleanEnrollment = rawCode ? String(rawCode).trim().toUpperCase() : undefined;
 
     // 1. Fetch target student
     const { data: targetStudents, error: fetchErr } = await supabaseAdmin
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
             {
               success: false,
               conflict: true,
-              message: `Card [${cleanRfid}] is already assigned to student ${holder.full_name} (${holder.enrollment_no || "No Roll"}). Do you want to transfer this card to ${student.full_name}?`,
+              message: `Card [${cleanRfid}] is already assigned to student ${holder.full_name} (${holder.enrollment_no || "No Student ID"}). Do you want to transfer this card to ${student.full_name}?`,
               existingHolder: {
                 id: holder.id,
                 fullName: holder.full_name,
