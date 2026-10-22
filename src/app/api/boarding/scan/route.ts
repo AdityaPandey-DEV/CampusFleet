@@ -20,15 +20,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Parse payload
+    // 1. Parse payload (supports JSON dynamic token, Universal Verification URL, or plain ID)
     let parsedPayload: any = null;
-    try {
-      parsedPayload = JSON.parse(scanPayload);
-    } catch {
-      // plain text string
+    let urlStudentId: string | null = null;
+
+    if (typeof scanPayload === "string") {
+      try {
+        parsedPayload = JSON.parse(scanPayload);
+      } catch {
+        // Check if scanned code is a verification URL (e.g., /verify/student?id=...)
+        if (scanPayload.includes("http://") || scanPayload.includes("https://") || scanPayload.includes("/verify/student")) {
+          try {
+            const urlObj = new URL(scanPayload, "https://campusfleet.vercel.app");
+            urlStudentId = urlObj.searchParams.get("id") || urlObj.searchParams.get("studentId") || urlObj.searchParams.get("sid");
+          } catch {
+            // Not a valid URL
+          }
+        }
+      }
     }
 
-    const studentIdPayload = parsedPayload?.studentId || (typeof scanPayload === "string" && !scanPayload.startsWith("{") ? scanPayload.trim() : "");
+    // Dynamic 1-Minute Anti-Screenshot Security Validation
+    if (parsedPayload?.window) {
+      const currentWindow = Math.floor(Date.now() / 60000);
+      const windowDiff = Math.abs(currentWindow - Number(parsedPayload.window));
+      // Allow 2 windows of skew (120s buffer) to tolerate client clock drift or slight latency
+      if (windowDiff > 2) {
+        return NextResponse.json(
+          {
+            success: false,
+            status: "EXPIRED_QR",
+            code: "EXPIRED_DYNAMIC_PASS",
+            message: "SECURITY ALERT: Expired dynamic pass (>1 min old screenshot). Please ask student to show their live dynamic pass.",
+            studentName: parsedPayload.studentName || undefined,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const studentIdPayload = parsedPayload?.studentId || urlStudentId || (typeof scanPayload === "string" && !scanPayload.startsWith("{") && !scanPayload.includes("http") ? scanPayload.trim() : "");
     // Fallback if old QR uses bookingId, we just assume the ID is the studentId or query it later.
     const fallbackId = parsedPayload?.bookingId || parsedPayload?.id;
     const searchId = studentIdPayload || fallbackId;

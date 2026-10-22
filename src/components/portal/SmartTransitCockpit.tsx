@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BusFront,
   MapPin,
@@ -25,7 +26,6 @@ import {
 import { InteractiveBusSeatGrid } from "@/components/booking/InteractiveBusSeatGrid";
 import { generateSeatLayout, getTeacherStartingSeats } from "@/lib/utils";
 import { AttendanceLockCard } from "./AttendanceLockCard";
-import DigitalPassView from "./DigitalPassView";
 import LiveTrackerView from "./LiveTrackerView";
 import type { Student, Bus, Stop, Shift, Trip, Booking, Route, TransportSettings, Staff } from "@/lib/types";
 
@@ -58,6 +58,9 @@ export default function SmartTransitCockpit({
   onOpenLiveRadar,
   onOpenDigitalPass,
 }: SmartTransitCockpitProps) {
+  // Navigation router
+  const router = useRouter();
+
   // Reservation state
   const [reservation, setReservation] = useState<any>(null);
   const [settings, setSettings] = useState<TransportSettings | null>(null);
@@ -72,8 +75,7 @@ export default function SmartTransitCockpit({
   const [tentativeSeat, setTentativeSeat] = useState<string | null>(null);
   const [isChangingSeat, setIsChangingSeat] = useState(false);
 
-  // Modals for actions after attendance is marked
-  const [isDigitalPassOpen, setIsDigitalPassOpen] = useState(false);
+  // Modal for live bus radar
   const [isLiveRadarOpen, setIsLiveRadarOpen] = useState(false);
 
   // Real-time Attendance Lock (Distance / RFID) State
@@ -459,11 +461,11 @@ export default function SmartTransitCockpit({
           {/* Action Buttons */}
           <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
-              onClick={() => setIsDigitalPassOpen(true)}
+              onClick={() => router.push("/portal/qr")}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 text-white text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <QrCode className="w-3.5 h-3.5" />
-              <span>View Today's Digital Pass</span>
+              <span>Show My QR Pass</span>
             </button>
 
             <button
@@ -483,41 +485,6 @@ export default function SmartTransitCockpit({
             </Link>
           </div>
         </div>
-
-        {/* Digital Pass Modal if requested */}
-        {isDigitalPassOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-in zoom-in-95 my-8">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2">
-                  <QrCode className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Digital Boarding Pass (QR)
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setIsDigitalPassOpen(false)}
-                  className="p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <DigitalPassView
-                initialUser={user}
-                initialStudent={student}
-                initialStudents={students || []}
-                initialBuses={buses}
-                initialTrips={trips}
-                initialShifts={shifts}
-                initialStops={stops}
-                initialBookings={bookings}
-                initialStaff={staff || []}
-                isEmbedded={true}
-              />
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -898,7 +865,7 @@ export default function SmartTransitCockpit({
               if (onOpenDigitalPass) {
                 onOpenDigitalPass();
               } else {
-                setIsDigitalPassOpen(true);
+                router.push("/portal/qr");
               }
             }}
             className="flex items-center justify-between p-4 md:p-5 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 transition-all text-left group active:scale-[0.99] shadow-sm cursor-pointer"
@@ -909,10 +876,10 @@ export default function SmartTransitCockpit({
               </div>
               <div>
                 <div className="text-sm md:text-base font-bold text-slate-900 dark:text-white">
-                  Show Digital QR
+                  Show My QR Pass
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Digital boarding pass & conductor verification
+                  Dynamic digital pass & conductor verification
                 </div>
               </div>
             </div>
@@ -958,41 +925,6 @@ export default function SmartTransitCockpit({
           </Link>
         </div>
       </div>
-
-      {/* ─── MODAL: DIGITAL PASS (QR) ──────────────────────────────── */}
-      {isDigitalPassOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-in zoom-in-95 my-8">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <QrCode className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Digital Boarding Pass (QR)
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsDigitalPassOpen(false)}
-                className="p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <DigitalPassView
-              initialUser={user}
-              initialStudent={student}
-              initialStudents={students || []}
-              initialBuses={buses}
-              initialTrips={trips}
-              initialShifts={shifts}
-              initialStops={stops}
-              initialBookings={bookings}
-              initialStaff={staff || []}
-              isEmbedded={true}
-            />
-          </div>
-        </div>
-      )}
 
       {/* ─── MODAL: LIVE BUS RADAR ─────────────────────────────────── */}
       {isLiveRadarOpen && (

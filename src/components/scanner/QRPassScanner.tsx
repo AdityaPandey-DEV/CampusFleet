@@ -221,15 +221,23 @@ export function QRPassScanner({
       }
 
       let parsedPayload: any = null;
+      let urlStudentId: string | null = null;
       try {
         parsedPayload = JSON.parse(rawCode);
       } catch {
-        // Plain text
+        if (typeof rawCode === "string" && (rawCode.includes("http") || rawCode.includes("/verify/student"))) {
+          try {
+            const u = new URL(rawCode, "https://campusfleet.vercel.app");
+            urlStudentId = u.searchParams.get("id") || u.searchParams.get("studentId") || u.searchParams.get("sid");
+          } catch {
+            // ignore
+          }
+        }
       }
 
       const bookingId = parsedPayload?.bookingId || parsedPayload?.id;
-      const bookingCode = parsedPayload?.bookingCode || (typeof rawCode === "string" && !rawCode.startsWith("{") ? rawCode.trim() : "");
-      const studentId = parsedPayload?.studentId;
+      const bookingCode = parsedPayload?.bookingCode || (typeof rawCode === "string" && !rawCode.startsWith("{") && !rawCode.includes("http") ? rawCode.trim() : "");
+      const studentId = parsedPayload?.studentId || urlStudentId;
 
       let targetBooking = tripBookings.find(
         b =>
