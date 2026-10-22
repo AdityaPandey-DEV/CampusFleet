@@ -343,6 +343,7 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from("attendance_records").insert({
         id: attendanceId,
         student_id: resolvedStudentId,
+        reservation_id: reservation?.id || null,
         trip_id: resolvedTripId,
         bus_id: effectiveBusId,
         method: "RFID_VERIFIED",

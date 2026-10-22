@@ -129,24 +129,42 @@ export async function POST(req: NextRequest) {
         .eq("id", reservation.id);
     }
 
-    // 5. Create verified attendance record with RFID unlock status
-    const attendanceId = `att-rfid-${Date.now()}`;
-    await supabaseAdmin.from("attendance_records").insert({
-      id: attendanceId,
-      student_id: studentId,
-      trip_id: tripId,
-      bus_id: busId,
-      method: "RFID_VERIFIED",
-      status: "BOARDED",
-      verified_by: "ESP32 Hardware RFID Gate",
-      notes: `Tapped RFID card [${effectiveRfid || enrollmentNo}] at bus entry reader`,
-      signature_token: `RFID-${effectiveRfid || enrollmentNo}`,
-      timestamp: nowIso,
-      lock_status: "UNLOCKED",
-      unlocked_by: "RFID",
-      rfid_card_id: effectiveRfid || student.rfid_card_id || null,
-      unlock_timestamp: nowIso,
-    });
+    // 5. Anti-Passback / Rapid Double-Tap Guardrail
+    // Check if attendance has already been recorded for this student on this trip today
+    let existingTapQuery = supabaseAdmin
+      .from("attendance_records")
+      .select("id, timestamp")
+      .eq("student_id", studentId)
+      .eq("method", "RFID_VERIFIED")
+      .gte("timestamp", `${today}T00:00:00.000Z`);
+
+    if (tripId) {
+      existingTapQuery = existingTapQuery.eq("trip_id", tripId);
+    }
+
+    const { data: existingTap } = await existingTapQuery.limit(1).maybeSingle();
+
+    if (!existingTap) {
+      // Create new verified attendance record linked directly to reservation
+      const attendanceId = `att-rfid-${Date.now()}`;
+      await supabaseAdmin.from("attendance_records").insert({
+        id: attendanceId,
+        student_id: studentId,
+        reservation_id: reservation?.id || null,
+        trip_id: tripId,
+        bus_id: busId,
+        method: "RFID_VERIFIED",
+        status: "BOARDED",
+        verified_by: "ESP32 Hardware RFID Gate",
+        notes: `Tapped RFID card [${effectiveRfid || enrollmentNo}] at bus entry reader`,
+        signature_token: `RFID-${effectiveRfid || enrollmentNo}`,
+        timestamp: nowIso,
+        lock_status: "UNLOCKED",
+        unlocked_by: "RFID",
+        rfid_card_id: effectiveRfid || student.rfid_card_id || null,
+        unlock_timestamp: nowIso,
+      });
+    }
 
     // 6. Fast-path cache in Redis: student attendance is UNLOCKED via RFID
     const lockPayload = {
@@ -175,11 +193,15 @@ export async function POST(req: NextRequest) {
       seatNumber: reservation?.chosen_seat || reservation?.seat_number || null,
       rfidCardId: effectiveRfid,
       timestamp: nowIso,
+      alreadyBoarded: Boolean(existingTap),
     }, 300);
 
     return NextResponse.json({
       success: true,
-      message: `✓ Attendance Verified via In-Bus RFID Tap. Welcome aboard, ${student.full_name}!`,
+      alreadyBoarded: Boolean(existingTap),
+      message: existingTap
+        ? `✓ Attendance already recorded for this trip. Welcome aboard, ${student.full_name}!`
+        : `✓ Attendance Verified via In-Bus RFID Tap. Welcome aboard, ${student.full_name}!`,
       student: {
         id: student.id,
         name: student.full_name,
