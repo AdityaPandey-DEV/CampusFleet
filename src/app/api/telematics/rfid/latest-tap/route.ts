@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
   try {
     const unmappedList = (await cacheGet<any[]>("telematics:unmapped_rfid_list")) || [];
     const latestTap = await cacheGet<any>("telematics:latest_rfid_tap");
+    const hardwareStatus = await cacheGet<any>("telematics:latest_esp32_status");
 
     let mappedStudent = null;
     if (latestTap?.studentId) {
@@ -38,6 +39,7 @@ export async function GET(req: NextRequest) {
         unmappedTap: unmappedList[0] || null,
         latestTap: latestTap || null,
         mappedStudent,
+        hardwareStatus: hardwareStatus || null,
         timestamp: new Date().toISOString(),
       },
       {

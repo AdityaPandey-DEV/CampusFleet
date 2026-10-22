@@ -115,6 +115,7 @@ export interface Bus {
   totalRows?: number; // Configured length (number of seating rows)
   status: VehicleStatus;
   gpsDeviceId: string;
+  rfidDeviceId?: string;
   insuranceExpiry: string;
   maintenanceDueDate: string;
   currentRouteId?: string;

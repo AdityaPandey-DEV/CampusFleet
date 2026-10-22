@@ -19,12 +19,79 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { busId, rfidCardId, rfidUid, enrollmentNo } = body;
+    const { busId, deviceId, deviceMac, mac, rfidCardId, rfidUid, enrollmentNo } = body;
     const effectiveRfid = (rfidCardId || rfidUid || "").trim();
+    const rawDeviceId = (deviceId || deviceMac || mac || "").trim();
+    let effectiveBusId = (busId || "").trim();
+    let resolvedBusNumber = "";
 
-    if (!busId) {
+    // 1. Resolve Bus Dynamically if deviceId is provided or busId is missing
+    if (rawDeviceId) {
+      // Check cache first for rapid sub-millisecond resolution
+      const cachedBusId = await cacheGet<string>(`telematics:device_bus_map:${rawDeviceId}`);
+      if (cachedBusId) {
+        effectiveBusId = cachedBusId;
+      } else {
+        // Query database: check rfid_device_id, gps_device_id, or bus id
+        const { data: matchedBus } = await supabaseAdmin
+          .from("buses")
+          .select("id, bus_number")
+          .or(`rfid_device_id.eq.${rawDeviceId},gps_device_id.eq.${rawDeviceId},id.eq.${rawDeviceId}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (matchedBus?.id) {
+          effectiveBusId = matchedBus.id;
+          resolvedBusNumber = matchedBus.bus_number;
+          await cacheSet(`telematics:device_bus_map:${rawDeviceId}`, effectiveBusId, 86400);
+        }
+      }
+    }
+
+    // If busId was provided directly without deviceId, query bus number for display
+    if (effectiveBusId && !resolvedBusNumber) {
+      const { data: b } = await supabaseAdmin
+        .from("buses")
+        .select("bus_number")
+        .eq("id", effectiveBusId)
+        .limit(1)
+        .maybeSingle();
+      resolvedBusNumber = b?.bus_number || effectiveBusId;
+    }
+
+    // 2. Track hardware heartbeat / online status in Redis (15 min TTL)
+    if (rawDeviceId || effectiveBusId) {
+      const hwStatus = {
+        deviceId: rawDeviceId || `ESP32-${effectiveBusId}`,
+        busId: effectiveBusId || "UNMAPPED",
+        busNumber: resolvedBusNumber || effectiveBusId || "Unassigned Bus",
+        isMapped: Boolean(effectiveBusId),
+        lastSeen: new Date().toISOString(),
+      };
+      await cacheSet("telematics:latest_esp32_status", hwStatus, 900);
+      if (rawDeviceId) {
+        await cacheSet(`telematics:device_status:${rawDeviceId}`, hwStatus, 900);
+      }
+    }
+
+    // If device is not mapped to any bus yet
+    if (!effectiveBusId) {
+      if (rawDeviceId) {
+        // Save unmapped device so Transport Admin can bind it with 1 click
+        const unmappedDevices = (await cacheGet<any[]>("telematics:unmapped_device_list")) || [];
+        if (!unmappedDevices.some((d) => d.deviceId === rawDeviceId)) {
+          unmappedDevices.unshift({ deviceId: rawDeviceId, detectedAt: new Date().toISOString() });
+          await cacheSet("telematics:unmapped_device_list", unmappedDevices.slice(0, 20), 86400);
+        }
+      }
+
       return NextResponse.json(
-        { success: false, error: "busId is required." },
+        {
+          success: false,
+          error: "UNMAPPED_DEVICE",
+          message: `ESP32 Hardware [${rawDeviceId || "Unknown"}] is not mapped to any bus asset. Please pair this device with a bus in the Transport Admin portal.`,
+          deviceId: rawDeviceId,
+        },
         { status: 400 }
       );
     }
@@ -50,7 +117,7 @@ export async function POST(req: NextRequest) {
     const { data: students, error: studentErr } = await studentQuery.limit(1);
 
     if (studentErr || !students || students.length === 0) {
-      console.warn(`[telematics/rfid] Unregistered RFID card ${effectiveRfid} on ${busId}`);
+      console.warn(`[telematics/rfid] Unregistered RFID card ${effectiveRfid} on bus ${effectiveBusId} (device: ${rawDeviceId || "N/A"})`);
       if (effectiveRfid) {
         try {
           const nowIso = new Date().toISOString();
@@ -59,7 +126,9 @@ export async function POST(req: NextRequest) {
           const updatedList = [
             {
               rfidCardId: effectiveRfid,
-              busId,
+              busId: effectiveBusId,
+              busNumber: resolvedBusNumber || effectiveBusId,
+              deviceId: rawDeviceId || null,
               scannedAt: nowIso,
             },
             ...filtered,
@@ -73,6 +142,9 @@ export async function POST(req: NextRequest) {
           success: false,
           error: "UNREGISTERED_RFID_CARD",
           message: `RFID card [${effectiveRfid}] is not mapped to any registered student. Please link your card in the Student Transport Desk.`,
+          busId: effectiveBusId,
+          busNumber: resolvedBusNumber,
+          deviceId: rawDeviceId || undefined,
         },
         { status: 404 }
       );
@@ -94,7 +166,7 @@ export async function POST(req: NextRequest) {
     const { data: activeTrips } = await supabaseAdmin
       .from("trips")
       .select("id, trip_code, shift_id, route_id, status")
-      .eq("bus_id", busId)
+      .eq("bus_id", effectiveBusId)
       .in("trip_date", allowedDates)
       .neq("status", "CANCELLED")
       .order("created_at", { ascending: false })
@@ -120,7 +192,7 @@ export async function POST(req: NextRequest) {
         .update({
           status: "BOARDED",
           boarded_at: nowIso,
-          bus_id: busId,
+          bus_id: effectiveBusId,
           lock_status: "UNLOCKED",
           unlocked_by: "RFID",
           unlock_timestamp: nowIso,
@@ -152,11 +224,11 @@ export async function POST(req: NextRequest) {
         student_id: studentId,
         reservation_id: reservation?.id || null,
         trip_id: tripId,
-        bus_id: busId,
+        bus_id: effectiveBusId,
         method: "RFID_VERIFIED",
         status: "BOARDED",
-        verified_by: "ESP32 Hardware RFID Gate",
-        notes: `Tapped RFID card [${effectiveRfid || enrollmentNo}] at bus entry reader`,
+        verified_by: rawDeviceId ? `ESP32 [${rawDeviceId}] RFID Gate` : "ESP32 Hardware RFID Gate",
+        notes: `Tapped RFID card [${effectiveRfid || enrollmentNo}] at bus ${resolvedBusNumber || effectiveBusId} entry reader`,
         signature_token: `RFID-${effectiveRfid || enrollmentNo}`,
         timestamp: nowIso,
         lock_status: "UNLOCKED",
@@ -171,7 +243,7 @@ export async function POST(req: NextRequest) {
       lockStatus: "UNLOCKED",
       unlockedBy: "RFID",
       rfidCardId: effectiveRfid || student.rfid_card_id || null,
-      busId,
+      busId: effectiveBusId,
       tripId,
       timestamp: nowIso,
       method: "RFID_VERIFIED",
@@ -186,7 +258,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 7. Store latest in-bus RFID event for Driver Cockpit Live Feed (5 min TTL)
-    await cacheSet(`telematics:rfid:latest:${busId}`, {
+    await cacheSet(`telematics:rfid:latest:${effectiveBusId}`, {
       studentId,
       studentName: student.full_name,
       enrollmentNo: student.enrollment_no,
@@ -212,7 +284,9 @@ export async function POST(req: NextRequest) {
         seatNumber: reservation?.chosen_seat || null,
         status: "BOARDED",
       },
-      busId,
+      busId: effectiveBusId,
+      busNumber: resolvedBusNumber,
+      deviceId: rawDeviceId || undefined,
       tripId,
       timestamp: nowIso,
     });

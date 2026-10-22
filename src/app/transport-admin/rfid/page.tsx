@@ -17,6 +17,7 @@ export default async function StaffRfidManagementPage() {
       initialStudents={data.students}
       initialStops={data.stops}
       initialRoutes={data.routes}
+      initialBuses={data.buses}
     />
   );
 }

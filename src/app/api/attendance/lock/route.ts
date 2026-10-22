@@ -87,10 +87,10 @@ export async function GET(req: NextRequest) {
       .limit(1);
 
     const activeRes = reservations?.[0];
-    const targetBusId = searchParams.get("busId") || activeRes?.bus_id || "bus-44";
+    const targetBusId = searchParams.get("busId") || activeRes?.bus_id || null;
 
     // 2. Query live bus GPS coordinates from telematics
-    const busCoordinates = await getLiveBusCoordinates(targetBusId);
+    const busCoordinates = targetBusId ? await getLiveBusCoordinates(targetBusId) : null;
     const isBusGpsLive = busCoordinates !== null;
 
     // 3. Check if verified RFID card tap occurred TODAY
@@ -235,7 +235,14 @@ export async function POST(req: NextRequest) {
       .limit(1);
 
     const reservation = reservations?.[0];
-    const effectiveBusId = busId || reservation?.bus_id || "bus-44";
+    const effectiveBusId = busId || reservation?.bus_id || null;
+
+    if (!effectiveBusId) {
+      return NextResponse.json(
+        { success: false, error: "No active bus reservation or bus ID provided." },
+        { status: 400 }
+      );
+    }
 
     // 3. Resolve active trip for this bus today
     const { data: activeTrips } = await supabaseAdmin

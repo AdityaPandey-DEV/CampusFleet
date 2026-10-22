@@ -114,6 +114,7 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
     seatLayout: (b.seat_layout as any) || "NONE",
     status: b.status || "ACTIVE",
     gpsDeviceId: b.gps_device_id || "",
+    rfidDeviceId: b.rfid_device_id || "",
     insuranceExpiry: b.insurance_expiry || "",
     maintenanceDueDate: b.maintenance_due_date || "",
     currentRouteId: b.current_route_id,

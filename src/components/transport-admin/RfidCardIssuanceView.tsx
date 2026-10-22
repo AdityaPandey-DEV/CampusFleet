@@ -18,20 +18,34 @@ import {
   Check,
   Cpu,
   User,
+  Settings,
+  Wifi,
+  Laptop,
 } from "lucide-react";
-import type { Student, Stop, Route } from "@/lib/types";
+import type { Student, Stop, Route, Bus } from "@/lib/types";
 import { getSafePhotoUrl } from "@/lib/image-utils";
 
 export interface RfidCardIssuanceViewProps {
   initialStudents?: Student[];
   initialStops?: Stop[];
   initialRoutes?: Route[];
+  initialBuses?: Bus[];
 }
 
 interface DetectedCard {
   rfidCardId: string;
   busId: string;
+  busNumber?: string;
+  deviceId?: string;
   scannedAt: string;
+}
+
+interface HardwareStatus {
+  deviceId: string;
+  busId: string;
+  busNumber: string;
+  isMapped: boolean;
+  lastSeen: string;
 }
 
 function StudentPhotoBadge({
@@ -78,13 +92,16 @@ export default function RfidCardIssuanceView({
   initialStudents = [],
   initialStops = [],
   initialRoutes = [],
+  initialBuses = [],
 }: RfidCardIssuanceViewProps) {
   const [students, setStudents] = useState<Student[]>(initialStudents);
   const [stops] = useState<Stop[]>(initialStops);
   const [routes] = useState<Route[]>(initialRoutes);
+  const [buses, setBuses] = useState<Bus[]>(initialBuses);
 
   // Unassigned cards detected by ESP32 (newest first)
   const [unmappedCards, setUnmappedCards] = useState<DetectedCard[]>([]);
+  const [hardwareStatus, setHardwareStatus] = useState<HardwareStatus | null>(null);
   const [isPolling, setIsPolling] = useState(true);
   const [lastPollTime, setLastPollTime] = useState<Date>(new Date());
 
@@ -104,6 +121,12 @@ export default function RfidCardIssuanceView({
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [manualUidInput, setManualUidInput] = useState("");
 
+  // Device-to-Bus Pairing Modal State
+  const [deviceModalOpen, setDeviceModalOpen] = useState(false);
+  const [selectedBusForDevice, setSelectedBusForDevice] = useState<string>("");
+  const [deviceIdInput, setDeviceIdInput] = useState<string>("");
+  const [isSavingDevice, setIsSavingDevice] = useState(false);
+
   // Toast notification
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
 
@@ -111,6 +134,12 @@ export default function RfidCardIssuanceView({
     setToast({ type, message });
     setTimeout(() => setToast(null), 3500);
   };
+
+  const isHardwareActive = useMemo(() => {
+    if (!hardwareStatus?.lastSeen) return false;
+    const diffMs = Date.now() - new Date(hardwareStatus.lastSeen).getTime();
+    return diffMs < 15 * 60 * 1000;
+  }, [hardwareStatus]);
 
   // Poll for newly tapped cards from ESP32 every 1.5 seconds with zero caching
   useEffect(() => {
@@ -122,8 +151,13 @@ export default function RfidCardIssuanceView({
           headers: { "Cache-Control": "no-cache" },
         });
         const data = await res.json();
-        if (data.success && Array.isArray(data.unmappedList)) {
-          setUnmappedCards(data.unmappedList);
+        if (data.success) {
+          if (Array.isArray(data.unmappedList)) {
+            setUnmappedCards(data.unmappedList);
+          }
+          if (data.hardwareStatus) {
+            setHardwareStatus(data.hardwareStatus);
+          }
           setLastPollTime(new Date());
         }
       } catch (err) {
@@ -282,6 +316,63 @@ export default function RfidCardIssuanceView({
     handleOpenAssignModal(clean);
   };
 
+  // Save or update ESP32 device-to-bus mapping
+  const handleSaveDeviceMapping = async () => {
+    if (!selectedBusForDevice) {
+      showToast("error", "Please select a bus asset.");
+      return;
+    }
+
+    try {
+      setIsSavingDevice(true);
+      const cleanDevice = deviceIdInput.trim();
+      const res = await fetch("/api/telematics/devices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          busId: selectedBusForDevice,
+          deviceId: cleanDevice || null,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        showToast("error", data.error || "Failed to pair ESP32 reader.");
+        return;
+      }
+
+      // Update local buses state
+      setBuses((prev) =>
+        prev.map((b) => {
+          if (b.id === selectedBusForDevice) {
+            return { ...b, rfidDeviceId: cleanDevice || undefined };
+          }
+          if (cleanDevice && b.rfidDeviceId === cleanDevice && b.id !== selectedBusForDevice) {
+            return { ...b, rfidDeviceId: undefined };
+          }
+          return b;
+        })
+      );
+
+      // If mapped bus matches active hardwareStatus, update it
+      if (hardwareStatus && (hardwareStatus.deviceId === cleanDevice || hardwareStatus.busId === selectedBusForDevice)) {
+        setHardwareStatus({
+          ...hardwareStatus,
+          busId: selectedBusForDevice,
+          busNumber: data.bus?.bus_number || selectedBusForDevice,
+          isMapped: Boolean(cleanDevice),
+        });
+      }
+
+      setDeviceModalOpen(false);
+      showToast("success", data.message || "✓ ESP32 reader paired successfully!");
+    } catch (err: any) {
+      showToast("error", err.message || "An error occurred.");
+    } finally {
+      setIsSavingDevice(false);
+    }
+  };
+
   // Filtered student search inside the assignment modal
   const searchResultsForModal = useMemo(() => {
     if (!studentSearchInput.trim()) return students.slice(0, 10);
@@ -362,17 +453,48 @@ export default function RfidCardIssuanceView({
           </div>
         </div>
 
-        {/* Hardware Status & Quick Add */}
+        {/* Dynamic ESP32 Hardware Status & Quick Add */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-3.5 py-2 rounded-2xl border border-gray-200 dark:border-gray-700">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          <button
+            onClick={() => {
+              const defaultBus = hardwareStatus?.busId || (buses.length > 0 ? buses[0].id : "");
+              setSelectedBusForDevice(defaultBus);
+              const matchedBus = buses.find((b) => b.id === defaultBus);
+              setDeviceIdInput(matchedBus?.rfidDeviceId || hardwareStatus?.deviceId || "");
+              setDeviceModalOpen(true);
+            }}
+            className="group flex items-center gap-2.5 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-750 px-3.5 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 transition-all text-left shadow-sm active:scale-95 cursor-pointer"
+            title="Click to view and configure ESP32 IoT hardware bus mapping"
+          >
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span
+                className={`animate-ping absolute inline-flex h-full w-full rounded-full ${
+                  isHardwareActive ? "bg-emerald-400 opacity-75" : "bg-amber-400 opacity-50"
+                }`}
+              ></span>
+              <span
+                className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                  isHardwareActive ? "bg-emerald-500" : "bg-amber-500"
+                }`}
+              ></span>
             </span>
-            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-              ESP32 Connected (bus-44)
-            </span>
-          </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                {hardwareStatus?.busNumber
+                  ? `ESP32 Online • ${hardwareStatus.busNumber}`
+                  : isHardwareActive
+                  ? `ESP32 Active (${hardwareStatus?.deviceId || "Connected"})`
+                  : "ESP32 Standby (Ready)"}
+              </span>
+              <span className="text-[10px] text-gray-400 font-mono">
+                {hardwareStatus?.deviceId
+                  ? `Hardware: ${hardwareStatus.deviceId}`
+                  : "Click to map readers"}
+              </span>
+            </div>
+            <Settings className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 transition-colors ml-1 shrink-0" />
+          </button>
 
           <button
             onClick={() => setManualModalOpen(true)}
@@ -474,8 +596,13 @@ export default function RfidCardIssuanceView({
                       <span className="px-2.5 py-0.5 rounded-full bg-amber-200 dark:bg-amber-900/70 text-amber-900 dark:text-amber-200 text-[10px] font-black uppercase tracking-wider">
                         New Tap • Pending
                       </span>
-                      <div className="text-[10px] text-gray-400 mt-0.5">
-                        {card.busId} • {new Date(card.scannedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 font-medium">
+                        <span>{card.busNumber || card.busId}</span>
+                        <span className="mx-1">•</span>
+                        <span>{new Date(card.scannedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                        {card.deviceId && (
+                          <span className="ml-1 text-[9px] text-gray-400 font-mono">({card.deviceId})</span>
+                        )}
                       </div>
                     </td>
 
@@ -770,6 +897,200 @@ export default function RfidCardIssuanceView({
               >
                 Next ➔ Select Student
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: ESP32 HARDWARE DEVICE MAPPING ─────────────────────────────── */}
+      {deviceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-gray-100 dark:border-gray-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-gray-900 dark:text-white">
+                    IoT Hardware Reader Mapping
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Map ESP32 terminals to campus buses dynamically without reflashing firmware.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDeviceModalOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Live Reporting Status Banner */}
+            {hardwareStatus && (
+              <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span
+                      className={`animate-ping absolute inline-flex h-full w-full rounded-full ${
+                        isHardwareActive ? "bg-emerald-400 opacity-75" : "bg-amber-400 opacity-50"
+                      }`}
+                    ></span>
+                    <span
+                      className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                        isHardwareActive ? "bg-emerald-500" : "bg-amber-500"
+                      }`}
+                    ></span>
+                  </span>
+                  <span className="font-bold text-gray-800 dark:text-gray-200">
+                    Latest Active Device: <span className="font-mono text-blue-600 dark:text-blue-400">{hardwareStatus.deviceId}</span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeviceIdInput(hardwareStatus.deviceId);
+                  }}
+                  className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black"
+                >
+                  Use This Device ID
+                </button>
+              </div>
+            )}
+
+            {/* Pairing Form */}
+            <div className="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Select Bus Asset */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                    Select Bus Asset
+                  </label>
+                  <select
+                    value={selectedBusForDevice}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedBusForDevice(id);
+                      const matched = buses.find((b) => b.id === id);
+                      setDeviceIdInput(matched?.rfidDeviceId || "");
+                    }}
+                    className="w-full text-xs font-bold px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                  >
+                    {buses.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.busNumber} ({b.registrationNo}) {b.rfidDeviceId ? `• [${b.rfidDeviceId}]` : "• [Unpaired]"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Device Hardware ID or MAC */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                    ESP32 Device ID / MAC Address
+                  </label>
+                  <input
+                    type="text"
+                    value={deviceIdInput}
+                    onChange={(e) => setDeviceIdInput(e.target.value)}
+                    placeholder="e.g. 24:6F:28:AB:12:CD or ESP32-BUS-44"
+                    className="w-full text-xs font-mono font-bold px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => setDeviceIdInput("")}
+                  className="text-xs text-rose-500 hover:text-rose-600 font-bold"
+                >
+                  Clear / Unbind Reader
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveDeviceMapping}
+                  disabled={isSavingDevice || !selectedBusForDevice}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isSavingDevice ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
+                  )}
+                  <span>Save Hardware Pairing</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Fleet Bus Pairing Table */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-500 uppercase tracking-wider">
+                Fleet Reader Registry ({buses.length} Buses)
+              </h4>
+              <div className="border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-gray-100 dark:bg-gray-800/80 text-[10px] font-black uppercase text-gray-500">
+                      <th className="p-2.5">Bus Asset</th>
+                      <th className="p-2.5">Paired ESP32 ID</th>
+                      <th className="p-2.5">Live Status</th>
+                      <th className="p-2.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {buses.map((b) => {
+                      const isLive = isHardwareActive && hardwareStatus?.busId === b.id;
+                      return (
+                        <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                          <td className="p-2.5 font-bold text-gray-900 dark:text-white">
+                            {b.busNumber}
+                            <span className="block text-[10px] text-gray-400 font-normal">
+                              {b.registrationNo}
+                            </span>
+                          </td>
+                          <td className="p-2.5 font-mono text-[11px]">
+                            {b.rfidDeviceId ? (
+                              <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800">
+                                {b.rfidDeviceId}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 italic">Not paired</span>
+                            )}
+                          </td>
+                          <td className="p-2.5">
+                            {isLive ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                Live Now
+                              </span>
+                            ) : b.rfidDeviceId ? (
+                              <span className="text-[10px] text-gray-400">Standby</span>
+                            ) : (
+                              <span className="text-[10px] text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="p-2.5 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedBusForDevice(b.id);
+                                setDeviceIdInput(b.rfidDeviceId || "");
+                              }}
+                              className="px-2.5 py-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
