@@ -121,7 +121,7 @@ export default function RfidCardIssuanceView({
   const [activeCardToAssign, setActiveCardToAssign] = useState<string>("");
   const [selectedStudentForAssign, setSelectedStudentForAssign] = useState<Student | null>(null);
   const [studentSearchInput, setStudentSearchInput] = useState("");
-  const [enrollmentInput, setEnrollmentInput] = useState("");
+  const [studentIdInput, setStudentIdInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Manual Add Card Modal State
@@ -197,7 +197,7 @@ function formatTimeAgo(isoString?: string | null): string {
 
     setSelectedStudentForAssign(existingStudent || null);
     setStudentSearchInput(existingStudent ? existingStudent.fullName : "");
-    setEnrollmentInput(existingStudent?.enrollmentNo || "");
+    setStudentIdInput(existingStudent?.studentIdCode || "");
     setAssignModalOpen(true);
   };
 
@@ -221,7 +221,7 @@ function formatTimeAgo(isoString?: string | null): string {
         body: JSON.stringify({
           studentId: selectedStudentForAssign.id,
           rfidCardId: cleanRfid,
-          enrollmentNo: enrollmentInput.trim() || undefined,
+          studentIdCode: studentIdInput.trim() || undefined,
           forceReassign: true,
         }),
       });
@@ -242,7 +242,7 @@ function formatTimeAgo(isoString?: string | null): string {
             return {
               ...s,
               rfidCardId: cleanRfid,
-              enrollmentNo: enrollmentInput.trim() || s.enrollmentNo,
+              studentIdCode: studentIdInput.trim() || s.studentIdCode,
             };
           }
           if (
@@ -403,7 +403,7 @@ function formatTimeAgo(isoString?: string | null): string {
     return students.filter(
       (s) =>
         s.fullName?.toLowerCase().includes(q) ||
-        s.enrollmentNo?.toLowerCase().includes(q) ||
+        s.studentIdCode?.toLowerCase().includes(q) ||
         s.email?.toLowerCase().includes(q) ||
         s.className?.toLowerCase().includes(q) ||
         s.department?.toLowerCase().includes(q) ||
@@ -446,7 +446,7 @@ function formatTimeAgo(isoString?: string | null): string {
         s.rfidCardId?.toLowerCase().includes(q) ||
         s.fullName?.toLowerCase().includes(q) ||
         s.email?.toLowerCase().includes(q) ||
-        s.enrollmentNo?.toLowerCase().includes(q) ||
+        s.studentIdCode?.toLowerCase().includes(q) ||
         s.className?.toLowerCase().includes(q) ||
         s.department?.toLowerCase().includes(q) ||
         s.courseName?.toLowerCase().includes(q) ||
@@ -750,9 +750,9 @@ function formatTimeAgo(isoString?: string | null): string {
                         </div>
                       </td>
 
-                      {/* Enrollment No */}
+                      {/* Student ID */}
                       <td className="p-3.5 font-mono font-bold text-gray-700 dark:text-gray-300">
-                        {student.enrollmentNo || "—"}
+                        {student.studentIdCode || "—"}
                       </td>
 
                       {/* Class */}
@@ -849,7 +849,7 @@ function formatTimeAgo(isoString?: string | null): string {
                       key={stu.id}
                       onClick={() => {
                         setSelectedStudentForAssign(stu);
-                        setEnrollmentInput(stu.enrollmentNo || "");
+                        setStudentIdInput(stu.studentIdCode || "");
                       }}
                       className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
                         isSelected
@@ -868,7 +868,7 @@ function formatTimeAgo(isoString?: string | null): string {
                             {stu.fullName}
                           </div>
                           <div className="text-[10px] text-gray-500 font-mono truncate">
-                            ID: {stu.enrollmentNo || "Pending"}{stu.email ? ` • ${stu.email}` : ""} • {stu.className || stu.department}
+                            ID: {stu.studentIdCode || "Pending"}{stu.email ? ` • ${stu.email}` : ""} • {stu.className || stu.department}
                           </div>
                         </div>
                       </div>
@@ -883,12 +883,12 @@ function formatTimeAgo(isoString?: string | null): string {
             {selectedStudentForAssign && (
               <div className="space-y-1.5 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40">
                 <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
-                  University Student ID (ERP Roll ID)
+                  Student ID
                 </label>
                 <input
                   type="text"
-                  value={enrollmentInput}
-                  onChange={(e) => setEnrollmentInput(e.target.value)}
+                  value={studentIdInput}
+                  onChange={(e) => setStudentIdInput(e.target.value)}
                   placeholder="e.g. 230111075 or PV-23620010"
                   className="w-full text-xs font-semibold px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none"
                 />

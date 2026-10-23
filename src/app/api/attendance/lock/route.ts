@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     // 1. Resolve student profile and active reservations for today across all linked profiles
     const { data: dbStudents } = await supabaseAdmin
       .from("students_full")
-      .select("id, user_id, full_name, enrollment_no, rfid_card_id, primary_route_id, primary_stop_id, primary_stop_name, email")
+      .select("id, user_id, full_name, student_id_code, rfid_card_id, primary_route_id, primary_stop_id, primary_stop_name, email")
       .or(`id.eq.${targetStudentId},user_id.eq.${targetStudentId},id.eq.${session.userId},user_id.eq.${session.userId}`);
 
     const linkedIds = new Set<string>([targetStudentId, session.userId]);
@@ -280,7 +280,7 @@ export async function POST(req: NextRequest) {
     // 1. Resolve authentic student record across all linked records
     const { data: dbStudents } = await supabaseAdmin
       .from("students_full")
-      .select("id, user_id, full_name, enrollment_no, rfid_card_id, primary_route_id, primary_stop_id, email")
+      .select("id, user_id, full_name, student_id_code, rfid_card_id, primary_route_id, primary_stop_id, email")
       .or(`id.eq.${session.userId},user_id.eq.${session.userId}`);
 
     const linkedIds = new Set<string>([session.userId]);

@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  * {
  *   "studentId": "uuid-of-student",
  *   "rfidCardId": "23BDEB2C",       // null or empty string to unlink
- *   "enrollmentNo": "220101",        // optional to update or confirm enrollment number
+ *   "studentIdCode": "220101",      // optional Student ID
  *   "forceReassign": false           // if true, transfers card if previously mapped to another student
  * }
  */
@@ -30,20 +30,20 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { studentId, rfidCardId, enrollmentNo, studentIdCode, forceReassign } = body;
+    const { studentId, rfidCardId, studentIdCode, forceReassign } = body;
 
     if (!studentId) {
       return NextResponse.json({ success: false, error: "studentId is required" }, { status: 400 });
     }
 
     const cleanRfid = rfidCardId ? String(rfidCardId).trim().toUpperCase() : null;
-    const rawCode = studentIdCode || enrollmentNo;
-    const cleanEnrollment = rawCode ? String(rawCode).trim().toUpperCase() : undefined;
+    const rawCode = studentIdCode || body.student_id_code;
+    const cleanStudentIdCode = rawCode ? String(rawCode).trim().toUpperCase() : undefined;
 
     // 1. Fetch target student
     const { data: targetStudents, error: fetchErr } = await supabaseAdmin
       .from("students_full")
-      .select("id, user_id, full_name, enrollment_no, rfid_card_id")
+      .select("id, user_id, full_name, student_id_code, rfid_card_id")
       .or(`id.eq.${studentId},user_id.eq.${studentId}`)
       .limit(1);
 
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     if (cleanRfid) {
       let holderQuery = supabaseAdmin
         .from("students_full")
-        .select("id, user_id, full_name, enrollment_no")
+        .select("id, user_id, full_name, student_id_code")
         .eq("rfid_card_id", cleanRfid)
         .neq("id", student.id);
 
@@ -74,11 +74,11 @@ export async function POST(req: NextRequest) {
             {
               success: false,
               conflict: true,
-              message: `Card [${cleanRfid}] is already assigned to student ${holder.full_name} (${holder.enrollment_no || "No Student ID"}). Do you want to transfer this card to ${student.full_name}?`,
+              message: `Card [${cleanRfid}] is already assigned to student ${holder.full_name} (${holder.student_id_code || "No Student ID"}). Do you want to transfer this card to ${student.full_name}?`,
               existingHolder: {
                 id: holder.id,
                 fullName: holder.full_name,
-                enrollmentNo: holder.enrollment_no,
+                studentIdCode: holder.student_id_code,
               },
             },
             { status: 409 }
@@ -104,8 +104,8 @@ export async function POST(req: NextRequest) {
     const updates: Record<string, any> = {
       rfid_card_id: cleanRfid,
     };
-    if (cleanEnrollment !== undefined && cleanEnrollment !== "") {
-      updates.enrollment_no = cleanEnrollment;
+    if (cleanStudentIdCode !== undefined && cleanStudentIdCode !== "") {
+      updates.student_id_code = cleanStudentIdCode;
     }
 
     if (student.user_id) {
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
       .from("students")
       .update(updates)
       .eq("id", student.id)
-      .select("id, user_id, full_name, enrollment_no, rfid_card_id")
+      .select("id, user_id, full_name, student_id_code, rfid_card_id")
       .single();
 
     if (updateErr) {
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
           adminEmail: session.email,
           studentId: student.id,
           studentName: student.full_name,
-          enrollmentNo: cleanEnrollment || student.enrollment_no,
+          studentIdCode: cleanStudentIdCode || student.student_id_code,
           rfidCardId: cleanRfid,
           previousRfid: student.rfid_card_id,
         },

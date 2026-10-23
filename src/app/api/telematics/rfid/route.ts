@@ -12,15 +12,15 @@ export const dynamic = "force-dynamic";
  * {
  *   "busId": "bus-44",
  *   "rfidCardId": "93A24B1F",        // Physical RFID tag UID (HEX)
- *   "enrollmentNo": "GEHU/2022/1042", // Optional fallback identifier
+ *   "studentIdCode": "GEHU/2022/1042", // Optional fallback identifier
  *   "timestamp": "2026-10-21T09:30:00Z"
  * }
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { busId, deviceId, deviceMac, mac, rfidCardId, rfidUid, enrollmentNo, studentIdCode, rollNo } = body;
-    const effectiveStudentIdCode = (studentIdCode || rollNo || enrollmentNo || "").trim().toUpperCase();
+    const { busId, deviceId, deviceMac, mac, rfidCardId, rfidUid, studentIdCode, rollNo } = body;
+    const effectiveStudentIdCode = (studentIdCode || rollNo || body.studentId || body.student_id || "").trim().toUpperCase();
     const effectiveRfid = (
       rfidCardId ||
       rfidUid ||
@@ -202,15 +202,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Resolve student by rfid_card_id or Student ID / enrollment_no
-    let studentQuery = supabaseAdmin.from("students_full").select("id, user_id, full_name, enrollment_no, rfid_card_id, email");
+    // 1. Resolve student by rfid_card_id or Student ID
+    let studentQuery = supabaseAdmin.from("students_full").select("id, user_id, full_name, student_id_code, rfid_card_id, email");
 
     if (effectiveRfid && effectiveStudentIdCode) {
-      studentQuery = studentQuery.or(`rfid_card_id.eq.${effectiveRfid},enrollment_no.eq.${effectiveStudentIdCode}`);
+      studentQuery = studentQuery.or(`rfid_card_id.eq.${effectiveRfid},student_id_code.eq.${effectiveStudentIdCode}`);
     } else if (effectiveRfid) {
       studentQuery = studentQuery.eq("rfid_card_id", effectiveRfid);
     } else {
-      studentQuery = studentQuery.eq("enrollment_no", effectiveStudentIdCode);
+      studentQuery = studentQuery.eq("student_id_code", effectiveStudentIdCode);
     }
 
     const { data: students, error: studentErr } = await studentQuery.limit(1);
@@ -370,8 +370,8 @@ export async function POST(req: NextRequest) {
         method: "RFID_VERIFIED",
         status: "BOARDED",
         verified_by: rawDeviceId ? `ESP32 [${rawDeviceId}] RFID Gate` : "ESP32 Hardware RFID Gate",
-        notes: `Tapped RFID card [${effectiveRfid || enrollmentNo}] at bus ${resolvedBusNumber || effectiveBusId} entry reader`,
-        signature_token: `RFID-${effectiveRfid || enrollmentNo}`,
+        notes: `Tapped RFID card [${effectiveRfid || effectiveStudentIdCode}] at bus ${resolvedBusNumber || effectiveBusId} entry reader`,
+        signature_token: `RFID-${effectiveRfid || effectiveStudentIdCode}`,
         timestamp: nowIso,
         lock_status: "UNLOCKED",
         unlocked_by: "RFID",
@@ -402,7 +402,7 @@ export async function POST(req: NextRequest) {
     await cacheSet(`telematics:rfid:latest:${effectiveBusId}`, {
       studentId,
       studentName: student.full_name,
-      enrollmentNo: student.enrollment_no,
+      studentIdCode: student.student_id_code,
       seatNumber: reservation?.chosen_seat || reservation?.seat_number || null,
       rfidCardId: effectiveRfid,
       timestamp: nowIso,
@@ -418,7 +418,7 @@ export async function POST(req: NextRequest) {
       student: {
         id: student.id,
         name: student.full_name,
-        enrollmentNo: student.enrollment_no,
+        studentIdCode: student.student_id_code,
       },
       reservation: {
         id: reservation?.id || null,

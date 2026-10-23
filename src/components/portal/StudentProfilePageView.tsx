@@ -479,10 +479,10 @@ export default function StudentProfilePageView({
                 </div>
                 <div>
                   <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">
-                    Academic Enrollment & Program
+                    Academic Program & Class Section
                   </h2>
                   <p className="text-xs text-gray-500">
-                    Official university registration details
+                    Official institutional academic and class details
                   </p>
                 </div>
               </div>
@@ -537,10 +537,10 @@ export default function StudentProfilePageView({
 
               <div className="p-4 rounded-none bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 space-y-1 sm:col-span-2">
                 <div className="text-[10px] font-extrabold uppercase text-blue-600 dark:text-blue-400 tracking-wider">
-                  University Student ID (ERP Roll ID)
+                  Student ID
                 </div>
                 <div className="font-mono font-black text-gray-900 dark:text-white text-sm">
-                  {activeStudent?.enrollmentNo || activeStudent?.studentIdCode || "Not specified — update in Profile Setup"}
+                  {activeStudent?.studentIdCode || "Not specified — update in Profile Setup"}
                 </div>
               </div>
             </div>

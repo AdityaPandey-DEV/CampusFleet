@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     if (latestTap?.studentId) {
       const { data: st } = await supabaseAdmin
         .from("students_full")
-        .select("id, full_name, enrollment_no, photo_url, class_name")
+        .select("id, full_name, student_id_code, photo_url, class_name")
         .eq("id", latestTap.studentId)
         .limit(1);
       mappedStudent = st?.[0] || null;

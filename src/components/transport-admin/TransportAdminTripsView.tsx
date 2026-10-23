@@ -1064,7 +1064,7 @@ export default function TransportAdminTripsView({
           return (
             s.fullName?.toLowerCase().includes(query) ||
             s.email?.toLowerCase().includes(query) ||
-            s.enrollmentNo?.toLowerCase().includes(query) ||
+            s.studentIdCode?.toLowerCase().includes(query) ||
             s.department?.toLowerCase().includes(query) ||
             s.className?.toLowerCase().includes(query) ||
             s.courseName?.toLowerCase().includes(query)
@@ -1172,7 +1172,7 @@ export default function TransportAdminTripsView({
                               )}
                             </div>
                             <div className="text-[10px] text-gray-400 font-mono truncate">
-                              ID: {student.enrollmentNo || "Pending"}{student.email ? ` • ${student.email}` : ""} • {student.department || student.courseName} (Sem {student.semester})
+                              ID: {student.studentIdCode || "Pending"}{student.email ? ` • ${student.email}` : ""} • {student.department || student.courseName} (Sem {student.semester})
                             </div>
                           </div>
                         </div>

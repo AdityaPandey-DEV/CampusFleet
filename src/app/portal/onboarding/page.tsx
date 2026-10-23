@@ -423,7 +423,7 @@ export default function StudentOnboardingPage() {
       const match = localPart.match(/\b\d{7,10}\b/) || localPart.match(/([a-zA-Z]{1,4}-\d{6,10})/i);
       if (match) autoId = match[0].toUpperCase();
     }
-    setStudentIdCode(prev => prev || activeStudent?.enrollmentNo || autoId || "");
+    setStudentIdCode(prev => prev || activeStudent?.studentIdCode || autoId || "");
 
     if ((activeStudent as any)?.home_latitude || (activeStudent as any)?.homeLatitude) {
       setHomeLat(String((activeStudent as any)?.home_latitude || (activeStudent as any)?.homeLatitude));
@@ -535,7 +535,6 @@ export default function StudentOnboardingPage() {
       phone: phone.trim(),
       primaryStopId: primaryStopId || stops[0]?.id || "",
       photoUrl: photoUrl.trim() || undefined,
-      enrollmentNo: studentIdCode.trim() || undefined,
       studentIdCode: studentIdCode.trim() || undefined,
       homeLatitude: !isNaN(latNum) ? latNum : undefined,
       homeLongitude: !isNaN(lngNum) ? lngNum : undefined,

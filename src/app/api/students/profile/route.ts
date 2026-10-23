@@ -44,13 +44,12 @@ export async function POST(req: NextRequest) {
     let existingCampusId: string | null = null;
     let existingCampus: string | null = null;
     let existingPaymentStatus: string | null = null;
-    let existingEnrollmentNo: string | null = null;
+    let existingStudentIdCode: string | null = null;
 
     const { data: existingStudents } = await supabaseAdmin
       .from("students_full")
-      .select("id, photo_url, photo_locked, campus_id, campus, payment_status, enrollment_no")
-      .or(`user_id.eq.${userId},email.ilike.${cleanEmail}`)
-      .order("created_at", { ascending: false })
+      .select("id, photo_url, photo_locked, campus_id, campus, payment_status, student_id_code")
+      .or(`user_id.eq.${userId},id.eq.stud-${userId}`)
       .limit(1);
 
     const existingStudent = existingStudents?.[0];
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
       existingCampusId = existingStudent.campus_id;
       existingCampus = existingStudent.campus;
       existingPaymentStatus = existingStudent.payment_status;
-      existingEnrollmentNo = existingStudent.enrollment_no || null;
+      existingStudentIdCode = existingStudent.student_id_code || null;
     }
 
     // Subscription is considered active if payment has been approved
@@ -87,7 +86,8 @@ export async function POST(req: NextRequest) {
 
     const finalStudentId =
       existingStudentId ||
-      (studentId && /^[0-9a-f-]{36}$/i.test(studentId) ? studentId : crypto.randomUUID());
+      studentId ||
+      `stud-${userId}`;
 
     // 2. Validate classId as UUID if provided
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -107,9 +107,8 @@ export async function POST(req: NextRequest) {
     }
 
     const rawStudentIdCode = (
-      body.enrollmentNo ||
       body.studentIdCode ||
-      body.rollNo ||
+      body.studentId ||
       body.student_id ||
       ""
     ).trim().toUpperCase();
@@ -123,7 +122,7 @@ export async function POST(req: NextRequest) {
       if (match) autoExtractedStudentId = match[0].toUpperCase();
     }
 
-    const effectiveEnrollmentNo = rawStudentIdCode || autoExtractedStudentId || existingEnrollmentNo || null;
+    const effectiveStudentIdCode = rawStudentIdCode || autoExtractedStudentId || existingStudentIdCode || null;
 
     const studentData: Record<string, any> = {
       id: finalStudentId,
@@ -137,8 +136,8 @@ export async function POST(req: NextRequest) {
       emergency_contact: emergencyContact || null,
     };
 
-    if (effectiveEnrollmentNo) {
-      studentData.enrollment_no = effectiveEnrollmentNo;
+    if (effectiveStudentIdCode) {
+      studentData.student_id_code = effectiveStudentIdCode;
     }
 
     if (body.homeLatitude !== undefined && body.homeLatitude !== null && !isNaN(Number(body.homeLatitude))) {
@@ -198,7 +197,7 @@ export async function POST(req: NextRequest) {
     // 5. Upsert student record
     const { data: savedStudent, error: studentErr } = await supabaseAdmin
       .from("students")
-      .upsert(studentData)
+      .upsert(studentData, { onConflict: "user_id" })
       .select()
       .single();
 

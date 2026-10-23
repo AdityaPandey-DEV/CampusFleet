@@ -211,7 +211,7 @@ export default function StaffStudentsView({
     (s) =>
       s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.enrollmentNo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.studentIdCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.className?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -307,9 +307,9 @@ export default function StaffStudentsView({
                     </td>
                     <td className="p-3.5">
                       <div className="font-bold text-gray-900 dark:text-white">{s.fullName}</div>
-                      {s.enrollmentNo && (
+                      {s.studentIdCode && (
                         <div className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">
-                          ID: {s.enrollmentNo}
+                          ID: {s.studentIdCode}
                         </div>
                       )}
                       <div className="text-[10px] text-gray-500">{s.email}</div>

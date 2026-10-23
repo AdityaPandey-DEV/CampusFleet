@@ -67,21 +67,20 @@ export async function findOrCreateUser({
     if (existingUser.role === "student") {
       const { data: existingStudents } = await supabaseAdmin
         .from("students")
-        .select("id, user_id, campus_id, campus, full_name, photo_url")
-        .eq("user_id", existingUser.id)
-        .order("created_at", { ascending: false })
+        .select("id, user_id, campus_id, campus, full_name")
+        .or(`user_id.eq.${existingUser.id},id.eq.stud-${existingUser.id}`)
         .limit(1);
 
       const existingStudent = existingStudents?.[0];
 
       if (!existingStudent) {
-        const newStudentId = crypto.randomUUID();
-        const { error: studErr2 } = await supabaseAdmin.from("students").insert({
+        const newStudentId = `stud-${existingUser.id}`;
+        const { error: studErr2 } = await supabaseAdmin.from("students").upsert({
           id: newStudentId,
           user_id: existingUser.id,
           full_name: existingUser.full_name || cleanEmail.split("@")[0],
           created_at: new Date().toISOString(),
-        });
+        }, { onConflict: "user_id" });
         if (studErr2) {
           console.warn("Auto-create student for existing user failed:", studErr2.message);
         }
@@ -134,14 +133,13 @@ export async function findOrCreateUser({
       .replace(/[._]/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase());
 
-  // Check if a pre-existing student record already exists in database for this email
+  // Check if a pre-existing student record already exists in database for this user
   let existingStudentForNewUser: any = null;
   if (role === "student") {
     const { data: matchedStudents } = await supabaseAdmin
       .from("students")
-      .select("id, user_id, campus_id, campus, full_name, phone, photo_url")
-      .ilike("email", cleanEmail)
-      .order("created_at", { ascending: false })
+      .select("id, user_id, campus_id, campus, full_name")
+      .or(`user_id.eq.${userId},id.eq.stud-${userId}`)
       .limit(1);
 
     existingStudentForNewUser = matchedStudents?.[0];
@@ -149,9 +147,8 @@ export async function findOrCreateUser({
 
   const effectiveCampusId = existingStudentForNewUser?.campus_id || null;
   const effectiveCampus = existingStudentForNewUser?.campus || null;
-  const effectivePhone = existingStudentForNewUser?.phone || null;
   const effectiveFullName = existingStudentForNewUser?.full_name || realName;
-  const effectivePhotoUrl = existingStudentForNewUser?.photo_url || validPhoto || null;
+  const effectivePhotoUrl = validPhoto || null;
 
   const { data: newUser, error: createErr } = await supabaseAdmin
     .from("users")
@@ -161,10 +158,10 @@ export async function findOrCreateUser({
       full_name: effectiveFullName,
       role,
       campus_id: effectiveCampusId,
-      phone: effectivePhone,
       photo_url: effectivePhotoUrl,
       provider,
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
     .select()
     .single();
@@ -173,7 +170,7 @@ export async function findOrCreateUser({
     console.error("Failed to create user in findOrCreateUser:", createErr);
   }
 
-  // If role is student, link existing student record or create new one
+  // If role is student, link existing student record or create new one with user_id conflict handling
   if (role === "student") {
     if (existingStudentForNewUser) {
       // LINK existing student record to this user's primary key (user_id)
@@ -185,16 +182,17 @@ export async function findOrCreateUser({
         })
         .eq("id", existingStudentForNewUser.id);
     } else {
-      const studentId = crypto.randomUUID();
-      const { error: studErr } = await supabaseAdmin.from("students").insert({
+      const studentId = `stud-${userId}`;
+      const { error: studErr } = await supabaseAdmin.from("students").upsert({
         id: studentId,
         user_id: userId,
         full_name: realName,
         created_at: new Date().toISOString(),
-      });
+        campus_id: effectiveCampusId,
+        campus: effectiveCampus,
+      }, { onConflict: "user_id" });
 
       if (studErr) {
-        // Non-fatal: student profile can be created later via profile completion modal
         console.warn("Auto-create student record notice:", studErr.message);
       }
     }

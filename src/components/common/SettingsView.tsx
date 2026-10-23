@@ -366,7 +366,7 @@ export function SettingsView() {
         fullName: activeStudent?.fullName || activeStaff?.fullName || user.fullName || "",
         phone: activeStudent?.phone || activeStaff?.phone || (user as any).phone || "",
         photoUrl: activeStudent?.photoUrl || (activeStaff as any)?.photoUrl || user.avatarUrl || "",
-        studentIdCode: activeStudent?.enrollmentNo || activeStudent?.studentIdCode || "",
+        studentIdCode: activeStudent?.studentIdCode || "",
         department: activeStudent?.department || "",
         semester: activeStudent?.semester || "",
         section: rawSection,
@@ -691,7 +691,6 @@ export function SettingsView() {
           semester: profileForm.semester,
           classId: profileForm.classId,
           className: profileForm.className,
-          enrollmentNo: profileForm.studentIdCode,
           studentIdCode: profileForm.studentIdCode,
           emergencyContact: {
             name: profileForm.emergencyContactName,

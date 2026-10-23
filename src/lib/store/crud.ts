@@ -237,7 +237,6 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
     emergencyContact?: { name: string; relationship: string; phone: string };
     photoUrl?: string;
     performedByStaff?: boolean;
-    enrollmentNo?: string;
     studentIdCode?: string;
     primaryStopId?: string;
     primaryRouteId?: string;
@@ -251,11 +250,11 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
 
   const resolvedCampusId = profileData.campusId || (profileData.campus ? (this.campuses.find(c => c.name === profileData.campus || c.id === profileData.campus)?.id || profileData.campus) : undefined);
   const resolvedCampusName = profileData.campus || (resolvedCampusId ? this.campuses.find(c => c.id === resolvedCampusId)?.name : "") || this.getPrimaryCampus()?.name || "";
-  const resolvedStudentIdCode = (profileData.studentIdCode || profileData.enrollmentNo || "").trim().toUpperCase() || undefined;
+  const resolvedStudentIdCode = (profileData.studentIdCode || "").trim().toUpperCase() || undefined;
 
   if (!student) {
     const u = this.currentUser;
-    const targetId = studentId && /^[0-9a-f-]{36}$/i.test(studentId) ? studentId : crypto.randomUUID();
+    const targetId = studentId || (u?.id ? `stud-${u.id}` : crypto.randomUUID());
     // Compute fee from zone — never hardcode 0 for a new student
     const zoneCode = profileData.zoneCode || "ZONE_B";
     const zoneFee = this.transitZones.find(z => z.code === zoneCode)?.semesterFee || 12000;
@@ -281,7 +280,6 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
       totalFeePaid: 0,
       photoUrl: profileData.photoUrl || "",
       photoLocked: false,
-      enrollmentNo: resolvedStudentIdCode,
       studentIdCode: resolvedStudentIdCode,
     };
     this.students.push(student);
@@ -325,8 +323,7 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
     emergencyContact: profileData.emergencyContact || student.emergencyContact,
     photoUrl: targetPhotoUrl,
     photoLocked: targetPhotoLocked,
-    enrollmentNo: resolvedStudentIdCode || student.enrollmentNo,
-    studentIdCode: resolvedStudentIdCode || student.studentIdCode || student.enrollmentNo,
+    studentIdCode: resolvedStudentIdCode || student.studentIdCode,
     // Preserve all payment & subscription fields — never overwrite with defaults
     totalFeeDue: preservedFeeDue,
     totalFeePaid: student.totalFeePaid || 0,
@@ -383,7 +380,6 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
           emergencyContact: updatedStudent.emergencyContact,
           photoUrl: updatedStudent.photoUrl,
           performedByStaff: profileData.performedByStaff || false,
-          enrollmentNo: updatedStudent.enrollmentNo,
           studentIdCode: updatedStudent.studentIdCode,
           homeLatitude: profileData.homeLatitude,
           homeLongitude: profileData.homeLongitude,
@@ -408,6 +404,7 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
       id: updatedStudent.id,
       user_id: updatedStudent.userId,
       full_name: updatedStudent.fullName,
+      student_id_code: updatedStudent.studentIdCode || null,
       semester: updatedStudent.semester,
       class_id: updatedStudent.classId || null,
       campus_id: updatedStudent.campusId || null,
@@ -420,7 +417,7 @@ CampusFleetStore.prototype.updateStudentProfile = async function (
     if (updatedStudent.zoneId) {
       studentPayload.zone_id = updatedStudent.zoneId;
     }
-    await supabase.from("students").upsert(studentPayload);
+    await supabase.from("students").upsert(studentPayload, { onConflict: "user_id" });
 
     if (updatedStudent.userId) {
       await supabase.from("users").update({

@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
         studentUpdate.department = department.trim();
       }
 
-      const rawId = body.studentIdCode || body.enrollmentNo || body.student_id;
+      const rawId = body.studentIdCode || body.studentId || body.student_id;
       if (rawId) {
-        studentUpdate.enrollment_no = rawId.trim().toUpperCase();
+        studentUpdate.student_id_code = rawId.trim().toUpperCase();
       }
 
       const { error: studentError } = await supabaseAdmin

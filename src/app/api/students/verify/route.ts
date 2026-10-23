@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
         semester,
         class_name,
         photo_url,
+        student_id_code,
         payment_status,
         transport_access_suspended,
         primary_route_id,
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
       if (stop?.name) stopName = stop.name;
     }
 
-    const enrollmentNo = student.id.slice(0, 8).toUpperCase();
+    const studentIdCode = student.student_id_code || student.id.slice(0, 8).toUpperCase();
     const isPassValid = !student.transport_access_suspended && (student.payment_status === "APPROVED" || !student.payment_status);
 
     return NextResponse.json({
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
         department: student.department || "Undergraduate Studies",
         semester: student.semester || "Current Term",
         className: student.class_name || "General Section",
-        enrollmentNo: enrollmentNo,
+        studentIdCode: studentIdCode,
         routeName: routeName,
         stopName: stopName,
         campus: student.campus || "Main Campus",

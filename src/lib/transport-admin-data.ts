@@ -153,7 +153,7 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
     photoLocked: Boolean(s.photo_locked),
     classId: s.class_id,
     className: s.class_name || "",
-    enrollmentNo: s.enrollment_no || "",
+    studentIdCode: s.student_id_code || "",
     rfidCardId: s.rfid_card_id || "",
   }));
 
@@ -342,7 +342,7 @@ export async function getHardwareDeskServerData(redirectPath: string = "/transpo
           .select("id, name, code, latitude, longitude, landmark, geofence_radius, campus_id, zone_code"),
         supabaseAdmin
           .from("students_full")
-          .select("id, user_id, full_name, email, phone, department, semester, zone_code, primary_stop_id, primary_route_id, rfid_card_id, enrollment_no, photo_url, photo_locked, class_name")
+          .select("id, user_id, full_name, email, phone, department, semester, zone_code, primary_stop_id, primary_route_id, rfid_card_id, student_id_code, photo_url, photo_locked, class_name, has_active_subscription")
           .order("full_name", { ascending: true }),
       ]);
 
@@ -397,11 +397,11 @@ export async function getHardwareDeskServerData(redirectPath: string = "/transpo
         zoneCode: s.zone_code,
         primaryStopId: s.primary_stop_id,
         primaryRouteId: s.primary_route_id,
+        hasActiveSubscription: Boolean(s.has_active_subscription),
         emergencyContact: null,
         transportAccessSuspended: false,
-        hasActiveSubscription: true,
         rfidCardId: s.rfid_card_id || undefined,
-        enrollmentNo: s.enrollment_no,
+        studentIdCode: s.student_id_code,
         photoUrl: s.photo_url,
         photoLocked: Boolean(s.photo_locked),
         className: s.class_name,

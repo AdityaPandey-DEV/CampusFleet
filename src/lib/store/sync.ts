@@ -631,9 +631,7 @@ CampusFleetStore.prototype.syncUserData = async function(this: CampusFleetStore)
         photoLocked: Boolean(s.photo_url && s.photo_url.trim() !== "") || Boolean(s.photo_locked),
         homeLatitude: s.home_latitude ?? undefined,
         homeLongitude: s.home_longitude ?? undefined,
-        homeAddress: s.home_address ?? undefined,
-        autoAssignedStopId: s.auto_assigned_stop_id ?? undefined,
-        enrollmentNo: s.enrollment_no || "",
+        studentIdCode: s.student_id_code || "",
         rfidCardId: s.rfid_card_id || "",
       }));
     }

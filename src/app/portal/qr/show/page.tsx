@@ -73,8 +73,8 @@ export default function ShowQRPage() {
 
   const studentId = activeStudent?.id || currentUser?.id || "st-student";
   const studentName = activeStudent?.fullName || currentUser?.fullName || "Student";
-  const enrollmentNo =
-    activeStudent?.enrollmentNo ||
+  const studentIdCode =
+    activeStudent?.studentIdCode ||
     activeStudent?.rollNumber ||
     (studentId ? studentId.slice(0, 8).toUpperCase() : "N/A");
   const rawPhotoUrl = activeStudent?.photoUrl || currentUser?.photoUrl || null;
@@ -91,12 +91,12 @@ export default function ShowQRPage() {
       type: "STUDENT_IDENTITY",
       studentId: studentId,
       studentName: studentName,
-      enrollmentNo: enrollmentNo,
+      studentIdCode: studentIdCode,
       window: windowIndex,
       token: dynamicToken,
       verifyUrl: `https://campusfleet.vercel.app/verify/student?id=${encodeURIComponent(studentId)}`,
     });
-  }, [studentId, studentName, enrollmentNo, windowIndex, dynamicToken]);
+  }, [studentId, studentName, studentIdCode, windowIndex, dynamicToken]);
 
   return (
     <div className="min-h-[calc(100vh-140px)] w-full p-6 animate-in fade-in flex flex-col items-center justify-center pb-24">
@@ -188,7 +188,7 @@ export default function ShowQRPage() {
               {studentName}
             </div>
             <div className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
-              STUDENT ID: {enrollmentNo}
+              STUDENT ID: {studentIdCode}
             </div>
           </div>
 
