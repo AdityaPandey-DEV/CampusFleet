@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/jwt";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import { calculateDistanceKm, calculateExactDistanceMeters } from "@/lib/utils";
+import { calculateDistanceKm, calculateExactDistanceMeters, calculateProximityToBus } from "@/lib/utils";
 import { cacheGet, cacheSet } from "@/lib/redis";
 import { getLiveLocationFromMongo } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
 
-// Proximity threshold for location distance unlock: strictly less than 1 meter
-const DISTANCE_UNLOCK_THRESHOLD_METERS = 1;
+// Proximity threshold for location distance unlock: strictly less than 2 meters
+const DISTANCE_UNLOCK_THRESHOLD_METERS = 2;
 
 function getTodayIST(): { today: string; utcToday: string; allowedDates: string[]; nowIso: string } {
   const now = new Date();
@@ -64,6 +64,7 @@ export async function GET(req: NextRequest) {
     const targetStudentId = searchParams.get("studentId") || session.userId;
     const clientLat = searchParams.get("latitude") ? Number(searchParams.get("latitude")) : null;
     const clientLng = searchParams.get("longitude") ? Number(searchParams.get("longitude")) : null;
+    const clientAcc = searchParams.get("accuracy") ? Number(searchParams.get("accuracy")) : null;
 
     const { today, allowedDates } = getTodayIST();
 
@@ -226,9 +227,16 @@ export async function GET(req: NextRequest) {
     const hasValidClientGps = clientLat !== null && clientLng !== null && !isNaN(clientLat) && !isNaN(clientLng) && (clientLat !== 0 || clientLng !== 0);
 
     if (hasValidClientGps && busCoordinates) {
-      const distM = calculateExactDistanceMeters(clientLat!, clientLng!, busCoordinates.latitude, busCoordinates.longitude);
-      if (isFinite(distM)) {
-        distanceMeters = distM;
+      const { effectiveDistMeters } = calculateProximityToBus(
+        clientLat!,
+        clientLng!,
+        busCoordinates.latitude,
+        busCoordinates.longitude,
+        clientAcc,
+        (busCoordinates as any)?.accuracy
+      );
+      if (isFinite(effectiveDistMeters)) {
+        distanceMeters = effectiveDistMeters;
         canUnlockByLocation = distanceMeters < DISTANCE_UNLOCK_THRESHOLD_METERS;
       }
     }
@@ -252,8 +260,8 @@ export async function GET(req: NextRequest) {
         : !hasValidClientGps
         ? `Device GPS is turned off. Turn on Location services on your device to detect proximity to ${targetBusId}.`
         : canUnlockByLocation
-        ? `You are within ${distanceMeters}m of ${targetBusId}. Location Distance Unlock (<1m) is available!`
-        : `Attendance is locked. You are ${distanceMeters}m from ${targetBusId} (max allowed: <${DISTANCE_UNLOCK_THRESHOLD_METERS}m). Unlock requires proximity <1m, or tap physical RFID card on bus reader.`,
+        ? `You are within ${distanceMeters}m of ${targetBusId}. Location Distance Unlock (<2m) is available!`
+        : `Attendance is locked. You are ${distanceMeters}m from ${targetBusId} (max allowed: <${DISTANCE_UNLOCK_THRESHOLD_METERS}m). Unlock requires proximity <2m, or tap physical RFID card on bus reader.`,
     });
   } catch (err: any) {
     console.error("GET /api/attendance/lock error:", err);
@@ -273,7 +281,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { method = "LOCATION_DISTANCE", latitude, longitude, busId, rfidCardId } = body;
+    const { method = "LOCATION_DISTANCE", latitude, longitude, accuracy, busId, rfidCardId } = body;
 
     const { today, allowedDates, nowIso } = getTodayIST();
 
@@ -368,20 +376,27 @@ export async function POST(req: NextRequest) {
         }, { status: 422 });
       }
 
-      const calculatedDistMeters = calculateExactDistanceMeters(Number(latitude), Number(longitude), busCoordinates.latitude, busCoordinates.longitude);
-      const isWithinThreshold = calculatedDistMeters < DISTANCE_UNLOCK_THRESHOLD_METERS;
+      const { effectiveDistMeters } = calculateProximityToBus(
+        Number(latitude),
+        Number(longitude),
+        busCoordinates.latitude,
+        busCoordinates.longitude,
+        accuracy != null ? Number(accuracy) : null,
+        (busCoordinates as any)?.accuracy
+      );
+      const isWithinThreshold = effectiveDistMeters < DISTANCE_UNLOCK_THRESHOLD_METERS;
 
       if (!isWithinThreshold) {
         return NextResponse.json({
           success: false,
           lockStatus: "LOCKED",
-          distanceMeters: calculatedDistMeters,
+          distanceMeters: effectiveDistMeters,
           thresholdMeters: DISTANCE_UNLOCK_THRESHOLD_METERS,
-          message: `❌ Location Distance Unlock Failed: You are ${calculatedDistMeters}m away from ${effectiveBusId}. Proximity security requires you to be within <1m (less than 1 meter) of the bus, or tap your physical RFID card on the bus reader.`,
+          message: `❌ Location Distance Unlock Failed: You are ${effectiveDistMeters}m away from ${effectiveBusId}. Proximity security requires you to be within <2m (less than 2 meters) of the bus, or tap your physical RFID card on the bus reader.`,
         }, { status: 403 });
       }
 
-      // PROXIMITY CONFIRMED (<100m) with ACTIVE BUS GPS!
+      // PROXIMITY CONFIRMED (<2m) with ACTIVE BUS GPS!
       // Update lock_status on reservation WITHOUT prematurely setting status = "BOARDED"
       if (reservation) {
         await supabaseAdmin
@@ -389,7 +404,7 @@ export async function POST(req: NextRequest) {
           .update({
             lock_status: "UNLOCKED",
             unlocked_by: "LOCATION_DISTANCE",
-            distance_meters: calculatedDistMeters,
+            distance_meters: effectiveDistMeters,
             unlock_timestamp: nowIso,
           })
           .eq("id", reservation.id);
@@ -398,7 +413,7 @@ export async function POST(req: NextRequest) {
       const lockPayload = {
         lockStatus: "UNLOCKED",
         unlockedBy: "LOCATION_DISTANCE",
-        distanceMeters: calculatedDistMeters,
+        distanceMeters: effectiveDistMeters,
         busId: effectiveBusId,
         tripId: resolvedTripId,
         timestamp: nowIso,
@@ -413,11 +428,11 @@ export async function POST(req: NextRequest) {
         success: true,
         lockStatus: "UNLOCKED",
         unlockedBy: "LOCATION_DISTANCE",
-        distanceMeters: calculatedDistMeters,
+        distanceMeters: effectiveDistMeters,
         thresholdMeters: DISTANCE_UNLOCK_THRESHOLD_METERS,
         busId: effectiveBusId,
         timestamp: nowIso,
-        message: `✓ Attendance Unlocked! Verified within ${calculatedDistMeters}m of ${effectiveBusId}. Please select your seat on the bus grid.`,
+        message: `✓ Attendance Unlocked! Verified within ${effectiveDistMeters}m of ${effectiveBusId}. Please select your seat on the bus grid.`,
       });
     }
 

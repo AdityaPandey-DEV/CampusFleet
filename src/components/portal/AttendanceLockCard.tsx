@@ -69,9 +69,11 @@ export function AttendanceLockCard({
           });
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
+          const acc = pos.coords.accuracy;
           if (lat && lng && (lat !== 0 || lng !== 0)) {
             latParam = `&latitude=${lat}`;
             lngParam = `&longitude=${lng}`;
+            if (acc) latParam += `&accuracy=${Math.round(acc)}`;
             gotClientGps = true;
           }
         } catch {
@@ -153,6 +155,7 @@ export function AttendanceLockCard({
 
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
+      const acc = position.coords.accuracy;
 
       if (!lat || !lng || (lat === 0 && lng === 0)) {
         setIsDeviceGpsOff(true);
@@ -170,6 +173,7 @@ export function AttendanceLockCard({
           method: "LOCATION_DISTANCE",
           latitude: lat,
           longitude: lng,
+          accuracy: acc ? Math.round(acc) : undefined,
           busId,
         }),
       });
@@ -177,7 +181,7 @@ export function AttendanceLockCard({
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setErrorMessage(data.message || "Location Distance Unlock (<1m) failed.");
+        setErrorMessage(data.message || "Location Distance Unlock (<2m) failed.");
         if (typeof data.distanceMeters === "number") {
           setDistanceMeters(data.distanceMeters);
         }
@@ -287,7 +291,7 @@ export function AttendanceLockCard({
                   ) : (
                     <>
                       <MapPin className="w-3.5 h-3.5" />
-                      Live GPS Proximity ({distanceMeters !== null ? `${distanceMeters}m` : "<1m"})
+                      Live GPS Proximity ({distanceMeters !== null ? `${distanceMeters}m` : "<2m"})
                     </>
                   )}
                 </span>
@@ -384,7 +388,7 @@ export function AttendanceLockCard({
                 ) : (
                   <>
                     <Radio className="w-4 h-4" />
-                    <span>Distance Unlock (&lt;1m)</span>
+                    <span>Distance Unlock (&lt;2m)</span>
                   </>
                 )}
               </button>

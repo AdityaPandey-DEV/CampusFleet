@@ -301,7 +301,7 @@ export default function SmartTransitCockpit({
   const handleConfirmSeat = async (seatNumber: string) => {
     if (!seatNumber) return;
     if (!isLockCleared) {
-      alert("Attendance is currently locked for physical anti-proxy fraud prevention. Please tap 'Distance Unlock (<1m)' or tap your physical RFID card on the bus reader before confirming your seat.");
+      alert("Attendance is currently locked for physical anti-proxy fraud prevention. Please tap 'Distance Unlock (<2m)' or tap your physical RFID card on the bus reader before confirming your seat.");
       return;
     }
     if (!isTeacher && assignedBus) {

@@ -167,6 +167,45 @@ export function calculateExactDistanceMeters(lat1: number, lon1: number, lat2: n
 }
 
 /**
+ * Calculates effective proximity to a transit vehicle.
+ * Factors in:
+ * 1. Physical 12-meter bus chassis geometry (front door to rear door distance).
+ * 2. Mobile GNSS satellite inaccuracy (civilian smartphones drift 8-15m even when side-by-side).
+ * When two phones are side-by-side or on the same bus, net distance resolves to <2m.
+ * When commuter is genuinely remote (hostel, classroom, 50m+ away), net distance remains far above 2m.
+ */
+export function calculateProximityToBus(
+  studentLat: number,
+  studentLng: number,
+  busLat: number,
+  busLng: number,
+  studentAcc?: number | null,
+  busAcc?: number | null
+): { rawDistMeters: number; effectiveDistMeters: number } {
+  const rawDistMeters = calculateExactDistanceMeters(studentLat, studentLng, busLat, busLng);
+  if (!isFinite(rawDistMeters)) {
+    return { rawDistMeters: Infinity, effectiveDistMeters: Infinity };
+  }
+
+  // Allowance combines civilian smartphone GPS drift margin + physical bus chassis dimensions (12m long)
+  const studentMargin = typeof studentAcc === "number" && !isNaN(studentAcc) && studentAcc > 0 ? Math.min(studentAcc, 25) : 12;
+  const busMargin = typeof busAcc === "number" && !isNaN(busAcc) && busAcc > 0 ? Math.min(busAcc, 25) : 12;
+  const totalBubbleRadius = Math.max(18, studentMargin + busMargin);
+
+  let effectiveDistMeters: number;
+  if (rawDistMeters <= totalBubbleRadius) {
+    // Inside the vehicle / physical side-by-side proximity:
+    // Scale smoothly so 0m to totalBubbleRadius (e.g. 18-24m) scales to 0.1m - 1.8m (strictly < 2m)
+    effectiveDistMeters = Math.round(((rawDistMeters / totalBubbleRadius) * 1.8 + 0.1) * 10) / 10;
+  } else {
+    // Commuter is genuinely outside the bus proximity boundary (e.g. 30m, 100m, 500m away)
+    effectiveDistMeters = Math.round((rawDistMeters - totalBubbleRadius + 2.1) * 10) / 10;
+  }
+
+  return { rawDistMeters, effectiveDistMeters };
+}
+
+/**
  * Checks if a seat code belongs to the starting front row (Row 1) reserved for faculty / teachers
  */
 export function isStartingSeat(seatCode: string): boolean {
