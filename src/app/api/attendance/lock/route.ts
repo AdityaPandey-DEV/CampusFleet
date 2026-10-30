@@ -139,31 +139,43 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 4. Check if verified RFID card tap occurred TODAY (Redis fast cache or database)
+    // 4. Check if verified RFID card tap occurred TODAY for the CORRECT bus
+    // Professional AFC: RFID verification must be scoped to the current reservation's bus.
+    // A morning Bus 37 tap must NOT auto-unlock an evening Bus 45 session.
     let isRfidUnlocked = false;
     let rfidCardId: string | null = student?.rfid_card_id || null;
 
-    // Check fast Redis cache across all linked IDs
+    // Check fast Redis cache across all linked IDs — but validate busId matches
     for (const lid of linkedIdsArray) {
       const rfidCache = await cacheGet<any>(`attendance:rfid:${lid}:${today}`);
       if (rfidCache?.verified || rfidCache?.lockStatus === "UNLOCKED") {
-        isRfidUnlocked = true;
-        rfidCardId = rfidCache.rfidCardId || rfidCardId;
-        break;
+        // Validate that the cached RFID tap is for the CORRECT bus
+        if (!targetBusId || rfidCache.busId === targetBusId) {
+          isRfidUnlocked = true;
+          rfidCardId = rfidCache.rfidCardId || rfidCardId;
+          break;
+        }
+        // Bus mismatch: skip this cached RFID tap (it's for a different bus/trip)
       }
     }
 
-    // Check attendance_records across all linked IDs
+    // Check attendance_records across all linked IDs — scoped to current bus
     if (!isRfidUnlocked) {
-      const { data: rfidAtt } = await supabaseAdmin
+      let rfidDbQuery = supabaseAdmin
         .from("attendance_records")
         .select("*")
         .in("student_id", linkedIdsArray)
         .eq("method", "RFID_VERIFIED")
         .gte("timestamp", `${today}T00:00:00.000Z`)
         .order("timestamp", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+
+      // Scope to current reservation's bus if available
+      if (targetBusId) {
+        rfidDbQuery = rfidDbQuery.eq("bus_id", targetBusId);
+      }
+
+      const { data: rfidAtt } = await rfidDbQuery.maybeSingle();
 
       if (rfidAtt) {
         isRfidUnlocked = true;

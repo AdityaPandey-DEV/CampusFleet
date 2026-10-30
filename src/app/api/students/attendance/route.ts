@@ -414,8 +414,10 @@ export async function GET(req: NextRequest) {
       occupiedSeats = Array.from(new Set([...resSeats, ...bkSeats]));
     }
 
-    // Check if student was verified via RFID tap today
     // Check if student was verified via RFID tap today or unlocked via attendance lock
+    // IMPORTANT: Scope RFID verification to the CURRENT reservation's bus.
+    // If the reservation's lock_status is explicitly LOCKED (e.g. after cancel rollback),
+    // that is the authoritative source of truth — don't auto-unlock from stale RFID records.
     const CACHE_RFID_KEY = `attendance:rfid:${resolvedStudentId}:${today}`;
     const CACHE_LOCK_KEY = `attendance:lock:${resolvedStudentId}:${today}`;
     let isRfidVerified = false;
@@ -424,24 +426,39 @@ export async function GET(req: NextRequest) {
       cacheGet<any>(CACHE_LOCK_KEY),
     ]);
 
-    if (rfidCache && rfidCache.verified) {
-      isRfidVerified = true;
-    } else {
-      const { data: rfidAtt } = await supabaseAdmin
-        .from("attendance_records")
-        .select("id, timestamp, bus_id, method, lock_status, unlocked_by")
-        .eq("student_id", resolvedStudentId)
-        .eq("method", "RFID_VERIFIED")
-        .gte("timestamp", `${today}T00:00:00.000Z`)
-        .order("timestamp", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (rfidAtt) {
+    // If the reservation explicitly says LOCKED (e.g. after cancel_seat_transaction rollback),
+    // respect that as authoritative and do NOT auto-unlock from cross-trip RFID records.
+    const reservationExplicitlyLocked = enriched?.lock_status === "LOCKED" && enriched?.status === "ASSIGNED";
+
+    if (!reservationExplicitlyLocked) {
+      if (rfidCache && rfidCache.verified) {
         isRfidVerified = true;
+      } else {
+        // Fallback: query attendance_records, but scope to the CURRENT reservation's bus
+        const rfidQuery = supabaseAdmin
+          .from("attendance_records")
+          .select("id, timestamp, bus_id, method, lock_status, unlocked_by")
+          .eq("student_id", resolvedStudentId)
+          .eq("method", "RFID_VERIFIED")
+          .gte("timestamp", `${today}T00:00:00.000Z`)
+          .order("timestamp", { ascending: false })
+          .limit(1);
+
+        // Scope to current reservation's bus if available
+        if (activeReservation?.bus_id) {
+          rfidQuery.eq("bus_id", activeReservation.bus_id);
+        }
+
+        const { data: rfidAtt } = await rfidQuery.maybeSingle();
+        if (rfidAtt) {
+          isRfidVerified = true;
+        }
       }
     }
 
-    const lockStatus = enriched?.lock_status || lockCache?.lockStatus || (isRfidVerified ? "UNLOCKED" : "LOCKED");
+    const lockStatus = reservationExplicitlyLocked
+      ? "LOCKED"
+      : (enriched?.lock_status || lockCache?.lockStatus || (isRfidVerified ? "UNLOCKED" : "LOCKED"));
 
     return NextResponse.json({
       success: true,

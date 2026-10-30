@@ -328,28 +328,46 @@ export async function POST(req: NextRequest) {
     const reservation = reservations?.[0] || null;
     const effectiveStudentId = reservation?.student_id || studentId;
 
+    // ── PROFESSIONAL AFC BUS ASSIGNMENT VALIDATION ──────────────────────────
+    // Check if the RFID-tapped bus matches the student's assigned bus.
+    // If mismatch: record the tap for audit, but do NOT overwrite bus_id on reservation.
+    // This prevents a morning Bus 37 tap from hijacking an evening Bus 45 reservation.
+    const isCorrectBus = !reservation || reservation.bus_id === effectiveBusId;
+
     if (reservation) {
-      await supabaseAdmin
-        .from("bus_reservations")
-        .update({
-          status: "BOARDED",
-          boarded_at: nowIso,
-          bus_id: effectiveBusId,
-          lock_status: "UNLOCKED",
-          unlocked_by: "RFID",
-          unlock_timestamp: nowIso,
-          ...(tripId ? { trip_id: tripId } : {}),
-        })
-        .eq("id", reservation.id);
+      if (isCorrectBus) {
+        // ✅ Correct bus: Mark as BOARDED with full unlock
+        await supabaseAdmin
+          .from("bus_reservations")
+          .update({
+            status: "BOARDED",
+            boarded_at: nowIso,
+            lock_status: "UNLOCKED",
+            unlocked_by: "RFID",
+            unlock_timestamp: nowIso,
+            ...(tripId ? { trip_id: tripId } : {}),
+          })
+          .eq("id", reservation.id);
+      } else {
+        // ⚠️ Wrong bus: Log for audit but do NOT overwrite bus_id or unlock the reservation.
+        // The student's attendance lock for their assigned bus remains LOCKED.
+        console.warn(
+          `[telematics/rfid] Bus mismatch: Student ${student.full_name} (${effectiveStudentId}) ` +
+          `tapped RFID on bus ${resolvedBusNumber || effectiveBusId} but is assigned to bus ${reservation.bus_id}. ` +
+          `Recording tap for audit but NOT unlocking reservation.`
+        );
+      }
     }
 
     // 5. Anti-Passback / Rapid Double-Tap Guardrail
-    // Check if attendance has already been recorded for this student on this trip today
+    // Check if attendance has already been recorded for this student on this SPECIFIC bus today
+    // Scoped by bus_id to prevent cross-bus RFID reuse (professional AFC standard)
     let existingTapQuery = supabaseAdmin
       .from("attendance_records")
       .select("id, timestamp")
       .in("student_id", allLinkedIds)
       .eq("method", "RFID_VERIFIED")
+      .eq("bus_id", effectiveBusId)
       .gte("timestamp", `${today}T00:00:00.000Z`);
 
     if (tripId) {
@@ -368,35 +386,41 @@ export async function POST(req: NextRequest) {
         trip_id: tripId,
         bus_id: effectiveBusId,
         method: "RFID_VERIFIED",
-        status: "BOARDED",
+        status: isCorrectBus ? "BOARDED" : "WRONG_BUS_TAP",
         verified_by: rawDeviceId ? `ESP32 [${rawDeviceId}] RFID Gate` : "ESP32 Hardware RFID Gate",
-        notes: `Tapped RFID card [${effectiveRfid || effectiveStudentIdCode}] at bus ${resolvedBusNumber || effectiveBusId} entry reader`,
+        notes: isCorrectBus
+          ? `Tapped RFID card [${effectiveRfid || effectiveStudentIdCode}] at bus ${resolvedBusNumber || effectiveBusId} entry reader`
+          : `⚠️ Wrong bus tap: Card [${effectiveRfid || effectiveStudentIdCode}] tapped on bus ${resolvedBusNumber || effectiveBusId} but assigned to ${reservation?.bus_id}`,
         signature_token: `RFID-${effectiveRfid || effectiveStudentIdCode}`,
         timestamp: nowIso,
-        lock_status: "UNLOCKED",
-        unlocked_by: "RFID",
+        lock_status: isCorrectBus ? "UNLOCKED" : "LOCKED",
+        unlocked_by: isCorrectBus ? "RFID" : null,
         rfid_card_id: effectiveRfid || student.rfid_card_id || null,
-        unlock_timestamp: nowIso,
+        unlock_timestamp: isCorrectBus ? nowIso : null,
       });
     }
 
-    // 6. Fast-path cache in Redis: student attendance is UNLOCKED via RFID across all linked student IDs
-    const lockPayload = {
-      lockStatus: "UNLOCKED",
-      unlockedBy: "RFID",
-      rfidCardId: effectiveRfid || student.rfid_card_id || null,
-      busId: effectiveBusId,
-      tripId,
-      timestamp: nowIso,
-      method: "RFID_VERIFIED",
-    };
+    // 6. Fast-path cache in Redis: ONLY unlock if student tapped on their CORRECT assigned bus
+    // Professional AFC: RFID tap on wrong bus must NOT auto-unlock attendance for the assigned bus.
+    if (isCorrectBus) {
+      const lockPayload = {
+        verified: true,
+        lockStatus: "UNLOCKED",
+        unlockedBy: "RFID",
+        rfidCardId: effectiveRfid || student.rfid_card_id || null,
+        busId: effectiveBusId,
+        tripId,
+        timestamp: nowIso,
+        method: "RFID_VERIFIED",
+      };
 
-    await Promise.all(
-      allLinkedIds.flatMap((id) => [
-        cacheSet(`attendance:rfid:${id}:${today}`, lockPayload, 86400),
-        cacheSet(`attendance:lock:${id}:${today}`, lockPayload, 86400),
-      ])
-    );
+      await Promise.all(
+        allLinkedIds.flatMap((id) => [
+          cacheSet(`attendance:rfid:${id}:${today}`, lockPayload, 86400),
+          cacheSet(`attendance:lock:${id}:${today}`, lockPayload, 86400),
+        ])
+      );
+    }
 
     // 7. Store latest in-bus RFID event for Driver Cockpit Live Feed (5 min TTL)
     await cacheSet(`telematics:rfid:latest:${effectiveBusId}`, {
@@ -412,7 +436,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       alreadyBoarded: Boolean(existingTap),
-      message: existingTap
+      isCorrectBus,
+      message: !isCorrectBus
+        ? `⚠️ Wrong bus: ${student.full_name} is assigned to a different bus. Tap recorded for audit.`
+        : existingTap
         ? `✓ Attendance already recorded for this trip. Welcome aboard, ${student.full_name}!`
         : `✓ Attendance Verified via In-Bus RFID Tap. Welcome aboard, ${student.full_name}!`,
       student: {
@@ -423,7 +450,8 @@ export async function POST(req: NextRequest) {
       reservation: {
         id: reservation?.id || null,
         seatNumber: reservation?.chosen_seat || null,
-        status: "BOARDED",
+        status: isCorrectBus ? "BOARDED" : "WRONG_BUS",
+        assignedBusId: reservation?.bus_id || null,
       },
       busId: effectiveBusId,
       busNumber: resolvedBusNumber,
