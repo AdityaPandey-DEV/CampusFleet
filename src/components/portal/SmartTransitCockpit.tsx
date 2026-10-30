@@ -146,17 +146,24 @@ export default function SmartTransitCockpit({
     fetchReservation();
   }, [studentId]);
 
-  // Active booking if any
+  // Active booking scoped to today's active commute / reservation
   const activeBooking = useMemo(() => {
     if (!studentId) return null;
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const today = new Date(now.getTime() + istOffset).toISOString().split("T")[0];
+    const utcToday = now.toISOString().split("T")[0];
+
     return (
       bookings.find(
         (b) =>
           (b.studentId === student?.id || b.studentId === studentId) &&
-          (b.status === "CONFIRMED" || b.status === "BOARDED")
+          (b.status === "CONFIRMED" || b.status === "BOARDED") &&
+          (!reservation?.trip_id || b.tripId === reservation.trip_id) &&
+          (b.bookingDate === today || b.bookingDate === utcToday || (b.createdAt && b.createdAt.startsWith(today)))
       ) || null
     );
-  }, [bookings, student, studentId]);
+  }, [bookings, student, studentId, reservation]);
 
   // Resolved bus entity (supports ?busId=xxx when scanning physical bus QR)
   const assignedBus = useMemo(() => {
@@ -251,14 +258,38 @@ export default function SmartTransitCockpit({
     return `${String(formattedH).padStart(2, "0")}:${m} ${ampm}`;
   };
 
-  // Attendance status: marked when chosen_seat or status is BOARDED / SEAT_SELECTED
+  // Resolved confirmed seat number (from reservation or active booking)
+  const confirmedSeatNumber = useMemo(() => {
+    const rawSeat =
+      reservation?.chosen_seat ||
+      activeBooking?.seatNumber ||
+      (activeBooking as any)?.seat_number;
+    if (rawSeat && String(rawSeat).trim() !== "") {
+      return String(rawSeat).trim();
+    }
+    return null;
+  }, [reservation, activeBooking]);
+
+  // Attendance status: marked ONLY when a valid seat number exists for today's commute
   const isAttendanceMarked = useMemo(() => {
     if (isChangingSeat) return false;
-    if (reservation?.status === "BOARDED" || reservation?.status === "SEAT_SELECTED") return true;
-    if (reservation?.chosen_seat && reservation.chosen_seat.trim() !== "") return true;
-    if (activeBooking?.status === "BOARDED") return true;
-    return false;
-  }, [reservation, activeBooking, isChangingSeat]);
+    // CRITICAL: Without a chosen seat number, student MUST remain on the seat selection page!
+    // Prevents jumping directly to "Seat Confirmed" with missing seat data when refreshed.
+    if (!confirmedSeatNumber) return false;
+
+    if (
+      reservation?.status === "BOARDED" ||
+      reservation?.status === "SEAT_SELECTED" ||
+      reservation?.status === "CONFIRMED" ||
+      reservation?.status === "ASSIGNED"
+    ) {
+      return true;
+    }
+    if (activeBooking?.status === "BOARDED" || activeBooking?.status === "CONFIRMED") {
+      return true;
+    }
+    return true;
+  }, [reservation, activeBooking, isChangingSeat, confirmedSeatNumber]);
 
   // Check if all commute shifts for today have concluded
   const isAllShiftsOver = useMemo(() => {
@@ -894,7 +925,7 @@ export default function SmartTransitCockpit({
 
   // ─── 3. ATTENDANCE IS MARKED ──────────────────────────────────────
   // Show confirmed attendance summary + professional buttons for Digital QR and Live Bus Radar
-  const confirmedSeatNumber = reservation?.chosen_seat || tentativeSeat || "Confirmed";
+  const displaySeatNumber = confirmedSeatNumber || tentativeSeat || "";
 
   return (
     <div className="space-y-6">
@@ -975,12 +1006,12 @@ export default function SmartTransitCockpit({
             </div>
             <div className="flex items-center justify-between pt-0.5">
               <div className="text-base font-black text-emerald-950 dark:text-emerald-200">
-                Seat {confirmedSeatNumber}
+                {displaySeatNumber ? `Seat ${displaySeatNumber}` : "Seat Confirmed"}
               </div>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => {
-                    setTentativeSeat(reservation?.chosen_seat || null);
+                    setTentativeSeat(confirmedSeatNumber || reservation?.chosen_seat || null);
                     setIsChangingSeat(true);
                   }}
                   className="px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/60 dark:hover:bg-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-bold transition-all flex items-center gap-1"
@@ -1140,7 +1171,7 @@ export default function SmartTransitCockpit({
 
             <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/50">
               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                Your <span className="font-bold">Seat {reservation?.chosen_seat}</span> will be released and attendance rolled back.
+                Your {displaySeatNumber ? <span className="font-bold">Seat {displaySeatNumber}</span> : <span className="font-bold">seat</span>} will be released and attendance rolled back.
                 You will need to <span className="font-semibold text-amber-700 dark:text-amber-400">re-verify proximity or RFID</span> to select a new seat.
               </p>
             </div>
