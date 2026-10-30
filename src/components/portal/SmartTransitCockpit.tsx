@@ -1090,7 +1090,7 @@ export default function SmartTransitCockpit({
 
       {/* ─── MODAL: LIVE BUS RADAR ─────────────────────────────────── */}
       {isLiveRadarOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-5xl w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-in zoom-in-95 my-8">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
@@ -1126,10 +1126,10 @@ export default function SmartTransitCockpit({
 
       {/* ─── MODAL: CANCEL SEAT CONFIRMATION (replaces browser confirm()) ─── */}
       {showCancelConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md p-6 border border-slate-200 dark:border-slate-800 shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 space-y-5">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 pb-8 sm:p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full sm:max-w-md p-6 border border-slate-200 dark:border-slate-800 shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 space-y-5">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
                 <XCircle className="w-6 h-6" />
               </div>
               <div>
@@ -1176,7 +1176,7 @@ export default function SmartTransitCockpit({
 
       {/* ─── TOAST NOTIFICATION (replaces browser alert()) ─── */}
       {toastMessage && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[90%] max-w-md animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 z-[110] w-[90%] max-w-md animate-in slide-in-from-bottom-4 duration-300">
           <div className={`px-5 py-4 rounded-2xl shadow-2xl border flex items-start gap-3 ${
             toastMessage.type === "success"
               ? "bg-emerald-50 dark:bg-emerald-950/90 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200"

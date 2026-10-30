@@ -49,7 +49,7 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
   return (
     <nav
       aria-label="Mobile Navigation Dock"
-      className="md:hidden fixed bottom-3 inset-x-3 z-50 pointer-events-none"
+      className="md:hidden fixed bottom-3 inset-x-3 z-30 pointer-events-none"
     >
       <div className="max-w-md mx-auto pointer-events-auto">
         <div className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-2xl border border-white/60 dark:border-gray-800/80 rounded-3xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
