@@ -19,6 +19,8 @@ import {
 interface AttendanceLockCardProps {
   busId?: string;
   studentId?: string;
+  busNumber?: string;
+  gpsDeviceId?: string;
   onUnlocked?: () => void;
   onStatusChange?: (status: "LOCKED" | "UNLOCKED") => void;
   onPeekSeats?: () => void;
@@ -28,6 +30,8 @@ interface AttendanceLockCardProps {
 export function AttendanceLockCard({
   busId,
   studentId,
+  busNumber,
+  gpsDeviceId,
   onUnlocked,
   onStatusChange,
   onPeekSeats,
@@ -48,47 +52,19 @@ export function AttendanceLockCard({
   const [driverActive, setDriverActive] = useState<boolean | null>(null);
   const [isDeviceGpsOff, setIsDeviceGpsOff] = useState<boolean>(false);
 
-  // Fetch current lock status
+  // Fetch current lock status without blocking on device GPS satellite lock
   const fetchLockStatus = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMessage(null);
 
-      // If geolocation is available, include query coordinates to compute proximity immediately
-      let latParam = "";
-      let lngParam = "";
-      let gotClientGps = false;
-      if (typeof window !== "undefined" && navigator.geolocation) {
-        try {
-          const pos = await new Promise<GeolocationPosition>((res, rej) => {
-            navigator.geolocation.getCurrentPosition(res, rej, {
-              enableHighAccuracy: true,
-              timeout: 3000,
-              maximumAge: 0,
-            });
-          });
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const acc = pos.coords.accuracy;
-          if (lat && lng && (lat !== 0 || lng !== 0)) {
-            latParam = `&latitude=${lat}`;
-            lngParam = `&longitude=${lng}`;
-            if (acc) latParam += `&accuracy=${Math.round(acc)}`;
-            gotClientGps = true;
-          }
-        } catch {
-          // Device GPS is off, permission denied, or timed out
-        }
-      }
-
-      setIsDeviceGpsOff(!gotClientGps);
-
       const q = new URLSearchParams();
       if (busId) q.set("busId", busId);
       if (studentId) q.set("studentId", studentId);
-      const url = `/api/attendance/lock?${q.toString()}${latParam}${lngParam}`;
+      if (busNumber) q.set("busNumber", busNumber);
+      if (gpsDeviceId) q.set("gpsDeviceId", gpsDeviceId);
 
-      const res = await fetch(url);
+      const res = await fetch(`/api/attendance/lock?${q.toString()}`);
       const data = await res.json();
 
       if (data.success) {
@@ -101,11 +77,8 @@ export function AttendanceLockCard({
         if (data.isBusGpsLive !== undefined) setIsBusGpsLive(data.isBusGpsLive);
         if (data.driverActive !== undefined) setDriverActive(data.driverActive);
 
-        // Only set proximity if device GPS is actively on AND bus GPS is broadcasting
-        if (gotClientGps && data.isBusGpsLive !== false && typeof data.currentDistanceMeters === "number") {
+        if (typeof data.currentDistanceMeters === "number") {
           setDistanceMeters(data.currentDistanceMeters);
-        } else {
-          setDistanceMeters(null);
         }
 
         if (onStatusChange) onStatusChange(data.lockStatus);
@@ -118,13 +91,13 @@ export function AttendanceLockCard({
     } finally {
       setLoading(false);
     }
-  }, [busId, studentId, onUnlocked, onStatusChange]);
+  }, [busId, studentId, busNumber, gpsDeviceId, onUnlocked, onStatusChange]);
 
   useEffect(() => {
     fetchLockStatus();
 
-    // Auto-refresh lock status every 15s to catch hardware RFID taps in real time
-    const interval = setInterval(fetchLockStatus, 15000);
+    // Auto-refresh lock status every 10s to catch hardware RFID taps and driver GPS in real time
+    const interval = setInterval(fetchLockStatus, 10000);
     return () => clearInterval(interval);
   }, [fetchLockStatus]);
 

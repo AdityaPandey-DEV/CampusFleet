@@ -155,6 +155,16 @@ export default async function DriverPage() {
     createdAt: b.created_at || new Date().toISOString(),
   }));
 
+  // 3.5. Resolve driver's staff ID (e.g. staff-drv-44) matching this user session
+  const { data: dbDriverStaff } = await supabaseAdmin
+    .from("staff")
+    .select("id, employee_code, email, full_name, user_id")
+    .or(`user_id.eq.${session.userId},email.eq.${session.email || "none"},id.eq.${session.userId}`)
+    .limit(1)
+    .maybeSingle();
+
+  const driverStaffId = dbDriverStaff?.id || null;
+
   const userRole = (session.role as string) || "";
   const isStaffOrAdmin = userRole === "admin" || userRole === "transport_admin" || userRole === "transport_manager";
   const visibleTrips = trips.filter(t => {
@@ -163,15 +173,23 @@ export default async function DriverPage() {
       if (isStaffOrAdmin) return true;
       return Boolean(
         session.userId &&
-        (t.driverId === session.userId || t.driverId === (session as any).id || t.driverId === (session as any).employeeId)
+        (t.driverId === session.userId || (driverStaffId && t.driverId === driverStaffId) || t.driverId === (session as any).id || t.driverId === (session as any).employeeId)
       );
     }
     return true;
   });
 
+  // Prioritize trips assigned to this specific driver
+  visibleTrips.sort((a, b) => {
+    const aMine = (a.driverId === session.userId || (driverStaffId && a.driverId === driverStaffId)) ? 1 : 0;
+    const bMine = (b.driverId === session.userId || (driverStaffId && b.driverId === driverStaffId)) ? 1 : 0;
+    return bMine - aMine;
+  });
+
   return (
     <DriverConsoleView
       initialUser={session}
+      initialDriverStaffId={driverStaffId}
       initialTrips={visibleTrips}
       initialBuses={buses}
       initialRoutes={routes}

@@ -43,6 +43,7 @@ interface SmartTransitCockpitProps {
   routes: Route[];
   staff?: Staff[];
   students?: Student[];
+  initialReservation?: any;
   onOpenLiveRadar?: () => void;
   onOpenDigitalPass?: () => void;
 }
@@ -58,24 +59,25 @@ export default function SmartTransitCockpit({
   routes,
   staff,
   students,
+  initialReservation,
   onOpenLiveRadar,
   onOpenDigitalPass,
 }: SmartTransitCockpitProps) {
   // Navigation router
   const router = useRouter();
 
-  // Reservation state
-  const [reservation, setReservation] = useState<any>(null);
+  // Reservation state - initialized immediately from SSR to eliminate skeleton wait time
+  const [reservation, setReservation] = useState<any>(initialReservation || null);
   const [settings, setSettings] = useState<TransportSettings | null>(null);
   const [teacherSchedule, setTeacherSchedule] = useState<any>(null);
   const [previousReservation, setPreviousReservation] = useState<any>(null);
   const [occupiedSeats, setOccupiedSeats] = useState<string[]>([]);
   const [isRfidVerified, setIsRfidVerified] = useState<boolean>(false);
-  const [isLoadingReservation, setIsLoadingReservation] = useState(true);
+  const [isLoadingReservation, setIsLoadingReservation] = useState(!initialReservation);
 
   // Seat attendance state
   const [isSavingSeat, setIsSavingSeat] = useState(false);
-  const [tentativeSeat, setTentativeSeat] = useState<string | null>(null);
+  const [tentativeSeat, setTentativeSeat] = useState<string | null>(() => initialReservation?.chosen_seat || null);
   const [isChangingSeat, setIsChangingSeat] = useState(false);
   const [isCancellingSeat, setIsCancellingSeat] = useState(false);
   const [isSwitchingSeat, setIsSwitchingSeat] = useState(false);
@@ -94,7 +96,9 @@ export default function SmartTransitCockpit({
   };
 
   // Real-time Attendance Lock (Distance / RFID) State
-  const [attendanceLockStatus, setAttendanceLockStatus] = useState<"LOCKED" | "UNLOCKED">("LOCKED");
+  const [attendanceLockStatus, setAttendanceLockStatus] = useState<"LOCKED" | "UNLOCKED">(() =>
+    initialReservation?.lock_status === "UNLOCKED" ? "UNLOCKED" : "LOCKED"
+  );
   const [isPeekingSeats, setIsPeekingSeats] = useState(false);
   const isLockCleared = attendanceLockStatus === "UNLOCKED" || isRfidVerified || reservation?.lock_status === "UNLOCKED";
 
@@ -112,9 +116,11 @@ export default function SmartTransitCockpit({
   const settingsHref = isTeacher ? "/teacher/settings" : "/portal/settings";
 
   // Fetch Reservation & Settings
-  const fetchReservation = async () => {
+  const fetchReservation = async (silent = false) => {
     try {
-      setIsLoadingReservation(true);
+      if (!silent && !reservation) {
+        setIsLoadingReservation(true);
+      }
       const url = studentId
         ? `/api/students/attendance?studentId=${encodeURIComponent(studentId)}`
         : `/api/students/attendance`;
@@ -143,7 +149,8 @@ export default function SmartTransitCockpit({
   };
 
   useEffect(() => {
-    fetchReservation();
+    // If SSR provided initialReservation, perform background sync quietly without showing skeleton
+    fetchReservation(Boolean(initialReservation));
   }, [studentId]);
 
   // Active booking scoped to today's active commute / reservation
@@ -623,7 +630,7 @@ export default function SmartTransitCockpit({
             </button>
 
             <button
-              onClick={fetchReservation}
+              onClick={() => fetchReservation()}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -668,7 +675,7 @@ export default function SmartTransitCockpit({
 
           <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
             <button
-              onClick={fetchReservation}
+              onClick={() => fetchReservation()}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all shadow-sm active:scale-95"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -841,6 +848,8 @@ export default function SmartTransitCockpit({
                   <div className="w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
                     <AttendanceLockCard
                       busId={assignedBus.id}
+                      busNumber={assignedBus.busNumber}
+                      gpsDeviceId={assignedBus.gpsDeviceId}
                       studentId={studentId}
                       onStatusChange={(status) => setAttendanceLockStatus(status)}
                       onUnlocked={() => {

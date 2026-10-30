@@ -48,6 +48,7 @@ import type { Trip, Bus as BusType, Route, Booking, Stop, LiveBusLocation } from
 
 interface DriverConsoleViewProps {
   initialUser?: any;
+  initialDriverStaffId?: string | null;
   initialTrips: Trip[];
   initialBuses: BusType[];
   initialRoutes: Route[];
@@ -57,6 +58,7 @@ interface DriverConsoleViewProps {
 
 export default function DriverConsoleView({
   initialUser,
+  initialDriverStaffId,
   initialTrips,
   initialBuses,
   initialRoutes,
@@ -72,8 +74,32 @@ export default function DriverConsoleView({
   const [stops] = useState<Stop[]>(initialStops);
   const [bookings] = useState<Booking[]>(initialBookings);
 
-  // Active Trip Resolution
+  const effectiveDriverId = initialUser?.userId || initialDriverStaffId || initialUser?.id || "";
+
+  // Identify trip assigned specifically to this logged-in driver
+  const myAssignedTrip = useMemo(() => {
+    return (
+      initialTrips.find(
+        (t) =>
+          (t.driverId === effectiveDriverId || (initialDriverStaffId && t.driverId === initialDriverStaffId)) &&
+          t.status === "IN_PROGRESS"
+      ) ||
+      initialTrips.find(
+        (t) =>
+          t.driverId === effectiveDriverId || (initialDriverStaffId && t.driverId === initialDriverStaffId)
+      )
+    );
+  }, [initialTrips, effectiveDriverId, initialDriverStaffId]);
+
+  // Active Trip Resolution (persisted per device session, prioritized to this driver)
   const [selectedTripId, setSelectedTripId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("campusfleet_driver_trip_id");
+        if (saved && initialTrips.some((t) => t.id === saved)) return saved;
+      } catch {}
+    }
+    if (myAssignedTrip) return myAssignedTrip.id;
     const running = initialTrips.find((t) => t.status === "IN_PROGRESS");
     return running?.id || initialTrips[0]?.id || "";
   });
@@ -82,19 +108,20 @@ export default function DriverConsoleView({
     return trips.find((t) => t.id === selectedTripId) || trips[0] || null;
   }, [trips, selectedTripId]);
 
-  // Duty Bus Selection & Switching State
+  // Duty Bus Selection & Switching State (independent per driver device)
   const [selectedBusId, setSelectedBusId] = useState<string>(() => {
-    const running = initialTrips.find((t) => t.status === "IN_PROGRESS");
-    return running?.busId || initialTrips[0]?.busId || initialBuses[0]?.id || "";
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("campusfleet_driver_duty_bus");
+        if (saved && initialBuses.some((b) => b.id === saved)) return saved;
+      } catch {}
+    }
+    if (myAssignedTrip?.busId) return myAssignedTrip.busId;
+    const currentTrip = initialTrips.find((t) => t.id === selectedTripId);
+    return currentTrip?.busId || initialTrips[0]?.busId || initialBuses[0]?.id || "";
   });
   const [showBusSwitchModal, setShowBusSwitchModal] = useState(false);
   const [busSearchQuery, setBusSearchQuery] = useState("");
-
-  useEffect(() => {
-    if (activeTrip?.busId) {
-      setSelectedBusId(activeTrip.busId);
-    }
-  }, [activeTrip?.id]);
 
   const bus = useMemo(() => {
     if (selectedBusId) {
@@ -557,20 +584,50 @@ export default function DriverConsoleView({
     if (!targetBus) return;
 
     setSelectedBusId(newBusId);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("campusfleet_driver_duty_bus", newBusId);
+      } catch {}
+    }
 
-    if (activeTrip) {
+    // 1. Find if a trip exists for this specific bus (each bus has its own dedicated trips)
+    const tripForNewBus =
+      trips.find((t) => t.busId === newBusId && t.status === "IN_PROGRESS") ||
+      trips.find((t) => t.busId === newBusId && t.status === "SCHEDULED") ||
+      trips.find((t) => t.busId === newBusId);
+
+    const driverIdToSet = initialUser?.userId || initialDriverStaffId || initialUser?.id || "";
+
+    if (tripForNewBus) {
+      // Switch driver to the trip for THIS bus — DO NOT overwrite someone else's trip busId!
+      setSelectedTripId(tripForNewBus.id);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("campusfleet_driver_trip_id", tripForNewBus.id);
+        } catch {}
+      }
+      if (driverIdToSet) {
+        setTrips((prev) =>
+          prev.map((t) => (t.id === tripForNewBus.id ? { ...t, driverId: driverIdToSet } : t))
+        );
+        await store.updateTrip(tripForNewBus.id, { driverId: driverIdToSet });
+      }
+    } else if (activeTrip && (activeTrip.driverId === driverIdToSet || !activeTrip.driverId)) {
+      // Only mutate activeTrip's busId if this trip is strictly assigned to this driver or unassigned
       setTrips((prev) =>
         prev.map((t) => (t.id === activeTrip.id ? { ...t, busId: newBusId } : t))
       );
       await store.updateTrip(activeTrip.id, { busId: newBusId });
     }
 
+    const currentTripToBroadcast = tripForNewBus || activeTrip;
+
     if (realDeviceGpsRef.current) {
       const coords = realDeviceGpsRef.current;
-      const currentStopId = route?.stops?.[activeTrip?.currentStopIndex || 0]?.stopId;
+      const currentStopId = route?.stops?.[currentTripToBroadcast?.currentStopIndex || 0]?.stopId;
       const payload: LiveBusLocation = {
         busId: newBusId,
-        tripId: activeTrip?.id || "",
+        tripId: currentTripToBroadcast?.id || "",
         latitude: coords.latitude,
         longitude: coords.longitude,
         speedKmh: coords.speedKmh ?? 0,

@@ -24,26 +24,47 @@ function getTodayIST(): { today: string; utcToday: string; allowedDates: string[
   };
 }
 
-async function getLiveBusCoordinates(busId: string): Promise<{ latitude: number; longitude: number } | null> {
+async function getLiveBusCoordinates(
+  busId: string,
+  gpsDeviceId?: string | null,
+  busNumber?: string | null
+): Promise<{ latitude: number; longitude: number } | null> {
   if (!busId) return null;
+
+  // Build all candidate keys to check in Redis
   const busIdsToCheck = Array.from(new Set([
     busId,
     busId.toLowerCase(),
     busId.toUpperCase(),
-  ]));
+    ...(gpsDeviceId ? [gpsDeviceId, gpsDeviceId.toLowerCase(), gpsDeviceId.toUpperCase()] : []),
+    ...(busNumber ? [busNumber, busNumber.toLowerCase(), busNumber.replace(/[^0-9]/g, "")] : []),
+  ].filter(Boolean)));
 
-  for (const bId of busIdsToCheck) {
-    const cached = await cacheGet<{ latitude: number; longitude: number }>(`telematics:bus:${bId}`);
+  // 1. Query Redis in parallel (20-40ms total)
+  const redisResults = await Promise.all(
+    busIdsToCheck.map((bId) =>
+      cacheGet<{ latitude: number; longitude: number }>(`telematics:bus:${bId}`).catch(() => null)
+    )
+  );
+
+  for (const cached of redisResults) {
     if (cached && typeof cached.latitude === "number" && typeof cached.longitude === "number") {
       return cached;
     }
   }
 
-  for (const bId of busIdsToCheck) {
-    const mongoLoc = await getLiveLocationFromMongo(bId);
+  // 2. Fallback to MongoDB ONLY IF Redis completely misses — single call with strict 800ms race timeout
+  try {
+    const mongoPromise = getLiveLocationFromMongo(busId);
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 800));
+    const mongoLoc = await Promise.race([mongoPromise, timeoutPromise]);
     if (mongoLoc && typeof mongoLoc.latitude === "number" && typeof mongoLoc.longitude === "number") {
-      return { latitude: mongoLoc.latitude, longitude: mongoLoc.longitude };
+      const loc = { latitude: mongoLoc.latitude, longitude: mongoLoc.longitude };
+      cacheSet(`telematics:bus:${busId}`, loc, 60).catch(() => {});
+      return loc;
     }
+  } catch {
+    // MongoDB timed out or unavailable — return null cleanly
   }
 
   return null;
@@ -62,13 +83,16 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const targetStudentId = searchParams.get("studentId") || session.userId;
+    const queryBusId = searchParams.get("busId") || null;
+    const queryBusNumber = searchParams.get("busNumber") || null;
+    const queryGpsDeviceId = searchParams.get("gpsDeviceId") || null;
     const clientLat = searchParams.get("latitude") ? Number(searchParams.get("latitude")) : null;
     const clientLng = searchParams.get("longitude") ? Number(searchParams.get("longitude")) : null;
     const clientAcc = searchParams.get("accuracy") ? Number(searchParams.get("accuracy")) : null;
 
     const { today, allowedDates } = getTodayIST();
 
-    // 1. Resolve student profile and active reservations for today across all linked profiles
+    // ── Phase 1: Student Profile Lookup ──────────────────────────────────────────
     const { data: dbStudents } = await supabaseAdmin
       .from("students_full")
       .select("id, user_id, full_name, student_id_code, rfid_card_id, primary_route_id, primary_stop_id, primary_stop_name, email")
@@ -85,39 +109,44 @@ export async function GET(req: NextRequest) {
     }
 
     const studentUserId = student?.user_id || session.userId;
-    if (studentUserId) {
-      linkedIds.add(studentUserId);
-    }
+    if (studentUserId) linkedIds.add(studentUserId);
     const studentEmail = student?.email || session.email;
-    if (studentEmail) {
-      const { data: emailSiblings } = await supabaseAdmin
-        .from("students_full")
-        .select("id, user_id, rfid_card_id")
-        .eq("email", studentEmail);
-      if (emailSiblings) {
-        for (const s of emailSiblings) {
-          if (s.id) linkedIds.add(s.id);
-          if (s.user_id) linkedIds.add(s.user_id);
-        }
+    const resolvedStudentId = student?.id || targetStudentId;
+
+    // ── Phase 2: Parallel Queries (Email siblings + Bus reservations) ─────────────
+    const [emailSiblingsRes, reservationsRes] = await Promise.all([
+      studentEmail
+        ? supabaseAdmin.from("students_full").select("id, user_id, rfid_card_id").eq("email", studentEmail)
+        : Promise.resolve({ data: [] }),
+      supabaseAdmin
+        .from("bus_reservations")
+        .select("*, buses(*)")
+        .in("student_id", Array.from(linkedIds))
+        .in("reservation_date", allowedDates)
+        .neq("status", "CANCELLED")
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ]);
+
+    if (emailSiblingsRes.data) {
+      for (const s of emailSiblingsRes.data) {
+        if (s.id) linkedIds.add(s.id);
+        if (s.user_id) linkedIds.add(s.user_id);
       }
     }
     const linkedIdsArray = Array.from(linkedIds);
-    const resolvedStudentId = student?.id || targetStudentId;
+    const activeRes = reservationsRes.data?.[0];
 
-    const { data: reservations } = await supabaseAdmin
-      .from("bus_reservations")
-      .select("*, buses(*)")
-      .in("student_id", linkedIdsArray)
-      .in("reservation_date", allowedDates)
-      .neq("status", "CANCELLED")
-      .order("created_at", { ascending: false })
-      .limit(1);
+    const targetBusId = queryBusId || activeRes?.bus_id || null;
+    const targetBusNumber = queryBusNumber || activeRes?.buses?.bus_number || null;
+    const targetGpsDeviceId = queryGpsDeviceId || activeRes?.buses?.gps_device_id || null;
 
-    const activeRes = reservations?.[0];
-    const targetBusId = searchParams.get("busId") || activeRes?.bus_id || null;
+    // ── Phase 3: Parallel Execution (Live Bus GPS + Redis RFID checks) ────────────
+    const [busCoordinates, ...rfidCaches] = await Promise.all([
+      targetBusId ? getLiveBusCoordinates(targetBusId, targetGpsDeviceId, targetBusNumber) : Promise.resolve(null),
+      ...linkedIdsArray.map((lid) => cacheGet<any>(`attendance:rfid:${lid}:${today}`).catch(() => null)),
+    ]);
 
-    // 2. Query live bus GPS coordinates from telematics
-    const busCoordinates = targetBusId ? await getLiveBusCoordinates(targetBusId) : null;
     const isBusGpsLive = busCoordinates !== null;
 
     // 3. Check if active bus reservation is already UNLOCKED (via RFID or Location Distance)
@@ -140,26 +169,20 @@ export async function GET(req: NextRequest) {
     }
 
     // 4. Check if verified RFID card tap occurred TODAY for the CORRECT bus
-    // Professional AFC: RFID verification must be scoped to the current reservation's bus.
-    // A morning Bus 37 tap must NOT auto-unlock an evening Bus 45 session.
     let isRfidUnlocked = false;
     let rfidCardId: string | null = student?.rfid_card_id || null;
 
-    // Check fast Redis cache across all linked IDs — but validate busId matches
-    for (const lid of linkedIdsArray) {
-      const rfidCache = await cacheGet<any>(`attendance:rfid:${lid}:${today}`);
+    for (const rfidCache of rfidCaches) {
       if (rfidCache?.verified || rfidCache?.lockStatus === "UNLOCKED") {
-        // Validate that the cached RFID tap is for the CORRECT bus
         if (!targetBusId || rfidCache.busId === targetBusId) {
           isRfidUnlocked = true;
           rfidCardId = rfidCache.rfidCardId || rfidCardId;
           break;
         }
-        // Bus mismatch: skip this cached RFID tap (it's for a different bus/trip)
       }
     }
 
-    // Check attendance_records across all linked IDs — scoped to current bus
+    // Fallback: check attendance_records in database if not cached
     if (!isRfidUnlocked) {
       let rfidDbQuery = supabaseAdmin
         .from("attendance_records")
@@ -170,7 +193,6 @@ export async function GET(req: NextRequest) {
         .order("timestamp", { ascending: false })
         .limit(1);
 
-      // Scope to current reservation's bus if available
       if (targetBusId) {
         rfidDbQuery = rfidDbQuery.eq("bus_id", targetBusId);
       }

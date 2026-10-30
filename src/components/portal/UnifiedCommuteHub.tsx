@@ -15,6 +15,7 @@ interface UnifiedCommuteHubProps {
   initialBookings: Booking[];
   initialStaff: Staff[];
   initialRoutes: Route[];
+  initialReservation?: any;
 }
 
 export default function UnifiedCommuteHub({
@@ -27,8 +28,8 @@ export default function UnifiedCommuteHub({
   initialBookings,
   initialStaff,
   initialRoutes,
+  initialReservation,
 }: UnifiedCommuteHubProps) {
-  const [isClient, setIsClient] = useState(false);
   const [currentUser, setCurrentUser] = useState(initialUser || store.getCurrentUser());
   const [students, setStudents] = useState<Student[]>(() =>
     initialStudents.length > 0 ? initialStudents : store.getStudents()
@@ -49,7 +50,6 @@ export default function UnifiedCommuteHub({
       staff: initialStaff,
       routes: initialRoutes,
     });
-    setIsClient(true);
     const unsub = store.subscribe(() => {
       setCurrentUser(store.getCurrentUser());
       setStudents(store.getStudents());
@@ -68,8 +68,6 @@ export default function UnifiedCommuteHub({
       ) || undefined
     : undefined;
 
-  if (!isClient) return null;
-
   return (
     <div className="space-y-6">
       <SmartTransitCockpit
@@ -83,6 +81,7 @@ export default function UnifiedCommuteHub({
         routes={initialRoutes}
         staff={initialStaff}
         students={students}
+        initialReservation={initialReservation}
       />
     </div>
   );

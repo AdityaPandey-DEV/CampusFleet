@@ -31,12 +31,30 @@ export async function GET(req: NextRequest) {
     const utcToday = now.toISOString().split("T")[0];
     const allowedDates = Array.from(new Set([today, utcToday]));
 
-    // Fetch transport settings
-    const { data: settings } = await supabaseAdmin
-      .from("transport_settings")
-      .select("*")
-      .limit(1)
-      .maybeSingle();
+    // Parallelize Phase 1: transport settings, student profile, reservations, and shifts
+    const [
+      { data: settings },
+      { data: student },
+      { data: reservations },
+      { data: allShifts },
+    ] = await Promise.all([
+      supabaseAdmin.from("transport_settings").select("*").limit(1).maybeSingle(),
+      supabaseAdmin
+        .from("students")
+        .select("id, user_id, primary_stop_id, primary_route_id, auto_assigned_stop_id, class_id")
+        .or(`id.eq.${rawStudentId},user_id.eq.${rawStudentId}`)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("bus_reservations")
+        .select("*")
+        .or(`student_id.eq.${rawStudentId},student_id.eq.${session.userId}`)
+        .in("reservation_date", allowedDates)
+        .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("shifts")
+        .select("id, name, type, start_time, end_time, direction, booking_cutoff_minutes")
+        .eq("is_active", true),
+    ]);
 
     const currentSettings = settings || {
       seat_selection_mode: "AT_ATTENDANCE",
@@ -45,28 +63,7 @@ export async function GET(req: NextRequest) {
       min_fill_percent: 60,
     };
 
-    // 0. Resolve the student profile
-    const { data: student } = await supabaseAdmin
-      .from("students")
-      .select("id, user_id, primary_stop_id, primary_route_id, auto_assigned_stop_id, class_id")
-      .or(`id.eq.${rawStudentId},user_id.eq.${rawStudentId}`)
-      .maybeSingle();
-
     const resolvedStudentId = student?.id || rawStudentId;
-
-    // 1. Fetch student's reservations for today
-    const { data: reservations } = await supabaseAdmin
-      .from("bus_reservations")
-      .select("*")
-      .or(`student_id.eq.${resolvedStudentId},student_id.eq.${rawStudentId}`)
-      .in("reservation_date", allowedDates)
-      .order("created_at", { ascending: false });
-
-    // Fetch all active fleet shifts
-    const { data: allShifts } = await supabaseAdmin
-      .from("shifts")
-      .select("id, name, type, start_time, end_time, direction, booking_cutoff_minutes")
-      .eq("is_active", true);
 
     const parseTimeMinutes = (timeStr?: string) => {
       if (!timeStr) return -1;

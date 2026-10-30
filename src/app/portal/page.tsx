@@ -28,6 +28,12 @@ export default async function StudentPortalPage() {
   const activeStudentRow = dbStudents?.[0];
   const resolvedStudentId = activeStudentRow?.id || session.userId;
 
+  const now = new Date();
+  const istDate = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const todayIST = istDate.toISOString().split("T")[0];
+  const todayUTC = now.toISOString().split("T")[0];
+  const allowedDates = Array.from(new Set([todayIST, todayUTC]));
+
   const [
     { data: dbBuses },
     { data: dbRoutes },
@@ -38,12 +44,18 @@ export default async function StudentPortalPage() {
     { data: dbAllocations },
     { data: dbRouteStops },
     { data: dbCampuses },
+    { data: dbReservations },
   ] = await Promise.all([
     supabaseAdmin.from("buses").select("*"),
     supabaseAdmin.from("routes").select("*"),
     supabaseAdmin.from("stops").select("*"),
     supabaseAdmin.from("shifts").select("*"),
-    supabaseAdmin.from("trips").select("*").order("trip_code"),
+    // Fetch recent active trips rather than entire historical table of 900+ rows
+    supabaseAdmin
+      .from("trips")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(60),
     // Fetch bookings for the logged-in student (matches both student UUID and user UUID)
     supabaseAdmin
       .from("bookings_full")
@@ -58,6 +70,15 @@ export default async function StudentPortalPage() {
       .or(`student_id.eq.${resolvedStudentId},student_id.eq.${session.userId}`),
     supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
     supabaseAdmin.from("campuses").select("*"),
+    // Fetch today's active bus reservation for instant zero-skeleton render
+    supabaseAdmin
+      .from("bus_reservations")
+      .select("*, buses(*)")
+      .or(`student_id.eq.${resolvedStudentId},student_id.eq.${session.userId}`)
+      .in("reservation_date", allowedDates)
+      .neq("status", "CANCELLED")
+      .order("created_at", { ascending: false })
+      .limit(1),
   ]);
 
   const campusNameMap = new Map((dbCampuses || []).map((c: any) => [c.id, c.name]));
@@ -247,6 +268,21 @@ export default async function StudentPortalPage() {
     studentId: resolvedStudentId,
   };
 
+  const rawReservation = dbReservations?.[0];
+  const initialReservation = rawReservation
+    ? {
+        ...rawReservation,
+        bus: rawReservation.buses
+          ? {
+              ...rawReservation.buses,
+              busNumber: rawReservation.buses.bus_number,
+              registrationNo: rawReservation.buses.registration_no,
+              seatLayout: rawReservation.buses.seat_layout,
+            }
+          : null,
+      }
+    : null;
+
   return (
     <UnifiedCommuteHub
       initialUser={normalizedUser}
@@ -258,6 +294,7 @@ export default async function StudentPortalPage() {
       initialBookings={bookings}
       initialStaff={staff}
       initialRoutes={routes}
+      initialReservation={initialReservation}
     />
   );
 }
