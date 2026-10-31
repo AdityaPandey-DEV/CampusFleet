@@ -283,8 +283,8 @@ export default function TransportAdminBusesView({
 
                   <span
                     className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide uppercase ${bus.status === "ACTIVE"
-                        ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300"
-                        : "bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300"
+                      ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300"
+                      : "bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300"
                       }`}
                   >
                     {bus.status}
@@ -507,8 +507,8 @@ export default function TransportAdminBusesView({
                       type="button"
                       onClick={() => updateLayoutAndCapacity(rowsCount, preset.l, preset.r, hasRearBench)}
                       className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${leftColsCount === preset.l && rightColsCount === preset.r
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200/70 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200/70 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300"
                         }`}
                     >
                       {preset.label}

@@ -173,10 +173,9 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
   const trips: Trip[] = (dbTrips || []).map((t: any) => {
     const shift = shiftMap.get(t.shift_id);
     const isEvening =
-      (t.trip_code && t.trip_code.includes("-E-")) ||
-      t.shift_id === "shift-2" ||
-      t.shift_id === "shift-evening" ||
-      shift?.type === "EVENING";
+      shift?.direction === "CAMPUS_TO_HOME" ||
+      shift?.type === "EVENING" ||
+      Boolean(t.trip_code && t.trip_code.includes("-E-"));
     const isC2C =
       (t.trip_code && (t.trip_code.includes("C2C") || t.trip_code.includes("DDN"))) ||
       Boolean(t.is_special) ||

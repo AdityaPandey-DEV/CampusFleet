@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "./supabaseClient";
 import { getTodayIST } from "./time-manager";
+import { createTripId } from "./id";
 
 export interface DailyRolloverResult {
   success: boolean;
@@ -114,42 +115,52 @@ export async function executeDailyRollover(
 
     const { data: staffList } = await supabaseAdmin
       .from("staff")
-      .select("id, full_name, role, is_active");
+      .select("id, employee_code, full_name, role, is_active");
 
-    const drivers = (staffList || []).filter((s) => s.role === "driver" || s.role === "transport_staff");
-    const conductors = (staffList || []).filter((s) => s.role === "conductor" || s.role === "transport_staff");
+    const drivers = (staffList || []).filter((s: any) => s.role === "driver" || s.role === "transport_staff");
+    const conductors = (staffList || []).filter((s: any) => s.role === "conductor" || s.role === "transport_staff");
 
-    // Filter shifts to daily operational ones (Morning, Afternoon/Half-Day, and Evening)
-    const dailyShifts = (shifts || []).filter(
-      (sh) =>
-        sh.type === "MORNING" ||
-        sh.type === "EVENING" ||
-        sh.type === "AFTERNOON" ||
-        sh.id === "shift-1" ||
-        sh.id === "shift-2" ||
-        sh.id === "shift-halfday"
+    // 4. Filter shifts to active operational schedules dynamically from database
+    const activeShifts = (shifts || []).filter(
+      (sh) => sh.is_active !== false && !sh.is_special
     );
-    const activeShifts = dailyShifts.length > 0 ? dailyShifts : (shifts || []).slice(0, 2);
+    if (activeShifts.length === 0) {
+      console.warn("[DailyRollover] No active shifts found in database.");
+    }
 
-    const activeRoutes = routes || [];
-    const activeBuses = buses || [];
+    // 5. Only active operational buses (exclude vehicles in workshop / maintenance)
+    const operationalBuses = (buses || []).filter((b) => b.status === "ACTIVE");
+    const activeRoutes = (routes || []).filter((r) => r.is_active !== false);
     const newTripsToInsert: any[] = [];
 
-    // 4. Generate scheduled trips for each active route and daily shift
-    activeRoutes.forEach((route, routeIdx) => {
-      // Find bus mapped to this route, or match by index
-      let assignedBus = activeBuses.find((b) => b.current_route_id === route.id);
-      if (route.id === "route-bht-ddn-placement") {
-        assignedBus = activeBuses.find((b) => b.id === "bus-21") || assignedBus;
-      }
-      if (route.id === "route-bus-tempo") {
-        assignedBus = activeBuses.find((b) => b.id === "bus-tempo") || assignedBus;
-      }
-      if (!assignedBus && activeBuses.length > 0) {
-        assignedBus = activeBuses[routeIdx % activeBuses.length];
+    // 6. Generate scheduled trips strictly via relational database mappings
+    activeRoutes.forEach((route) => {
+      // Find bus mapped to this corridor via database foreign key
+      const assignedBus = operationalBuses.find((b) => b.current_route_id === route.id);
+
+      if (!assignedBus) {
+        console.warn(`[DailyRollover] Route ${route.code || route.id} has no ACTIVE vehicle assigned. Skipping.`);
+        return;
       }
 
-      if (!assignedBus) return;
+      // Resolve primary crew assigned to this vehicle
+      const busNum = Number(assignedBus.bus_number);
+      const busNumPad = String(busNum).padStart(2, "0");
+      const busNumRaw = String(busNum);
+
+      const driver = drivers.find((d) => 
+        d.employee_code === `DRV-${busNumPad}` || 
+        d.employee_code === `DRV-${busNumRaw}` ||
+        d.id === `staff-drv-${busNumPad}` ||
+        (busNum === 51 && (d.employee_code?.includes("TMP") || d.id?.includes("tempo")))
+      ) || null;
+
+      const conductor = conductors.find((c) => 
+        c.employee_code === `CND-${busNumPad}` || 
+        c.employee_code === `CND-${busNumRaw}` ||
+        c.id === `staff-cnd-${busNumPad}` ||
+        (busNum === 51 && (c.employee_code?.includes("TMP") || c.id?.includes("tempo")))
+      ) || null;
 
       activeShifts.forEach((shift) => {
         const shiftType = (shift.type || "NONE").toUpperCase();
@@ -158,15 +169,12 @@ export async function executeDailyRollover(
             ? "M"
             : shiftType === "EVENING"
             ? "E"
-            : shiftType === "AFTERNOON" || shift.id.includes("halfday")
+            : shiftType === "AFTERNOON" || (shift.name || "").toLowerCase().includes("afternoon")
             ? "A"
             : (shiftType.charAt(0) || "C");
         const routeClean = route.id.replace(/[^a-zA-Z0-9]/g, "-");
-        const tripId = `trip-${routeClean}-${shiftSuffix.toLowerCase()}-${targetDate}`;
+        const tripId = createTripId();
         const tripCode = `TRIP-${(route.code || routeClean).toUpperCase().replace(/[^a-zA-Z0-9]/g, "")}-${shiftSuffix}-${targetDate.replace(/-/g, "")}`;
-
-        const driver = drivers.length > 0 ? drivers[routeIdx % drivers.length] : null;
-        const conductor = conductors.length > 0 ? conductors[routeIdx % conductors.length] : null;
 
         newTripsToInsert.push({
           id: tripId,
@@ -210,7 +218,7 @@ export async function executeDailyRollover(
       .neq("status", "MAINTENANCE");
 
     if (!resetBusErr) {
-      resetBusesCount = activeBuses.length;
+      resetBusesCount = operationalBuses.length;
     }
 
     // 6. Expire past dynamic bus merge suggestions

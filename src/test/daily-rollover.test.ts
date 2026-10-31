@@ -74,11 +74,11 @@ export function generateDailyTrips(
 
   const generatedTrips: Trip[] = [];
   const activeRoutes = routes.filter((r) => r.isActive);
-  const activeShifts = shifts.filter((s) => s.shiftType === "MORNING" || s.shiftType === "EVENING" || s.id === "shift-1" || s.id === "shift-2");
+  const activeShifts = shifts.filter((s) => s.shiftType === "MORNING" || s.shiftType === "EVENING");
   const activeBuses = buses.filter((b) => b.status === "ACTIVE");
 
-  activeRoutes.forEach((route, idx) => {
-    const bus = activeBuses.find((b) => b.currentRouteId === route.id) || activeBuses[idx % activeBuses.length];
+  activeRoutes.forEach((route) => {
+    const bus = activeBuses.find((b) => b.currentRouteId === route.id);
     if (!bus) return;
 
     activeShifts.forEach((shift) => {

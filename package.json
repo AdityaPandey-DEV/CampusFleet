@@ -38,6 +38,7 @@
     "recharts": "^2.12.7",
     "tailwind-merge": "^2.5.2",
     "tesseract.js": "^7.0.0",
+    "typeid-js": "^1.2.0",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },

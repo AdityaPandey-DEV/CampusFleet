@@ -204,15 +204,7 @@ export default function TransportAdminTripsView({
     ) {
       return "CAMPUS_TO_CAMPUS";
     }
-    if (
-      tripCode.endsWith("-E") ||
-      tripCode.includes("-E-") ||
-      trip.id.includes("-e-") ||
-      shiftType === "EVENING" ||
-      trip.shiftId === "shift-2" ||
-      trip.shiftId === "shift-evening" ||
-      sh?.direction === "CAMPUS_TO_HOME"
-    ) {
+    if (sh?.direction === "CAMPUS_TO_HOME" || shiftType === "EVENING" || tripCode.endsWith("-E") || tripCode.includes("-E-")) {
       return "CAMPUS_TO_HOME";
     }
     if (sh?.direction) return sh.direction;

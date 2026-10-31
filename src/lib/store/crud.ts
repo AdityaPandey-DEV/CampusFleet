@@ -2,6 +2,7 @@ import { CampusFleetStore } from "./_base";
 import { supabase } from "../supabaseClient";
 import { telematicsService } from "../telematicsService";
 import { lockFinalManifest } from "../reservation-engine";
+import { createTripId } from "../id";
 import type {
   Bus, Route, Stop, Campus, Shift, Trip, Student, Staff,
   LiveBusLocation, VehicleIssue, NotificationItem, UserRole,
@@ -985,7 +986,7 @@ CampusFleetStore.prototype.assignTripCrew = async function (this: CampusFleetSto
 CampusFleetStore.prototype.createTrip = async function (this: CampusFleetStore, tripData: Omit<Trip, "id">) {
   const newTrip: Trip = {
     ...tripData,
-    id: `trip-${Date.now()}`,
+    id: createTripId(),
   };
   this.trips = [...this.trips, newTrip];
   this.notify();

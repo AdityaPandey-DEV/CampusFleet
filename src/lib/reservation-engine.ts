@@ -1,8 +1,8 @@
 import { Booking, BookingStatus, Bus, Trip, Student, BookingStatusHistory } from "./types";
 import { generateSeatLayout, getTeacherStartingSeats } from "./utils";
 import { isTripCutoffPassed } from "./time-manager";
-
 import { isStudentSubscriptionActive } from "./subscription-utils";
+import { createBookingId, createAuditLogId } from "./id";
 
 export interface BookingResult {
   success: boolean;
@@ -167,7 +167,7 @@ export function createBooking(
     }
 
     const newBooking: Booking = {
-      id: `bk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: createBookingId(),
       bookingCode,
       studentId: student.id,
       tripId: trip.id,
@@ -180,7 +180,7 @@ export function createBooking(
     };
 
     const auditRecord: BookingStatusHistory = {
-      id: `aud_${Date.now()}`,
+      id: createAuditLogId(),
       bookingId: newBooking.id,
       fromStatus: "CONFIRMED",
       toStatus: "CONFIRMED",
@@ -232,7 +232,7 @@ export function cancelBookingAndPromoteWaitlist(
 
   const auditRecords: BookingStatusHistory[] = [
     {
-      id: `aud_${Date.now()}_cancel`,
+      id: createAuditLogId(),
       bookingId: cancelledBooking.id,
       fromStatus: bookingToCancel.status,
       toStatus: "CANCELLED",

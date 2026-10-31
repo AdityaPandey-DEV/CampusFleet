@@ -99,8 +99,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const incomingShiftId = teacherSchedule?.incoming_shift_id || "shift-1";
-    const outgoingShiftId = teacherSchedule?.outgoing_shift_id || "shift-2";
+    const morningShift = (allShifts || []).find((s: any) => s.direction === "HOME_TO_CAMPUS" || s.type === "MORNING") || allShifts?.[0];
+    const eveningShift = (allShifts || []).find((s: any) => s.direction === "CAMPUS_TO_HOME" || s.type === "EVENING") || allShifts?.[1] || allShifts?.[0];
+
+    const incomingShiftId = teacherSchedule?.incoming_shift_id || morningShift?.id || "";
+    const outgoingShiftId = teacherSchedule?.outgoing_shift_id || eveningShift?.id || "";
     const incomingShift = (allShifts || []).find((s) => s.id === incomingShiftId);
     const outgoingShift = (allShifts || []).find((s) => s.id === outgoingShiftId);
 

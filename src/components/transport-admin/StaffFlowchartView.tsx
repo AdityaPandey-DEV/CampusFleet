@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { store } from "@/lib/store";
+import { createTripId } from "@/lib/id";
 import {
   GitBranch,
   Route as RouteIcon,
@@ -172,12 +173,13 @@ export default function StaffFlowchartView({
       const selectedBus = buses.find((b) => b.id === assignBusFormData.busId);
       const tripCode = `TRIP-${selectedBus?.busNumber || "FLEET"}-${Math.floor(100 + Math.random() * 900)}`;
 
+      const dynamicShiftId = store.getShifts().find(s => s.direction === "HOME_TO_CAMPUS" || s.shiftType === "MORNING")?.id || store.getShifts()[0]?.id || "";
       const newTrip: Trip = {
-        id: `trip-${Date.now()}`,
+        id: createTripId(),
         tripCode,
         routeId: selectedFlowchartRoute?.id || "",
         busId: assignBusFormData.busId,
-        shiftId: "shift-1",
+        shiftId: dynamicShiftId,
         driverId: assignBusFormData.driverId,
         conductorId: assignBusFormData.conductorId,
         tripDate: new Date().toISOString().split("T")[0],

@@ -118,14 +118,13 @@ export default function TeacherScheduleShiftView({
     // Populate defaults for any missing day per class
     const defaultIncoming =
       initialShifts.find((s) => s.direction === "HOME_TO_CAMPUS" || s.type === "MORNING")?.id ||
-      initialShifts[0]?.id ||
-      "shift-1";
+      initialShifts[0]?.id || "";
     const defaultOutgoing =
       initialShifts.find((s) => s.direction === "CAMPUS_TO_HOME" || s.type === "EVENING")?.id ||
       initialShifts[1]?.id ||
-      "shift-2";
+      defaultIncoming || "";
     const halfDayOutgoing =
-      initialShifts.find((s) => s.type === "AFTERNOON" || s.id.includes("halfday"))?.id ||
+      initialShifts.find((s) => s.type === "AFTERNOON" || (s.name || "").toLowerCase().includes("afternoon"))?.id ||
       defaultOutgoing;
 
     initialClasses.forEach((cls) => {
@@ -232,13 +231,13 @@ export default function TeacherScheduleShiftView({
     if (!selectedClassId) return;
 
     const defaultIncoming =
-      incomingShifts[0]?.id || initialShifts[0]?.id || "shift-1";
+      incomingShifts[0]?.id || initialShifts[0]?.id || "";
     const eveningOutgoing =
       outgoingShifts.find((s) => s.type === "EVENING")?.id ||
       outgoingShifts[0]?.id ||
-      "shift-2";
+      defaultIncoming || "";
     const halfDayOutgoing =
-      outgoingShifts.find((s) => s.type === "AFTERNOON" || s.id.includes("halfday"))?.id ||
+      outgoingShifts.find((s) => s.type === "AFTERNOON" || (s.name || "").toLowerCase().includes("afternoon"))?.id ||
       eveningOutgoing;
 
     const targetClassIds = applyToAllClasses

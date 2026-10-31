@@ -1,6 +1,7 @@
 import { CampusFleetStore } from "./_base";
 import { supabase } from "../supabaseClient";
 import { createBooking, cancelBookingAndPromoteWaitlist } from "../reservation-engine";
+import { createAttendanceId } from "../id";
 import type { Booking, AttendanceRecord } from "../types";
 
 // ── Module Augmentation ─────────────────────────────────────────────────────
@@ -48,7 +49,7 @@ CampusFleetStore.prototype.recordAttendance = async function (
   const bookingId = matchedBooking?.id || `bk-${resolvedStudentId}`;
 
   const newRecord: AttendanceRecord = {
-    id: `att-${Date.now()}`,
+    id: createAttendanceId(),
     studentId: resolvedStudentId,
     bookingId,
     tripId,
@@ -176,7 +177,7 @@ CampusFleetStore.prototype.unlockAttendance = async function (
   const nowIso = new Date().toISOString();
 
   const newRecord: AttendanceRecord = {
-    id: `att-${Date.now()}`,
+    id: createAttendanceId(),
     studentId: resolvedStudentId,
     bookingId,
     tripId,
@@ -249,7 +250,7 @@ CampusFleetStore.prototype.recordUserAttendance = async function (
 
   // Create attendance record
   const newRecord: AttendanceRecord = {
-    id: `att-${Date.now()}`,
+    id: createAttendanceId(),
     studentId: userId,
     userId,
     userRole,

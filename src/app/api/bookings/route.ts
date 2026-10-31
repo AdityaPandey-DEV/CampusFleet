@@ -4,6 +4,7 @@ import { getSessionFromRequest } from "@/lib/jwt";
 import { isStudentSubscriptionActive } from "@/lib/subscription-utils";
 import { isTripCutoffPassed, getTodayIST } from "@/lib/time-manager";
 import { generateSeatLayout, isStartingSeat, getTeacherStartingSeats } from "@/lib/utils";
+import { createBookingId } from "@/lib/id";
 
 // GET /api/bookings?tripId=...&shiftId=...&studentId=...&date=...
 export async function GET(req: NextRequest) {
@@ -390,7 +391,7 @@ export async function POST(req: NextRequest) {
     const { data: newBooking, error: insertError } = await supabaseAdmin
       .from("bookings")
       .insert({
-        id: crypto.randomUUID(),
+        id: createBookingId(),
         booking_code: bookingCode,
         student_id: student.id,
         trip_id: tripId,
