@@ -153,10 +153,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {children}
       </main>
 
-      <MobileBottomNav 
-        isPaymentApproved={true} 
-        navItems={currentNavLinks} 
-      />
+      {/* Render mobile bottom dock only when inside a subportal with items */}
+      {currentNavLinks.length > 0 && (
+        <MobileBottomNav 
+          isPaymentApproved={true} 
+          navItems={currentNavLinks} 
+        />
+      )}
     </div>
   );
 }

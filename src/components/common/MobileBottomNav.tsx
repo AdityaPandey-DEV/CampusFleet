@@ -32,6 +32,11 @@ export function MobileBottomNav({ isPaymentApproved = true, navItems = [] }: Mob
     return null;
   }
 
+  // Only default to student navigation logic when explicitly inside the student portal
+  if (navItems.length === 0 && !pathname.startsWith("/portal")) {
+    return null;
+  }
+
   // If no dynamic items provided, default to the student navigation logic
   const defaultNavItems: MobileBottomNavItem[] = isPaymentApproved
     ? [

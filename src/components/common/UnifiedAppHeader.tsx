@@ -36,6 +36,7 @@ import {
   ExternalLink,
   Navigation,
   MessageSquare,
+  Home,
 } from "lucide-react";
 
 export interface NavLinkItem {
@@ -434,18 +435,25 @@ export function UnifiedAppHeader({
               <div className="w-24 h-9" />
             ) : currentUser ? (
               <div className="flex items-center gap-3">
-                <Link
-                  href="/chat"
-                  title="CampusFleet Live Messages"
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                    pathname.startsWith("/chat")
-                      ? "bg-blue-600 text-white shadow-xs"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                  }`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Chat</span>
-                </Link>
+                {pathname.startsWith("/chat") ? (
+                  <Link
+                    href={currentPortalConfig.path || "/"}
+                    title="Return to Home Dashboard"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-600 text-white shadow-xs hover:bg-blue-700 transition-all"
+                  >
+                    <Home className="w-3.5 h-3.5" />
+                    <span>Home</span>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/chat"
+                    title="CampusFleet Live Messages"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Chat</span>
+                  </Link>
+                )}
                 <Link href={`/${pathname.split('/')[1] === 'portal' ? 'portal' : (currentUser.role || 'portal')}/settings`} title="Open Settings" className="block w-9 h-9 rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
                   {(userPhotoUrl || activeStudent?.photoUrl) ? (
                     <img
@@ -485,13 +493,23 @@ export function UnifiedAppHeader({
           </div>
           
           <div className="flex items-center gap-2 lg:hidden z-10">
-            <Link
-              href="/chat"
-              title="CampusFleet Live Messages"
-              className="p-1.5 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <MessageSquare className="w-5 h-5" />
-            </Link>
+            {pathname.startsWith("/chat") ? (
+              <Link
+                href={currentPortalConfig.path || "/"}
+                title="Return to Home Dashboard"
+                className="p-1.5 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <Home className="w-5 h-5" />
+              </Link>
+            ) : (
+              <Link
+                href="/chat"
+                title="CampusFleet Live Messages"
+                className="p-1.5 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <MessageSquare className="w-5 h-5" />
+              </Link>
+            )}
 
             {/* Mobile Vertical Slide Sheet Trigger */}
             <button

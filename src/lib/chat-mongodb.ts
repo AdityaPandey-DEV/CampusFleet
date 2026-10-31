@@ -114,13 +114,14 @@ export async function syncConversationsFromDatabase(): Promise<void> {
 
   const now = new Date().toISOString();
 
-  // 0. Purge legacy corridor/route groups completely from MongoDB
+  // 0. Purge legacy corridor/route groups and duplicate campus groups completely from MongoDB
   try {
     await convCol.deleteMany({
       $or: [
         { routeId: { $exists: true, $ne: null } },
         { id: { $regex: /^route-/i } },
         { id: { $regex: /^route_bus_/i } },
+        { id: { $regex: /^campus-campus-/i } },
         { name: { $regex: /Corridor$/i } },
         { name: { $regex: /to GEHU Bhimtal Corridor/i } },
       ],
@@ -165,7 +166,8 @@ export async function syncConversationsFromDatabase(): Promise<void> {
 
   if (campuses && campuses.length > 0) {
     for (const campus of campuses) {
-      const convId = `campus-${campus.id}`;
+      // Primary key in campuses table is already canonical (e.g. "campus-gehu-bhimtal")
+      const convId = campus.id;
       const initials = campus.code ? campus.code.replace(/[^A-Za-z]/g, "").substring(0, 2).toUpperCase() : getInitials(campus.name);
       await convCol.updateOne(
         { id: convId },
@@ -368,7 +370,7 @@ export async function getUserConversations(userId: string, userRole: string): Pr
 
     // Automatically enroll user into their groups in MongoDB
     const targetGroupIds: string[] = ["campusfleet-main"];
-    if (userCampusId) targetGroupIds.push(`campus-${userCampusId}`);
+    if (userCampusId) targetGroupIds.push(userCampusId);
     if (userBusNumber) targetGroupIds.push(`bus-${userBusNumber}`);
     if (userClassId) targetGroupIds.push(`class-${userClassId}`);
 
@@ -410,7 +412,7 @@ export async function getUserConversations(userId: string, userRole: string): Pr
   return docs.map((d) => ({
     id: d.id || String(d._id),
     type: d.type || "GROUP",
-    category: d.category || (d.id?.startsWith("bus-") ? "bus" : d.id?.startsWith("class-") ? "class" : d.id?.startsWith("campus-") ? "campus" : d.id === "campusfleet-main" ? "main" : "direct"),
+    category: d.category || (d.id === "campusfleet-main" ? "main" : d.id?.startsWith("bus-") ? "bus" : d.id?.startsWith("class-") ? "class" : d.id?.startsWith("campus-") ? "campus" : "direct"),
     name: d.name,
     description: d.description,
     avatarInitials: d.avatarInitials || getInitials(d.name),

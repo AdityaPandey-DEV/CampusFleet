@@ -43,20 +43,7 @@ import {
   VolumeX,
   Trash2,
   Pencil,
-  PlusCircle,
-  CheckSquare,
-  Square,
 } from "lucide-react";
-
-interface Contact {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  studentIdCode?: string;
-  department?: string;
-  semester?: string;
-}
 
 const MENTION_ROLES = [
   { tag: "@transportadmin", role: "transport_admin", label: "Transport Admin", icon: Shield, color: "text-blue-600 bg-blue-50 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800" },
@@ -74,13 +61,11 @@ export function ChatPortalView() {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [leftView, setLeftView] = useState<"messages" | "settings" | "new">("messages");
+  const [leftView, setLeftView] = useState<"messages" | "settings">("messages");
   const [filterTab, setFilterTab] = useState<"All" | "Buses" | "Classes" | "Campus" | "Unread" | "Staff">("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [inputMessage, setInputMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [contactSearch, setContactSearch] = useState("");
 
   // Mention system
   const [isMentionOpen, setIsMentionOpen] = useState(false);
@@ -92,15 +77,6 @@ export function ChatPortalView() {
   const [isAttachmentOpen, setIsAttachmentOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [activeSettingSection, setActiveSettingSection] = useState<string | null>(null);
-
-  // Group creation & edit CRUD
-  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
-  const [newGroupName, setNewGroupName] = useState("");
-  const [newGroupDescription, setNewGroupDescription] = useState("");
-  const [newGroupMembers, setNewGroupMembers] = useState<string[]>([]);
-  const [isEditingGroup, setIsEditingGroup] = useState(false);
-  const [editGroupName, setEditGroupName] = useState("");
-  const [editGroupDescription, setEditGroupDescription] = useState("");
 
   // Message edit CRUD
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -148,14 +124,12 @@ export function ChatPortalView() {
   useEffect(() => {
     loadConversations();
     loadSettings();
-    loadContacts();
 
     // Check query params for initial route
     const cid = searchParams.get("c");
     const view = searchParams.get("view");
     if (cid) setActiveConvId(cid);
     if (view === "settings") setLeftView("settings");
-    if (view === "new") setLeftView("new");
   }, [searchParams]);
 
   // Load messages when active conversation changes
@@ -220,18 +194,6 @@ export function ChatPortalView() {
       }
     } catch (err) {
       console.error("Failed to load chat settings:", err);
-    }
-  };
-
-  const loadContacts = async () => {
-    try {
-      const res = await fetch("/api/chat/contacts");
-      const data = await res.json();
-      if (data.success && data.contacts) {
-        setContacts(data.contacts);
-      }
-    } catch (err) {
-      console.error("Failed to load contacts:", err);
     }
   };
 
@@ -336,97 +298,6 @@ export function ChatPortalView() {
     }
   };
 
-  const handleStartDirectChat = async (contact: Contact) => {
-    try {
-      const res = await fetch("/api/chat/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "DIRECT",
-          name: contact.name,
-          memberIds: [contact.id],
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.conversation) {
-        await loadConversations();
-        setActiveConvId(data.conversation.id);
-        setLeftView("messages");
-      }
-    } catch (err) {
-      console.error("Failed to start direct chat:", err);
-    }
-  };
-
-  const handleCreateGroup = async () => {
-    if (!newGroupName.trim()) return;
-    try {
-      const res = await fetch("/api/chat/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "GROUP",
-          name: newGroupName.trim(),
-          description: newGroupDescription.trim(),
-          memberIds: newGroupMembers,
-          creatorId: currentUser?.id,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.conversation) {
-        setIsCreateGroupOpen(false);
-        setNewGroupName("");
-        setNewGroupDescription("");
-        setNewGroupMembers([]);
-        await loadConversations();
-        setActiveConvId(data.conversation.id);
-        setLeftView("messages");
-      }
-    } catch (err) {
-      console.error("Failed to create group:", err);
-    }
-  };
-
-  const handleUpdateGroup = async () => {
-    if (!activeConvId || !editGroupName.trim()) return;
-    try {
-      const res = await fetch("/api/chat/conversations", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: activeConvId,
-          name: editGroupName.trim(),
-          description: editGroupDescription.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setIsEditingGroup(false);
-        await loadConversations();
-      }
-    } catch (err) {
-      console.error("Failed to update group:", err);
-    }
-  };
-
-  const handleDeleteGroup = async () => {
-    if (!activeConvId) return;
-    if (!confirm("Are you sure you want to delete this group and all its messages from MongoDB?")) return;
-    try {
-      const res = await fetch(`/api/chat/conversations?id=${activeConvId}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setIsDetailsOpen(false);
-        setActiveConvId(null);
-        await loadConversations();
-      }
-    } catch (err) {
-      console.error("Failed to delete group:", err);
-    }
-  };
-
   const handleDeleteMessage = async (msgId: string) => {
     try {
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
@@ -501,7 +372,7 @@ export function ChatPortalView() {
     if (filterTab === "Unread") return (c.unreadCount || 0) > 0;
     if (filterTab === "Buses") return c.category === "bus" || c.name.startsWith("Bus ") || c.id.startsWith("bus-");
     if (filterTab === "Classes") return c.category === "class" || c.id.startsWith("class-");
-    if (filterTab === "Campus") return c.category === "campus" || c.category === "main" || c.id === "campusfleet-main" || c.id.startsWith("campus-");
+    if (filterTab === "Campus") return c.category === "campus" || (c.id.startsWith("campus-") && c.id !== "campusfleet-main");
     if (filterTab === "Staff") return c.type === "DIRECT" || c.name.toLowerCase().includes("conductor") || c.name.toLowerCase().includes("driver") || c.name.toLowerCase().includes("admin") || c.name.toLowerCase().includes("manager");
     return true;
   });
@@ -598,13 +469,6 @@ export function ChatPortalView() {
                   <Search className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setLeftView("new")}
-                  className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  title="New chat"
-                >
-                  <Edit3 className="w-5 h-5" />
-                </button>
-                <button
                   onClick={() => setLeftView("settings")}
                   className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   title="Chat settings"
@@ -620,7 +484,7 @@ export function ChatPortalView() {
                 <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search or start a new chat"
+                  placeholder="Search channels and messages..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-8 py-2 text-sm rounded-full bg-gray-100 dark:bg-gray-800/80 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 border border-transparent transition-all"
@@ -659,14 +523,11 @@ export function ChatPortalView() {
             {/* Conversations List */}
             <div className="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/50">
               {filteredConversations.length === 0 ? (
-                <div className="p-8 text-center text-sm text-gray-400 space-y-2">
-                  <p>No conversations found</p>
-                  <button
-                    onClick={() => setLeftView("new")}
-                    className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
-                  >
-                    Start a new chat
-                  </button>
+                <div className="p-8 text-center text-sm text-gray-400 space-y-1">
+                  <p className="font-medium text-gray-600 dark:text-gray-300">No channels found</p>
+                  <p className="text-xs text-gray-400">
+                    {searchQuery ? "Try searching with a different term" : "Your assigned transit channels will appear here"}
+                  </p>
                 </div>
               ) : (
                 filteredConversations.map((conv, idx) => {
@@ -855,162 +716,6 @@ export function ChatPortalView() {
             </div>
           </div>
         )}
-
-        {/* --- VIEW 3: NEW CHAT (Reverse-Engineered Screenshot 3) --- */}
-        {leftView === "new" && (
-          <div className="flex-1 flex flex-col h-full bg-white dark:bg-gray-900">
-            {/* Header */}
-            <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3">
-              <button
-                onClick={() => setLeftView("messages")}
-                className="p-1 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">New chat</h2>
-            </div>
-
-            {/* Search input */}
-            <div className="p-4 border-b border-gray-100 dark:border-gray-800">
-              <div className="relative flex items-center">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search name or roll number"
-                  value={contactSearch}
-                  onChange={(e) => setContactSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-sm rounded-full bg-gray-100 dark:bg-gray-800/80 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 border border-transparent transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Create Custom Group / Channel Section */}
-            <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20">
-              <button
-                onClick={() => setIsCreateGroupOpen(!isCreateGroupOpen)}
-                className="w-full flex items-center justify-between p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/60 font-semibold text-xs transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <PlusCircle className="w-4 h-4" />
-                  <span>Create Custom Group / Channel</span>
-                </span>
-                <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">
-                  New
-                </span>
-              </button>
-
-              {/* Inline Group Creation Form */}
-              {isCreateGroupOpen && (
-                <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2.5 animate-in fade-in duration-150">
-                  <div className="text-xs font-bold text-gray-900 dark:text-white">New Group Channel</div>
-                  <input
-                    type="text"
-                    placeholder="Group name (e.g. Hostellers Bus Commuters)"
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Description (optional)"
-                    value={newGroupDescription}
-                    onChange={(e) => setNewGroupDescription(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                  <div className="text-[10px] font-bold uppercase text-gray-400">Select Initial Members</div>
-                  <div className="max-h-28 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
-                    {contacts.slice(0, 15).map((c) => {
-                      const isSelected = newGroupMembers.includes(c.id);
-                      return (
-                        <div
-                          key={c.id}
-                          onClick={() => {
-                            if (isSelected) {
-                              setNewGroupMembers((prev) => prev.filter((id) => id !== c.id));
-                            } else {
-                              setNewGroupMembers((prev) => [...prev, c.id]);
-                            }
-                          }}
-                          className="flex items-center justify-between py-1 px-1 cursor-pointer text-xs hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
-                        >
-                          <span className="truncate">{c.name} ({c.role})</span>
-                          {isSelected ? (
-                            <CheckSquare className="w-3.5 h-3.5 text-blue-600" />
-                          ) : (
-                            <Square className="w-3.5 h-3.5 text-gray-400" />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex items-center justify-end gap-2 pt-1">
-                    <button
-                      onClick={() => setIsCreateGroupOpen(false)}
-                      className="px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleCreateGroup}
-                      disabled={!newGroupName.trim()}
-                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
-                    >
-                      Save to Database
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Contacts list */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                Direct Contacts on CampusFleet
-              </div>
-
-              <div className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                {contacts
-                  .filter((c) =>
-                    c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                    c.email.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                    (c.studentIdCode && c.studentIdCode.toLowerCase().includes(contactSearch.toLowerCase()))
-                  )
-                  .map((contact, idx) => {
-                    const initials = getInitials(contact.name);
-                    const avatarClasses = getAvatarColor(contact.name, idx);
-
-                    return (
-                      <div
-                        key={contact.id}
-                        onClick={() => handleStartDirectChat(contact)}
-                        className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                      >
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${avatarClasses}`}
-                        >
-                          {initials}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                              {contact.name}
-                            </span>
-                            <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                              {contact.role}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-400 truncate">
-                            {contact.studentIdCode ? `${contact.studentIdCode} • ` : ""}
-                            {contact.email}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ======================================================== */}
@@ -1088,63 +793,12 @@ export function ChatPortalView() {
                     <div className="w-16 h-16 rounded-full bg-blue-600 text-white font-black text-xl flex items-center justify-center mx-auto mb-2">
                       {activeConversation.avatarInitials}
                     </div>
-                    {isEditingGroup ? (
-                      <div className="space-y-2 mt-2 text-left">
-                        <label className="text-[10px] font-bold uppercase text-gray-400">Group Name</label>
-                        <input
-                          type="text"
-                          value={editGroupName}
-                          onChange={(e) => setEditGroupName(e.target.value)}
-                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white"
-                        />
-                        <label className="text-[10px] font-bold uppercase text-gray-400">Description</label>
-                        <textarea
-                          rows={2}
-                          value={editGroupDescription}
-                          onChange={(e) => setEditGroupDescription(e.target.value)}
-                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white"
-                        />
-                        <div className="flex items-center gap-2 justify-end pt-1">
-                          <button
-                            onClick={() => setIsEditingGroup(false)}
-                            className="px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleUpdateGroup}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold"
-                          >
-                            Save Changes
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <h4 className="font-bold text-sm text-gray-900 dark:text-white">{activeConversation.name}</h4>
-                        <p className="text-xs text-gray-400 mt-1">{activeConversation.description || "CampusFleet transit communication channel"}</p>
-                        <div className="flex items-center justify-center gap-2 mt-3">
-                          <button
-                            onClick={() => {
-                              setEditGroupName(activeConversation.name);
-                              setEditGroupDescription(activeConversation.description || "");
-                              setIsEditingGroup(true);
-                            }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors"
-                          >
-                            <Pencil className="w-3 h-3" />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={handleDeleteGroup}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            <span>Delete</span>
-                          </button>
-                        </div>
-                      </>
-                    )}
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-white">{activeConversation.name}</h4>
+                    <p className="text-xs text-gray-400 mt-1">{activeConversation.description || "CampusFleet transit communication channel"}</p>
+                    <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40">
+                      <Sparkles className="w-3 h-3" />
+                      <span>Automated Dynamic Channel</span>
+                    </div>
                   </div>
 
                   <div className="pt-2 border-t border-gray-100 dark:border-gray-800 space-y-2">

@@ -49,7 +49,8 @@ export async function getMongoDb(): Promise<Db | null> {
   }
   try {
     const connectedClient = await clientPromise;
-    return connectedClient.db(process.env.MONGODB_DB_NAME || undefined);
+    const dbName = process.env.MONGODB_DB_NAME || "campusfleet";
+    return connectedClient.db(dbName);
   } catch (err) {
     console.warn("MongoDB connection warning:", (err as Error)?.message || err);
     return null;
