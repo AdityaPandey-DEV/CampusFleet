@@ -107,9 +107,9 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
   });
 
   const buses: Bus[] = (dbBuses || []).map((b: any) => ({
-    id: b.id,
-    busNumber: b.bus_number,
-    registrationNo: b.registration_no || b.bus_number,
+    id: Number(b.id),
+    busNumber: Number(b.bus_number),
+    registrationNo: b.registration_no || String(b.bus_number),
     model: b.model || "",
     capacity: Number(b.capacity || 0),
     seatLayout: (b.seat_layout as any) || "NONE",
@@ -191,7 +191,7 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
       id: t.id,
       tripCode: t.trip_code || "",
       routeId: t.route_id || "",
-      busId: t.bus_id || "",
+      busId: Number(t.bus_id || 0),
       shiftId: t.shift_id || "",
       driverId: t.driver_id || "",
       conductorId: t.conductor_id || "",
@@ -219,7 +219,7 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
     bookingRef: b.booking_ref || "",
     studentId: b.student_id,
     tripId: b.trip_id,
-    busId: b.bus_id || "",
+    busId: b.bus_id ? Number(b.bus_id) : undefined,
     seatNumber: b.seat_number || "",
     bookingDate: b.booking_date || (b.created_at ? b.created_at.split("T")[0] : ""),
     boardingStopId: b.boarding_stop_id,
@@ -347,9 +347,9 @@ export async function getHardwareDeskServerData(redirectPath: string = "/transpo
       ]);
 
       const buses: Bus[] = (dbBuses || []).map((b: any) => ({
-        id: b.id,
-        busNumber: b.bus_number,
-        registrationNo: b.registration_no || b.bus_number,
+        id: Number(b.id),
+        busNumber: Number(b.bus_number),
+        registrationNo: b.registration_no || String(b.bus_number),
         model: b.model || "",
         capacity: Number(b.capacity || 0),
         seatLayout: (b.seat_layout as any) || "NONE",

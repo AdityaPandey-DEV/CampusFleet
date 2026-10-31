@@ -60,7 +60,7 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
         id: "trip-morning",
         tripCode: "TRIP-MORN-01",
         routeId: "route-1",
-        busId: "bus-1",
+        busId: 1,
         shiftId: "shift-morning",
         driverId: mockDriverId,
         conductorId: "cond-1",
@@ -74,7 +74,7 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
         id: "trip-evening",
         tripCode: "TRIP-EVE-02",
         routeId: "route-1",
-        busId: "bus-1",
+        busId: 1,
         shiftId: "shift-evening",
         driverId: mockDriverId,
         conductorId: "cond-1",
@@ -88,7 +88,7 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
         id: "trip-other-driver",
         tripCode: "TRIP-OTHER-03",
         routeId: "route-2",
-        busId: "bus-2",
+        busId: 2,
         shiftId: "shift-morning",
         driverId: "other-driver-999",
         conductorId: "cond-2",
@@ -168,7 +168,7 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
       id: "trip-sync-test",
       tripCode: "TRIP-SYNC-01",
       routeId: "route-1",
-      busId: "bus-1",
+      busId: 1,
       shiftId: "shift-1",
       driverId: "driver-1",
       conductorId: "cond-1",
@@ -243,7 +243,7 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
     });
 
     it("should support switching duty bus and rebind trip bus assignment in store", async () => {
-      const newBusId = "bus-37-replacement";
+      const newBusId = 37;
       await store.updateTrip(initialTrip.id, {
         busId: newBusId,
       });
@@ -279,7 +279,7 @@ describe("Driver Portal Production Functionality & Resilience Tests", () => {
       });
 
       const payload: LiveBusLocation = {
-        busId: "bus-real-01",
+        busId: 37,
         tripId: "trip-real-01",
         latitude: 29.2183,
         longitude: 79.5126,

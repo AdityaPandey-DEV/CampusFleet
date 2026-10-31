@@ -39,8 +39,8 @@ describe("CampusFleet Fleet Reservation Engine Tests", () => {
   };
 
   const mockBus: Bus = {
-    id: "bus-test",
-    busNumber: "BUS-TEST (2-Seater Mini)",
+    id: 999,
+    busNumber: 999,
     registrationNo: "DL-01-TEST",
     model: "Mini Shuttle",
     capacity: 2, // Tiny capacity for boundary testing
@@ -55,7 +55,7 @@ describe("CampusFleet Fleet Reservation Engine Tests", () => {
     id: "trip-test",
     tripCode: "TRIP-TST-01",
     routeId: "route-1",
-    busId: "bus-test",
+    busId: 999,
     shiftId: "shift-1",
     driverId: "staff-1",
     conductorId: "staff-2",
@@ -80,7 +80,7 @@ describe("CampusFleet Fleet Reservation Engine Tests", () => {
     expect(result.success).toBe(true);
     expect(result.booking?.status).toBe("CONFIRMED");
     expect(result.booking?.seatNumber).toBe("1A");
-    expect(result.booking?.busId).toBe("bus-test");
+    expect(result.booking?.busId).toBe(999);
   });
 
   it("rejects booking with clear message when physical seats are full (strict capacity enforcement)", () => {

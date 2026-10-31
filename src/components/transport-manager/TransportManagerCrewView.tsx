@@ -171,7 +171,7 @@ export default function TransportManagerCrewView({
       const route = routes.find((r) => r.id === t.routeId);
       return (
         t.tripCode?.toLowerCase().includes(q) ||
-        bus?.busNumber?.toLowerCase().includes(q) ||
+        String(bus?.busNumber).includes(q) ||
         route?.name?.toLowerCase().includes(q)
       );
     });

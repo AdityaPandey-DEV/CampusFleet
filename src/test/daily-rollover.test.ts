@@ -84,7 +84,7 @@ export function generateDailyTrips(
     activeShifts.forEach((shift) => {
       const shiftSuffix = shift.shiftType === "MORNING" ? "M" : shift.shiftType === "EVENING" ? "E" : "C";
       const tripId = `trip-${bus.id}-${shiftSuffix.toLowerCase()}-${targetDate}`;
-      const tripCode = `TRIP-${route.code}-${bus.busNumber.split(" ")[0]}-${shiftSuffix}-${targetDate}`;
+      const tripCode = `TRIP-${route.code}-${bus.busNumber}-${shiftSuffix}-${targetDate}`;
 
       generatedTrips.push({
         id: tripId,
@@ -142,8 +142,8 @@ export function calculateDateScopedSeatAvailability(
 describe("CampusFleet Daily Operations & Rollover Engine Tests", () => {
   const mockBuses: Bus[] = [
     {
-      id: "bus-44",
-      busNumber: "BUS-44 (City Corridor)",
+      id: 44,
+      busNumber: 44,
       registrationNo: "UK-04-PA-1234",
       model: "Tata Starbus 40",
       capacity: 40,
@@ -155,8 +155,8 @@ describe("CampusFleet Daily Operations & Rollover Engine Tests", () => {
       currentRouteId: "route-44",
     },
     {
-      id: "bus-37",
-      busNumber: "BUS-37 (Lamachaur Express)",
+      id: 37,
+      busNumber: 37,
       registrationNo: "UK-04-PA-5678",
       model: "Tata Starbus 40",
       capacity: 40,
@@ -223,7 +223,7 @@ describe("CampusFleet Daily Operations & Rollover Engine Tests", () => {
         id: "trip-yesterday-1",
         tripCode: "TRIP-OLD-1",
         routeId: "route-44",
-        busId: "bus-44",
+        busId: 44,
         shiftId: "shift-1",
         driverId: "d-1",
         conductorId: "c-1",
@@ -290,7 +290,7 @@ describe("CampusFleet Daily Operations & Rollover Engine Tests", () => {
         id: "trip-b44-m-2026-09-10",
         tripCode: "TRIP-R-44-BUS-44-M-2026-09-10",
         routeId: "route-44",
-        busId: "bus-44",
+        busId: 44,
         shiftId: "shift-1",
         driverId: "d-1",
         conductorId: "c-1",
@@ -323,7 +323,7 @@ describe("CampusFleet Daily Operations & Rollover Engine Tests", () => {
       id: "trip-today",
       tripCode: "TRIP-TODAY-01",
       routeId: "route-44",
-      busId: "bus-44",
+      busId: 44,
       shiftId: "shift-1",
       driverId: "d-1",
       conductorId: "c-1",

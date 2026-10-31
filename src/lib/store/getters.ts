@@ -269,7 +269,7 @@ CampusFleetStore.prototype.getLiveLocationForTrip = function (this: CampusFleetS
     typeof this.liveLocation.longitude === "number" &&
     !isNaN(this.liveLocation.longitude) &&
     (this.liveLocation.latitude !== 0 || this.liveLocation.longitude !== 0) &&
-    (!trip?.busId || !this.liveLocation.busId || trip.busId.toLowerCase() === this.liveLocation.busId.toLowerCase())
+    (!trip?.busId || !this.liveLocation.busId || String(trip.busId).toLowerCase() === String(this.liveLocation.busId).toLowerCase())
   );
 
   if (hasLiveBroadcast) {
@@ -313,7 +313,7 @@ CampusFleetStore.prototype.getLiveLocationForTrip = function (this: CampusFleetS
 /** Get all buses that serve a specific stop (both explicit route stops and passing corridor path coverage) */
 CampusFleetStore.prototype.getBusesForStop = function (this: CampusFleetStore, stopId: string): Bus[] {
   const targetStop = this.stops.find(s => s.id === stopId);
-  const directBusIds = new Set(
+  const directBusIds = new Set<number | string>(
     this.stopRoutes.filter(sr => sr.stopId === stopId).map(sr => sr.busId)
   );
 

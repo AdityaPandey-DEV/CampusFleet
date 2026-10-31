@@ -109,16 +109,19 @@ export default function DriverConsoleView({
   }, [trips, selectedTripId]);
 
   // Duty Bus Selection & Switching State (independent per driver device)
-  const [selectedBusId, setSelectedBusId] = useState<string>(() => {
+  const [selectedBusId, setSelectedBusId] = useState<number>(() => {
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("campusfleet_driver_duty_bus");
-        if (saved && initialBuses.some((b) => b.id === saved)) return saved;
+        if (saved) {
+          const num = Number(saved);
+          if (initialBuses.some((b) => b.id === num)) return num;
+        }
       } catch {}
     }
     if (myAssignedTrip?.busId) return myAssignedTrip.busId;
     const currentTrip = initialTrips.find((t) => t.id === selectedTripId);
-    return currentTrip?.busId || initialTrips[0]?.busId || initialBuses[0]?.id || "";
+    return currentTrip?.busId || initialTrips[0]?.busId || initialBuses[0]?.id || 2;
   });
   const [showBusSwitchModal, setShowBusSwitchModal] = useState(false);
   const [busSearchQuery, setBusSearchQuery] = useState("");
@@ -578,7 +581,7 @@ export default function DriverConsoleView({
   };
 
   // Switch duty vehicle
-  const handleSwitchBus = async (newBusId: string) => {
+  const handleSwitchBus = async (newBusId: number) => {
     if (!newBusId) return;
     const targetBus = buses.find((b) => b.id === newBusId);
     if (!targetBus) return;
@@ -586,7 +589,7 @@ export default function DriverConsoleView({
     setSelectedBusId(newBusId);
     if (typeof window !== "undefined") {
       try {
-        localStorage.setItem("campusfleet_driver_duty_bus", newBusId);
+        localStorage.setItem("campusfleet_driver_duty_bus", String(newBusId));
       } catch {}
     }
 
@@ -681,7 +684,7 @@ export default function DriverConsoleView({
     if (!q) return buses;
     return buses.filter(
       (b) =>
-        b.busNumber.toLowerCase().includes(q) ||
+        String(b.busNumber).includes(q) ||
         (b.registrationNo && b.registrationNo.toLowerCase().includes(q)) ||
         (b.model && b.model.toLowerCase().includes(q))
     );

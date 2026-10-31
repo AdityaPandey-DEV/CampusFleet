@@ -405,11 +405,11 @@ CampusFleetStore.prototype.syncLiveTransit = async function(this: CampusFleetSto
     const dbBuses: any[] = cachedState?.buses || (await supabase.from("buses").select("*")).data || [];
     if (dbBuses && dbBuses.length > 0) {
       this.buses = dbBuses.map((b: any) => ({
-        id: b.id,
-        busNumber: b.bus_number,
+        id: Number(b.id),
+        busNumber: Number(b.bus_number),
         registrationNo: b.registration_no,
         model: b.model,
-        capacity: b.capacity,
+        capacity: Number(b.capacity),
         seatLayout: b.seat_layout || "NONE",
         totalRows: b.total_rows ? Number(b.total_rows) : undefined,
         status: b.status || "ACTIVE",
@@ -427,7 +427,7 @@ CampusFleetStore.prototype.syncLiveTransit = async function(this: CampusFleetSto
         id: t.id,
         tripCode: t.trip_code,
         routeId: t.route_id,
-        busId: t.bus_id,
+        busId: Number(t.bus_id),
         shiftId: t.shift_id,
         driverId: t.driver_id || "",
         conductorId: t.conductor_id || "",
@@ -479,8 +479,8 @@ CampusFleetStore.prototype.syncLiveTransit = async function(this: CampusFleetSto
     if (dbIssues && dbIssues.length > 0) {
       this.issues = dbIssues.map(i => ({
         id: i.id,
-        busId: i.bus_id,
-        busNumber: i.bus_number,
+        busId: Number(i.bus_id),
+        busNumber: Number(i.bus_number),
         reportedBy: i.reported_by,
         issueType: i.issue_type,
         severity: i.severity,

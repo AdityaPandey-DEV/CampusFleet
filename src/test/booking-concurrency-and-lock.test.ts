@@ -28,8 +28,8 @@ describe("Shift-Level Booking Lock & Concurrency Integrity Tests", () => {
   };
 
   const mockBus1: Bus = {
-    id: "bus-44",
-    busNumber: "BUS-44",
+    id: 44,
+    busNumber: 44,
     registrationNo: "DL-01-4444",
     model: "Tata Starbus Ultra",
     capacity: 20,
@@ -41,8 +41,8 @@ describe("Shift-Level Booking Lock & Concurrency Integrity Tests", () => {
   };
 
   const mockBus2: Bus = {
-    id: "bus-12",
-    busNumber: "BUS-12",
+    id: 12,
+    busNumber: 12,
     registrationNo: "DL-01-1212",
     model: "Ashok Leyland Oyster",
     capacity: 20,
@@ -58,7 +58,7 @@ describe("Shift-Level Booking Lock & Concurrency Integrity Tests", () => {
     id: "trip-bus-44-morning",
     tripCode: "TRIP-B44-M",
     routeId: "route-blue",
-    busId: "bus-44",
+    busId: 44,
     shiftId: "shift-morning-inbound",
     driverId: "drv-1",
     conductorId: "cnd-1",
@@ -73,7 +73,7 @@ describe("Shift-Level Booking Lock & Concurrency Integrity Tests", () => {
     id: "trip-bus-12-morning",
     tripCode: "TRIP-B12-M",
     routeId: "route-blue",
-    busId: "bus-12",
+    busId: 12,
     shiftId: "shift-morning-inbound", // Same shift!
     driverId: "drv-2",
     conductorId: "cnd-2",
@@ -88,7 +88,7 @@ describe("Shift-Level Booking Lock & Concurrency Integrity Tests", () => {
     id: "trip-bus-44-evening",
     tripCode: "TRIP-B44-E",
     routeId: "route-blue",
-    busId: "bus-44",
+    busId: 44,
     shiftId: "shift-evening-outbound", // Different shift!
     driverId: "drv-1",
     conductorId: "cnd-1",

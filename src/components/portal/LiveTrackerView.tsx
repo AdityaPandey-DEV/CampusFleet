@@ -224,7 +224,7 @@ export default function LiveTrackerView({
 
     if (!isTripInProgress && routeStartingStop) {
       return {
-        busId: assignedBus?.id || "",
+        busId: assignedBus?.id ?? -1,
         tripId: activeTrip?.id || "",
         latitude: routeStartingStop.latitude,
         longitude: routeStartingStop.longitude,
@@ -252,7 +252,7 @@ export default function LiveTrackerView({
 
     const currentStop = currentRouteStops[activeTrip?.currentStopIndex || 0] || routeStartingStop || (stops.length > 0 ? stops[0] : null);
     return {
-      busId: assignedBus?.id || "",
+      busId: assignedBus?.id ?? -1,
       tripId: activeTrip?.id || "",
       latitude: currentStop?.latitude || 0,
       longitude: currentStop?.longitude || 0,
@@ -460,7 +460,7 @@ export default function LiveTrackerView({
             <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800">
               <CampusFleetMap
                 busLocation={effectiveLiveLocation}
-                busName={assignedBus?.busNumber ? `${assignedBus.busNumber} (${assignedRoute?.name || "Campus Express"})` : (assignedRoute?.name || "Campus Shuttle")}
+                busName={assignedBus?.busNumber ? `Bus ${assignedBus.busNumber} (${assignedRoute?.name || "Campus Express"})` : (assignedRoute?.name || "Campus Shuttle")}
                 tripStatus={activeTrip?.status || "SCHEDULED"}
                 stops={currentRouteStops}
                 campuses={store.getCampuses()}

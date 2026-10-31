@@ -84,12 +84,14 @@ export function timeStringToMinutes(timeStr?: string): number {
 }
 
 /**
- * Extracts clean short bus label (e.g. "Bus 2", "Bus 44", "Bus 21", "Tempo")
+ * Extracts clean short bus label (e.g. "Bus 2", "Bus 44", "Bus 21", "Bus 51")
  */
-export function getShortBusLabel(busNumber: string): string {
-  const match = busNumber.match(/^(Bus\s+\d+|Tempo)/i);
+export function getShortBusLabel(busNumber: number | string): string {
+  const str = String(busNumber);
+  if (/^\d+$/.test(str)) return `Bus ${str}`;
+  const match = str.match(/^(Bus\s+\d+|Tempo)/i);
   if (match) return match[1];
-  return busNumber.split(" ")[0] || "Bus";
+  return str.split(" ")[0] || "Bus";
 }
 
 /**
@@ -292,7 +294,7 @@ export function computeFleetBusMarkers(
       busId: bus.id,
       busNumber: bus.busNumber,
       shortLabel: getShortBusLabel(bus.busNumber),
-      registrationNo: bus.registrationNo || bus.busNumber,
+      registrationNo: bus.registrationNo || String(bus.busNumber),
       routeId: route?.id,
       routeName: route?.name || "Campus Transit Route",
       tripId: activeTrip?.id,

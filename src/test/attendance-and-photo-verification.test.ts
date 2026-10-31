@@ -206,7 +206,7 @@ describe("Attendance and Passport Photo Anti-Impersonation Verification", () => 
       // Commuter is 1.2 meters away (strictly < 2m)
       const res = await store.unlockAttendance(lockStudentId, lockTripId, "LOCATION_DISTANCE", {
         distanceMeters: 1.2,
-        busId: "bus-44",
+        busId: 44,
       });
 
       expect(res.success).toBe(true);
@@ -225,7 +225,7 @@ describe("Attendance and Passport Photo Anti-Impersonation Verification", () => 
       const cardUid = "93A24B1F";
       const res = await store.unlockAttendance(lockStudentId, lockTripId, "RFID", {
         rfidCardId: cardUid,
-        busId: "bus-44",
+        busId: 44,
       });
 
       expect(res.success).toBe(true);

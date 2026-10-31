@@ -17,7 +17,7 @@ export default function TransportAdminSeatQRsPage() {
   useEffect(() => {
     if (busId) {
       const buses = store.getBuses();
-      const foundBus = buses.find((b) => b.id === busId);
+      const foundBus = buses.find((b) => b.id === Number(busId));
       if (foundBus) {
         setBus(foundBus);
       }

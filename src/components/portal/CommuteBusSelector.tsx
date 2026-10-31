@@ -8,7 +8,7 @@ import { Clock, MapPin, BusFront, ChevronRight, Route as RouteIcon } from "lucid
 import type { Student, Shift, Stop, Bus, Trip, Booking, Route } from "@/lib/types";
 
 export interface CommuteBusSelectorProps {
-  onBusSelected: (shiftId: string, stopId: string, busId: string) => void;
+  onBusSelected: (shiftId: string, stopId: string, busId: number) => void;
   initialUser?: any;
   initialStudent?: Student | null;
   initialStudents?: Student[];
@@ -160,7 +160,7 @@ export default function CommuteBusSelector({
     }));
   }, [buses, shiftTrips, routes, selectedStopId]);
 
-  const handleBusSelected = (busId: string) => {
+  const handleBusSelected = (busId: number) => {
     onBusSelected(selectedShiftId, selectedStopId, busId);
   };
 
@@ -280,7 +280,7 @@ export default function CommuteBusSelector({
                  <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4">
                    <BusFront className="w-6 h-6" />
                  </div>
-                 <h3 className="text-2xl font-black text-gray-900 dark:text-white">{bus.busNumber}</h3>
+                 <h3 className="text-2xl font-black text-gray-900 dark:text-white">Bus {bus.busNumber}</h3>
                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Standard Bus</p>
                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
                     <span className="text-xs text-gray-500 font-bold">Total Capacity</span>

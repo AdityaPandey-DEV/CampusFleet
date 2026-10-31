@@ -66,8 +66,13 @@ export default function StaffFlowchartView({
     arrivalOffset: number;
   } | null>(null);
 
-  const [assignBusFormData, setAssignBusFormData] = useState({
-    busId: "",
+  const [assignBusFormData, setAssignBusFormData] = useState<{
+    busId: number;
+    departureTime: string;
+    driverId: string;
+    conductorId: string;
+  }>({
+    busId: -1,
     departureTime: "07:20",
     driverId: "",
     conductorId: "",
@@ -145,7 +150,7 @@ export default function StaffFlowchartView({
       arrivalOffset: stop.arrivalOffset,
     });
     setAssignBusFormData({
-      busId: buses[0]?.id || "",
+      busId: buses[0]?.id ?? -1,
       departureTime: "07:20",
       driverId: staff.find((s) => s.role === "driver")?.id || "",
       conductorId: staff.find((s) => s.role === "conductor")?.id || "",
@@ -155,7 +160,7 @@ export default function StaffFlowchartView({
   };
 
   const handleConfirmDeployBus = async () => {
-    if (!assignBusFormData.busId) {
+    if (!assignBusFormData.busId || assignBusFormData.busId <= 0) {
       setAssignFlowchartError("Please select an operational fleet bus.");
       return;
     }
@@ -454,11 +459,11 @@ export default function StaffFlowchartView({
                   Select Fleet Bus
                 </label>
                 <CustomDropdown
-                  value={assignBusFormData.busId}
-                  onChange={(val) => setAssignBusFormData({ ...assignBusFormData, busId: val })}
+                  value={assignBusFormData.busId > 0 ? String(assignBusFormData.busId) : ""}
+                  onChange={(val) => setAssignBusFormData({ ...assignBusFormData, busId: val ? Number(val) : -1 })}
                   options={buses.map((b) => ({
-                    value: b.id,
-                    label: `${b.busNumber} • ${b.model} (${b.capacity} seats)`,
+                    value: String(b.id),
+                    label: `Bus ${b.busNumber} • ${b.model} (${b.capacity} seats)`,
                   }))}
                 />
               </div>

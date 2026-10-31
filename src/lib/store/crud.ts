@@ -26,10 +26,9 @@ declare module "./_base" {
     createNotification(notif: Omit<NotificationItem, "id" | "timestamp">): NotificationItem;
     triggerSOS(studentId: string, locationStr: string, reason: string): NotificationItem;
     setActiveChildId(childId: string): void;
-    // Buses
     createBus(busData: Omit<Bus, "id">): Promise<Bus>;
-    updateBus(id: string, updates: Partial<Bus>): Promise<void>;
-    deleteBus(id: string): Promise<void>;
+    updateBus(id: number, updates: Partial<Bus>): Promise<void>;
+    deleteBus(id: number): Promise<void>;
     // Stops
     createStop(stopData: Omit<Stop, "id">): Promise<Stop>;
     updateStop(id: string, updates: Partial<Stop>): Promise<void>;
@@ -47,7 +46,7 @@ declare module "./_base" {
     createRoute(routeData: Omit<Route, "id">): Promise<Route>;
     updateRoute(id: string, updates: Partial<Route>): Promise<void>;
     deleteRoute(id: string): Promise<void>;
-    allocateBusToRoute(busId: string, routeId: string): Promise<void>;
+    allocateBusToRoute(busId: number, routeId: string): Promise<void>;
     // Trips
     assignTripCrew(tripId: string, driverId: string, conductorId: string): Promise<void>;
     createTrip(tripData: Omit<Trip, "id">): Promise<Trip>;
@@ -476,34 +475,41 @@ CampusFleetStore.prototype.setActiveChildId = function (this: CampusFleetStore, 
 // ── Bus CRUD ────────────────────────────────────────────────────────────────
 
 CampusFleetStore.prototype.createBus = async function (this: CampusFleetStore, busData: Omit<Bus, "id">) {
+  let dbInsertedId: number = Date.now();
+  try {
+    const { data } = await supabase.from("buses").insert({
+      bus_number: busData.busNumber,
+      registration_no: busData.registrationNo,
+      model: busData.model,
+      capacity: busData.capacity,
+      seat_layout: busData.seatLayout,
+      total_rows: busData.totalRows,
+      status: busData.status,
+      gps_device_id: busData.gpsDeviceId,
+      current_route_id: busData.currentRouteId,
+    }).select("id").single();
+    if (data?.id) dbInsertedId = Number(data.id);
+  } catch (e) { console.warn("DB createBus:", e); }
+
   const newBus: Bus = {
     ...busData,
-    id: `bus-${Date.now()}`,
+    id: dbInsertedId,
   };
   this.buses = [...this.buses, newBus];
   this.notify();
-
-  try {
-    await supabase.from("buses").insert({
-      id: newBus.id, bus_number: newBus.busNumber, registration_no: newBus.registrationNo,
-      model: newBus.model, capacity: newBus.capacity, seat_layout: newBus.seatLayout,
-      total_rows: newBus.totalRows,
-      status: newBus.status, gps_device_id: newBus.gpsDeviceId, current_route_id: newBus.currentRouteId,
-    });
-  } catch (e) { console.warn("DB createBus:", e); }
   return newBus;
 };
 
-CampusFleetStore.prototype.updateBus = async function (this: CampusFleetStore, id: string, updates: Partial<Bus>) {
+CampusFleetStore.prototype.updateBus = async function (this: CampusFleetStore, id: number, updates: Partial<Bus>) {
   this.buses = this.buses.map(b => b.id === id ? { ...b, ...updates } : b);
   this.notify();
 
   try {
     const dbUpdates: Record<string, unknown> = {};
-    if (updates.busNumber) dbUpdates.bus_number = updates.busNumber;
+    if (updates.busNumber !== undefined) dbUpdates.bus_number = updates.busNumber;
     if (updates.registrationNo) dbUpdates.registration_no = updates.registrationNo;
     if (updates.model) dbUpdates.model = updates.model;
-    if (updates.capacity) dbUpdates.capacity = updates.capacity;
+    if (updates.capacity !== undefined) dbUpdates.capacity = updates.capacity;
     if (updates.seatLayout) dbUpdates.seat_layout = updates.seatLayout;
     if (updates.totalRows !== undefined) dbUpdates.total_rows = updates.totalRows;
     if (updates.status) dbUpdates.status = updates.status;
@@ -514,7 +520,7 @@ CampusFleetStore.prototype.updateBus = async function (this: CampusFleetStore, i
   } catch (e) { console.warn("DB updateBus:", e); }
 };
 
-CampusFleetStore.prototype.deleteBus = async function (this: CampusFleetStore, id: string) {
+CampusFleetStore.prototype.deleteBus = async function (this: CampusFleetStore, id: number) {
   this.buses = this.buses.filter(b => b.id !== id);
   this.notify();
   try { await supabase.from("buses").delete().eq("id", id); } catch (e) { console.warn("DB deleteBus:", e); }
@@ -955,7 +961,7 @@ CampusFleetStore.prototype.deleteRoute = async function (this: CampusFleetStore,
   }
 };
 
-CampusFleetStore.prototype.allocateBusToRoute = async function (this: CampusFleetStore, busId: string, routeId: string) {
+CampusFleetStore.prototype.allocateBusToRoute = async function (this: CampusFleetStore, busId: number, routeId: string) {
   this.buses = this.buses.map(b => (b.id === busId ? { ...b, currentRouteId: routeId } : b));
   this.notify();
   try { await supabase.from("buses").update({ current_route_id: routeId }).eq("id", busId); } catch (e) { console.warn("DB allocate:", e); }

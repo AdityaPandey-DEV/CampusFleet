@@ -36,16 +36,16 @@ export interface RfidCardIssuanceViewProps {
 
 interface DetectedCard {
   rfidCardId: string;
-  busId: string;
-  busNumber?: string;
+  busId: number;
+  busNumber?: number;
   deviceId?: string;
   scannedAt: string;
 }
 
 interface HardwareStatus {
   deviceId: string;
-  busId: string;
-  busNumber: string;
+  busId: number;
+  busNumber: number;
   isMapped: boolean;
   lastSeen: string;
 }
@@ -130,7 +130,7 @@ export default function RfidCardIssuanceView({
 
   // Device-to-Bus Pairing Modal State
   const [deviceModalOpen, setDeviceModalOpen] = useState(false);
-  const [selectedBusForDevice, setSelectedBusForDevice] = useState<string>("");
+  const [selectedBusForDevice, setSelectedBusForDevice] = useState<number>(-1);
   const [deviceIdInput, setDeviceIdInput] = useState<string>("");
   const [isSavingDevice, setIsSavingDevice] = useState(false);
 
@@ -341,7 +341,7 @@ function formatTimeAgo(isoString?: string | null): string {
 
   // Save or update ESP32 device-to-bus mapping
   const handleSaveDeviceMapping = async () => {
-    if (!selectedBusForDevice) {
+    if (selectedBusForDevice <= 0) {
       showToast("error", "Please select a bus asset.");
       return;
     }
@@ -382,7 +382,7 @@ function formatTimeAgo(isoString?: string | null): string {
         setHardwareStatus({
           ...hardwareStatus,
           busId: selectedBusForDevice,
-          busNumber: data.bus?.bus_number || selectedBusForDevice,
+          busNumber: Number(data.bus?.bus_number) || selectedBusForDevice,
           isMapped: Boolean(cleanDevice),
         });
       }
@@ -435,7 +435,7 @@ function formatTimeAgo(isoString?: string | null): string {
   const filteredUnmapped = useMemo(() => {
     if (!filterQuery.trim()) return unmappedCards;
     const q = filterQuery.toLowerCase().trim();
-    return unmappedCards.filter((c) => c.rfidCardId.toLowerCase().includes(q) || c.busId.toLowerCase().includes(q));
+    return unmappedCards.filter((c) => c.rfidCardId.toLowerCase().includes(q) || String(c.busId).includes(q));
   }, [unmappedCards, filterQuery]);
 
   const filteredAssigned = useMemo(() => {
@@ -520,7 +520,7 @@ function formatTimeAgo(isoString?: string | null): string {
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
-              const defaultBus = hardwareStatus?.busId || (buses.length > 0 ? buses[0].id : "");
+              const defaultBus = (hardwareStatus?.busId && hardwareStatus.busId > 0) ? hardwareStatus.busId : (buses.length > 0 ? buses[0].id : -1);
               setSelectedBusForDevice(defaultBus);
               const matchedBus = buses.find((b) => b.id === defaultBus);
               setDeviceIdInput(matchedBus?.rfidDeviceId || hardwareStatus?.deviceId || "");
@@ -543,11 +543,11 @@ function formatTimeAgo(isoString?: string | null): string {
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 {isHardwareActive
-                  ? (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId !== "UNMAPPED"
-                      ? `ESP32 Online • ${hardwareStatus.busNumber}`
+                  ? (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId > 0
+                      ? `ESP32 Online • Bus ${hardwareStatus.busNumber}`
                       : `ESP32 Active (${hardwareStatus?.deviceId || "Connected"})`)
-                  : (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId !== "UNMAPPED"
-                      ? `ESP32 Offline • ${hardwareStatus.busNumber}`
+                  : (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId > 0
+                      ? `ESP32 Offline • Bus ${hardwareStatus.busNumber}`
                       : "ESP32 Standby (Offline)")}
               </span>
               <span className="text-[10px] text-gray-400 font-mono">
@@ -1038,16 +1038,17 @@ function formatTimeAgo(isoString?: string | null): string {
                   </label>
                   <CustomDropdown
                     size="sm"
-                    value={selectedBusForDevice}
+                    value={selectedBusForDevice > 0 ? String(selectedBusForDevice) : ""}
                     onChange={(val) => {
-                      setSelectedBusForDevice(val);
-                      const matched = buses.find((b) => b.id === val);
+                      const num = val ? Number(val) : -1;
+                      setSelectedBusForDevice(num);
+                      const matched = buses.find((b) => b.id === num);
                       setDeviceIdInput(matched?.rfidDeviceId || "");
                     }}
                     placeholder="Select Bus Asset"
                     options={buses.map((b) => ({
-                      value: b.id,
-                      label: `${b.busNumber} (${b.registrationNo}) ${b.rfidDeviceId ? `• [${b.rfidDeviceId}]` : "• [Unpaired]"}`,
+                      value: String(b.id),
+                      label: `Bus ${b.busNumber} (${b.registrationNo}) ${b.rfidDeviceId ? `• [${b.rfidDeviceId}]` : "• [Unpaired]"}`,
                     }))}
                   />
                 </div>
@@ -1112,7 +1113,7 @@ function formatTimeAgo(isoString?: string | null): string {
                       return (
                         <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40">
                           <td className="p-2.5 font-bold text-gray-900 dark:text-white">
-                            {b.busNumber}
+                            Bus {b.busNumber}
                             <span className="block text-[10px] text-gray-400 font-normal">
                               {b.registrationNo}
                             </span>

@@ -491,15 +491,15 @@ export default function StaffMaintenanceView({
                     value={busId}
                     onChange={(val) => {
                       setBusId(val);
-                      const b = buses.find((item) => item.id === val);
-                      if (b) setVehicleNo(b.busNumber);
+                      const b = buses.find((item) => item.id === Number(val));
+                      if (b) setVehicleNo(String(b.busNumber));
                     }}
                     placeholder="— Select from fleet —"
                     options={[
                       { value: "", label: "— Select from fleet —" },
                       ...buses.map((b) => ({
-                        value: b.id,
-                        label: `${b.busNumber} (${b.registrationNo || b.model})`,
+                        value: String(b.id),
+                        label: `Bus ${b.busNumber} (${b.registrationNo || b.model})`,
                       })),
                     ]}
                   />

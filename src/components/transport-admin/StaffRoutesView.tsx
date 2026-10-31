@@ -744,7 +744,7 @@ export default function StaffRoutesView({
   const handleAllocateBus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeRoute || !selectedBusToAllocate) return;
-    await store.allocateBusToRoute(activeRoute.id, selectedBusToAllocate);
+    await store.allocateBusToRoute(Number(selectedBusToAllocate), activeRoute.id);
     alert(`Successfully allocated bus to Corridor ${activeRoute.name}!`);
     setIsAllocateBusModalOpen(false);
   };
@@ -2661,8 +2661,8 @@ export default function StaffRoutesView({
                 options={[
                   { value: "", label: "-- Select Available Vehicle --" },
                   ...buses.map(b => ({
-                    value: b.id,
-                    label: `${b.busNumber} (${b.registrationNo}) • ${b.capacity} Seats (${b.status})`,
+                    value: String(b.id),
+                    label: `Bus ${b.busNumber} (${b.registrationNo}) • ${b.capacity} Seats (${b.status})`,
                   })),
                 ]}
               />

@@ -17,9 +17,9 @@ import {
 } from "lucide-react";
 
 interface AttendanceLockCardProps {
-  busId?: string;
+  busId?: number;
   studentId?: string;
-  busNumber?: string;
+  busNumber?: number;
   gpsDeviceId?: string;
   onUnlocked?: () => void;
   onStatusChange?: (status: "LOCKED" | "UNLOCKED") => void;
@@ -59,9 +59,9 @@ export function AttendanceLockCard({
       setErrorMessage(null);
 
       const q = new URLSearchParams();
-      if (busId) q.set("busId", busId);
+      if (busId !== undefined) q.set("busId", String(busId));
       if (studentId) q.set("studentId", studentId);
-      if (busNumber) q.set("busNumber", busNumber);
+      if (busNumber !== undefined) q.set("busNumber", String(busNumber));
       if (gpsDeviceId) q.set("gpsDeviceId", gpsDeviceId);
 
       const res = await fetch(`/api/attendance/lock?${q.toString()}`);

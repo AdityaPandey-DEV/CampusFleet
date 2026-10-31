@@ -43,7 +43,7 @@ export const INITIAL_MAINTENANCE: MaintenanceRecord[] = [];
 export const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
 export const INITIAL_LIVE_LOCATION: LiveBusLocation = {
-  busId: "",
+  busId: 0,
   tripId: "",
   latitude: 0,
   longitude: 0,

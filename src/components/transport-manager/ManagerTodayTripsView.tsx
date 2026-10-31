@@ -181,7 +181,7 @@ export default function ManagerTodayTripsView({
   // Global Bus Allocation Map: busId -> { trip, route, stopName, stopIndex }
   const busAllocationMap = useMemo(() => {
     const map = new Map<
-      string,
+      number,
       { trip: Trip; route: Route; stopName: string; stopIndex: number }
     >();
 
@@ -207,7 +207,7 @@ export default function ManagerTodayTripsView({
 
   // Operational buses counts
   const assignedBusIds = useMemo(() => {
-    const ids = new Set<string>();
+    const ids = new Set<number>();
     for (const t of todayShiftTrips) {
       if (t.busId) ids.add(t.busId);
     }
@@ -238,7 +238,7 @@ export default function ManagerTodayTripsView({
           .filter(Boolean);
         const matchesBus = assignedBuses.some(
           (b) =>
-            b?.busNumber.toLowerCase().includes(q) || b?.registrationNo.toLowerCase().includes(q)
+            String(b?.busNumber).includes(q) || b?.registrationNo.toLowerCase().includes(q)
         );
         return matchesName || matchesStop || matchesBus;
       });
@@ -250,7 +250,7 @@ export default function ManagerTodayTripsView({
   // ── Handler: Directly Assign an Available Bus to a Stop ───────────────────
   const executeAssignBusToStop = async (route: Route, stopIndex: number, bus: Bus) => {
     const shiftCode = selectedShiftFilter === "MORNING" ? "M" : "E";
-    const busSuffix = bus.busNumber.replace(/[^0-9]/g, "") || "B";
+    const busSuffix = String(bus.busNumber);
     const tripCode = `TRIP-${route.code.replace(/[^A-Za-z0-9]/g, "")}-${shiftCode}-${busSuffix}-${todayDate.replace(/-/g, "").slice(4)}`;
 
     await store.createTrip({
@@ -278,14 +278,14 @@ export default function ManagerTodayTripsView({
     route: Route,
     stopIndex: number,
     stopName: string,
-    selectedBusId: string
+    selectedBusId: string | number
   ) => {
     if (!selectedBusId) return;
 
-    const bus = busMap.get(selectedBusId);
+    const bus = busMap.get(Number(selectedBusId));
     if (!bus) return;
 
-    const existingAllocation = busAllocationMap.get(selectedBusId);
+    const existingAllocation = busAllocationMap.get(Number(selectedBusId));
 
     if (existingAllocation) {
       if (existingAllocation.route?.id === route.id && existingAllocation.stopIndex === stopIndex) {
@@ -669,11 +669,11 @@ export default function ManagerTodayTripsView({
                                         >
                                           <div className="flex items-center gap-2.5 min-w-0">
                                             <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-black text-xs flex-shrink-0">
-                                              {bus.busNumber.replace(/[^0-9]/g, "") || "B"}
+                                              {String(bus.busNumber)}
                                             </div>
                                             <div className="min-w-0">
                                               <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                                {bus.busNumber}
+                                                Bus {bus.busNumber}
                                               </div>
                                               <div className="text-[10px] text-gray-500 font-mono truncate">
                                                 {bus.registrationNo} • {bus.capacity} Seats
@@ -687,7 +687,7 @@ export default function ManagerTodayTripsView({
                                             onClick={() =>
                                               setPendingDelete({
                                                 tripId: t.id,
-                                                busNumber: bus.busNumber,
+                                                busNumber: String(bus.busNumber),
                                                 stopName,
                                                 routeName: route.name,
                                               })
@@ -728,8 +728,8 @@ export default function ManagerTodayTripsView({
                                         alloc.stopIndex === stopIndex;
 
                                       return {
-                                        value: b.id,
-                                        label: `${b.busNumber} (${b.registrationNo}) ${
+                                        value: String(b.id),
+                                        label: `Bus ${b.busNumber} (${b.registrationNo}) ${
                                           isAssignedHere
                                             ? "— [✓ Already assigned here]"
                                             : alloc

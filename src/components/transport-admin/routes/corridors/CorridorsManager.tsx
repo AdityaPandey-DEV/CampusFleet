@@ -712,7 +712,7 @@ export default function CorridorsManager({ mode = "view" }: { mode?: "view" | "c
   const handleAllocateBus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeRoute || !selectedBusToAllocate) return;
-    await store.allocateBusToRoute(activeRoute.id, selectedBusToAllocate);
+    await store.allocateBusToRoute(Number(selectedBusToAllocate), activeRoute.id);
     alert(`Successfully allocated bus to Corridor ${activeRoute.name}!`);
     setIsAllocateBusModalOpen(false);
   };

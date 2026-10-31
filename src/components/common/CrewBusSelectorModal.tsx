@@ -29,7 +29,7 @@ interface CrewBusSelectorModalProps {
   initialTab?: "CARDS" | "SCANNER";
   currentUser?: any;
   currentTripId?: string;
-  onSelectBusAndTrip: (busId: string, tripId?: string) => void;
+  onSelectBusAndTrip: (busId: number, tripId?: string) => void;
   onAttendanceMarked?: (record: AttendanceRecord) => void;
 }
 
@@ -120,7 +120,7 @@ export function CrewBusSelectorModal({
   const filteredEntries = busEntries.filter(({ bus, route }) => {
     const q = searchQuery.toLowerCase();
     return (
-      bus.busNumber.toLowerCase().includes(q) ||
+      String(bus.busNumber).includes(q) ||
       bus.registrationNo.toLowerCase().includes(q) ||
       (route && route.name.toLowerCase().includes(q))
     );
@@ -232,7 +232,7 @@ export function CrewBusSelectorModal({
       }
 
       const matchedBus =
-        buses.find((b) => b.id === busId || b.busNumber.toLowerCase() === busId.toLowerCase() || b.registrationNo.toLowerCase() === busId.toLowerCase()) ||
+        buses.find((b) => b.id === Number(busId) || String(b.busNumber).toLowerCase() === String(busId).toLowerCase() || b.registrationNo.toLowerCase() === String(busId).toLowerCase()) ||
         buses[0];
 
       if (!matchedBus) {
@@ -271,7 +271,7 @@ export function CrewBusSelectorModal({
         notes: `Duty attendance verified at bus door via physical QR scan`,
       });
 
-      setScanSuccess(`✓ Verified! Attendance recorded for ${matchedBus.busNumber}. Starting duty...`);
+      setScanSuccess(`✓ Verified! Attendance recorded for Bus ${matchedBus.busNumber}. Starting duty...`);
 
       if (onAttendanceMarked && res.record) {
         onAttendanceMarked(res.record);
@@ -446,7 +446,7 @@ export function CrewBusSelectorModal({
                               {bus.registrationNo}
                             </span>
                             <h3 className="font-black text-sm text-gray-900 dark:text-white leading-tight">
-                              {bus.busNumber}
+                              Bus {bus.busNumber}
                             </h3>
                           </div>
                         </div>

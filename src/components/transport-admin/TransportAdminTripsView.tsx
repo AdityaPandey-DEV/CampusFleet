@@ -116,7 +116,7 @@ export default function TransportAdminTripsView({
   const [newTrip, setNewTrip] = useState<{
     tripDate: string;
     routeId: string;
-    busId: string;
+    busId: number;
     shiftId: string;
     driverId: string;
     conductorId: string;
@@ -125,7 +125,7 @@ export default function TransportAdminTripsView({
   }>({
     tripDate: getTodayIST(),
     routeId: "",
-    busId: "",
+    busId: -1,
     shiftId: queryShiftId || "",
     driverId: "",
     conductorId: "",
@@ -154,7 +154,7 @@ export default function TransportAdminTripsView({
       setNewTrip((prev) => ({
         ...prev,
         routeId: routes[0]?.id || "",
-        busId: prev.busId || activeBus?.id || "",
+        busId: prev.busId > 0 ? prev.busId : (activeBus?.id || -1),
         shiftId: prev.shiftId || shifts[0]?.id || "",
         driverId: staff.find((s) => s.role === "driver")?.id || "",
         conductorId: staff.find((s) => s.role === "conductor")?.id || "",
@@ -219,9 +219,8 @@ export default function TransportAdminTripsView({
     return "HOME_TO_CAMPUS";
   };
 
-  const getCleanBusNumber = (busNumber: string): string => {
-    if (!busNumber) return "Bus";
-    return busNumber.replace(/\s*\([^)]*\)/g, "").trim();
+  const getCleanBusNumber = (busNumber: number): string => {
+    return `Bus ${busNumber}`;
   };
 
   // Resolve Human-friendly Origin and Destination for a Trip
@@ -308,7 +307,7 @@ export default function TransportAdminTripsView({
           trip.tripCode.toLowerCase().includes(q) ||
           (route?.name && route.name.toLowerCase().includes(q)) ||
           (route?.code && route.code.toLowerCase().includes(q)) ||
-          (bus?.busNumber && bus.busNumber.toLowerCase().includes(q)) ||
+          (bus?.busNumber !== undefined && String(bus.busNumber).includes(q)) ||
           (bus?.registrationNo && bus.registrationNo.toLowerCase().includes(q)) ||
           (driver?.fullName && driver.fullName.toLowerCase().includes(q)) ||
           (conductor?.fullName && conductor.fullName.toLowerCase().includes(q));
@@ -328,7 +327,7 @@ export default function TransportAdminTripsView({
       .filter((bus) => {
         if (!query) return true;
         const matchesBus =
-          bus.busNumber.toLowerCase().includes(query) ||
+          String(bus.busNumber).includes(query) ||
           bus.registrationNo.toLowerCase().includes(query);
         const hasMatchingTrip = dateScopedTrips.some(
           (t) =>
@@ -365,7 +364,7 @@ export default function TransportAdminTripsView({
       .sort((a, b) => {
         if (a.trips.length > 0 && b.trips.length === 0) return -1;
         if (a.trips.length === 0 && b.trips.length > 0) return 1;
-        return a.bus.busNumber.localeCompare(b.bus.busNumber, undefined, { numeric: true });
+        return a.bus.busNumber - b.bus.busNumber;
       });
   }, [buses, dateScopedTrips, selectedDirection, searchQuery, routes, bookings, staff]);
 
@@ -382,7 +381,7 @@ export default function TransportAdminTripsView({
   };
 
   // Quick Open Modal with pre-selected Bus
-  const handleAddTripForBus = (busId: string) => {
+  const handleAddTripForBus = (busId: number) => {
     setNewTrip((prev) => ({
       ...prev,
       busId,
@@ -394,7 +393,7 @@ export default function TransportAdminTripsView({
   // Create Trip Handler
   const handleCreateTrip = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTrip.routeId || !newTrip.busId) {
+    if (!newTrip.routeId || newTrip.busId <= 0) {
       alert("Please select a Corridor Route and allocate an operational Bus.");
       return;
     }
@@ -404,7 +403,7 @@ export default function TransportAdminTripsView({
       const routeObj = routes.find((r) => r.id === newTrip.routeId);
       const shiftObj = shifts.find((s) => s.id === newTrip.shiftId) || shifts[0];
 
-      const busLabel = busObj ? busObj.busNumber.split(" ")[0].replace(/[^a-zA-Z0-9]/g, "") : "BUS";
+      const busLabel = busObj ? `BUS${busObj.busNumber}` : "BUS";
       const cleanTime = (shiftObj?.startTime || "07:30").replace(":", "");
       const prefix =
         shiftObj?.direction === "HOME_TO_CAMPUS"
@@ -1475,14 +1474,14 @@ export default function TransportAdminTripsView({
                   4. Allocate Fleet Bus *
                 </label>
                 <CustomDropdown
-                  value={newTrip.busId}
-                  onChange={(val) => setNewTrip((prev) => ({ ...prev, busId: val }))}
+                  value={newTrip.busId > 0 ? String(newTrip.busId) : ""}
+                  onChange={(val) => setNewTrip((prev) => ({ ...prev, busId: val ? Number(val) : -1 }))}
                   placeholder="-- Choose Vehicle --"
                   options={[
                     { value: "", label: "-- Choose Vehicle --" },
                     ...buses.map((b) => ({
-                      value: b.id,
-                      label: `${b.busNumber} • ${b.capacity} Seats (${b.registrationNo}) [${b.status}]`,
+                      value: String(b.id),
+                      label: `Bus ${b.busNumber} • ${b.capacity} Seats (${b.registrationNo}) [${b.status}]`,
                     })),
                   ]}
                 />

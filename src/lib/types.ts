@@ -99,15 +99,15 @@ export interface Route {
 
 export interface BusSeat {
   id: string;
-  busId: string;
+  busId: number;
   seatNumber: string; // e.g., "1A", "1B", "2A", "2B"
   deck: "LOWER" | "UPPER";
   isAccessible?: boolean;
 }
 
 export interface Bus {
-  id: string;
-  busNumber: string; // e.g. "BUS-01 (North Express)"
+  id: number;
+  busNumber: number; // e.g. 2, 51
   registrationNo: string; // e.g. "DL-01-AB-1234"
   model: string; // e.g. "Tata Starbus Ultra 40-Seater"
   capacity: number;
@@ -151,7 +151,7 @@ export interface Trip {
   id: string;
   tripCode: string;
   routeId: string;
-  busId: string;
+  busId: number;
   shiftId: string;
   driverId: string;
   conductorId: string;
@@ -251,7 +251,7 @@ export interface Booking {
   bookingCode: string;
   studentId: string;
   tripId: string;
-  busId?: string;
+  busId?: number;
   bookingDate?: string;
   boardingStopId: string;
   status: BookingStatus;
@@ -271,7 +271,7 @@ export interface Booking {
 export interface BusDepartureAlert {
   id: string;
   tripId: string;
-  busId?: string;
+  busId?: number;
   alertType: "BUS_FULL" | "DEPARTURE_CUTOFF" | "MANUAL_RECALL";
   message: string;
   triggeredAt: string;
@@ -291,7 +291,7 @@ export interface BookingStatusHistory {
 }
 
 export interface LiveBusLocation {
-  busId: string;
+  busId: number;
   tripId: string;
   latitude: number;
   longitude: number;
@@ -305,8 +305,8 @@ export interface LiveBusLocation {
 }
 
 export interface FleetBusMarkerData {
-  busId: string;
-  busNumber: string;
+  busId: number;
+  busNumber: number;
   shortLabel: string;
   registrationNo: string;
   routeId?: string;
@@ -335,7 +335,7 @@ export type AttendanceUnlockMethod = "LOCATION_DISTANCE" | "RFID" | "MANUAL_OVER
 export interface AttendanceLockState {
   studentId: string;
   tripId?: string;
-  busId?: string;
+  busId?: number;
   lockStatus: AttendanceLockStatus;
   unlockedBy?: AttendanceUnlockMethod | null;
   unlockedAt?: string | null;
@@ -352,7 +352,7 @@ export interface AttendanceRecord {
   userRole?: "driver" | "conductor" | "student" | string;
   userName?: string;
   tripId: string;
-  busId?: string;
+  busId?: number;
   bookingId?: string;
   method: AttendanceMethod | "BUS_QR_SCAN" | "MANUAL_SELECT" | "RFID_VERIFIED" | "QR_SCAN_GPS" | "LOCATION_DISTANCE_UNLOCK" | "RFID_UNLOCK";
   verifiedBy: string;
@@ -462,8 +462,8 @@ export const TRANSIT_ZONES: TransitZone[] = [
 
 export interface VehicleIssue {
   id: string;
-  busId: string;
-  busNumber: string;
+  busId: number;
+  busNumber: number;
   reportedBy: string;
   issueType: "DELAY" | "TRAFFIC" | "BREAKDOWN" | "FUEL" | "EMERGENCY" | "TIRE_PUNCTURE";
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
@@ -476,8 +476,8 @@ export interface VehicleIssue {
 
 export interface MaintenanceRecord {
   id: string;
-  busId: string;
-  busNumber: string;
+  busId: number;
+  busNumber: number;
   serviceType: "PERIODIC_INSPECTION" | "BRAKE_OVERHAUL" | "ENGINE_TUNE" | "TIRE_REPLACEMENT" | "AC_SERVICE";
   cost: number;
   odometerKm: number;
@@ -554,8 +554,8 @@ export interface BusMergeSuggestion {
   id: string;
   mergePointId: string;
   routeId: string;
-  sourceBusId: string;
-  targetBusId: string;
+  sourceBusId: number;
+  targetBusId: number;
   sourceOccupancy: number;
   targetOccupancy: number;
   targetCapacity: number;
@@ -595,8 +595,8 @@ export interface TodayBusArrival {
   studentName: string;
   classId: string;
   className: string;
-  busId: string;
-  busNumber: string;
+  busId: number;
+  busNumber: number;
   tripId: string;
   tripCode: string;
   boardingStopId?: string;
@@ -614,7 +614,7 @@ export interface MaintenanceRequest {
   serialNo: number;
   date: string;
   vehicleNo: string;
-  busId: string;
+  busId: number;
   item: string;
   quantity: number;
   rate: number;
@@ -675,7 +675,7 @@ export interface BusReservation {
   id: string;
   studentId: string;
   tripId?: string;
-  busId: string;
+  busId: number;
   boardingStopId: string;
   shiftId: string;
   reservationDate: string;
@@ -693,9 +693,9 @@ export interface BusReservation {
 export interface BusSwitchRequest {
   id: string;
   studentId: string;
-  currentBusId: string;
+  currentBusId: number;
   currentStopId: string;
-  requestedBusId?: string;
+  requestedBusId?: number;
   requestedStopId?: string;
   requestType: SwitchRequestType;
   reason?: string;
@@ -707,7 +707,7 @@ export interface BusSwitchRequest {
   aiComplianceCheck?: FeasibilityCheck;
   aiOverallDecision?: string;
   aiReasoning?: string;
-  aiAlternativeBusId?: string;
+  aiAlternativeBusId?: number;
   aiEvaluatedAt?: string;
   managerDecision?: string;
   managerId?: string;
@@ -724,7 +724,7 @@ export interface DynamicRoutePlan {
   planDate: string;
   shiftId: string;
   direction: TripDirection;
-  busId: string;
+  busId: number;
   stopSequence: string[];
   demandPerStop: number[];
   totalDemand: number;

@@ -37,7 +37,7 @@ describe("CampusFleet Universal Time Manager Tests", () => {
     id: "trip-1",
     tripCode: "TR-01",
     routeId: "route-1",
-    busId: "bus-1",
+    busId: 1,
     shiftId: "sh-1",
     driverId: "staff-1",
     conductorId: "staff-2",

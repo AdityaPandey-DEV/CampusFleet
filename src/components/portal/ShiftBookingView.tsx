@@ -65,7 +65,7 @@ export interface ShiftBookingProps {
   initialBookings?: Booking[];
   preselectedShiftId?: string;
   preselectedStopId?: string;
-  preselectedBusId?: string;
+  preselectedBusId?: number ;
   isEmbedded?: boolean;
   onBackToBusSelection?: () => void;
 }
@@ -81,7 +81,7 @@ export default function ShiftBookingView({
   initialBookings = [],
   preselectedShiftId = "",
   preselectedStopId = "",
-  preselectedBusId = "",
+  preselectedBusId = -1,
   isEmbedded = false,
   onBackToBusSelection,
 }: ShiftBookingProps = {}) {
@@ -114,7 +114,10 @@ export default function ShiftBookingView({
 
   const [activeStep, setActiveStep] = useState<"SEAT" | "SUCCESS">("SEAT");
   const [selectedShiftId, setSelectedShiftId] = useState(preselectedShiftId || shifts[0]?.id || "");
-  const [selectedBusId, setSelectedBusId] = useState(preselectedBusId || "");
+  const [selectedBusId, setSelectedBusId] = useState<number>(() => {
+    const n = Number(preselectedBusId);
+    return !isNaN(n) && n > 0 ? n : -1;
+  });
   const [selectedStopId, setSelectedStopId] = useState(preselectedStopId || "");
   const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>(isTeacher ? "1A" : "2A");
   const [bookingMessage, setBookingMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -292,7 +295,7 @@ export default function ShiftBookingView({
   }, [buses, shiftTrips]);
 
   const targetTrip = useMemo(() => {
-    if (selectedBusId) {
+    if (selectedBusId > 0) {
       // Prioritize today's trip for selected bus
       const foundToday = shiftTrips.find(
         t => t.busId === selectedBusId && t.tripDate === todayStr && t.status !== "CANCELLED"
@@ -480,7 +483,7 @@ export default function ShiftBookingView({
           )}
           <div className="space-y-2">
             <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">4. Finalize Seat Layout</h2>
-            <p className="text-sm text-gray-500">Select your preferred seat on {buses.find(b => b.id === selectedBusId)?.busNumber || "the bus"}.</p>
+            <p className="text-sm text-gray-500">Select your preferred seat on {selectedBusId > 0 ? `Bus ${buses.find(b => b.id === selectedBusId)?.busNumber}` : "the bus"}.</p>
           </div>
           
           <div className={`bg-white dark:bg-gray-900 rounded-[2rem] border border-gray-200 dark:border-gray-800 ${isEmbedded ? "p-4 shadow-sm" : "p-4 sm:p-8 shadow-2xl"}`}>
@@ -564,7 +567,7 @@ export default function ShiftBookingView({
            <div className="space-y-3">
              <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight">Seat Booked Successfully!</h2>
              <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-               Your seat <strong className="text-gray-900 dark:text-gray-200">({selectedSeatNumber})</strong> has been verified and permanently reserved on <strong className="text-gray-900 dark:text-gray-200">{buses.find(b => b.id === selectedBusId)?.busNumber}</strong>. 
+               Your seat <strong className="text-gray-900 dark:text-gray-200">({selectedSeatNumber})</strong> has been verified and permanently reserved on <strong className="text-gray-900 dark:text-gray-200">Bus {buses.find(b => b.id === selectedBusId)?.busNumber}</strong>. 
                Have a great commute!
              </p>
            </div>

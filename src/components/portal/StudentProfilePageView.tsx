@@ -175,12 +175,16 @@ export default function StudentProfilePageView({
   }, [routes, activeStudent]);
 
   const assignedBus = useMemo(() => {
-    return (
-      buses.find(b => b.currentRouteId === assignedRoute?.id || b.id === "bus-02") ||
-      buses[0] ||
-      null
-    );
-  }, [buses, assignedRoute]);
+    if (activeBooking?.busId) {
+      const booked = buses.find(b => b.id === activeBooking.busId);
+      if (booked) return booked;
+    }
+    if (assignedRoute?.id) {
+      const routeBus = buses.find(b => b.currentRouteId === assignedRoute.id);
+      if (routeBus) return routeBus;
+    }
+    return null;
+  }, [buses, activeBooking, assignedRoute]);
 
   const isSubscriptionActive = activeStudent?.hasActiveSubscription ?? false;
   const isPaymentApproved = activeStudent?.paymentStatus === "APPROVED";
@@ -384,7 +388,7 @@ export default function StudentProfilePageView({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Assigned Bus:</span>
-                <span className="font-bold text-white">{assignedBus?.busNumber || "NONE"}</span>
+                <span className="font-bold text-white">{assignedBus?.busNumber ? `Bus ${assignedBus.busNumber}` : "Unallocated"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Valid Through:</span>
@@ -583,7 +587,7 @@ export default function StudentProfilePageView({
                   Assigned Vehicle & Corridor
                 </div>
                 <div className="font-black text-gray-900 dark:text-white text-sm">
-                  {assignedBus ? `${assignedBus.busNumber} (${assignedBus.registrationNo || "NONE"})` : "NONE"}
+                  {assignedBus ? `Bus ${assignedBus.busNumber} (${assignedBus.registrationNo || "Assigned"})` : "Not Allocated"}
                 </div>
                 <div className="text-[11px] text-gray-500">
                   {assignedBus?.model || ""}

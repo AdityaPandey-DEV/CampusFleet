@@ -4,7 +4,7 @@ import { LiveBusLocation } from "../lib/types";
 
 describe("Modern Production Telematics & Storage Architecture", () => {
   const mockLocation: LiveBusLocation = {
-    busId: "bus-test-01",
+    busId: 44,
     tripId: "trip-test-01",
     latitude: 29.2889,
     longitude: 79.4678,
@@ -85,7 +85,7 @@ describe("Modern Production Telematics & Storage Architecture", () => {
 
   it("should start and stop telematics fallback polling safely", () => {
     expect(() => {
-      telematicsService.startPolling("bus-test-01", 1000);
+      telematicsService.startPolling(44, 1000);
       telematicsService.stopPolling();
     }).not.toThrow();
   });

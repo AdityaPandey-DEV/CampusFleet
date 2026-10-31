@@ -31,7 +31,7 @@ export default function TransportAdminBusesView({
   const [selectedRouteIdToAllocate, setSelectedRouteIdToAllocate] = useState("");
 
   const [formData, setFormData] = useState<{
-    busNumber: string;
+    busNumber: number;
     registrationNo: string;
     model: string;
     capacity: number;
@@ -42,7 +42,7 @@ export default function TransportAdminBusesView({
     insuranceExpiry: string;
     maintenanceDueDate: string;
   }>({
-    busNumber: "",
+    busNumber: -1,
     registrationNo: "",
     model: "",
     capacity: 0,
@@ -99,7 +99,7 @@ export default function TransportAdminBusesView({
     setHasRearBench(true);
     const initialCap = calculateBusCapacity(10, "2x2", true);
     setFormData({
-      busNumber: "",
+      busNumber: -1,
       registrationNo: "",
       model: "",
       capacity: initialCap,
@@ -115,21 +115,26 @@ export default function TransportAdminBusesView({
 
   const handleCreateOrUpdateBus = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.busNumber || !formData.registrationNo || !formData.gpsDeviceId) {
-      alert("Please fill all required fields");
+    if (formData.busNumber <= 0 || !formData.registrationNo || !formData.gpsDeviceId) {
+      alert("Please fill all required fields and enter a valid vehicle number");
       return;
     }
 
+    const payload = {
+      ...formData,
+      busNumber: Number(formData.busNumber) || 0,
+    };
+
     if (editingBus) {
-      await store.updateBus(editingBus.id, formData);
+      await store.updateBus(editingBus.id, payload);
       setEditingBus(null);
     } else {
-      await store.createBus(formData);
+      await store.createBus(payload);
       setIsAddModalOpen(false);
     }
 
     setFormData({
-      busNumber: "",
+      busNumber: -1,
       registrationNo: "",
       model: "",
       capacity: 0,
@@ -167,8 +172,8 @@ export default function TransportAdminBusesView({
     setIsAddModalOpen(true);
   };
 
-  const handleDeleteBus = async (busId: string, busNumber: string) => {
-    if (confirm(`Are you sure you want to delete ${busNumber}? This will unassign it from all active schedules.`)) {
+  const handleDeleteBus = async (busId: number, busNumber: number) => {
+    if (confirm(`Are you sure you want to delete Bus ${busNumber}? This will unassign it from all active schedules.`)) {
       await store.deleteBus(busId);
     }
   };
@@ -176,14 +181,14 @@ export default function TransportAdminBusesView({
   const handleAllocateRoute = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!allocatingBus || !selectedRouteIdToAllocate) return;
-    await store.allocateBusToRoute(selectedRouteIdToAllocate, allocatingBus.id);
-    alert(`Successfully allocated ${allocatingBus.busNumber} to Route!`);
+    await store.allocateBusToRoute(allocatingBus.id, selectedRouteIdToAllocate);
+    alert(`Successfully allocated Bus ${allocatingBus.busNumber} to Route!`);
     setAllocatingBus(null);
   };
 
   const filteredBuses = buses.filter(
     b =>
-      b.busNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(b.busNumber).includes(searchQuery.toLowerCase()) ||
       b.registrationNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.model.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -277,11 +282,10 @@ export default function TransportAdminBusesView({
                   </div>
 
                   <span
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide uppercase ${
-                      bus.status === "ACTIVE"
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide uppercase ${bus.status === "ACTIVE"
                         ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300"
                         : "bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300"
-                    }`}
+                      }`}
                   >
                     {bus.status}
                   </span>
@@ -387,18 +391,18 @@ export default function TransportAdminBusesView({
             className="w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 space-y-4 text-gray-900 dark:text-white shadow-2xl"
           >
             <h3 className="font-black text-lg">
-              {editingBus ? `Edit ${editingBus.busNumber}` : "Add New Fleet Bus"}
+              {editingBus ? `Edit Bus ${editingBus.busNumber}` : "Add New Fleet Bus"}
             </h3>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="font-bold uppercase tracking-wider text-gray-400">Bus Identifier Name</label>
+                <label className="font-bold uppercase tracking-wider text-gray-400">Bus Number *</label>
                 <input
-                  type="text"
+                  type="number"
                   required
-                  placeholder="e.g. BUS-01 (North Campus Express)"
-                  value={formData.busNumber}
-                  onChange={e => setFormData({ ...formData, busNumber: e.target.value })}
+                  placeholder="e.g. 44"
+                  value={formData.busNumber > 0 ? formData.busNumber : ""}
+                  onChange={e => setFormData({ ...formData, busNumber: e.target.value ? Number(e.target.value) : -1 })}
                   className="w-full p-2.5 mt-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none font-bold"
                 />
               </div>
@@ -502,11 +506,10 @@ export default function TransportAdminBusesView({
                       key={preset.label}
                       type="button"
                       onClick={() => updateLayoutAndCapacity(rowsCount, preset.l, preset.r, hasRearBench)}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
-                        leftColsCount === preset.l && rightColsCount === preset.r
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${leftColsCount === preset.l && rightColsCount === preset.r
                           ? "bg-blue-600 text-white"
                           : "bg-gray-200/70 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300"
-                      }`}
+                        }`}
                     >
                       {preset.label}
                     </button>

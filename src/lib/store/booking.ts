@@ -11,7 +11,7 @@ declare module "./_base" {
       userId: string;
       userName?: string;
       userRole: "driver" | "conductor" | "student" | string;
-      busId: string;
+      busId: number;
       tripId?: string;
       method: "BUS_QR_SCAN" | "MANUAL_SELECT";
       notes?: string;
@@ -21,7 +21,7 @@ declare module "./_base" {
       studentId: string,
       tripId: string,
       method: "LOCATION_DISTANCE" | "RFID",
-      meta?: { distanceMeters?: number; rfidCardId?: string; busId?: string }
+      meta?: { distanceMeters?: number; rfidCardId?: string; busId?: number }
     ): Promise<{ success: boolean; record?: AttendanceRecord; message: string }>;
     assignWaitlistSeat(bookingId: string, seatCode: string): Promise<any>;
     bookShift(studentId: string, tripId: string, stopId: string, requestedSeatNumber?: string, instantBoard?: boolean): Promise<any>;
@@ -151,7 +151,7 @@ CampusFleetStore.prototype.unlockAttendance = async function (
   studentId: string,
   tripId: string,
   method: "LOCATION_DISTANCE" | "RFID",
-  meta?: { distanceMeters?: number; rfidCardId?: string; busId?: string }
+  meta?: { distanceMeters?: number; rfidCardId?: string; busId?: number }
 ) {
   const student = this.students.find(
     s => s.id === studentId || s.userId === studentId || s.email?.toLowerCase() === studentId.toLowerCase()
@@ -180,7 +180,7 @@ CampusFleetStore.prototype.unlockAttendance = async function (
     studentId: resolvedStudentId,
     bookingId,
     tripId,
-    busId: meta?.busId || matchedBooking?.busId,
+    busId: meta?.busId !== undefined ? Number(meta.busId) : (matchedBooking?.busId !== undefined ? Number(matchedBooking.busId) : undefined),
     method: method === "RFID" ? "RFID_VERIFIED" : "LOCATION_DISTANCE_UNLOCK",
     verifiedBy: method === "RFID" ? "ESP32 Hardware RFID Gate" : "Location Distance Proximity Engine",
     signatureToken: `${method}-${Date.now().toString(36).toUpperCase()}`,
@@ -230,7 +230,7 @@ CampusFleetStore.prototype.recordUserAttendance = async function (
     userId: string;
     userName?: string;
     userRole: "driver" | "conductor" | "student" | string;
-    busId: string;
+    busId: number;
     tripId?: string;
     method: "BUS_QR_SCAN" | "MANUAL_SELECT";
     notes?: string;

@@ -73,7 +73,7 @@ interface CampusFleetMapProps {
   busName?: string;
   tripStatus?: string;
   fleetBuses?: FleetBusMarkerData[];
-  focusedBusId?: string;
+  focusedBusId?: number;
   onBusClick?: (bus: FleetBusMarkerData) => void;
   stops?: Stop[];
   campuses?: Campus[];
@@ -175,7 +175,7 @@ export default function CampusFleetMap({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const busMarkerRef = useRef<any>(null);
-  const fleetMarkersMapRef = useRef<Map<string, any>>(new Map());
+  const fleetMarkersMapRef = useRef<Map<number, any>>(new Map());
 
   // Dual-color Google Maps path polylines (Completed = Gray, Upcoming = Blue)
   const polylineUpcomingGlowRef = useRef<any>(null);
@@ -206,7 +206,7 @@ export default function CampusFleetMap({
   const userInteractedRef = useRef(false);
   const initialFitDoneRef = useRef(false);
   const lastFittedRouteRef = useRef<string | null>(null);
-  const lastFocusedBusIdRef = useRef<string | undefined>(undefined);
+  const lastFocusedBusIdRef = useRef<number | undefined>(undefined);
 
   // Geolocation trigger: centers and pins user position with live GPS
   const handleLocateUser = () => {

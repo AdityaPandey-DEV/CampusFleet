@@ -813,9 +813,9 @@ export default function AdminMaintenanceView({
                     onChange={(e) => {
                       setNewVehicleNo(e.target.value);
                       const match = buses.find(
-                        (b) => b.busNumber.toLowerCase() === e.target.value.toLowerCase()
+                        (b) => String(b.busNumber).toLowerCase() === e.target.value.toLowerCase()
                       );
-                      if (match) setNewBusId(match.id);
+                      if (match) setNewBusId(String(match.id));
                     }}
                     list="bus-suggestions"
                     className="w-full px-3.5 py-2 text-xs font-semibold rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"

@@ -32,14 +32,14 @@ interface DetectedESP32 {
   deviceId: string;
   detectedAt: string;
   lastCardUid?: string | null;
-  busId?: string | null;
-  busNumber?: string | null;
+  busId?: number | null;
+  busNumber?: number | string | null;
 }
 
 interface HardwareStatus {
   deviceId: string;
-  busId: string;
-  busNumber: string;
+  busId: number;
+  busNumber: number;
   isMapped: boolean;
   lastSeen: string;
 }
@@ -137,14 +137,14 @@ function formatTimeAgo(isoString?: string | null): string {
   }, [isPolling]);
 
   // Open modal to assign a bus to a specific ESP32 Device ID / MAC
-  const handleOpenAssignModal = (deviceId: string, preselectedBusId?: string) => {
+  const handleOpenAssignModal = (deviceId: string, preselectedBusId?: number) => {
     setActiveDeviceToAssign(deviceId);
-    const existingBus = preselectedBusId
+    const existingBus = preselectedBusId !== undefined
       ? buses.find((b) => b.id === preselectedBusId)
       : buses.find((b) => b.rfidDeviceId === deviceId);
 
     setSelectedBusForAssign(existingBus || null);
-    setBusSearchInput(existingBus ? existingBus.busNumber : "");
+    setBusSearchInput(existingBus ? String(existingBus.busNumber) : "");
     setAssignModalOpen(true);
   };
 
@@ -219,7 +219,7 @@ function formatTimeAgo(isoString?: string | null): string {
   };
 
   // Unlink/clear an ESP32 reader from a bus
-  const handleUnlinkDevice = async (busId: string, deviceId: string) => {
+  const handleUnlinkDevice = async (busId: number, deviceId: string) => {
     if (!confirm(`Are you sure you want to unbind ESP32 reader [${deviceId}] from this bus?`)) {
       return;
     }
@@ -252,8 +252,8 @@ function formatTimeAgo(isoString?: string | null): string {
         if (hardwareStatus && (hardwareStatus.deviceId === deviceId || hardwareStatus.busId === busId)) {
           setHardwareStatus({
             ...hardwareStatus,
-            busId: "UNMAPPED",
-            busNumber: "",
+            busId: -1,
+            busNumber: -1,
             isMapped: false,
           });
         }
@@ -294,7 +294,7 @@ function formatTimeAgo(isoString?: string | null): string {
     const q = busSearchInput.toLowerCase().trim();
     return buses.filter(
       (b) =>
-        b.busNumber?.toLowerCase().includes(q) ||
+        String(b.busNumber).includes(q) ||
         b.registrationNo?.toLowerCase().includes(q) ||
         b.model?.toLowerCase().includes(q) ||
         b.rfidDeviceId?.toLowerCase().includes(q)
@@ -318,7 +318,7 @@ function formatTimeAgo(isoString?: string | null): string {
     const q = filterQuery.toLowerCase().trim();
     return assignedBusesList.filter(
       (b) =>
-        b.busNumber?.toLowerCase().includes(q) ||
+        String(b.busNumber).includes(q) ||
         b.registrationNo?.toLowerCase().includes(q) ||
         b.rfidDeviceId?.toLowerCase().includes(q) ||
         b.model?.toLowerCase().includes(q)
@@ -403,11 +403,11 @@ function formatTimeAgo(isoString?: string | null): string {
             <div className="flex flex-col">
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
                 {isHardwareActive
-                  ? (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId !== "UNMAPPED"
-                      ? `Live: ${hardwareStatus.busNumber}`
+                  ? (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId > 0
+                      ? `Live: Bus ${hardwareStatus.busNumber}`
                       : "ESP32 Active (Unassigned)")
-                  : (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId !== "UNMAPPED"
-                      ? `Offline: ${hardwareStatus.busNumber}`
+                  : (hardwareStatus?.isMapped && hardwareStatus?.busNumber && hardwareStatus?.busId > 0
+                      ? `Offline: Bus ${hardwareStatus.busNumber}`
                       : "ESP32 Standby (Offline)")}
               </span>
               <span className="text-[10px] text-gray-400 font-mono">
@@ -624,7 +624,7 @@ function formatTimeAgo(isoString?: string | null): string {
                       {/* Assigned Bus Details */}
                       <td className="p-3.5">
                         <div className="font-black text-gray-900 dark:text-white text-xs">
-                          {bus.busNumber}
+                          Bus {bus.busNumber}
                         </div>
                         <div className="text-[10px] text-gray-400">
                           {bus.model || "Standard Bus"}
