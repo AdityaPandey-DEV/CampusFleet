@@ -24,7 +24,9 @@ export type EntityPrefix =
   | "req"    // Switch / Late Request
   | "aud"    // Audit Log
   | "halt"   // Unscheduled Halt
-  | "dev";   // Hardware Device Pairing
+  | "dev"    // Hardware Device Pairing
+  | "msg"    // Chat Message
+  | "conv";  // Chat Conversation
 
 /**
  * Generates a fresh TypeID for a specified entity prefix.
@@ -47,6 +49,8 @@ export const createSubscriptionId = (): string => generateTypeId("sub");
 export const createRequestId = (): string => generateTypeId("req");
 export const createAuditLogId = (): string => generateTypeId("aud");
 export const createHaltId = (): string => generateTypeId("halt");
+export const createMessageId = (): string => generateTypeId("msg");
+export const createConversationId = (): string => generateTypeId("conv");
 
 // ── Conversion & Utility Functions ──────────────────────────────────────────
 

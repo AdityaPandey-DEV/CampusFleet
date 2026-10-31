@@ -35,6 +35,7 @@ import {
   Globe,
   ExternalLink,
   Navigation,
+  MessageSquare,
 } from "lucide-react";
 
 export interface NavLinkItem {
@@ -432,7 +433,19 @@ export function UnifiedAppHeader({
             {!mounted ? (
               <div className="w-24 h-9" />
             ) : currentUser ? (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/chat"
+                  title="CampusFleet Live Messages"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                    pathname.startsWith("/chat")
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Chat</span>
+                </Link>
                 <Link href={`/${pathname.split('/')[1] === 'portal' ? 'portal' : (currentUser.role || 'portal')}/settings`} title="Open Settings" className="block w-9 h-9 rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
                   {(userPhotoUrl || activeStudent?.photoUrl) ? (
                     <img
@@ -471,12 +484,19 @@ export function UnifiedAppHeader({
             )}
           </div>
           
-          <div className="flex items-center lg:hidden z-10">
+          <div className="flex items-center gap-2 lg:hidden z-10">
+            <Link
+              href="/chat"
+              title="CampusFleet Live Messages"
+              className="p-1.5 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <MessageSquare className="w-5 h-5" />
+            </Link>
 
             {/* Mobile Vertical Slide Sheet Trigger */}
             <button
               onClick={() => setIsMobileSheetOpen(true)}
-              className="lg:hidden p-1.5 border border-gray-900 dark:border-white rounded-md text-gray-900 dark:text-white transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="p-1.5 border border-gray-900 dark:border-white rounded-md text-gray-900 dark:text-white transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
               aria-label="Open Navigation Sheet"
             >
               <Menu className="w-5 h-5" />
