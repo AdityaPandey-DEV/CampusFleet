@@ -25,7 +25,8 @@ import {
   Navigation,
   Settings2,
   Radio,
-  Cpu
+  Cpu,
+  Clock
 } from "lucide-react";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -84,10 +85,19 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       ]
     },
     trips: {
-      title: "Today's Trips",
+      title: "Trips & Dispatches",
       items: [
         { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
-        { href: "/transport-admin/trips", label: "Today's Trips", shortLabel: "Trips", icon: Navigation },
+        { href: "/transport-admin/trips", label: "Trips & Dispatches", shortLabel: "Trips", icon: Navigation },
+        { href: "/transport-admin/shifts", label: "Shift Master", shortLabel: "Shifts", icon: Clock },
+      ]
+    },
+    shifts: {
+      title: "Shift Master Directory",
+      items: [
+        { href: "/transport-admin", label: "← Hub", shortLabel: "Hub", icon: Home },
+        { href: "/transport-admin/trips", label: "Trips & Dispatches", shortLabel: "Trips", icon: Navigation },
+        { href: "/transport-admin/shifts", label: "Shift Master", shortLabel: "Shifts", icon: Clock },
       ]
     },
     system: {
@@ -117,7 +127,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     { href: "/transport-admin/esp32", label: "ESP32 Terminals", icon: Cpu },
     { href: "/transport-admin/buses", label: "Bus Fleet", icon: BusFront },
     { href: "/transport-admin/routes", label: "Routes & Stops", icon: Route },
-    { href: "/transport-admin/trips", label: "Today's Trips", icon: Navigation },
+    { href: "/transport-admin/trips", label: "Trips & Dispatches", icon: Navigation },
+    { href: "/transport-admin/shifts", label: "Shift Master", icon: Clock },
     { href: "/transport-admin/billing/approvals", label: "Bus Fees", icon: CreditCard },
     { href: "/transport-admin/academics/students", label: "Students", icon: GraduationCap },
     { href: "/transport-admin/classes", label: "Classes & Batches", icon: BookOpen },
@@ -138,6 +149,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   } else if (pathname.startsWith("/transport-admin/routes")) {
     currentNavLinks = subPortals.routes.items;
     currentTitle = subPortals.routes.title;
+  } else if (pathname.startsWith("/transport-admin/shifts")) {
+    currentNavLinks = subPortals.shifts.items;
+    currentTitle = subPortals.shifts.title;
   } else if (pathname.startsWith("/transport-admin/trips")) {
     currentNavLinks = subPortals.trips.items;
     currentTitle = subPortals.trips.title;

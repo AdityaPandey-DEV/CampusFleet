@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
 import { getTodayIST } from "@/lib/time-manager";
@@ -8,33 +10,43 @@ import {
   Navigation,
   Lock,
   CheckCircle2,
-  Play,
   Users,
   Clock,
-  AlertCircle,
   Plus,
   X,
   Home,
   Building2,
   ArrowRight,
-  Repeat,
-  Calendar,
-  Filter,
+  CalendarDays,
   Search,
   Sparkles,
   BusFront,
-  ShieldCheck,
   Check,
   Trash2,
-  SlidersHorizontal,
-  CalendarDays,
   Shuffle,
-  Tag,
   GraduationCap,
-  UserCheck,
   UserPlus,
+  LayoutGrid,
+  ListFilter,
+  Layers,
+  Activity,
+  Calendar,
+  AlertCircle,
+  ExternalLink,
+  Shield,
+  Gauge
 } from "lucide-react";
-import type { Trip, Bus, Route, Shift, Staff, Booking, TripDirection, TripScheduleType, Student, SpecialShiftAllocation } from "@/lib/types";
+import type {
+  Trip,
+  Bus,
+  Route,
+  Shift,
+  Staff,
+  Booking,
+  TripDirection,
+  Student,
+  SpecialShiftAllocation,
+} from "@/lib/types";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 export interface TransportAdminTripsProps {
@@ -46,13 +58,7 @@ export interface TransportAdminTripsProps {
   initialBookings?: Booking[];
 }
 
-const ALL_WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-const TIME_PRESETS: Record<TripDirection, string[]> = {
-  HOME_TO_CAMPUS: ["06:45", "07:00", "07:20", "07:45", "08:15", "09:00"],
-  CAMPUS_TO_HOME: ["13:30", "15:00", "16:15", "17:00", "17:45", "18:30"],
-  CAMPUS_TO_CAMPUS: ["09:00", "11:30", "13:45", "15:30", "17:15"],
-};
+export type TripsViewMode = "FEED" | "BUS_EXPLORER";
 
 export default function TransportAdminTripsView({
   initialTrips = [],
@@ -62,26 +68,42 @@ export default function TransportAdminTripsView({
   initialStaff = [],
   initialBookings = [],
 }: TransportAdminTripsProps = {}) {
-  const [trips, setTrips] = useState<Trip[]>(() => initialTrips.length > 0 ? initialTrips : store.getTrips());
-  const [buses, setBuses] = useState<Bus[]>(() => initialBuses.length > 0 ? initialBuses : store.getBuses());
-  const [routes, setRoutes] = useState<Route[]>(() => initialRoutes.length > 0 ? initialRoutes : store.getRoutes());
-  const [shifts, setShifts] = useState<Shift[]>(() => initialShifts.length > 0 ? initialShifts : store.getShifts());
-  const [staff, setStaff] = useState<Staff[]>(() => initialStaff.length > 0 ? initialStaff : store.getStaff());
-  const [bookings, setBookings] = useState<Booking[]>(() => initialBookings.length > 0 ? initialBookings : store.getBookings());
+  const searchParams = useSearchParams();
+  const queryShiftId = searchParams?.get("shiftId");
+
+  const [trips, setTrips] = useState<Trip[]>(() =>
+    initialTrips.length > 0 ? initialTrips : store.getTrips()
+  );
+  const [buses, setBuses] = useState<Bus[]>(() =>
+    initialBuses.length > 0 ? initialBuses : store.getBuses()
+  );
+  const [routes, setRoutes] = useState<Route[]>(() =>
+    initialRoutes.length > 0 ? initialRoutes : store.getRoutes()
+  );
+  const [shifts, setShifts] = useState<Shift[]>(() =>
+    initialShifts.length > 0 ? initialShifts : store.getShifts()
+  );
+  const [staff, setStaff] = useState<Staff[]>(() =>
+    initialStaff.length > 0 ? initialStaff : store.getStaff()
+  );
+  const [bookings, setBookings] = useState<Booking[]>(() =>
+    initialBookings.length > 0 ? initialBookings : store.getBookings()
+  );
   const [students, setStudents] = useState<Student[]>(() => store.getStudents());
-  const [allocations, setAllocations] = useState<SpecialShiftAllocation[]>(() => store.getSpecialShiftAllocations());
+  const [allocations, setAllocations] = useState<SpecialShiftAllocation[]>(() =>
+    store.getSpecialShiftAllocations()
+  );
 
-  // Filter States
+  // View Mode: Chronological Feed vs. Bus Fleet Explorer
+  const [viewMode, setViewMode] = useState<TripsViewMode>("FEED");
+
+  // Filters
   const [selectedDirection, setSelectedDirection] = useState<"ALL" | TripDirection>("ALL");
-
   const [selectedStatus, setSelectedStatus] = useState<"ALL" | string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Modal State
+  // Modals & Forms
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
-  const [isManageShiftsOpen, setIsManageShiftsOpen] = useState(false);
-  const [editingShift, setEditingShift] = useState<Partial<Shift> | null>(null);
-  const [isSavingShift, setIsSavingShift] = useState(false);
   const [allocatingTrip, setAllocatingTrip] = useState<Trip | null>(null);
   const [studentSearch, setStudentSearch] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,7 +122,7 @@ export default function TransportAdminTripsView({
     tripDate: getTodayIST(),
     routeId: "",
     busId: "",
-    shiftId: "",
+    shiftId: queryShiftId || "",
     driverId: "",
     conductorId: "",
     isSpecial: false,
@@ -121,20 +143,28 @@ export default function TransportAdminTripsView({
     return unsub;
   }, []);
 
-  // Pre-fill initial route, bus, and shift when modal opens
+  // Pre-fill route, bus, shift if modal opens
   useEffect(() => {
     if (routes.length > 0 && !newTrip.routeId) {
       const activeBus = buses.find((b) => b.status === "ACTIVE") || buses[0];
       setNewTrip((prev) => ({
         ...prev,
         routeId: routes[0]?.id || "",
-        busId: activeBus?.id || "",
-        shiftId: shifts[0]?.id || "",
+        busId: prev.busId || activeBus?.id || "",
+        shiftId: prev.shiftId || shifts[0]?.id || "",
         driverId: staff.find((s) => s.role === "driver")?.id || "",
         conductorId: staff.find((s) => s.role === "conductor")?.id || "",
       }));
     }
   }, [routes, buses, shifts, staff, newTrip.routeId]);
+
+  // If redirected with ?shiftId=..., open modal with prefilled shift
+  useEffect(() => {
+    if (queryShiftId && shifts.some((s) => s.id === queryShiftId)) {
+      setNewTrip((prev) => ({ ...prev, shiftId: queryShiftId }));
+      setIsAddTripOpen(true);
+    }
+  }, [queryShiftId, shifts]);
 
   const todayDate = useMemo(() => getTodayIST(), []);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -147,16 +177,15 @@ export default function TransportAdminTripsView({
   });
 
   const availableDates = useMemo(() => {
-    const dates = Array.from(new Set(trips.map((t) => t.tripDate).filter(Boolean))).sort().reverse();
-    return dates;
+    return Array.from(new Set(trips.map((t) => t.tripDate).filter(Boolean))).sort().reverse();
   }, [trips]);
 
   const showToast = (msg: string) => {
     setFeedbackToast(msg);
-    setTimeout(() => setFeedbackToast(null), 4000);
+    setTimeout(() => setFeedbackToast(null), 3500);
   };
 
-  // Helper to determine trip direction with route and shift fallback
+  // Helper: Trip direction resolution
   const getTripDirection = (trip: Trip): TripDirection => {
     const tripCode = (trip.tripCode || "").toUpperCase();
     const sh = shifts.find((s) => s.id === trip.shiftId);
@@ -186,11 +215,9 @@ export default function TransportAdminTripsView({
     return "HOME_TO_CAMPUS";
   };
 
-  // Helper to reverse or adapt route name for evening return
+  // Helper: Format route name for evening return
   const getDirectionalRouteName = (routeName: string, dir: TripDirection): string => {
-    if (dir === "CAMPUS_TO_CAMPUS") {
-      return routeName;
-    }
+    if (dir === "CAMPUS_TO_CAMPUS") return routeName;
     if (dir === "CAMPUS_TO_HOME") {
       if (routeName.includes(" to ")) {
         const parts = routeName.split(" to ");
@@ -208,13 +235,11 @@ export default function TransportAdminTripsView({
     return routeName;
   };
 
-  // Helper to get clean bus name without location suffix
-  const getDirectionalBusNumber = (busNumber: string, _dir?: TripDirection): string => {
+  const getDirectionalBusNumber = (busNumber: string): string => {
     if (!busNumber) return "Bus";
     return busNumber.replace(/\s*\([^)]*\)/g, "").trim();
   };
 
-  // Helper to extract city stop name from route
   const getRouteCityOrigin = (routeName: string): string => {
     if (routeName.includes(" to ")) {
       const parts = routeName.split(" to ");
@@ -224,15 +249,13 @@ export default function TransportAdminTripsView({
     return "City Boarding Point";
   };
 
-
-
-  // Trips scoped to currently selected operational date
+  // Scoped Trips for active selected date
   const dateScopedTrips = useMemo(() => {
     if (selectedDate === "ALL") return trips;
     return trips.filter((t) => t.tripDate === selectedDate);
   }, [trips, selectedDate]);
 
-  // KPI Computations for the active shift date
+  // KPI Computations for the active date
   const stats = useMemo(() => {
     const total = dateScopedTrips.length;
     const homeToCampus = dateScopedTrips.filter((t) => getTripDirection(t) === "HOME_TO_CAMPUS").length;
@@ -244,6 +267,10 @@ export default function TransportAdminTripsView({
       return acc + (b?.capacity || 40);
     }, 0);
 
+    const activeBusIds = new Set(dateScopedTrips.map((t) => t.busId));
+    const activeBusesCount = activeBusIds.size;
+    const lockedManifestsCount = dateScopedTrips.filter((t) => t.manifestLocked).length;
+
     return {
       total,
       homeToCampus,
@@ -251,22 +278,20 @@ export default function TransportAdminTripsView({
       campusToCampus,
       confirmedPassengers,
       totalCapacity,
+      activeBusesCount,
+      totalBusesCount: buses.length,
+      lockedManifestsCount,
       utilizationRate: totalCapacity > 0 ? Math.round((confirmedPassengers / totalCapacity) * 100) : 0,
     };
-  }, [dateScopedTrips, bookings, buses, routes, shifts]);
+  }, [dateScopedTrips, bookings, buses]);
 
-  // Filtered trips for active view
+  // Filtered trips for active feed view
   const filteredTrips = useMemo(() => {
     return dateScopedTrips.filter((trip) => {
       const dir = getTripDirection(trip);
-
-      // Direction Filter
       if (selectedDirection !== "ALL" && dir !== selectedDirection) return false;
-
-      // Status Filter
       if (selectedStatus !== "ALL" && trip.status !== selectedStatus) return false;
 
-      // Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const route = routes.find((r) => r.id === trip.routeId);
@@ -288,13 +313,66 @@ export default function TransportAdminTripsView({
 
       return true;
     });
-  }, [dateScopedTrips, selectedDirection, selectedStatus, searchQuery, routes, buses, staff, shifts]);
+  }, [dateScopedTrips, selectedDirection, selectedStatus, searchQuery, routes, buses, staff]);
 
-  // Handle Locking Final Manifest
+  // Group Trips by Bus for Bus Explorer Mode
+  const busExplorerData = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return buses
+      .filter((bus) => {
+        if (!query) return true;
+        const matchesBus =
+          bus.busNumber.toLowerCase().includes(query) ||
+          bus.registrationNo.toLowerCase().includes(query);
+        const hasMatchingTrip = dateScopedTrips.some(
+          (t) =>
+            t.busId === bus.id &&
+            (t.tripCode.toLowerCase().includes(query) ||
+              routes.find((r) => r.id === t.routeId)?.name.toLowerCase().includes(query))
+        );
+        return matchesBus || hasMatchingTrip;
+      })
+      .map((bus) => {
+        const busTrips = dateScopedTrips.filter((t) => t.busId === bus.id);
+        // Filter by selectedDirection if chosen
+        const matchingTrips = busTrips.filter((t) => {
+          if (selectedDirection === "ALL") return true;
+          return getTripDirection(t) === selectedDirection;
+        });
+
+        // Calculate bus passenger load across its runs
+        const busBookings = bookings.filter((b) => busTrips.some((t) => t.id === b.tripId));
+        const confirmedBookings = busBookings.filter(
+          (b) => b.status === "CONFIRMED" || b.status === "BOARDED"
+        ).length;
+
+        // Assigned driver for this bus from today's trips
+        const primaryDriver = busTrips[0]
+          ? staff.find((s) => s.id === busTrips[0].driverId)
+          : null;
+
+        return {
+          bus,
+          trips: matchingTrips,
+          allDateTrips: busTrips,
+          confirmedBookings,
+          primaryDriver,
+        };
+      })
+      .sort((a, b) => {
+        // Buses with trips first, then alphabetical by busNumber
+        if (a.trips.length > 0 && b.trips.length === 0) return -1;
+        if (a.trips.length === 0 && b.trips.length > 0) return 1;
+        return a.bus.busNumber.localeCompare(b.bus.busNumber, undefined, { numeric: true });
+      });
+  }, [buses, dateScopedTrips, selectedDirection, searchQuery, routes, bookings, staff]);
+
+  // Lock Manifest Handler
   const handleLockManifest = (tripId: string) => {
     if (
       confirm(
-        "Lock final manifest for this trip? This will freeze the passenger list for the conductor and close public shift booking."
+        "Lock final manifest for this trip? This will freeze the passenger list for the conductor and close public commuter booking."
       )
     ) {
       store.lockTripManifest(tripId);
@@ -302,7 +380,7 @@ export default function TransportAdminTripsView({
     }
   };
 
-  // Handle Deleting / Unassigning Trip
+  // Delete Trip Handler
   const handleDeleteTrip = async (tripId: string, tripCode: string) => {
     if (!confirm(`Are you sure you want to cancel and remove trip schedule ${tripCode}?`)) return;
     try {
@@ -314,6 +392,15 @@ export default function TransportAdminTripsView({
     }
   };
 
+  // Quick Open Modal with pre-selected Bus
+  const handleAddTripForBus = (busId: string) => {
+    setNewTrip((prev) => ({
+      ...prev,
+      busId,
+      tripDate: selectedDate === "ALL" ? todayDate : selectedDate,
+    }));
+    setIsAddTripOpen(true);
+  };
 
   // Create Trip Handler
   const handleCreateTrip = async (e: React.FormEvent) => {
@@ -327,15 +414,15 @@ export default function TransportAdminTripsView({
       const busObj = buses.find((b) => b.id === newTrip.busId);
       const routeObj = routes.find((r) => r.id === newTrip.routeId);
       const shiftObj = shifts.find((s) => s.id === newTrip.shiftId) || shifts[0];
-      
+
       const busLabel = busObj ? busObj.busNumber.split(" ")[0].replace(/[^a-zA-Z0-9]/g, "") : "BUS";
       const cleanTime = (shiftObj?.startTime || "07:30").replace(":", "");
       const prefix =
         shiftObj?.direction === "HOME_TO_CAMPUS"
           ? "H2C"
           : shiftObj?.direction === "CAMPUS_TO_HOME"
-            ? "C2H"
-            : "C2C";
+          ? "C2H"
+          : "C2C";
 
       const tripCode = `${prefix}-${routeObj?.code || "R"}-${busLabel}-${cleanTime}-${Math.floor(100 + Math.random() * 900)}`;
 
@@ -343,7 +430,7 @@ export default function TransportAdminTripsView({
         tripCode,
         routeId: newTrip.routeId,
         busId: newTrip.busId,
-        shiftId: newTrip.shiftId || shiftObj.id,
+        shiftId: newTrip.shiftId || shiftObj?.id || "",
         driverId: newTrip.driverId || "",
         conductorId: newTrip.conductorId || "",
         tripDate: newTrip.tripDate,
@@ -357,9 +444,8 @@ export default function TransportAdminTripsView({
 
       setTrips(store.getTrips());
       setIsAddTripOpen(false);
-      showToast(`✓ New ${shiftObj?.direction?.replace(/_/g, " ")} departure scheduled at ${shiftObj?.startTime}!`);
+      showToast(`✓ Trip scheduled at ${shiftObj?.startTime || "departure time"}!`);
     } catch (err: any) {
-      console.error(err);
       alert("Error scheduling trip: " + (err.message || "Unknown error"));
     } finally {
       setIsSubmitting(false);
@@ -367,52 +453,122 @@ export default function TransportAdminTripsView({
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in pb-12">
+    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in pb-16">
       {/* Toast Notification */}
       {feedbackToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-gray-700 flex items-center gap-2.5 text-xs font-bold animate-in slide-in-from-bottom-3">
-          <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{feedbackToast}</span>
         </div>
       )}
 
-      {/* Compact Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-3">
-        <div className="flex items-center gap-2">
-          <button className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 bg-blue-600 text-white shadow-md shadow-blue-600/20`}>
-            <Navigation className="w-4 h-4" />
-            <span className="hidden sm:inline">Trip Schedules & Dispatch Hub</span>
-          </button>
+      {/* Top Header & Fast Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs">
+              <Navigation className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                  Trip Schedules & Dispatch Hub
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
+                  {dateScopedTrips.length} Dispatched
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Live dispatch instances, driver rosters, vehicle manifests, and real-time fleet operations.
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-0">
-          <button
-            onClick={() => setIsManageShiftsOpen(true)}
-            className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-800 dark:text-gray-200 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Shift Master Directory Link */}
+          <Link
+            href="/transport-admin/shifts"
+            className="px-3.5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs transition-all"
+            title="Manage temporal shift schedules, cutoff times, and direction policies"
           >
             <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span className="hidden sm:inline">Manage Shift Master ({shifts.length})</span>
-          </button>
+            <span>Shift Master ({shifts.length})</span>
+          </Link>
+
+          {/* Schedule New Trip Button */}
           <button
             onClick={() => setIsAddTripOpen(true)}
-            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-2xl flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Schedule New Trip</span>
           </button>
         </div>
       </div>
 
-      {/* Filter & Search Toolbar */}
-      <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 sm:p-5 border border-gray-200 dark:border-gray-800 shadow-xs space-y-4">
-        {/* Operational Shift Date Selector */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
+      {/* KPI Overview Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 shadow-sm flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <BusFront className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Active Fleet</div>
+            <div className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
+              {stats.activeBusesCount} <span className="text-xs text-gray-400 font-bold">/ {stats.totalBusesCount} Buses</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 shadow-sm flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <Activity className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Runs Scheduled</div>
+            <div className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
+              {stats.total} Trips
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 shadow-sm flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Users className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Passengers Booked</div>
+            <div className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
+              {stats.confirmedPassengers} <span className="text-xs text-emerald-600 font-bold">({stats.utilizationRate}% Load)</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 shadow-sm flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <Lock className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Manifests Dispatched</div>
+            <div className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
+              {stats.lockedManifestsCount} <span className="text-xs text-gray-400 font-bold">/ {stats.total} Locked</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Date Selector & View Switcher Bar */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 sm:p-5 border border-gray-200/80 dark:border-gray-800 shadow-xs space-y-4">
+        {/* Row 1: Operational Shift Date Bar */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 text-xs font-black text-gray-700 dark:text-gray-300 mr-1">
               <CalendarDays className="w-4 h-4 text-blue-600" />
               <span>Shift Date:</span>
             </div>
 
-            {/* Quick Today Button */}
+            {/* Quick Today Pill */}
             <button
               onClick={() => setSelectedDate(todayDate)}
               className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
@@ -421,14 +577,14 @@ export default function TransportAdminTripsView({
                   : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Today ({todayDate})</span>
               <span className="ml-1 px-1.5 py-0.2 rounded-md text-[10px] bg-white/20">
                 {trips.filter((t) => t.tripDate === todayDate).length}
               </span>
             </button>
 
-            {/* Other Recent Available Dates */}
+            {/* Recent Operational Dates */}
             {availableDates
               .filter((d) => d !== todayDate)
               .slice(0, 3)
@@ -454,7 +610,7 @@ export default function TransportAdminTripsView({
               onClick={() => setSelectedDate("ALL")}
               className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 selectedDate === "ALL"
-                  ? "bg-yellow-600 text-white shadow-sm"
+                  ? "bg-amber-600 text-white shadow-sm"
                   : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
               }`}
             >
@@ -462,7 +618,7 @@ export default function TransportAdminTripsView({
             </button>
           </div>
 
-          {/* Date Picker Input for any custom date */}
+          {/* Date Picker Input */}
           <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
             <span>Pick Date:</span>
             <input
@@ -476,25 +632,28 @@ export default function TransportAdminTripsView({
           </div>
         </div>
 
-        {/* Direction Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
+        {/* Row 2: Direction Tabs & View Mode Switcher */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Direction Filter Pills */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => setSelectedDirection("ALL")}
-              className={`px-3.5 py-2 text-xs font-black rounded-xl transition-all ${selectedDirection === "ALL"
+              className={`px-3 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer ${
+                selectedDirection === "ALL"
                   ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm"
                   : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+              }`}
             >
               All Directions ({stats.total})
             </button>
 
             <button
               onClick={() => setSelectedDirection("HOME_TO_CAMPUS")}
-              className={`px-3.5 py-2 text-xs font-black rounded-xl flex items-center gap-1.5 transition-all ${selectedDirection === "HOME_TO_CAMPUS"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900"
-                }`}
+              className={`px-3 py-1.5 text-xs font-black rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+                selectedDirection === "HOME_TO_CAMPUS"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900"
+              }`}
             >
               <Home className="w-3.5 h-3.5" />
               <span>Home → Campus ({stats.homeToCampus})</span>
@@ -502,10 +661,11 @@ export default function TransportAdminTripsView({
 
             <button
               onClick={() => setSelectedDirection("CAMPUS_TO_HOME")}
-              className={`px-3.5 py-2 text-xs font-black rounded-xl flex items-center gap-1.5 transition-all ${selectedDirection === "CAMPUS_TO_HOME"
+              className={`px-3 py-1.5 text-xs font-black rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+                selectedDirection === "CAMPUS_TO_HOME"
                   ? "bg-pink-600 text-white shadow-sm"
                   : "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900"
-                }`}
+              }`}
             >
               <Building2 className="w-3.5 h-3.5" />
               <span>Campus → Home ({stats.campusToHome})</span>
@@ -513,309 +673,607 @@ export default function TransportAdminTripsView({
 
             <button
               onClick={() => setSelectedDirection("CAMPUS_TO_CAMPUS")}
-              className={`px-3.5 py-2 text-xs font-black rounded-xl flex items-center gap-1.5 transition-all ${selectedDirection === "CAMPUS_TO_CAMPUS"
-                  ? "bg-green-600 text-white shadow-sm"
-                  : "bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900"
-                }`}
+              className={`px-3 py-1.5 text-xs font-black rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+                selectedDirection === "CAMPUS_TO_CAMPUS"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900"
+              }`}
             >
               <Shuffle className="w-3.5 h-3.5" />
               <span>Campus ⇄ Campus ({stats.campusToCampus})</span>
             </button>
           </div>
 
-          <div className="text-xs font-bold text-gray-400">
-            Showing {filteredTrips.length} of {dateScopedTrips.length} schedules {selectedDate !== "ALL" && `for ${selectedDate}`}
+          {/* View Mode Toggle: Feed vs Bus Explorer */}
+          <div className="flex items-center gap-2">
+            <div className="p-1 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center">
+              <button
+                type="button"
+                onClick={() => setViewMode("FEED")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === "FEED"
+                    ? "bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-xs"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <ListFilter className="w-3.5 h-3.5 text-blue-600" />
+                <span>Dispatches Feed</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode("BUS_EXPLORER")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === "BUS_EXPLORER"
+                    ? "bg-white dark:bg-gray-900 text-purple-600 dark:text-purple-400 shadow-xs"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Bus Fleet Explorer</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Secondary Filters: Schedule Frequency & Search */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-
-          {/* Search Box */}
-          <div className="relative min-w-[240px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search route, bus, trip code, or crew..."
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 font-bold"
-            />
-          </div>
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by bus number, plate, corridor, driver, conductor, or trip code..."
+            className="w-full pl-10 pr-4 py-2.5 text-xs rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 font-bold"
+          />
         </div>
       </div>
 
-      {/* Trips Grid */}
-      {filteredTrips.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-12 text-center border border-gray-200 dark:border-gray-800 shadow-xs space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 mx-auto flex items-center justify-center font-bold">
-            <Navigation className="w-6 h-6" />
+      {/* VIEW MODE 1: BUS FLEET EXPLORER (Requested Feature Inspired by Student Panel) */}
+      {viewMode === "BUS_EXPLORER" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+                <BusFront className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <span>Fleet Vehicle Explorer</span>
+              </h2>
+              <p className="text-xs text-gray-500">
+                Explore every vehicle in the fleet and inspect all assigned trip departures for{" "}
+                {selectedDate === "ALL" ? "all dates" : selectedDate}.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-gray-400">
+              Showing {busExplorerData.length} Vehicles
+            </span>
           </div>
-          <h3 className="text-base font-black text-gray-900 dark:text-white">
-            No Trip Schedules Found
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-            No departures match your current direction or recurrence filters. Click below to schedule a new trip service.
-          </p>
-          <button
-            onClick={() => setIsAddTripOpen(true)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl shadow-md transition-all"
-          >
-            + Schedule New Trip
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredTrips.map((trip) => {
-            const bus = buses.find((b) => b.id === trip.busId) || buses[0] || { busNumber: "Campus Bus", capacity: 40 };
-            const route = routes.find((r) => r.id === trip.routeId) || routes[0] || { name: "University Corridor", code: "R1" };
-            const shift = shifts.find((sh) => sh.id === trip.shiftId) || shifts[0] || { name: "Regular Shift", startTime: "07:30" };
-            const driver = staff.find((st) => st.id === trip.driverId);
-            const conductor = staff.find((st) => st.id === trip.conductorId);
-            const tripBookings = bookings.filter((b) => b.tripId === trip.id);
-            const confirmedCount = tripBookings.filter((b) => b.status === "CONFIRMED" || b.status === "BOARDED").length;
-            const waitlistCount = tripBookings.filter((b) => b.status === "WAITLISTED").length;
 
-            const dir = getTripDirection(trip);
-            const departureTime = shift.startTime || "07:30";
-            const displayRouteName = getDirectionalRouteName(route.name, dir);
-            const displayBusNumber = getDirectionalBusNumber(bus.busNumber, dir);
-            const cityOrigin = getRouteCityOrigin(route.name);
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {busExplorerData.map(({ bus, trips: busTrips, allDateTrips, confirmedBookings, primaryDriver }) => {
+              const hasTrips = busTrips.length > 0;
+              const isBusActive = bus.status === "ACTIVE";
 
-            return (
-              <div
-                key={trip.id}
-                className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-5 hover:border-gray-300 dark:hover:border-gray-700 transition-all flex flex-col justify-between"
-              >
-                {/* Card Top: Direction Badge, Trip Code & Status */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    {/* Direction Badge */}
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${dir === "HOME_TO_CAMPUS"
-                          ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
-                          : dir === "CAMPUS_TO_HOME"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                            : "bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300"
-                        }`}
-                    >
-                      {dir === "HOME_TO_CAMPUS" && <Home className="w-3 h-3" />}
-                      {dir === "CAMPUS_TO_HOME" && <Building2 className="w-3 h-3" />}
-                      {dir === "CAMPUS_TO_CAMPUS" && <Shuffle className="w-3 h-3" />}
-                      <span>
-                        {dir === "HOME_TO_CAMPUS"
-                          ? "Home → Campus"
-                          : dir === "CAMPUS_TO_HOME"
-                            ? "Campus → Home"
-                            : "Campus ⇄ Campus"}
-                      </span>
-                    </span>
+              return (
+                <div
+                  key={bus.id}
+                  className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl hover:shadow-2xl hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-300 flex flex-col justify-between group"
+                >
+                  <div className="space-y-4">
+                    {/* Top Bus Badge & Capacity Strip */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0 group-hover:scale-105 transition-transform">
+                          <BusFront className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="text-xl font-black text-gray-900 dark:text-white leading-tight">
+                              {bus.busNumber}
+                            </h3>
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                isBusActive ? "bg-emerald-500 animate-pulse" : "bg-gray-400"
+                              }`}
+                            />
+                          </div>
+                          <p className="text-xs font-mono font-bold text-gray-400 mt-0.5">
+                            {bus.registrationNo || "Registration Pending"}
+                          </p>
+                        </div>
+                      </div>
 
-                    {/* Status & Recurrence Tags */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {trip.tripDate && (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200/60 dark:border-gray-700/60">
-                          {trip.tripDate}
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 rounded-full">
+                          {bus.capacity} Seats
                         </span>
-                      )}
-
-                      {trip.isSpecial && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-yellow-100 dark:bg-yellow-950/80 text-yellow-800 dark:text-yellow-300 border border-yellow-300/60 dark:border-yellow-700/60">
-                          <GraduationCap className="w-3 h-3" />
-                          <span>{trip.facilityType === "PLACEMENT_DRIVE" ? "Placement Special" : trip.facilityType === "EVENT" ? "Campus Event" : "Special Facility"}</span>
+                        <span className="text-[10px] text-gray-400 font-bold mt-1">
+                          {bus.status || "ACTIVE"}
                         </span>
-                      )}
-
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${trip.status === "IN_PROGRESS"
-                            ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 animate-pulse"
-                            : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-                          }`}
-                      >
-                        {trip.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Route & Time Details */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-black text-lg text-gray-900 dark:text-white leading-tight">
-                        {displayRouteName}
-                      </h3>
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 shrink-0">
-                        {trip.tripCode}
-                      </span>
-                    </div>
-
-                    {/* Pickup / Drop Corridor Flow */}
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200/70 dark:border-gray-700/50 text-xs font-semibold">
-                      {dir === "HOME_TO_CAMPUS" ? (
-                        <>
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 shrink-0">
-                              Pickup
-                            </span>
-                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">{cityOrigin}</span>
-                          </div>
-                          <ArrowRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
-                              Drop
-                            </span>
-                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
-                              {store.getCampuses().find(c => c.id === route?.destinationCampusId || c.id === route?.campusId)?.name || store.getPrimaryCampus()?.name || "Campus Terminal"}
-                            </span>
-                          </div>
-                        </>
-                      ) : dir === "CAMPUS_TO_HOME" ? (
-                        <>
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
-                              Pickup
-                            </span>
-                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
-                              {store.getCampuses().find(c => c.id === route?.originCampusId || c.id === route?.campusId)?.name || store.getPrimaryCampus()?.name || "Campus Terminal"}
-                            </span>
-                          </div>
-                          <ArrowRight className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 shrink-0">
-                              Drop
-                            </span>
-                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">{cityOrigin} (Reverse Route)</span>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300 shrink-0">
-                              Origin
-                            </span>
-                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">Bhimtal Campus</span>
-                          </div>
-                          <ArrowRight className="w-3.5 h-3.5 text-pink-500 shrink-0" />
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300 shrink-0">
-                              Destination
-                            </span>
-                            <span className="truncate text-gray-800 dark:text-gray-200 font-bold">Dehradun Clement Town</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-gray-500 dark:text-gray-400 pt-1">
-                      <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-mono font-black bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-md">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Departure: {formatTime(departureTime)}</span>
-                      </span>
-
-                      <span className="inline-flex items-center gap-1 font-mono">
-                        <BusFront className="w-3.5 h-3.5 text-gray-400" />
-                        <span>{displayBusNumber}</span>
-                      </span>
-
-                      {bus.registrationNo && (
-                        <span className="font-mono text-[11px] text-gray-400">
-                          ({bus.registrationNo})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Passenger Load Bar */}
-                  <div className="p-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/60 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-bold">
-                      <span>
-                        Occupancy: <strong>{confirmedCount}</strong> / {bus.capacity} Seats
-                      </span>
-                      {waitlistCount > 0 ? (
-                        <span className="text-yellow-600 dark:text-yellow-400 font-mono font-bold bg-yellow-100 dark:bg-yellow-950 px-2 py-0.5 rounded-md">
-                          {waitlistCount} Waitlisted (WL)
-                        </span>
-                      ) : (
-                        <span className="text-green-600 dark:text-green-400 text-[11px]">
-                          Seats Available
-                        </span>
-                      )}
-                    </div>
-                    <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all ${confirmedCount >= (bus.capacity || 40)
-                            ? "bg-yellow-500"
-                            : "bg-blue-600"
-                          }`}
-                        style={{ width: `${Math.min(100, (confirmedCount / (bus.capacity || 40)) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Crew Assignment */}
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
-                      <div className="text-[10px] uppercase font-bold text-gray-400">Assigned Driver</div>
-                      <div className="font-bold text-gray-800 dark:text-gray-200 truncate mt-0.5">
-                        {driver?.fullName || "Unassigned"}
                       </div>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
-                      <div className="text-[10px] uppercase font-bold text-gray-400">Boarding Conductor</div>
-                      <div className="font-bold text-gray-800 dark:text-gray-200 truncate mt-0.5">
-                        {conductor?.fullName || "Unassigned"}
+
+                    {/* Driver & IoT GPS Info Strip */}
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-gray-400">Assigned Driver</span>
+                        <div className="font-bold text-gray-800 dark:text-gray-200 truncate mt-0.5">
+                          {primaryDriver?.fullName || "Pool Driver"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-gray-400">IoT Telematics</span>
+                        <div className="font-mono text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate mt-0.5 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span>{bus.gpsDeviceId ? `GPS #${bus.gpsDeviceId}` : "Standard GPS"}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Manifest Status & Bottom Actions */}
-                <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2.5">
-                  <div className="flex-1 min-w-[140px]">
-                    {trip.manifestLocked ? (
-                      <span className="text-xs font-bold text-green-600 dark:text-green-400 flex items-center gap-1.5">
-                        <Lock className="w-4 h-4 shrink-0" />
-                        <span>Manifest Frozen & Dispatched</span>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleLockManifest(trip.id)}
-                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all"
-                      >
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Lock & Freeze Manifest</span>
-                      </button>
-                    )}
+                    {/* Today's Runs / Schedule Timeline for this Bus */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Scheduled Departures ({busTrips.length})</span>
+                        </span>
+                        {busTrips.length > 0 && (
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                            {confirmedBookings} Bookings
+                          </span>
+                        )}
+                      </div>
+
+                      {busTrips.length === 0 ? (
+                        <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-gray-800/30 border border-dashed border-gray-200 dark:border-gray-700 text-center space-y-2">
+                          <p className="text-xs text-gray-400 font-semibold">
+                            No departures scheduled for this vehicle on {selectedDate === "ALL" ? "today" : selectedDate}.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleAddTripForBus(bus.id)}
+                            className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                          >
+                            + Assign Run to {bus.busNumber}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                          {busTrips.map((trip) => {
+                            const route = routes.find((r) => r.id === trip.routeId);
+                            const shift = shifts.find((sh) => sh.id === trip.shiftId);
+                            const dir = getTripDirection(trip);
+                            const tripBookings = bookings.filter((b) => b.tripId === trip.id);
+                            const confirmedCount = tripBookings.filter(
+                              (b) => b.status === "CONFIRMED" || b.status === "BOARDED"
+                            ).length;
+                            const departureTime = shift?.startTime || "07:30";
+
+                            return (
+                              <div
+                                key={trip.id}
+                                className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-850 border border-gray-200 dark:border-gray-750 space-y-2 hover:border-blue-400 transition-all"
+                              >
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                      dir === "HOME_TO_CAMPUS"
+                                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                        : dir === "CAMPUS_TO_HOME"
+                                        ? "bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300"
+                                        : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
+                                    }`}
+                                  >
+                                    {dir === "HOME_TO_CAMPUS" && <Home className="w-2.5 h-2.5" />}
+                                    {dir === "CAMPUS_TO_HOME" && <Building2 className="w-2.5 h-2.5" />}
+                                    {dir === "CAMPUS_TO_CAMPUS" && <Shuffle className="w-2.5 h-2.5" />}
+                                    <span>{dir === "HOME_TO_CAMPUS" ? "Pick-Up" : dir === "CAMPUS_TO_HOME" ? "Return" : "Special"}</span>
+                                  </span>
+
+                                  <span className="font-mono text-xs font-black text-blue-600 dark:text-blue-400">
+                                    {formatTime(departureTime)}
+                                  </span>
+                                </div>
+
+                                <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                  {getDirectionalRouteName(route?.name || "University Corridor", dir)}
+                                </div>
+
+                                {/* Mini occupancy bar */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between text-[10px] font-bold text-gray-400">
+                                    <span>Load: {confirmedCount} / {bus.capacity}</span>
+                                    <span>{Math.round((confirmedCount / (bus.capacity || 40)) * 100)}%</span>
+                                  </div>
+                                  <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-blue-600 rounded-full transition-all"
+                                      style={{
+                                        width: `${Math.min(100, (confirmedCount / (bus.capacity || 40)) * 100)}%`,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Actions in Card */}
+                                <div className="flex items-center justify-between pt-1 border-t border-gray-200/60 dark:border-gray-700/60 text-xs">
+                                  {trip.manifestLocked ? (
+                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                      <Lock className="w-3 h-3" />
+                                      <span>Manifest Locked</span>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleLockManifest(trip.id)}
+                                      className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                    >
+                                      <Lock className="w-3 h-3" />
+                                      <span>Lock Manifest</span>
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTrip(trip.id, trip.tripCode)}
+                                    className="text-gray-400 hover:text-red-600 transition-colors"
+                                    title="Cancel Run"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Special Campus-to-Campus / Placement Allocation Button */}
-                  {(trip.isSpecial || shift?.isSpecial) && (
+                  {/* Card Bottom Quick Action */}
+                  <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-800">
                     <button
                       type="button"
-                      onClick={() => setAllocatingTrip(trip)}
-                      className="px-3.5 py-2.5 bg-yellow-500 hover:bg-yellow-600  text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all shrink-0 active:scale-95"
-                      title="Allocate eligible students who can view and book this special facility"
+                      onClick={() => handleAddTripForBus(bus.id)}
+                      className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-750 text-gray-800 dark:text-gray-200 text-xs font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                     >
-                      <GraduationCap className="w-4 h-4" />
-                      <span>Allocate ({allocations.filter(a => a.shiftId === trip.shiftId).length})</span>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Schedule Trip for {bus.busNumber}</span>
                     </button>
-                  )}
-
-                  <button
-                    type="button"
-                    title="Cancel / Delete Trip"
-                    onClick={() => handleDeleteTrip(trip.id, trip.tripCode)}
-                    className="p-2.5 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 transition-all shrink-0"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Schedule New Trip Modal */}
+      {/* VIEW MODE 2: CHRONOLOGICAL DISPATCHES FEED */}
+      {viewMode === "FEED" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+                <ListFilter className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <span>Chronological Service Dispatches</span>
+              </h2>
+              <p className="text-xs text-gray-500">
+                Live run manifests and real-time transit instances for {selectedDate === "ALL" ? "all dates" : selectedDate}.
+              </p>
+            </div>
+            <div className="text-xs font-bold text-gray-400">
+              Showing {filteredTrips.length} of {dateScopedTrips.length} trips
+            </div>
+          </div>
+
+          {filteredTrips.length === 0 ? (
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-12 text-center border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 mx-auto flex items-center justify-center font-bold">
+                <Navigation className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-black text-gray-900 dark:text-white">
+                No Trip Schedules Found
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                No departures match your current direction or search filter. Schedule a new trip to deploy service.
+              </p>
+              <button
+                onClick={() => setIsAddTripOpen(true)}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer"
+              >
+                + Schedule New Trip
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredTrips.map((trip) => {
+                const bus =
+                  buses.find((b) => b.id === trip.busId) ||
+                  buses[0] || { busNumber: "Campus Bus", capacity: 40, registrationNo: "" };
+                const route =
+                  routes.find((r) => r.id === trip.routeId) ||
+                  routes[0] || { name: "University Corridor", code: "R1" };
+                const shift =
+                  shifts.find((sh) => sh.id === trip.shiftId) ||
+                  shifts[0] || { name: "Regular Shift", startTime: "07:30" };
+                const driver = staff.find((st) => st.id === trip.driverId);
+                const conductor = staff.find((st) => st.id === trip.conductorId);
+                const tripBookings = bookings.filter((b) => b.tripId === trip.id);
+                const confirmedCount = tripBookings.filter(
+                  (b) => b.status === "CONFIRMED" || b.status === "BOARDED"
+                ).length;
+                const waitlistCount = tripBookings.filter((b) => b.status === "WAITLISTED").length;
+
+                const dir = getTripDirection(trip);
+                const departureTime = shift?.startTime || "07:30";
+                const displayRouteName = getDirectionalRouteName(route.name, dir);
+                const displayBusNumber = getDirectionalBusNumber(bus.busNumber);
+                const cityOrigin = getRouteCityOrigin(route.name);
+
+                return (
+                  <div
+                    key={trip.id}
+                    className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl hover:shadow-2xl hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 flex flex-col justify-between group"
+                  >
+                    {/* Card Top: Direction Badge, Shift Date & Status */}
+                    <div className="space-y-3.5">
+                      <div className="flex items-center justify-between gap-2">
+                        {/* Direction Badge */}
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            dir === "HOME_TO_CAMPUS"
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                              : dir === "CAMPUS_TO_HOME"
+                              ? "bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300"
+                              : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
+                          }`}
+                        >
+                          {dir === "HOME_TO_CAMPUS" && <Home className="w-3 h-3" />}
+                          {dir === "CAMPUS_TO_HOME" && <Building2 className="w-3 h-3" />}
+                          {dir === "CAMPUS_TO_CAMPUS" && <Shuffle className="w-3 h-3" />}
+                          <span>
+                            {dir === "HOME_TO_CAMPUS"
+                              ? "Home → Campus"
+                              : dir === "CAMPUS_TO_HOME"
+                              ? "Campus → Home"
+                              : "Campus ⇄ Campus"}
+                          </span>
+                        </span>
+
+                        {/* Status & Recurrence Tags */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {trip.tripDate && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200/60 dark:border-gray-700/60">
+                              {trip.tripDate}
+                            </span>
+                          )}
+
+                          {trip.isSpecial && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-yellow-100 dark:bg-yellow-950/80 text-yellow-800 dark:text-yellow-300 border border-yellow-300/60 dark:border-yellow-700/60">
+                              <GraduationCap className="w-3 h-3" />
+                              <span>
+                                {trip.facilityType === "PLACEMENT_DRIVE"
+                                  ? "Placement Special"
+                                  : trip.facilityType === "EVENT"
+                                  ? "Campus Event"
+                                  : "Special Facility"}
+                              </span>
+                            </span>
+                          )}
+
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              trip.status === "IN_PROGRESS"
+                                ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 animate-pulse"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                            }`}
+                          >
+                            {trip.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Route Corridor & Operational Code */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-black text-lg text-gray-900 dark:text-white leading-tight">
+                            {displayRouteName}
+                          </h3>
+                          {/* Internal operational reference badge (compliant with transit domain rule) */}
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 shrink-0 border border-gray-200/60 dark:border-gray-700/60">
+                            {trip.tripCode}
+                          </span>
+                        </div>
+
+                        {/* Corridor Flow Strip */}
+                        <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200/70 dark:border-gray-700/50 text-xs font-semibold">
+                          {dir === "HOME_TO_CAMPUS" ? (
+                            <>
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
+                                  Pickup
+                                </span>
+                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
+                                  {cityOrigin}
+                                </span>
+                              </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
+                                  Drop
+                                </span>
+                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
+                                  {store.getCampuses().find(
+                                    (c) => c.id === route?.destinationCampusId || c.id === route?.campusId
+                                  )?.name ||
+                                    store.getPrimaryCampus()?.name ||
+                                    "Campus Terminal"}
+                                </span>
+                              </div>
+                            </>
+                          ) : dir === "CAMPUS_TO_HOME" ? (
+                            <>
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
+                                  Pickup
+                                </span>
+                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
+                                  {store.getCampuses().find(
+                                    (c) => c.id === route?.originCampusId || c.id === route?.campusId
+                                  )?.name ||
+                                    store.getPrimaryCampus()?.name ||
+                                    "Campus Terminal"}
+                                </span>
+                              </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
+                                  Drop
+                                </span>
+                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
+                                  {cityOrigin} (Reverse Route)
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                                  Origin
+                                </span>
+                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
+                                  Bhimtal Campus
+                                </span>
+                              </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                                  Destination
+                                </span>
+                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
+                                  Dehradun Clement Town
+                                </span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Departure Time & Vehicle Plate */}
+                        <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-gray-500 dark:text-gray-400 pt-1">
+                          <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-mono font-black bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-xl">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Departure: {formatTime(departureTime)}</span>
+                          </span>
+
+                          <span className="inline-flex items-center gap-1 font-mono font-black text-gray-800 dark:text-gray-200">
+                            <BusFront className="w-3.5 h-3.5 text-purple-600" />
+                            <span>{displayBusNumber}</span>
+                          </span>
+
+                          {bus.registrationNo && (
+                            <span className="font-mono text-[11px] text-gray-400">
+                              ({bus.registrationNo})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Passenger Load Bar */}
+                      <div className="p-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/60 space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold">
+                          <span>
+                            Occupancy: <strong>{confirmedCount}</strong> / {bus.capacity} Seats
+                          </span>
+                          {waitlistCount > 0 ? (
+                            <span className="text-yellow-600 dark:text-yellow-400 font-mono font-bold bg-yellow-100 dark:bg-yellow-950 px-2 py-0.5 rounded-md">
+                              {waitlistCount} Waitlisted (WL)
+                            </span>
+                          ) : (
+                            <span className="text-emerald-600 dark:text-emerald-400 text-[11px]">
+                              Seats Available
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${
+                              confirmedCount >= (bus.capacity || 40) ? "bg-amber-500" : "bg-blue-600"
+                            }`}
+                            style={{
+                              width: `${Math.min(100, (confirmedCount / (bus.capacity || 40)) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Crew Assignment */}
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
+                          <div className="text-[10px] uppercase font-bold text-gray-400">Assigned Driver</div>
+                          <div className="font-bold text-gray-800 dark:text-gray-200 truncate mt-0.5">
+                            {driver?.fullName || "Unassigned"}
+                          </div>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
+                          <div className="text-[10px] uppercase font-bold text-gray-400">Boarding Conductor</div>
+                          <div className="font-bold text-gray-800 dark:text-gray-200 truncate mt-0.5">
+                            {conductor?.fullName || "Unassigned"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Manifest Status & Bottom Actions */}
+                    <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2.5">
+                      <div className="flex-1 min-w-[140px]">
+                        {trip.manifestLocked ? (
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                            <Lock className="w-4 h-4 shrink-0" />
+                            <span>Manifest Frozen & Dispatched</span>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleLockManifest(trip.id)}
+                            className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Lock & Freeze Manifest</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Special Allocation Action */}
+                      {(trip.isSpecial || shift?.isSpecial) && (
+                        <button
+                          type="button"
+                          onClick={() => setAllocatingTrip(trip)}
+                          className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 shadow-sm transition-all shrink-0 active:scale-95 cursor-pointer"
+                          title="Allocate eligible students who can view and book this special facility"
+                        >
+                          <GraduationCap className="w-4 h-4" />
+                          <span>
+                            Allocate ({allocations.filter((a) => a.shiftId === trip.shiftId).length})
+                          </span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        title="Cancel / Delete Trip"
+                        onClick={() => handleDeleteTrip(trip.id, trip.tripCode)}
+                        className="p-2.5 rounded-2xl text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 transition-all shrink-0 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SCHEDULE NEW TRIP MODAL */}
       {isAddTripOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in overflow-y-auto">
           <form
@@ -830,13 +1288,13 @@ export default function TransportAdminTripsView({
                   <span>Schedule Departure Trip</span>
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Deploy N instances of services at your custom desired departure times.
+                  Deploy a transit run instance for your selected vehicle, shift window, and corridor route.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddTripOpen(false)}
-                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"
+                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -858,6 +1316,7 @@ export default function TransportAdminTripsView({
                     </div>
                   </div>
                 </div>
+
                 <input
                   type="checkbox"
                   id="isSpecialToggle"
@@ -866,7 +1325,11 @@ export default function TransportAdminTripsView({
                     setNewTrip((prev) => ({
                       ...prev,
                       isSpecial: e.target.checked,
-                      facilityType: e.target.checked ? (prev.facilityType === "REGULAR" ? "PLACEMENT_DRIVE" : prev.facilityType) : "REGULAR",
+                      facilityType: e.target.checked
+                        ? prev.facilityType === "REGULAR"
+                          ? "PLACEMENT_DRIVE"
+                          : prev.facilityType
+                        : "REGULAR",
                     }))
                   }
                   className="w-4 h-4 text-yellow-600 rounded border-gray-300 focus:ring-yellow-500"
@@ -904,22 +1367,22 @@ export default function TransportAdminTripsView({
             {/* STEP 2: Service Date */}
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                2. Specify Departure Service Date *
+                1. Specify Departure Service Date *
               </label>
               <input
                 type="date"
                 required
                 value={newTrip.tripDate}
                 onChange={(e) => setNewTrip((prev) => ({ ...prev, tripDate: e.target.value }))}
-                className="w-full p-2.5 text-xs font-bold rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-blue-500"
+                className="w-full p-2.5 text-xs font-bold rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-blue-500"
               />
             </div>
 
-            {/* STEP 4: Corridor Route, Shift & Bus Allocation */}
+            {/* STEP 3: Corridor Route, Shift & Bus Allocation */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  4. Select Corridor Route *
+                  2. Corridor Route *
                 </label>
                 <CustomDropdown
                   value={newTrip.routeId}
@@ -937,7 +1400,7 @@ export default function TransportAdminTripsView({
 
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  5. Assign to Shift *
+                  3. Assign to Shift *
                 </label>
                 <CustomDropdown
                   value={newTrip.shiftId || shifts[0]?.id || ""}
@@ -956,7 +1419,7 @@ export default function TransportAdminTripsView({
 
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  6. Allocate Fleet Bus *
+                  4. Allocate Fleet Bus *
                 </label>
                 <CustomDropdown
                   value={newTrip.busId}
@@ -973,14 +1436,7 @@ export default function TransportAdminTripsView({
               </div>
             </div>
 
-            {newTrip.shiftId && shifts.find((s) => s.id === newTrip.shiftId)?.shiftType === "AFTERNOON" && (
-              <div className="p-3 rounded-2xl bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 text-xs font-semibold flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shrink-0" />
-                <span>Single-Gate Progressive Departure: Buses release from Gate 1 sequentially as passenger seats fill.</span>
-              </div>
-            )}
-
-            {/* STEP 5: Crew Assignment (Optional) */}
+            {/* STEP 4: Crew Assignment (Optional) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -989,9 +1445,9 @@ export default function TransportAdminTripsView({
                 <CustomDropdown
                   value={newTrip.driverId}
                   onChange={(val) => setNewTrip((prev) => ({ ...prev, driverId: val }))}
-                  placeholder="-- Select Driver (Can assign later) --"
+                  placeholder="-- Select Driver --"
                   options={[
-                    { value: "", label: "-- Select Driver (Can assign later) --" },
+                    { value: "", label: "-- Select Driver --" },
                     ...staff
                       .filter((s) => s.role === "driver")
                       .map((d) => ({
@@ -1009,9 +1465,9 @@ export default function TransportAdminTripsView({
                 <CustomDropdown
                   value={newTrip.conductorId}
                   onChange={(val) => setNewTrip((prev) => ({ ...prev, conductorId: val }))}
-                  placeholder="-- Select Conductor (Can assign later) --"
+                  placeholder="-- Select Conductor --"
                   options={[
-                    { value: "", label: "-- Select Conductor (Can assign later) --" },
+                    { value: "", label: "-- Select Conductor --" },
                     ...staff
                       .filter((s) => s.role === "conductor" || s.role === "driver")
                       .map((c) => ({
@@ -1028,14 +1484,14 @@ export default function TransportAdminTripsView({
               <button
                 type="button"
                 onClick={() => setIsAddTripOpen(false)}
-                className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-2xl text-xs font-bold transition-all"
+                className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-2xl text-xs font-bold transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !newTrip.routeId || !newTrip.busId}
-                className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? (
                   <span>Deploying Schedule...</span>
@@ -1051,15 +1507,15 @@ export default function TransportAdminTripsView({
         </div>
       )}
 
-      {/* Special Facility Student Allocation Modal */}
+      {/* SPECIAL FACILITY STUDENT ALLOCATION MODAL */}
       {allocatingTrip && (() => {
-        const tripShift = shifts.find(s => s.id === allocatingTrip.shiftId);
-        const tripRoute = routes.find(r => r.id === allocatingTrip.routeId);
-        const tripBus = buses.find(b => b.id === allocatingTrip.busId);
-        const shiftAllocations = allocations.filter(a => a.shiftId === allocatingTrip.shiftId);
-        const allocatedStudentIds = new Set(shiftAllocations.map(a => a.studentId));
+        const tripShift = shifts.find((s) => s.id === allocatingTrip.shiftId);
+        const tripRoute = routes.find((r) => r.id === allocatingTrip.routeId);
+        const tripBus = buses.find((b) => b.id === allocatingTrip.busId);
+        const shiftAllocations = allocations.filter((a) => a.shiftId === allocatingTrip.shiftId);
+        const allocatedStudentIds = new Set(shiftAllocations.map((a) => a.studentId));
 
-        const filteredStudents = students.filter(s => {
+        const filteredStudents = students.filter((s) => {
           const query = studentSearch.toLowerCase();
           return (
             s.fullName?.toLowerCase().includes(query) ||
@@ -1086,7 +1542,7 @@ export default function TransportAdminTripsView({
                     </h3>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                    <strong>{tripShift?.name || "Special Placement Shift"}</strong> • Route: {tripRoute?.name || "Campus-to-Campus Express"}
+                    <strong>{tripShift?.name || "Special Placement Shift"}</strong> • Route: {tripRoute?.name || "Campus Express"}
                   </p>
                   <div className="flex items-center gap-2 pt-1">
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-yellow-50 dark:bg-yellow-950/60 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800">
@@ -1100,7 +1556,7 @@ export default function TransportAdminTripsView({
                     setAllocatingTrip(null);
                     setStudentSearch("");
                   }}
-                  className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"
+                  className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1117,7 +1573,7 @@ export default function TransportAdminTripsView({
                 <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700">
                   <div className="text-[10px] uppercase font-bold text-gray-400">Bus Capacity</div>
                   <div className="text-lg font-black text-gray-900 dark:text-white">
-                    {tripBus?.capacity || 36} Seats ({tripBus?.busNumber || "Bus"})
+                    {tripBus?.capacity || 40} Seats ({tripBus?.busNumber || "Bus"})
                   </div>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700 col-span-2 sm:col-span-1">
@@ -1147,19 +1603,25 @@ export default function TransportAdminTripsView({
                     No matching students found.
                   </div>
                 ) : (
-                  filteredStudents.map(student => {
+                  filteredStudents.map((student) => {
                     const isAllocated = allocatedStudentIds.has(student.id);
                     return (
                       <div
                         key={student.id}
-                        className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${isAllocated
+                        className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${
+                          isAllocated
                             ? "bg-yellow-50/70 dark:bg-yellow-950/30 border-yellow-300 dark:border-yellow-800"
                             : "bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700/60"
-                          }`}
+                        }`}
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isAllocated ? "bg-yellow-500 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                            }`}>
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                              isAllocated
+                                ? "bg-yellow-500 text-white"
+                                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                            }`}
+                          >
                             {student.fullName.charAt(0)}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -1172,7 +1634,9 @@ export default function TransportAdminTripsView({
                               )}
                             </div>
                             <div className="text-[10px] text-gray-400 font-mono truncate">
-                              ID: {student.studentIdCode || "Pending"}{student.email ? ` • ${student.email}` : ""} • {student.department || student.courseName} (Sem {student.semester})
+                              ID: {student.studentIdCode || "Pending"}
+                              {student.email ? ` • ${student.email}` : ""} •{" "}
+                              {student.department || student.courseName} (Sem {student.semester})
                             </div>
                           </div>
                         </div>
@@ -1186,7 +1650,7 @@ export default function TransportAdminTripsView({
                               setAllocations([...store.getSpecialShiftAllocations()]);
                               showToast(`Removed ${student.fullName} from facility allocation.`);
                             }}
-                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400 text-xs font-bold rounded-xl border border-red-200 dark:border-red-900 transition-all shrink-0"
+                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400 text-xs font-bold rounded-xl border border-red-200 dark:border-red-900 transition-all shrink-0 cursor-pointer"
                           >
                             Remove
                           </button>
@@ -1194,11 +1658,15 @@ export default function TransportAdminTripsView({
                           <button
                             type="button"
                             onClick={async () => {
-                              await store.allocateStudentToSpecialShift(allocatingTrip.shiftId, student.id, allocatingTrip.id);
+                              await store.allocateStudentToSpecialShift(
+                                allocatingTrip.shiftId,
+                                student.id,
+                                allocatingTrip.id
+                              );
                               setAllocations([...store.getSpecialShiftAllocations()]);
                               showToast(`Allocated ${student.fullName} to ${tripShift?.name || "facility"}.`);
                             }}
-                            className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 flex items-center gap-1"
+                            className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 flex items-center gap-1 cursor-pointer"
                           >
                             <UserPlus className="w-3.5 h-3.5" />
                             <span>Allocate +</span>
@@ -1218,7 +1686,7 @@ export default function TransportAdminTripsView({
                     setAllocatingTrip(null);
                     setStudentSearch("");
                   }}
-                  className="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs rounded-xl shadow-xs transition-all"
+                  className="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs rounded-2xl shadow-xs transition-all cursor-pointer"
                 >
                   Done & Save Allocations
                 </button>
@@ -1227,282 +1695,6 @@ export default function TransportAdminTripsView({
           </div>
         );
       })()}
-
-      {/* SHIFT MASTER MANAGEMENT MODAL */}
-      {isManageShiftsOpen && (
-        <div className="fixed inset-0 z-50 bg-gray-950/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 my-auto max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-black text-gray-900 dark:text-white">
-                    Campus Fleet Shift Master Directory
-                  </h2>
-                  <p className="text-xs text-gray-500">
-                    Configure institutional transit shifts, gate departure windows, and booking cutoff thresholds.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  setIsManageShiftsOpen(false);
-                  setEditingShift(null);
-                }}
-                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center transition-all cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Shift Form (Add or Edit) */}
-            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 space-y-3 shrink-0">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                  {editingShift?.id ? `Edit Shift: ${editingShift.name || editingShift.id}` : "Create New Transit Shift"}
-                </span>
-                {editingShift && (
-                  <button
-                    type="button"
-                    onClick={() => setEditingShift(null)}
-                    className="text-[11px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-bold"
-                  >
-                    Cancel Editing
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-gray-400">Shift Name *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Afternoon Half-Day Shift"
-                    value={editingShift?.name || ""}
-                    onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), name: e.target.value }))}
-                    className="w-full text-xs p-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:border-blue-500 font-bold"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-gray-400">Shift Type / Category</label>
-                  <input
-                    type="text"
-                    list="shift-type-suggestions"
-                    placeholder="e.g. MORNING, AFTERNOON, EVENING, SPECIAL..."
-                    value={editingShift?.shiftType || ""}
-                    onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), shiftType: e.target.value.toUpperCase() }))}
-                    className="w-full text-xs p-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none font-bold uppercase"
-                  />
-                  <datalist id="shift-type-suggestions">
-                    <option value="MORNING" />
-                    <option value="AFTERNOON" />
-                    <option value="EVENING" />
-                    <option value="NIGHT" />
-                    <option value="SPECIAL" />
-                    <option value="CUSTOM" />
-                  </datalist>
-                </div>
-
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-400">Start Time</label>
-                    <input
-                      type="time"
-                      value={editingShift?.startTime || "08:00"}
-                      onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), startTime: e.target.value }))}
-                      className="w-full text-xs p-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none font-bold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-400">End Time</label>
-                    <input
-                      type="time"
-                      value={editingShift?.endTime || "09:00"}
-                      onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), endTime: e.target.value }))}
-                      className="w-full text-xs p-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none font-bold"
-                    />
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(editingShift?.isSpecial)}
-                      onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), isSpecial: e.target.checked }))}
-                      className="rounded text-blue-600"
-                    />
-                    <span>Special Facility / Restricted Shift</span>
-                  </label>
-
-                  <div className="flex items-center gap-1 text-[11px] text-gray-500">
-                    <span>Cutoff:</span>
-                    <input
-                      type="number"
-                      min="5"
-                      max="180"
-                      value={editingShift?.bookingCutoffMins ?? 30}
-                      onChange={(e) => setEditingShift((prev) => ({ ...(prev || {}), bookingCutoffMins: Number(e.target.value) }))}
-                      className="w-14 p-1 text-center text-xs font-bold rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
-                    />
-                    <span>mins</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={isSavingShift || !editingShift?.name}
-                  onClick={async () => {
-                    if (!editingShift?.name) return;
-                    setIsSavingShift(true);
-                    try {
-                      if (editingShift.id) {
-                        await store.updateShift(editingShift.id, editingShift);
-                        showToast(`Updated shift: ${editingShift.name}`);
-                      } else {
-                        await store.createShift({
-                          name: editingShift.name,
-                          shiftType: editingShift.shiftType || "MORNING",
-                          startTime: editingShift.startTime || "08:00",
-                          endTime: editingShift.endTime || "09:00",
-                          bookingCutoffMins: editingShift.bookingCutoffMins || 30,
-                          isSpecial: Boolean(editingShift.isSpecial),
-                        });
-                        showToast(`Created new shift: ${editingShift.name}`);
-                      }
-                      setShifts([...store.getShifts()]);
-                      setEditingShift(null);
-                    } catch (e: any) {
-                      alert("Error saving shift: " + e.message);
-                    } finally {
-                      setIsSavingShift(false);
-                    }
-                  }}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                >
-                  {isSavingShift ? "Saving..." : editingShift?.id ? "Update Shift" : "+ Save New Shift"}
-                </button>
-              </div>
-            </div>
-
-            {/* List of Existing Shifts */}
-            <div className="overflow-y-auto flex-1 space-y-2.5 pr-1">
-              <div className="text-xs font-black uppercase tracking-wider text-gray-400">
-                Configured Shifts in Database ({shifts.length})
-              </div>
-
-              {shifts.map((sh) => {
-                return (
-                  <div
-                    key={sh.id}
-                    className="p-4 rounded-2xl bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-755 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-blue-400 transition-all"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black text-sm text-gray-900 dark:text-white">
-                          {sh.name}
-                        </span>
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                          {sh.shiftType}
-                        </span>
-                        {sh.isSpecial && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">
-                            🔒 Special Facility
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                        <span className="font-mono font-bold text-gray-700 dark:text-gray-300">
-                          {sh.startTime} – {sh.endTime}
-                        </span>
-                        <span>•</span>
-                        <span>Cutoff: {sh.bookingCutoffMins}m before</span>
-                        <span>•</span>
-                        <span className="font-mono text-[11px] text-gray-400">ID: {sh.id}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setNewTrip((prev) => ({
-                            ...prev,
-                            shiftId: sh.id,
-                            departureTime: sh.startTime,
-                            direction:
-                              sh.shiftType?.toUpperCase().includes("RETURN") ||
-                                sh.shiftType?.toUpperCase().includes("EVENING") ||
-                                sh.shiftType?.toUpperCase().includes("AFTERNOON") ||
-                                (sh.startTime && parseInt(sh.startTime.split(":")[0], 10) >= 12)
-                                ? "CAMPUS_TO_HOME"
-                                : "HOME_TO_CAMPUS",
-                          }));
-                          setIsManageShiftsOpen(false);
-                          setIsAddTripOpen(true);
-                        }}
-                        className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 text-xs font-bold rounded-xl transition-all cursor-pointer"
-                        title="Schedule a trip in this shift"
-                      >
-                        + Assign Trip
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setEditingShift(sh)}
-                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (confirm(`Delete shift "${sh.name}"?`)) {
-                            await store.deleteShift(sh.id);
-                            setShifts([...store.getShifts()]);
-                            showToast(`Deleted shift ${sh.name}`);
-                          }
-                        }}
-                        className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400 text-xs font-bold rounded-xl transition-all cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer */}
-            <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
-              <span className="text-[11px] text-gray-400">
-                Any number of custom or regular corridor shifts can be added here.
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsManageShiftsOpen(false);
-                  setEditingShift(null);
-                }}
-                className="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs rounded-xl shadow-xs transition-all"
-              >
-                Close Shift Master
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
