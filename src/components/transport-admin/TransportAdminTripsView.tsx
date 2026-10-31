@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { store } from "@/lib/store";
 import { formatTime, formatDate } from "@/lib/utils";
-import { getTodayIST } from "@/lib/time-manager";
+import { getTodayIST, isTripCutoffPassed } from "@/lib/time-manager";
 import {
   Navigation,
-  Lock,
   CheckCircle2,
   Users,
   Clock,
+  Radio,
   Plus,
   X,
   Home,
@@ -28,13 +28,15 @@ import {
   UserPlus,
   LayoutGrid,
   ListFilter,
+  Table as TableIcon,
   Layers,
   Activity,
   Calendar,
   AlertCircle,
   ExternalLink,
   Shield,
-  Gauge
+  User,
+  Info
 } from "lucide-react";
 import type {
   Trip,
@@ -59,6 +61,7 @@ export interface TransportAdminTripsProps {
 }
 
 export type TripsViewMode = "FEED" | "BUS_EXPLORER";
+export type FeedLayout = "CARDS" | "TABLE";
 
 export default function TransportAdminTripsView({
   initialTrips = [],
@@ -94,15 +97,16 @@ export default function TransportAdminTripsView({
     store.getSpecialShiftAllocations()
   );
 
-  // View Mode: Chronological Feed vs. Bus Fleet Explorer
+  // View Modes: Dispatches Feed (Cards/Table) vs. Bus Fleet Explorer
   const [viewMode, setViewMode] = useState<TripsViewMode>("FEED");
+  const [feedLayout, setFeedLayout] = useState<FeedLayout>("CARDS");
 
   // Filters
   const [selectedDirection, setSelectedDirection] = useState<"ALL" | TripDirection>("ALL");
   const [selectedStatus, setSelectedStatus] = useState<"ALL" | string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Modals & Forms
+  // Modals & Feedback
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
   const [allocatingTrip, setAllocatingTrip] = useState<Trip | null>(null);
   const [studentSearch, setStudentSearch] = useState("");
@@ -215,38 +219,39 @@ export default function TransportAdminTripsView({
     return "HOME_TO_CAMPUS";
   };
 
-  // Helper: Format route name for evening return
-  const getDirectionalRouteName = (routeName: string, dir: TripDirection): string => {
-    if (dir === "CAMPUS_TO_CAMPUS") return routeName;
-    if (dir === "CAMPUS_TO_HOME") {
-      if (routeName.includes(" to ")) {
-        const parts = routeName.split(" to ");
-        const prefixMatch = parts[0].match(/^([A-Za-z0-9\s]+:\s*)(.*)$/);
-        if (prefixMatch) {
-          const prefix = prefixMatch[1];
-          const origin = prefixMatch[2].trim();
-          const destination = parts[1].trim();
-          return `${prefix}${destination} to ${origin} (Evening Return)`;
-        }
-        return `${parts[1].trim()} to ${parts[0].trim()} (Evening Return)`;
-      }
-      return `${routeName} (Evening Return)`;
-    }
-    return routeName;
-  };
-
-  const getDirectionalBusNumber = (busNumber: string): string => {
+  const getCleanBusNumber = (busNumber: string): string => {
     if (!busNumber) return "Bus";
     return busNumber.replace(/\s*\([^)]*\)/g, "").trim();
   };
 
-  const getRouteCityOrigin = (routeName: string): string => {
+  // Resolve Human-friendly Origin and Destination for a Trip
+  const getCorridorEndpoints = (
+    routeName: string,
+    dir: TripDirection,
+    routeObj?: Route
+  ): { origin: string; destination: string } => {
+    const campusName =
+      store.getCampuses().find((c) => c.id === routeObj?.destinationCampusId || c.id === routeObj?.campusId)?.name ||
+      store.getPrimaryCampus()?.name ||
+      "GEHU Campus";
+
+    let cityStop = "City Corridor";
     if (routeName.includes(" to ")) {
       const parts = routeName.split(" to ");
-      const originPart = parts[0].replace(/^[A-Za-z0-9\s]+:\s*/, "").trim();
-      return originPart || "City Boarding Point";
+      const rawOrigin = parts[0].replace(/^[A-Za-z0-9\s]+:\s*/, "").trim();
+      const rawDest = parts[1].trim();
+      cityStop = rawOrigin.toLowerCase().includes("gehu") || rawOrigin.toLowerCase().includes("campus")
+        ? rawDest
+        : rawOrigin;
     }
-    return "City Boarding Point";
+
+    if (dir === "HOME_TO_CAMPUS") {
+      return { origin: cityStop, destination: campusName };
+    }
+    if (dir === "CAMPUS_TO_HOME") {
+      return { origin: campusName, destination: cityStop };
+    }
+    return { origin: "Bhimtal Campus", destination: "Dehradun Campus" };
   };
 
   // Scoped Trips for active selected date
@@ -269,7 +274,7 @@ export default function TransportAdminTripsView({
 
     const activeBusIds = new Set(dateScopedTrips.map((t) => t.busId));
     const activeBusesCount = activeBusIds.size;
-    const lockedManifestsCount = dateScopedTrips.filter((t) => t.manifestLocked).length;
+    const inProgressTripsCount = dateScopedTrips.filter((t) => t.status === "IN_PROGRESS").length;
 
     return {
       total,
@@ -280,7 +285,7 @@ export default function TransportAdminTripsView({
       totalCapacity,
       activeBusesCount,
       totalBusesCount: buses.length,
-      lockedManifestsCount,
+      inProgressTripsCount,
       utilizationRate: totalCapacity > 0 ? Math.round((confirmedPassengers / totalCapacity) * 100) : 0,
     };
   }, [dateScopedTrips, bookings, buses]);
@@ -335,19 +340,16 @@ export default function TransportAdminTripsView({
       })
       .map((bus) => {
         const busTrips = dateScopedTrips.filter((t) => t.busId === bus.id);
-        // Filter by selectedDirection if chosen
         const matchingTrips = busTrips.filter((t) => {
           if (selectedDirection === "ALL") return true;
           return getTripDirection(t) === selectedDirection;
         });
 
-        // Calculate bus passenger load across its runs
         const busBookings = bookings.filter((b) => busTrips.some((t) => t.id === b.tripId));
         const confirmedBookings = busBookings.filter(
           (b) => b.status === "CONFIRMED" || b.status === "BOARDED"
         ).length;
 
-        // Assigned driver for this bus from today's trips
         const primaryDriver = busTrips[0]
           ? staff.find((s) => s.id === busTrips[0].driverId)
           : null;
@@ -361,24 +363,11 @@ export default function TransportAdminTripsView({
         };
       })
       .sort((a, b) => {
-        // Buses with trips first, then alphabetical by busNumber
         if (a.trips.length > 0 && b.trips.length === 0) return -1;
         if (a.trips.length === 0 && b.trips.length > 0) return 1;
         return a.bus.busNumber.localeCompare(b.bus.busNumber, undefined, { numeric: true });
       });
   }, [buses, dateScopedTrips, selectedDirection, searchQuery, routes, bookings, staff]);
-
-  // Lock Manifest Handler
-  const handleLockManifest = (tripId: string) => {
-    if (
-      confirm(
-        "Lock final manifest for this trip? This will freeze the passenger list for the conductor and close public commuter booking."
-      )
-    ) {
-      store.lockTripManifest(tripId);
-      showToast("🔒 Final Manifest frozen and dispatched to Conductor Console!");
-    }
-  };
 
   // Delete Trip Handler
   const handleDeleteTrip = async (tripId: string, tripCode: string) => {
@@ -454,7 +443,7 @@ export default function TransportAdminTripsView({
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in pb-16">
-      {/* Toast Notification */}
+      {/* Toast Feedback */}
       {feedbackToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-gray-700 flex items-center gap-2.5 text-xs font-bold animate-in slide-in-from-bottom-3">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -462,7 +451,7 @@ export default function TransportAdminTripsView({
         </div>
       )}
 
-      {/* Top Header & Fast Switcher */}
+      {/* Top Bar: Title & High-level actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -479,14 +468,14 @@ export default function TransportAdminTripsView({
                 </span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Live dispatch instances, driver rosters, vehicle manifests, and real-time fleet operations.
+                Live run timetable, automated conductor telemetry, and vehicle route dispatches.
               </p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Shift Master Directory Link */}
+          {/* Shift Master Link */}
           <Link
             href="/transport-admin/shifts"
             className="px-3.5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs transition-all"
@@ -546,21 +535,21 @@ export default function TransportAdminTripsView({
         </div>
 
         <div className="p-4 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 shadow-sm flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-            <Lock className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Radio className="w-6 h-6 animate-pulse" />
           </div>
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Manifests Dispatched</div>
-            <div className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
-              {stats.lockedManifestsCount} <span className="text-xs text-gray-400 font-bold">/ {stats.total} Locked</span>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Live Conductor Sync</div>
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 leading-tight">
+              100% Live <span className="text-xs text-gray-400 font-bold font-mono">({stats.activeBusesCount} Consoles)</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Date Selector & View Switcher Bar */}
+      {/* Date Selector & Search Toolbar */}
       <div className="bg-white dark:bg-gray-900 rounded-3xl p-4 sm:p-5 border border-gray-200/80 dark:border-gray-800 shadow-xs space-y-4">
-        {/* Row 1: Operational Shift Date Bar */}
+        {/* Date Row */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 text-xs font-black text-gray-700 dark:text-gray-300 mr-1">
@@ -568,7 +557,7 @@ export default function TransportAdminTripsView({
               <span>Shift Date:</span>
             </div>
 
-            {/* Quick Today Pill */}
+            {/* Today Pill */}
             <button
               onClick={() => setSelectedDate(todayDate)}
               className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
@@ -584,7 +573,7 @@ export default function TransportAdminTripsView({
               </span>
             </button>
 
-            {/* Recent Operational Dates */}
+            {/* Recent Dates */}
             {availableDates
               .filter((d) => d !== todayDate)
               .slice(0, 3)
@@ -632,7 +621,7 @@ export default function TransportAdminTripsView({
           </div>
         </div>
 
-        {/* Row 2: Direction Tabs & View Mode Switcher */}
+        {/* Direction Tabs & View Mode Switcher */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Direction Filter Pills */}
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -656,7 +645,7 @@ export default function TransportAdminTripsView({
               }`}
             >
               <Home className="w-3.5 h-3.5" />
-              <span>Home → Campus ({stats.homeToCampus})</span>
+              <span>Inbound ({stats.homeToCampus})</span>
             </button>
 
             <button
@@ -668,7 +657,7 @@ export default function TransportAdminTripsView({
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span>Campus → Home ({stats.campusToHome})</span>
+              <span>Outbound ({stats.campusToHome})</span>
             </button>
 
             <button
@@ -684,8 +673,9 @@ export default function TransportAdminTripsView({
             </button>
           </div>
 
-          {/* View Mode Toggle: Feed vs Bus Explorer */}
+          {/* View Mode & Layout Switcher */}
           <div className="flex items-center gap-2">
+            {/* Feed vs Bus Explorer View Mode Switcher */}
             <div className="p-1 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center">
               <button
                 type="button"
@@ -713,6 +703,36 @@ export default function TransportAdminTripsView({
                 <span>Bus Fleet Explorer</span>
               </button>
             </div>
+
+            {/* If in FEED mode: Sub-toggle for Cards vs Table */}
+            {viewMode === "FEED" && (
+              <div className="p-1 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setFeedLayout("CARDS")}
+                  className={`p-1.5 rounded-xl transition-all cursor-pointer ${
+                    feedLayout === "CARDS"
+                      ? "bg-white dark:bg-gray-900 text-blue-600 shadow-xs"
+                      : "text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  }`}
+                  title="Card View"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedLayout("TABLE")}
+                  className={`p-1.5 rounded-xl transition-all cursor-pointer ${
+                    feedLayout === "TABLE"
+                      ? "bg-white dark:bg-gray-900 text-blue-600 shadow-xs"
+                      : "text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  }`}
+                  title="Compact Table View"
+                >
+                  <TableIcon className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -729,7 +749,373 @@ export default function TransportAdminTripsView({
         </div>
       </div>
 
-      {/* VIEW MODE 1: BUS FLEET EXPLORER (Requested Feature Inspired by Student Panel) */}
+      {/* VIEW MODE 1: STREAMLINED DISPATCHES FEED */}
+      {viewMode === "FEED" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs font-bold text-gray-400">
+            <span>
+              Showing {filteredTrips.length} of {dateScopedTrips.length} scheduled services{" "}
+              {selectedDate !== "ALL" && `for ${selectedDate}`}
+            </span>
+            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Conductor consoles automatically stream real-time updates</span>
+            </span>
+          </div>
+
+          {filteredTrips.length === 0 ? (
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-12 text-center border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 mx-auto flex items-center justify-center font-bold">
+                <Navigation className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-black text-gray-900 dark:text-white">
+                No Trip Schedules Found
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                No departures match your current direction or search filter. Schedule a new trip to deploy service.
+              </p>
+              <button
+                onClick={() => setIsAddTripOpen(true)}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer"
+              >
+                + Schedule New Trip
+              </button>
+            </div>
+          ) : feedLayout === "CARDS" ? (
+            /* CLEAN SENIOR DESIGN DISPATCH CARDS (No Nested Boxes) */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredTrips.map((trip) => {
+                const bus =
+                  buses.find((b) => b.id === trip.busId) ||
+                  buses[0] || { busNumber: "Campus Bus", capacity: 40, registrationNo: "" };
+                const route =
+                  routes.find((r) => r.id === trip.routeId) ||
+                  routes[0] || { name: "University Corridor", code: "R1" };
+                const shift =
+                  shifts.find((sh) => sh.id === trip.shiftId) ||
+                  shifts[0] || { name: "Regular Shift", startTime: "07:30", bookingCutoffMins: 30 };
+                const driver = staff.find((st) => st.id === trip.driverId);
+                const conductor = staff.find((st) => st.id === trip.conductorId);
+                const tripBookings = bookings.filter((b) => b.tripId === trip.id);
+                const confirmedCount = tripBookings.filter(
+                  (b) => b.status === "CONFIRMED" || b.status === "BOARDED"
+                ).length;
+                const waitlistCount = tripBookings.filter((b) => b.status === "WAITLISTED").length;
+
+                const dir = getTripDirection(trip);
+                const departureTime = shift?.startTime || "07:30";
+                const displayBusNumber = getCleanBusNumber(bus.busNumber);
+                const endpoints = getCorridorEndpoints(route.name, dir, route);
+                const isCutoff = isTripCutoffPassed(trip, shift);
+
+                return (
+                  <div
+                    key={trip.id}
+                    className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-200/90 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 flex flex-col justify-between group"
+                  >
+                    <div className="space-y-3.5">
+                      {/* Top Row: Time, Shift, Direction & Actions */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold shrink-0">
+                            <Clock className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="text-xl font-black text-gray-900 dark:text-white font-mono leading-tight">
+                              {formatTime(departureTime)}
+                            </div>
+                            <div className="text-[11px] font-bold text-gray-400 truncate max-w-[140px]">
+                              {shift?.name || "Shift Departure"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              dir === "HOME_TO_CAMPUS"
+                                ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                : dir === "CAMPUS_TO_HOME"
+                                ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800"
+                                : "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                            }`}
+                          >
+                            {dir === "HOME_TO_CAMPUS"
+                              ? "Inbound"
+                              : dir === "CAMPUS_TO_HOME"
+                              ? "Outbound"
+                              : "Inter-Campus"}
+                          </span>
+
+                          {trip.isSpecial && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">
+                              Special
+                            </span>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTrip(trip.id, trip.tripCode)}
+                            className="text-gray-300 hover:text-red-600 dark:text-gray-600 dark:hover:text-red-400 transition-colors p-1"
+                            title="Cancel Trip"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Route Corridor Flow Line (Clean, No Nested Boxes) */}
+                      <div className="pt-1">
+                        <div className="flex items-center gap-2 text-sm font-black text-gray-900 dark:text-white leading-snug">
+                          <span className="truncate">{endpoints.origin}</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          <span className="truncate">{endpoints.destination}</span>
+                        </div>
+                        <div className="text-[10px] font-mono font-bold text-gray-400 mt-0.5">
+                          Ref: {trip.tripCode}
+                        </div>
+                      </div>
+
+                      {/* Vehicle & Crew Metadata Badges */}
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 pt-0.5">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold">
+                          <BusFront className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                          <span>{displayBusNumber}</span>
+                          {bus.registrationNo && (
+                            <span className="text-[10px] text-gray-400 font-mono">
+                              ({bus.registrationNo})
+                            </span>
+                          )}
+                        </span>
+
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300">
+                          <span className="text-gray-400 text-[10px] uppercase font-bold">Driver:</span>
+                          <span className="font-bold truncate max-w-[90px]">
+                            {driver?.fullName ? driver.fullName.split(" ")[0] : "Pool"}
+                          </span>
+                        </span>
+
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300">
+                          <span className="text-gray-400 text-[10px] uppercase font-bold">Conductor:</span>
+                          <span className="font-bold truncate max-w-[90px]">
+                            {conductor?.fullName ? conductor.fullName.split(" ")[0] : "Pool"}
+                          </span>
+                        </span>
+                      </div>
+
+                      {/* Live Passenger Load Bar */}
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between text-xs font-bold">
+                          <span className="text-gray-600 dark:text-gray-300">
+                            Bookings: <strong className="text-gray-900 dark:text-white">{confirmedCount}</strong> / {bus.capacity} seats
+                          </span>
+                          <span className="text-gray-500 font-mono text-[11px]">
+                            {Math.round((confirmedCount / (bus.capacity || 40)) * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              confirmedCount >= (bus.capacity || 40) ? "bg-amber-500" : "bg-blue-600"
+                            }`}
+                            style={{
+                              width: `${Math.min(100, (confirmedCount / (bus.capacity || 40)) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Footer: Automated Real-time Status */}
+                    <div className="pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-500">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        <span className="text-emerald-700 dark:text-emerald-400">Live Sync</span>
+                        <span className="text-gray-300 dark:text-gray-700">•</span>
+                        <span>
+                          {isCutoff
+                            ? "Booking Closed (Past Cutoff)"
+                            : `Auto-Closes ${shift?.bookingCutoffMins ?? 30}m prior`}
+                        </span>
+                      </div>
+
+                      {(trip.isSpecial || shift?.isSpecial) && (
+                        <button
+                          type="button"
+                          onClick={() => setAllocatingTrip(trip)}
+                          className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-700 dark:text-amber-300 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <GraduationCap className="w-3.5 h-3.5" />
+                          <span>Allocate ({allocations.filter((a) => a.shiftId === trip.shiftId).length})</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* COMPACT TABLE VIEW (Senior Transit Dispatch Table) */
+            <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-800 text-[10px] font-black uppercase tracking-wider text-gray-400">
+                    <tr>
+                      <th className="py-3 px-4">Departure & Shift</th>
+                      <th className="py-3 px-4">Direction</th>
+                      <th className="py-3 px-4">Route Corridor</th>
+                      <th className="py-3 px-4">Vehicle</th>
+                      <th className="py-3 px-4">Crew</th>
+                      <th className="py-3 px-4">Bookings</th>
+                      <th className="py-3 px-4">Automated Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60 font-semibold text-gray-700 dark:text-gray-300">
+                    {filteredTrips.map((trip) => {
+                      const bus =
+                        buses.find((b) => b.id === trip.busId) ||
+                        buses[0] || { busNumber: "Campus Bus", capacity: 40, registrationNo: "" };
+                      const route =
+                        routes.find((r) => r.id === trip.routeId) ||
+                        routes[0] || { name: "University Corridor", code: "R1" };
+                      const shift =
+                        shifts.find((sh) => sh.id === trip.shiftId) ||
+                        shifts[0] || { name: "Regular Shift", startTime: "07:30", bookingCutoffMins: 30 };
+                      const driver = staff.find((st) => st.id === trip.driverId);
+                      const conductor = staff.find((st) => st.id === trip.conductorId);
+                      const tripBookings = bookings.filter((b) => b.tripId === trip.id);
+                      const confirmedCount = tripBookings.filter(
+                        (b) => b.status === "CONFIRMED" || b.status === "BOARDED"
+                      ).length;
+
+                      const dir = getTripDirection(trip);
+                      const departureTime = shift?.startTime || "07:30";
+                      const displayBusNumber = getCleanBusNumber(bus.busNumber);
+                      const endpoints = getCorridorEndpoints(route.name, dir, route);
+                      const isCutoff = isTripCutoffPassed(trip, shift);
+
+                      return (
+                        <tr
+                          key={trip.id}
+                          className="hover:bg-gray-50/70 dark:hover:bg-gray-800/40 transition-colors"
+                        >
+                          {/* Departure & Shift */}
+                          <td className="py-3.5 px-4 font-mono">
+                            <div className="font-black text-sm text-gray-900 dark:text-white">
+                              {formatTime(departureTime)}
+                            </div>
+                            <div className="text-[10px] text-gray-400 font-sans">{shift?.name}</div>
+                          </td>
+
+                          {/* Direction */}
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                dir === "HOME_TO_CAMPUS"
+                                  ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
+                                  : dir === "CAMPUS_TO_HOME"
+                                  ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300"
+                                  : "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300"
+                              }`}
+                            >
+                              {dir === "HOME_TO_CAMPUS" ? "Inbound" : dir === "CAMPUS_TO_HOME" ? "Outbound" : "Inter-Campus"}
+                            </span>
+                          </td>
+
+                          {/* Corridor */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-1.5 font-bold text-gray-900 dark:text-white">
+                              <span>{endpoints.origin}</span>
+                              <ArrowRight className="w-3 h-3 text-gray-400 shrink-0" />
+                              <span>{endpoints.destination}</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 font-mono">{trip.tripCode}</div>
+                          </td>
+
+                          {/* Vehicle */}
+                          <td className="py-3.5 px-4">
+                            <div className="font-black text-gray-900 dark:text-white flex items-center gap-1">
+                              <BusFront className="w-3.5 h-3.5 text-purple-600" />
+                              <span>{displayBusNumber}</span>
+                            </div>
+                            {bus.registrationNo && (
+                              <div className="text-[10px] font-mono text-gray-400">{bus.registrationNo}</div>
+                            )}
+                          </td>
+
+                          {/* Crew */}
+                          <td className="py-3.5 px-4 text-[11px]">
+                            <div>
+                              <span className="text-gray-400">Dr:</span>{" "}
+                              <span className="font-bold">{driver?.fullName ? driver.fullName.split(" ")[0] : "Pool"}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-400">Cd:</span>{" "}
+                              <span className="font-bold">{conductor?.fullName ? conductor.fullName.split(" ")[0] : "Pool"}</span>
+                            </div>
+                          </td>
+
+                          {/* Bookings */}
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-gray-900 dark:text-white">
+                              {confirmedCount} / {bus.capacity}
+                            </div>
+                            <div className="w-16 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mt-1">
+                              <div
+                                className="h-full bg-blue-600 rounded-full"
+                                style={{
+                                  width: `${Math.min(100, (confirmedCount / (bus.capacity || 40)) * 100)}%`,
+                                }}
+                              />
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                              <span>Live Sync</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400">
+                              {isCutoff ? "Booking Closed" : `Auto ${shift?.bookingCutoffMins ?? 30}m cutoff`}
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {(trip.isSpecial || shift?.isSpecial) && (
+                                <button
+                                  type="button"
+                                  onClick={() => setAllocatingTrip(trip)}
+                                  className="px-2 py-1 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-lg transition-all"
+                                >
+                                  Allocate
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTrip(trip.id, trip.tripCode)}
+                                className="p-1.5 text-gray-300 hover:text-red-600 dark:text-gray-600 dark:hover:text-red-400 transition-colors rounded-lg"
+                                title="Cancel Trip"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW MODE 2: BUS FLEET EXPLORER */}
       {viewMode === "BUS_EXPLORER" && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -750,13 +1136,12 @@ export default function TransportAdminTripsView({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {busExplorerData.map(({ bus, trips: busTrips, allDateTrips, confirmedBookings, primaryDriver }) => {
-              const hasTrips = busTrips.length > 0;
               const isBusActive = bus.status === "ACTIVE";
 
               return (
                 <div
                   key={bus.id}
-                  className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl hover:shadow-2xl hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-300 flex flex-col justify-between group"
+                  className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-xl hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-300 flex flex-col justify-between group"
                 >
                   <div className="space-y-4">
                     {/* Top Bus Badge & Capacity Strip */}
@@ -837,7 +1222,7 @@ export default function TransportAdminTripsView({
                           </button>
                         </div>
                       ) : (
-                        <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                           {busTrips.map((trip) => {
                             const route = routes.find((r) => r.id === trip.routeId);
                             const shift = shifts.find((sh) => sh.id === trip.shiftId);
@@ -847,6 +1232,8 @@ export default function TransportAdminTripsView({
                               (b) => b.status === "CONFIRMED" || b.status === "BOARDED"
                             ).length;
                             const departureTime = shift?.startTime || "07:30";
+                            const endpoints = getCorridorEndpoints(route?.name || "University Corridor", dir, route);
+                            const isCutoff = isTripCutoffPassed(trip, shift);
 
                             return (
                               <div
@@ -863,10 +1250,7 @@ export default function TransportAdminTripsView({
                                         : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
                                     }`}
                                   >
-                                    {dir === "HOME_TO_CAMPUS" && <Home className="w-2.5 h-2.5" />}
-                                    {dir === "CAMPUS_TO_HOME" && <Building2 className="w-2.5 h-2.5" />}
-                                    {dir === "CAMPUS_TO_CAMPUS" && <Shuffle className="w-2.5 h-2.5" />}
-                                    <span>{dir === "HOME_TO_CAMPUS" ? "Pick-Up" : dir === "CAMPUS_TO_HOME" ? "Return" : "Special"}</span>
+                                    {dir === "HOME_TO_CAMPUS" ? "Inbound" : dir === "CAMPUS_TO_HOME" ? "Outbound" : "Special"}
                                   </span>
 
                                   <span className="font-mono text-xs font-black text-blue-600 dark:text-blue-400">
@@ -875,7 +1259,7 @@ export default function TransportAdminTripsView({
                                 </div>
 
                                 <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                  {getDirectionalRouteName(route?.name || "University Corridor", dir)}
+                                  {endpoints.origin} → {endpoints.destination}
                                 </div>
 
                                 {/* Mini occupancy bar */}
@@ -894,28 +1278,23 @@ export default function TransportAdminTripsView({
                                   </div>
                                 </div>
 
-                                {/* Actions in Card */}
+                                {/* Live Sync Status & Delete */}
                                 <div className="flex items-center justify-between pt-1 border-t border-gray-200/60 dark:border-gray-700/60 text-xs">
-                                  {trip.manifestLocked ? (
-                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                      <Lock className="w-3 h-3" />
-                                      <span>Manifest Locked</span>
+                                  <div className="flex items-center gap-1.5 text-[10px] font-bold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-mono">Live Sync</span>
+                                    <span className="text-gray-400">•</span>
+                                    <span className="text-gray-500">
+                                      {isCutoff
+                                        ? "Cutoff Passed"
+                                        : `Auto ${shift?.bookingCutoffMins ?? 30}m cutoff`}
                                     </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleLockManifest(trip.id)}
-                                      className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                                    >
-                                      <Lock className="w-3 h-3" />
-                                      <span>Lock Manifest</span>
-                                    </button>
-                                  )}
+                                  </div>
 
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteTrip(trip.id, trip.tripCode)}
-                                    className="text-gray-400 hover:text-red-600 transition-colors"
+                                    className="text-gray-400 hover:text-red-600 transition-colors p-1"
                                     title="Cancel Run"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -944,332 +1323,6 @@ export default function TransportAdminTripsView({
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* VIEW MODE 2: CHRONOLOGICAL DISPATCHES FEED */}
-      {viewMode === "FEED" && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
-                <ListFilter className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <span>Chronological Service Dispatches</span>
-              </h2>
-              <p className="text-xs text-gray-500">
-                Live run manifests and real-time transit instances for {selectedDate === "ALL" ? "all dates" : selectedDate}.
-              </p>
-            </div>
-            <div className="text-xs font-bold text-gray-400">
-              Showing {filteredTrips.length} of {dateScopedTrips.length} trips
-            </div>
-          </div>
-
-          {filteredTrips.length === 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-3xl p-12 text-center border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 mx-auto flex items-center justify-center font-bold">
-                <Navigation className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-black text-gray-900 dark:text-white">
-                No Trip Schedules Found
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                No departures match your current direction or search filter. Schedule a new trip to deploy service.
-              </p>
-              <button
-                onClick={() => setIsAddTripOpen(true)}
-                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer"
-              >
-                + Schedule New Trip
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredTrips.map((trip) => {
-                const bus =
-                  buses.find((b) => b.id === trip.busId) ||
-                  buses[0] || { busNumber: "Campus Bus", capacity: 40, registrationNo: "" };
-                const route =
-                  routes.find((r) => r.id === trip.routeId) ||
-                  routes[0] || { name: "University Corridor", code: "R1" };
-                const shift =
-                  shifts.find((sh) => sh.id === trip.shiftId) ||
-                  shifts[0] || { name: "Regular Shift", startTime: "07:30" };
-                const driver = staff.find((st) => st.id === trip.driverId);
-                const conductor = staff.find((st) => st.id === trip.conductorId);
-                const tripBookings = bookings.filter((b) => b.tripId === trip.id);
-                const confirmedCount = tripBookings.filter(
-                  (b) => b.status === "CONFIRMED" || b.status === "BOARDED"
-                ).length;
-                const waitlistCount = tripBookings.filter((b) => b.status === "WAITLISTED").length;
-
-                const dir = getTripDirection(trip);
-                const departureTime = shift?.startTime || "07:30";
-                const displayRouteName = getDirectionalRouteName(route.name, dir);
-                const displayBusNumber = getDirectionalBusNumber(bus.busNumber);
-                const cityOrigin = getRouteCityOrigin(route.name);
-
-                return (
-                  <div
-                    key={trip.id}
-                    className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl hover:shadow-2xl hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 flex flex-col justify-between group"
-                  >
-                    {/* Card Top: Direction Badge, Shift Date & Status */}
-                    <div className="space-y-3.5">
-                      <div className="flex items-center justify-between gap-2">
-                        {/* Direction Badge */}
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            dir === "HOME_TO_CAMPUS"
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                              : dir === "CAMPUS_TO_HOME"
-                              ? "bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300"
-                              : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
-                          }`}
-                        >
-                          {dir === "HOME_TO_CAMPUS" && <Home className="w-3 h-3" />}
-                          {dir === "CAMPUS_TO_HOME" && <Building2 className="w-3 h-3" />}
-                          {dir === "CAMPUS_TO_CAMPUS" && <Shuffle className="w-3 h-3" />}
-                          <span>
-                            {dir === "HOME_TO_CAMPUS"
-                              ? "Home → Campus"
-                              : dir === "CAMPUS_TO_HOME"
-                              ? "Campus → Home"
-                              : "Campus ⇄ Campus"}
-                          </span>
-                        </span>
-
-                        {/* Status & Recurrence Tags */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {trip.tripDate && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200/60 dark:border-gray-700/60">
-                              {trip.tripDate}
-                            </span>
-                          )}
-
-                          {trip.isSpecial && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-yellow-100 dark:bg-yellow-950/80 text-yellow-800 dark:text-yellow-300 border border-yellow-300/60 dark:border-yellow-700/60">
-                              <GraduationCap className="w-3 h-3" />
-                              <span>
-                                {trip.facilityType === "PLACEMENT_DRIVE"
-                                  ? "Placement Special"
-                                  : trip.facilityType === "EVENT"
-                                  ? "Campus Event"
-                                  : "Special Facility"}
-                              </span>
-                            </span>
-                          )}
-
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                              trip.status === "IN_PROGRESS"
-                                ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 animate-pulse"
-                                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-                            }`}
-                          >
-                            {trip.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Route Corridor & Operational Code */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="font-black text-lg text-gray-900 dark:text-white leading-tight">
-                            {displayRouteName}
-                          </h3>
-                          {/* Internal operational reference badge (compliant with transit domain rule) */}
-                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 shrink-0 border border-gray-200/60 dark:border-gray-700/60">
-                            {trip.tripCode}
-                          </span>
-                        </div>
-
-                        {/* Corridor Flow Strip */}
-                        <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200/70 dark:border-gray-700/50 text-xs font-semibold">
-                          {dir === "HOME_TO_CAMPUS" ? (
-                            <>
-                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
-                                  Pickup
-                                </span>
-                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
-                                  {cityOrigin}
-                                </span>
-                              </div>
-                              <ArrowRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
-                                  Drop
-                                </span>
-                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
-                                  {store.getCampuses().find(
-                                    (c) => c.id === route?.destinationCampusId || c.id === route?.campusId
-                                  )?.name ||
-                                    store.getPrimaryCampus()?.name ||
-                                    "Campus Terminal"}
-                                </span>
-                              </div>
-                            </>
-                          ) : dir === "CAMPUS_TO_HOME" ? (
-                            <>
-                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
-                                  Pickup
-                                </span>
-                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
-                                  {store.getCampuses().find(
-                                    (c) => c.id === route?.originCampusId || c.id === route?.campusId
-                                  )?.name ||
-                                    store.getPrimaryCampus()?.name ||
-                                    "Campus Terminal"}
-                                </span>
-                              </div>
-                              <ArrowRight className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
-                                  Drop
-                                </span>
-                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
-                                  {cityOrigin} (Reverse Route)
-                                </span>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
-                                  Origin
-                                </span>
-                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
-                                  Bhimtal Campus
-                                </span>
-                              </div>
-                              <ArrowRight className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
-                                  Destination
-                                </span>
-                                <span className="truncate text-gray-800 dark:text-gray-200 font-bold">
-                                  Dehradun Clement Town
-                                </span>
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Departure Time & Vehicle Plate */}
-                        <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-gray-500 dark:text-gray-400 pt-1">
-                          <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-mono font-black bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-xl">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>Departure: {formatTime(departureTime)}</span>
-                          </span>
-
-                          <span className="inline-flex items-center gap-1 font-mono font-black text-gray-800 dark:text-gray-200">
-                            <BusFront className="w-3.5 h-3.5 text-purple-600" />
-                            <span>{displayBusNumber}</span>
-                          </span>
-
-                          {bus.registrationNo && (
-                            <span className="font-mono text-[11px] text-gray-400">
-                              ({bus.registrationNo})
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Passenger Load Bar */}
-                      <div className="p-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/60 space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold">
-                          <span>
-                            Occupancy: <strong>{confirmedCount}</strong> / {bus.capacity} Seats
-                          </span>
-                          {waitlistCount > 0 ? (
-                            <span className="text-yellow-600 dark:text-yellow-400 font-mono font-bold bg-yellow-100 dark:bg-yellow-950 px-2 py-0.5 rounded-md">
-                              {waitlistCount} Waitlisted (WL)
-                            </span>
-                          ) : (
-                            <span className="text-emerald-600 dark:text-emerald-400 text-[11px]">
-                              Seats Available
-                            </span>
-                          )}
-                        </div>
-                        <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full transition-all ${
-                              confirmedCount >= (bus.capacity || 40) ? "bg-amber-500" : "bg-blue-600"
-                            }`}
-                            style={{
-                              width: `${Math.min(100, (confirmedCount / (bus.capacity || 40)) * 100)}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Crew Assignment */}
-                      <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
-                          <div className="text-[10px] uppercase font-bold text-gray-400">Assigned Driver</div>
-                          <div className="font-bold text-gray-800 dark:text-gray-200 truncate mt-0.5">
-                            {driver?.fullName || "Unassigned"}
-                          </div>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
-                          <div className="text-[10px] uppercase font-bold text-gray-400">Boarding Conductor</div>
-                          <div className="font-bold text-gray-800 dark:text-gray-200 truncate mt-0.5">
-                            {conductor?.fullName || "Unassigned"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Manifest Status & Bottom Actions */}
-                    <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2.5">
-                      <div className="flex-1 min-w-[140px]">
-                        {trip.manifestLocked ? (
-                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                            <Lock className="w-4 h-4 shrink-0" />
-                            <span>Manifest Frozen & Dispatched</span>
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleLockManifest(trip.id)}
-                            className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
-                          >
-                            <Lock className="w-3.5 h-3.5" />
-                            <span>Lock & Freeze Manifest</span>
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Special Allocation Action */}
-                      {(trip.isSpecial || shift?.isSpecial) && (
-                        <button
-                          type="button"
-                          onClick={() => setAllocatingTrip(trip)}
-                          className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 shadow-sm transition-all shrink-0 active:scale-95 cursor-pointer"
-                          title="Allocate eligible students who can view and book this special facility"
-                        >
-                          <GraduationCap className="w-4 h-4" />
-                          <span>
-                            Allocate ({allocations.filter((a) => a.shiftId === trip.shiftId).length})
-                          </span>
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        title="Cancel / Delete Trip"
-                        onClick={() => handleDeleteTrip(trip.id, trip.tripCode)}
-                        className="p-2.5 rounded-2xl text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 transition-all shrink-0 cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       )}
 
@@ -1304,7 +1357,7 @@ export default function TransportAdminTripsView({
             <div className="p-3.5 bg-yellow-50/80 dark:bg-yellow-950/30 rounded-2xl border border-yellow-200 dark:border-yellow-800/60 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-xl bg-yellow-100 dark:yellow-900 text-yellow-700 dark:text-yellow-300 flex items-center justify-center">
                     <GraduationCap className="w-4 h-4" />
                   </div>
                   <div>
@@ -1484,7 +1537,7 @@ export default function TransportAdminTripsView({
               <button
                 type="button"
                 onClick={() => setIsAddTripOpen(false)}
-                className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-2xl text-xs font-bold transition-all cursor-pointer"
+                className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-750 rounded-2xl text-xs font-bold transition-all cursor-pointer"
               >
                 Cancel
               </button>
