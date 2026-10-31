@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getOrFetchWithCache } from "@/lib/redis";
 import DriverConsoleView from "@/components/driver/DriverConsoleView";
 import type { Trip, Bus, Route, Booking, Stop } from "@/lib/types";
 
@@ -26,22 +27,43 @@ export default async function DriverPage() {
     redirect("/portal");
   }
 
-  // 3. Direct Server-Side Database Queries
-  const [
-    { data: dbTrips },
-    { data: dbBuses },
-    { data: dbRoutes },
-    { data: dbBookings },
-    { data: dbStops },
-    { data: dbRouteStops },
-  ] = await Promise.all([
-    supabaseAdmin.from("trips").select("*").order("trip_code"),
-    supabaseAdmin.from("buses").select("*"),
-    supabaseAdmin.from("routes").select("*"),
-    supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(200),
-    supabaseAdmin.from("stops").select("*"),
-    supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
+  // 3. Parallel fetch: cached shared fleet data + shorter-TTL bookings
+  const [sharedData, dbBookings] = await Promise.all([
+    // Shared fleet data — identical for all drivers, cached 20s with jitter
+    getOrFetchWithCache({
+      key: "driver:shared_fleet_data",
+      ttl: 20,
+      allowEmpty: true,
+      fetchFn: async () => {
+        const [
+          { data: dbTrips },
+          { data: dbBuses },
+          { data: dbRoutes },
+          { data: dbStops },
+          { data: dbRouteStops },
+        ] = await Promise.all([
+          supabaseAdmin.from("trips").select("*").order("trip_code"),
+          supabaseAdmin.from("buses").select("*"),
+          supabaseAdmin.from("routes").select("*"),
+          supabaseAdmin.from("stops").select("*"),
+          supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
+        ]);
+        return { dbTrips, dbBuses, dbRoutes, dbStops, dbRouteStops };
+      },
+    }),
+    // Bookings change during active boarding — shorter 15s cache
+    getOrFetchWithCache({
+      key: "driver:bookings_recent",
+      ttl: 15,
+      allowEmpty: true,
+      fetchFn: async () => {
+        const { data } = await supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(200);
+        return data;
+      },
+    }),
   ]);
+
+  const { dbTrips, dbBuses, dbRoutes, dbStops, dbRouteStops } = sharedData;
 
   // 4. Map DB records to typed domain models
   const stops: Stop[] = (dbStops || []).map((s: any) => ({

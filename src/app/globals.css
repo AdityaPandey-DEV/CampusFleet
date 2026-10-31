@@ -135,3 +135,108 @@ body {
 body { top: 0px !important; }
 #goog-gt-tt { display: none !important; }
 
+/* ── CampusFleet Transit Loading Animations ─────────────────────── */
+@keyframes bus-bounce {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3.5px) rotate(-0.4deg);
+  }
+  50% {
+    transform: translateY(0.5px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-2px) rotate(0.4deg);
+  }
+}
+
+@keyframes wheel-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes road-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes wind-streak-1 {
+  0% {
+    transform: translateX(200px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(-150px);
+    opacity: 0;
+  }
+}
+
+@keyframes wind-streak-2 {
+  0% {
+    transform: translateX(240px);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(-180px);
+    opacity: 0;
+  }
+}
+
+@keyframes indeterminate-progress {
+  0% {
+    transform: translateX(-100%);
+    width: 30%;
+  }
+  50% {
+    transform: translateX(100%);
+    width: 60%;
+  }
+  100% {
+    transform: translateX(350%);
+    width: 40%;
+  }
+}
+
+.animate-bus-bounce {
+  animation: bus-bounce 0.85s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.animate-wheel-spin {
+  animation: wheel-spin 0.45s linear infinite;
+}
+
+.animate-road-scroll {
+  animation: road-scroll 0.5s linear infinite;
+}
+
+.animate-wind-streak-1 {
+  animation: wind-streak-1 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-wind-streak-2 {
+  animation: wind-streak-2 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.4s;
+}
+
+.animate-indeterminate-progress {
+  animation: indeterminate-progress 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.clip-headlight {
+  clip-path: polygon(0% 40%, 100% 0%, 100% 100%, 0% 60%);
+}
+

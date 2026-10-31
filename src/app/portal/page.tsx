@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getOrFetchWithCache } from "@/lib/redis";
 import UnifiedCommuteHub from "@/components/portal/UnifiedCommuteHub";
 import type { Student, Bus, Route, Stop, Shift, Trip, Booking, Staff } from "@/lib/types";
 
@@ -34,43 +35,45 @@ export default async function StudentPortalPage() {
   const todayUTC = now.toISOString().split("T")[0];
   const allowedDates = Array.from(new Set([todayIST, todayUTC]));
 
-  const [
-    { data: dbBuses },
-    { data: dbRoutes },
-    { data: dbStops },
-    { data: dbShifts },
-    { data: dbTrips },
-    { data: dbBookings },
-    { data: dbAllocations },
-    { data: dbRouteStops },
-    { data: dbCampuses },
-    { data: dbReservations },
-  ] = await Promise.all([
-    supabaseAdmin.from("buses").select("*"),
-    supabaseAdmin.from("routes").select("*"),
-    supabaseAdmin.from("stops").select("*"),
-    supabaseAdmin.from("shifts").select("*"),
-    // Fetch recent active trips rather than entire historical table of 900+ rows
-    supabaseAdmin
-      .from("trips")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(60),
-    // Fetch bookings for the logged-in student (matches both student UUID and user UUID)
+  // ── Parallel fetch: cached shared fleet data + per-student dynamic queries ──
+  const [sharedData, ...perStudentResults] = await Promise.all([
+    // Shared fleet data — identical for ALL students, cached 20s with jitter
+    getOrFetchWithCache({
+      key: "portal:shared_fleet_data",
+      ttl: 20,
+      allowEmpty: true,
+      fetchFn: async () => {
+        const [
+          { data: dbBuses },
+          { data: dbRoutes },
+          { data: dbStops },
+          { data: dbShifts },
+          { data: dbTrips },
+          { data: dbRouteStops },
+          { data: dbCampuses },
+        ] = await Promise.all([
+          supabaseAdmin.from("buses").select("*"),
+          supabaseAdmin.from("routes").select("*"),
+          supabaseAdmin.from("stops").select("*"),
+          supabaseAdmin.from("shifts").select("*"),
+          supabaseAdmin.from("trips").select("*").order("created_at", { ascending: false }).limit(60),
+          supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
+          supabaseAdmin.from("campuses").select("*"),
+        ]);
+        return { dbBuses, dbRoutes, dbStops, dbShifts, dbTrips, dbRouteStops, dbCampuses };
+      },
+    }),
+    // Per-student queries — MUST stay dynamic (user-specific)
     supabaseAdmin
       .from("bookings_full")
       .select("*")
       .or(`student_id.eq.${resolvedStudentId},student_id.eq.${session.userId}`)
       .order("created_at", { ascending: false })
       .limit(50),
-    // Fetch special shift allocations for the student
     supabaseAdmin
       .from("special_shift_allocations")
       .select("*")
       .or(`student_id.eq.${resolvedStudentId},student_id.eq.${session.userId}`),
-    supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
-    supabaseAdmin.from("campuses").select("*"),
-    // Fetch today's active bus reservation for instant zero-skeleton render
     supabaseAdmin
       .from("bus_reservations")
       .select("*, buses(*)")
@@ -80,6 +83,11 @@ export default async function StudentPortalPage() {
       .order("created_at", { ascending: false })
       .limit(1),
   ]);
+
+  const { dbBuses, dbRoutes, dbStops, dbShifts, dbTrips, dbRouteStops, dbCampuses } = sharedData;
+  const { data: dbBookings } = perStudentResults[0];
+  const { data: dbAllocations } = perStudentResults[1];
+  const { data: dbReservations } = perStudentResults[2];
 
   const campusNameMap = new Map((dbCampuses || []).map((c: any) => [c.id, c.name]));
   const stopMap = new Map((dbStops || []).map((s: any) => [s.id, s]));

@@ -15,33 +15,68 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
     redirect(session.role === "driver" ? "/driver" : session.role === "conductor" ? "/conductor" : "/portal");
   }
 
-  const [
-    { data: dbTrips },
-    { data: dbBuses },
-    { data: dbRoutes },
-    { data: dbBookings },
-    { data: dbStops },
-    { data: dbStudents },
-    { data: dbStaff },
-    { data: dbUsers },
-    { data: dbRouteStops },
-    { data: dbCampuses },
-    { data: dbClasses },
-    { data: dbShifts },
-  ] = await Promise.all([
-    supabaseAdmin.from("trips").select("*").order("trip_code"),
-    supabaseAdmin.from("buses").select("*"),
-    supabaseAdmin.from("routes").select("*"),
-    supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
-    supabaseAdmin.from("stops").select("*"),
-    supabaseAdmin.from("students_full").select("*"),
-    supabaseAdmin.from("staff").select("*"),
-    supabaseAdmin.from("users").select("id, full_name, email, role, phone"),
-    supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
-    supabaseAdmin.from("campuses").select("*"),
-    supabaseAdmin.from("v_classes_expanded").select("*"),
-    supabaseAdmin.from("shifts").select("*"),
-  ]);
+  const {
+    dbTrips,
+    dbBuses,
+    dbRoutes,
+    dbBookings,
+    dbStops,
+    dbStudents,
+    dbStaff,
+    dbUsers,
+    dbRouteStops,
+    dbCampuses,
+    dbClasses,
+    dbShifts,
+  } = await getOrFetchWithCache({
+    key: "staff:transport_admin_raw_tables",
+    ttl: 20, // 20s cache with jitter for instant page switching
+    allowEmpty: true,
+    fetchFn: async () => {
+      const [
+        { data: dbTrips },
+        { data: dbBuses },
+        { data: dbRoutes },
+        { data: dbBookings },
+        { data: dbStops },
+        { data: dbStudents },
+        { data: dbStaff },
+        { data: dbUsers },
+        { data: dbRouteStops },
+        { data: dbCampuses },
+        { data: dbClasses },
+        { data: dbShifts },
+      ] = await Promise.all([
+        supabaseAdmin.from("trips").select("*").order("trip_code"),
+        supabaseAdmin.from("buses").select("*"),
+        supabaseAdmin.from("routes").select("*"),
+        supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
+        supabaseAdmin.from("stops").select("*"),
+        supabaseAdmin.from("students_full").select("*"),
+        supabaseAdmin.from("staff").select("*"),
+        supabaseAdmin.from("users").select("id, full_name, email, role, phone"),
+        supabaseAdmin.from("route_stops").select("*").order("stop_order", { ascending: true }),
+        supabaseAdmin.from("campuses").select("*"),
+        supabaseAdmin.from("v_classes_expanded").select("*"),
+        supabaseAdmin.from("shifts").select("*"),
+      ]);
+
+      return {
+        dbTrips,
+        dbBuses,
+        dbRoutes,
+        dbBookings,
+        dbStops,
+        dbStudents,
+        dbStaff,
+        dbUsers,
+        dbRouteStops,
+        dbCampuses,
+        dbClasses,
+        dbShifts,
+      };
+    },
+  });
 
   const campusNameMap = new Map((dbCampuses || []).map((c: any) => [c.id, c.name]));
 

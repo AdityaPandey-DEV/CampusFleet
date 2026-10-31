@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getOrFetchWithCache } from "@/lib/redis";
 import ConductorLayoutClient from "@/components/conductor/ConductorLayoutClient";
 import { ConductorProvider } from "@/components/conductor/ConductorContext";
 import type { Trip, Bus, Route, Booking, Stop, Shift } from "@/lib/types";
@@ -30,22 +31,44 @@ export default async function ConductorLayout({
     redirect("/portal");
   }
 
-  // 3. Direct Server-Side Database Queries (Zero Client Roundtrip Delay)
-  const [
-    { data: dbTrips },
-    { data: dbBuses },
-    { data: dbRoutes },
-    { data: dbBookings },
-    { data: dbStops },
-    { data: dbShifts },
-  ] = await Promise.all([
-    supabaseAdmin.from("trips").select("*").order("trip_code"),
-    supabaseAdmin.from("buses").select("*"),
-    supabaseAdmin.from("routes").select("*"),
-    supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250),
-    supabaseAdmin.from("stops").select("*"),
-    supabaseAdmin.from("shifts").select("*"),
+  // 3. Parallel fetch: cached shared fleet data + shorter-TTL bookings
+  const [sharedData, bookingsData] = await Promise.all([
+    // Shared fleet data — identical for all conductors, cached 20s with jitter
+    getOrFetchWithCache({
+      key: "conductor:shared_fleet_data",
+      ttl: 20,
+      allowEmpty: true,
+      fetchFn: async () => {
+        const [
+          { data: dbTrips },
+          { data: dbBuses },
+          { data: dbRoutes },
+          { data: dbStops },
+          { data: dbShifts },
+        ] = await Promise.all([
+          supabaseAdmin.from("trips").select("*").order("trip_code"),
+          supabaseAdmin.from("buses").select("*"),
+          supabaseAdmin.from("routes").select("*"),
+          supabaseAdmin.from("stops").select("*"),
+          supabaseAdmin.from("shifts").select("*"),
+        ]);
+        return { dbTrips, dbBuses, dbRoutes, dbStops, dbShifts };
+      },
+    }),
+    // Bookings change during active boarding — shorter 15s cache
+    getOrFetchWithCache({
+      key: "conductor:bookings_recent",
+      ttl: 15,
+      allowEmpty: true,
+      fetchFn: async () => {
+        const { data } = await supabaseAdmin.from("bookings_full").select("*").order("created_at", { ascending: false }).limit(250);
+        return data;
+      },
+    }),
   ]);
+
+  const { dbTrips, dbBuses, dbRoutes, dbStops, dbShifts } = sharedData;
+  const dbBookings = bookingsData;
 
   // 4. Transform PostgreSQL rows to strongly typed domain models
   const trips: Trip[] = (dbTrips || []).map((t: any) => ({

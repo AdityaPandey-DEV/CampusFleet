@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Suspense } from "react";
 import { ThemeProvider } from "@/components/common/ThemeProvider";
 import { CampusTimeProvider } from "@/components/common/CampusTimeProvider";
 import { LanguageProvider } from "@/components/common/LanguageProvider";
+import { NavigationProgressBar } from "@/components/common/NavigationProgressBar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,6 +39,9 @@ export default function RootLayout({
         <ThemeProvider>
           <LanguageProvider>
             <CampusTimeProvider>
+              <Suspense fallback={null}>
+                <NavigationProgressBar />
+              </Suspense>
               {children}
             </CampusTimeProvider>
           </LanguageProvider>
