@@ -74,7 +74,7 @@ export function generateDailyTrips(
 
   const generatedTrips: Trip[] = [];
   const activeRoutes = routes.filter((r) => r.isActive);
-  const activeShifts = shifts.filter((s) => s.shiftType === "MORNING" || s.shiftType === "EVENING");
+  const activeShifts = shifts.filter((s) => !s.isSpecial);
   const activeBuses = buses.filter((b) => b.status === "ACTIVE");
 
   activeRoutes.forEach((route) => {
@@ -82,7 +82,7 @@ export function generateDailyTrips(
     if (!bus) return;
 
     activeShifts.forEach((shift) => {
-      const shiftSuffix = shift.shiftType === "MORNING" ? "M" : shift.shiftType === "EVENING" ? "E" : "C";
+      const shiftSuffix = shift.startTime ? shift.startTime.replace(":", "") : (shift.shiftType || "RUN").substring(0, 3);
       const tripId = `trip-${bus.id}-${shiftSuffix.toLowerCase()}-${targetDate}`;
       const tripCode = `TRIP-${route.code}-${bus.busNumber}-${shiftSuffix}-${targetDate}`;
 

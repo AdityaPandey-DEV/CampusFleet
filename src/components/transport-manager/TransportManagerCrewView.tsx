@@ -157,14 +157,11 @@ export default function TransportManagerCrewView({
     return Array.from(map.values());
   }, [staff, users]);
 
-  // Filtered Trips for selected date
+  // Filtered Trips for selected date and dynamic shift
   const filteredTrips = useMemo(() => {
     return trips.filter((t) => {
-      const shift = shifts.find(s => s.id === t.shiftId);
-      const isMorning = shift?.shiftType === "MORNING" || shift?.direction === "HOME_TO_CAMPUS" || Boolean(t.tripCode && t.tripCode.includes("-M-"));
-      const isEvening = shift?.shiftType === "EVENING" || shift?.direction === "CAMPUS_TO_HOME" || Boolean(t.tripCode && t.tripCode.includes("-E-"));
-      if (shiftFilter === "MORNING" && !isMorning) return false;
-      if (shiftFilter === "EVENING" && !isEvening) return false;
+      if (t.tripDate !== crewDate) return false;
+      if (shiftFilter !== "ALL" && t.shiftId !== shiftFilter) return false;
       if (!crewSearchQuery.trim()) return true;
       const q = crewSearchQuery.toLowerCase();
       const bus = buses.find((b) => b.id === t.busId);
@@ -355,11 +352,13 @@ export default function TransportManagerCrewView({
                 onChange={(val) => setShiftFilter(val)}
                 size="sm"
                 options={[
-                  { value: "ALL", label: "All Shifts" },
-                  { value: "MORNING", label: "Morning Inbound" },
-                  { value: "EVENING", label: "Evening Return" },
+                  { value: "ALL", label: `All Shifts (${shifts.length})` },
+                  ...shifts.map((s) => ({
+                    value: s.id,
+                    label: `${s.name}${s.startTime ? ` (${s.startTime})` : ""}`,
+                  })),
                 ]}
-                containerClassName="w-40"
+                containerClassName="w-48"
               />
               <div className="relative flex-1 sm:w-72 sm:flex-none">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -432,15 +431,24 @@ export default function TransportManagerCrewView({
                           <div className="font-bold text-gray-800 dark:text-gray-200">{route?.name || "Route TBA"}</div>
                           <div className="text-[10px] font-mono mt-0.5">
                             {(() => {
-                              const shift = shifts.find(s => s.id === trip.shiftId);
-                              const isMorning = shift?.shiftType === "MORNING" || shift?.direction === "HOME_TO_CAMPUS" || Boolean(trip.tripCode && trip.tripCode.includes("-M-"));
-                              return isMorning ? (
-                                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
-                                  <span>🌅</span> Morning Inbound (07:30 AM)
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold">
-                                  <span>🌆</span> Evening Return (04:30 PM)
+                              const shift = shifts.find((s) => s.id === trip.shiftId);
+                              const isOutbound = shift?.direction === "CAMPUS_TO_HOME";
+                              const isC2C = shift?.direction === "CAMPUS_TO_CAMPUS";
+                              return (
+                                <span
+                                  className={`inline-flex items-center gap-1 font-bold ${
+                                    isC2C
+                                      ? "text-purple-600 dark:text-purple-400"
+                                      : isOutbound
+                                      ? "text-indigo-600 dark:text-indigo-400"
+                                      : "text-blue-600 dark:text-blue-400"
+                                  }`}
+                                >
+                                  <span>{isC2C ? "🟣" : isOutbound ? "🌆" : "🌅"}</span>
+                                  <span>{shift?.name || "Transit Run"}</span>
+                                  {shift?.startTime && (
+                                    <span className="opacity-75 font-normal">({shift.startTime})</span>
+                                  )}
                                 </span>
                               );
                             })()}

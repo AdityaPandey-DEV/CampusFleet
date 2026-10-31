@@ -224,8 +224,15 @@ export default function SmartTransitCockpit({
     // 3. Fallback to enriched reservation shift
     if (reservation?.shift) return reservation.shift;
 
-    // 4. Fallback: match by morning/evening or first shift
-    return shifts.find((s) => s.shiftType === "MORNING" || s.direction === "HOME_TO_CAMPUS") || shifts[0] || null;
+    // 4. Dynamic fallback: Pick upcoming shift based on current time or first shift
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const upcoming = shifts.find((s) => {
+      const parts = (s.startTime || "").split(":");
+      const startMins = parseInt(parts[0] || "0", 10) * 60 + parseInt(parts[1] || "0", 10);
+      return startMins >= currentMins;
+    });
+    return upcoming || shifts[0] || null;
   }, [reservation, activeBooking, shifts, trips]);
 
   // Derive trip status for conductor lock (Cancel blocked when IN_PROGRESS)

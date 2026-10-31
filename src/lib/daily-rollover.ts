@@ -163,15 +163,8 @@ export async function executeDailyRollover(
       ) || null;
 
       activeShifts.forEach((shift) => {
-        const shiftType = (shift.type || "NONE").toUpperCase();
-        const shiftSuffix =
-          shiftType === "MORNING"
-            ? "M"
-            : shiftType === "EVENING"
-            ? "E"
-            : shiftType === "AFTERNOON" || (shift.name || "").toLowerCase().includes("afternoon")
-            ? "A"
-            : (shiftType.charAt(0) || "C");
+        const timeCode = shift.start_time ? shift.start_time.substring(0, 5).replace(":", "") : "";
+        const shiftSuffix = timeCode || (shift.type || shift.id || "RUN").substring(0, 4).toUpperCase();
         const routeClean = route.id.replace(/[^a-zA-Z0-9]/g, "-");
         const tripId = createTripId();
         const tripCode = `TRIP-${(route.code || routeClean).toUpperCase().replace(/[^a-zA-Z0-9]/g, "")}-${shiftSuffix}-${targetDate.replace(/-/g, "")}`;

@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 import { isStartingSeat, getTeacherStartingSeats, generateSeatLayout, calculateDistanceKm } from "@/lib/utils";
 import { cacheGet, cacheSet, cacheDel } from "@/lib/redis";
 import { getLiveLocationFromMongo } from "@/lib/mongodb";
+import { createTripId, createBookingId, createAttendanceId } from "@/lib/id";
 
 export const dynamic = "force-dynamic";
 
@@ -205,17 +206,10 @@ export async function GET(req: NextRequest) {
 
         if (assignedBusId) {
           const shiftObj = (allShifts || []).find((s) => s.id === targetShiftId);
-          const shiftType = (shiftObj?.type || "NONE").toUpperCase();
-          const shiftSuffix =
-            shiftType === "MORNING"
-              ? "m"
-              : shiftType === "EVENING"
-              ? "e"
-              : shiftType === "AFTERNOON" || targetShiftId.includes("halfday")
-              ? "a"
-              : "s";
+          const timeCode = shiftObj?.start_time ? shiftObj.start_time.substring(0, 5).replace(":", "") : "";
+          const shiftSuffix = timeCode || (shiftObj?.id || "run").replace(/[^a-zA-Z0-9]/g, "");
           const routeClean = targetRouteId.replace(/[^a-zA-Z0-9]/g, "-");
-          const autoTripId = `trip-${routeClean}-${shiftSuffix}-${today}`;
+          const autoTripId = createTripId();
           const autoTripCode = `TRIP-${routeClean.toUpperCase().replace(/[^A-Z0-9]/g, "")}-${shiftSuffix.toUpperCase()}-${today.replace(/-/g, "")}`;
 
           const { data: newTrip } = await supabaseAdmin

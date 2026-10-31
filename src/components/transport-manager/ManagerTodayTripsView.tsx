@@ -97,15 +97,8 @@ export default function ManagerTodayTripsView({
     }
   }, [todayDate]);
 
-  // Determine current active shift based on local hour
-  const defaultShiftType = useMemo<"MORNING" | "EVENING">(() => {
-    const currentHour = new Date().getHours();
-    return currentHour >= 12 ? "EVENING" : "MORNING";
-  }, []);
-
-  const [selectedShiftFilter, setSelectedShiftFilter] = useState<"MORNING" | "EVENING">(
-    defaultShiftType
-  );
+  // Dynamic shift selection (supports arbitrary N shifts defined in database)
+  const [selectedShiftId, setSelectedShiftId] = useState<string>(() => shifts[0]?.id || "ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRouteFilter, setSelectedRouteFilter] = useState<string>("ALL");
 
@@ -127,41 +120,20 @@ export default function ManagerTodayTripsView({
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // 2. Identify Morning and Evening shifts
-  const morningShifts = useMemo(
-    () =>
-      shifts.filter(
-        (s) =>
-          s.direction === "HOME_TO_CAMPUS" ||
-          s.name.toLowerCase().includes("morning") ||
-          s.name.toLowerCase().includes("pickup")
-      ),
-    [shifts]
-  );
+  // Active shift record
+  const activeShift = useMemo(() => {
+    if (selectedShiftId === "ALL") return null;
+    return shifts.find((s) => s.id === selectedShiftId) || null;
+  }, [selectedShiftId, shifts]);
 
-  const eveningShifts = useMemo(
-    () =>
-      shifts.filter(
-        (s) =>
-          s.direction === "CAMPUS_TO_HOME" ||
-          s.name.toLowerCase().includes("evening") ||
-          s.name.toLowerCase().includes("drop")
-      ),
-    [shifts]
-  );
-
-  // Active shift ID
-  const activeShiftId = useMemo(() => {
-    if (selectedShiftFilter === "MORNING") {
-      return morningShifts[0]?.id || shifts[0]?.id || "shift-morning";
-    }
-    return eveningShifts[0]?.id || shifts[1]?.id || shifts[0]?.id || "shift-evening";
-  }, [selectedShiftFilter, morningShifts, eveningShifts, shifts]);
-
-  // 3. Filter Trips for today & active shift
+  // Filter Trips for today & active shift (or all shifts if ALL selected)
   const todayShiftTrips = useMemo(() => {
-    return trips.filter((t) => t.tripDate === todayDate && t.shiftId === activeShiftId);
-  }, [trips, todayDate, activeShiftId]);
+    return trips.filter((t) => {
+      if (t.tripDate !== todayDate) return false;
+      if (selectedShiftId !== "ALL" && t.shiftId !== selectedShiftId) return false;
+      return true;
+    });
+  }, [trips, todayDate, selectedShiftId]);
 
   // Lookup maps
   const busMap = useMemo(() => new Map(buses.map((b) => [b.id, b])), [buses]);
@@ -249,7 +221,9 @@ export default function ManagerTodayTripsView({
 
   // ── Handler: Directly Assign an Available Bus to a Stop ───────────────────
   const executeAssignBusToStop = async (route: Route, stopIndex: number, bus: Bus) => {
-    const shiftCode = selectedShiftFilter === "MORNING" ? "M" : "E";
+    const targetShiftId = activeShift?.id || shifts[0]?.id || "shift-1";
+    const targetShift = shifts.find(s => s.id === targetShiftId);
+    const shiftCode = (targetShift?.startTime || "00:00").replace(":", "");
     const busSuffix = String(bus.busNumber);
     const tripCode = `TRIP-${route.code.replace(/[^A-Za-z0-9]/g, "")}-${shiftCode}-${busSuffix}-${todayDate.replace(/-/g, "").slice(4)}`;
 
@@ -257,7 +231,7 @@ export default function ManagerTodayTripsView({
       tripCode,
       routeId: route.id,
       busId: bus.id,
-      shiftId: activeShiftId,
+      shiftId: targetShiftId,
       driverId: staff.find((s) => s.role === "driver")?.id || "",
       conductorId: staff.find((s) => s.role === "conductor")?.id || "",
       tripDate: todayDate,
@@ -378,31 +352,51 @@ export default function ManagerTodayTripsView({
           </p>
         </div>
 
-        {/* Shift Switcher Toggle */}
-        <div className="flex items-center bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 w-full sm:w-auto">
+        {/* Dynamic Shift Switcher Pills (N Shifts) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
           <button
-            onClick={() => setSelectedShiftFilter("MORNING")}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-              selectedShiftFilter === "MORNING"
-                ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
-                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            onClick={() => setSelectedShiftId("ALL")}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
+              selectedShiftId === "ALL"
+                ? "bg-slate-900 dark:bg-white text-white dark:text-gray-900 shadow-md"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
-            <Sun className="w-4 h-4 flex-shrink-0" />
-            <span>Morning Pickup</span>
+            <span>All Shifts</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 dark:bg-black/20 font-mono">
+              {trips.filter((t) => t.tripDate === todayDate).length}
+            </span>
           </button>
 
-          <button
-            onClick={() => setSelectedShiftFilter("EVENING")}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-              selectedShiftFilter === "EVENING"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-            }`}
-          >
-            <Moon className="w-4 h-4 flex-shrink-0" />
-            <span>Evening Drop</span>
-          </button>
+          {shifts.map((s) => {
+            const count = trips.filter((t) => t.tripDate === todayDate && t.shiftId === s.id).length;
+            const isSelected = selectedShiftId === s.id;
+            const isOutbound = s.direction === "CAMPUS_TO_HOME";
+
+            return (
+              <button
+                key={s.id}
+                onClick={() => setSelectedShiftId(s.id)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
+                  isSelected
+                    ? isOutbound
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                      : "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-transparent hover:border-gray-300 dark:hover:border-gray-700"
+                }`}
+              >
+                <span>{s.name}</span>
+                {s.startTime && (
+                  <span className="opacity-75 font-mono text-[11px] font-normal">
+                    ({s.startTime})
+                  </span>
+                )}
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 dark:bg-black/20 font-mono">
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -553,7 +547,7 @@ export default function ManagerTodayTripsView({
                       <span>{route.totalDistanceKm || 25} km corridor</span>
                       <span>•</span>
                       <span className="font-semibold text-blue-600 dark:text-blue-400">
-                        {selectedShiftFilter === "MORNING" ? "🌅 Morning Pickup" : "🌆 Evening Drop"}
+                        {activeShift ? activeShift.name : "All Daily Shifts"}
                       </span>
                     </div>
                   </div>

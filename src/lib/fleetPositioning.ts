@@ -1,4 +1,4 @@
-import { Bus, Route, Stop, Trip, Staff, LiveBusLocation, FleetBusMarkerData, TripDirection, Campus } from "./types";
+import { Bus, Route, Stop, Trip, Shift, Staff, LiveBusLocation, FleetBusMarkerData, TripDirection, Campus } from "./types";
 
 /**
  * Resolves the institutional university campus terminal location dynamically from master Campus records.
@@ -76,10 +76,11 @@ export function getCampusDepotSlot(
  * Parses "HH:MM" (e.g. "07:30", "16:30") to minutes from midnight
  */
 export function timeStringToMinutes(timeStr?: string): number {
-  if (!timeStr) return 7 * 60 + 30; // Default 07:30 AM
+  if (!timeStr) return 0;
   const parts = timeStr.split(":");
   const hours = parseInt(parts[0] || "0", 10);
   const minutes = parseInt(parts[1] || "0", 10);
+  if (isNaN(hours) || isNaN(minutes)) return 0;
   return hours * 60 + minutes;
 }
 
@@ -134,6 +135,7 @@ export interface FleetPositionOptions {
   simulatedMode?: "AUTO" | "MORNING_STANDBY" | "IN_TRANSIT" | "CAMPUS_PARKED";
   campus?: Campus;
   campuses?: Campus[];
+  shifts?: Shift[];
 }
 
 /**
@@ -197,15 +199,14 @@ export function computeFleetBusMarkers(
     const startingStop = routeStops[0] || allStops[0] || campusStop;
     const destinationStop = routeStops[routeStops.length - 1] || campusStop;
 
-    const tripDirection: TripDirection = (activeTrip as any)?.direction || "HOME_TO_CAMPUS";
-    const isEveningTrip = tripDirection === "CAMPUS_TO_HOME";
-
-    const departureTime = (isEveningTrip ? "16:30" : "07:30");
-    const arrivalTime = (isEveningTrip ? "17:45" : "08:45");
+    const shift = (activeTrip as any)?.shift || options?.shifts?.find((s) => s.id === activeTrip?.shiftId);
+    const tripDirection: TripDirection = (activeTrip as any)?.direction || (shift?.direction as TripDirection) || "HOME_TO_CAMPUS";
+    const departureTime = shift?.startTime || (activeTrip as any)?.departureTime || "";
+    const arrivalTime = shift?.endTime || (activeTrip as any)?.arrivalTime || "";
 
     const depMinutes = timeStringToMinutes(departureTime);
     const arrMinutes = timeStringToMinutes(arrivalTime);
-    const standbyStartMinutes = depMinutes - 60; // 1 hour prior
+    const standbyStartMinutes = depMinutes > 60 ? depMinutes - 60 : 0;
 
     // Check mode
     const mode = options?.simulatedMode || "AUTO";
@@ -222,7 +223,7 @@ export function computeFleetBusMarkers(
       state = "IN_TRANSIT";
     } else {
       // AUTO mode based on real clock & departure time
-      if (currentMinutes >= standbyStartMinutes && currentMinutes < depMinutes) {
+      if (depMinutes > 0 && currentMinutes >= standbyStartMinutes && currentMinutes < depMinutes) {
         state = "STANDBY_STARTING_POINT";
       } else {
         state = "IN_TRANSIT";
@@ -238,21 +239,26 @@ export function computeFleetBusMarkers(
 
     if (state === "CAMPUS_PARKED") {
       // Case 1: TRIP COMPLETED / PARKED AT DEPOT OR TERMINAL STOP
-      if (tripDirection === "CAMPUS_TO_HOME") {
-        // Evening route parked at outer town stop
-        latitude = destinationStop?.latitude ?? 0;
-        longitude = destinationStop?.longitude ?? 0;
-        speedKmh = 0;
-        headingDeg = 0;
-        statusText = `Trip Completed • Stationed at ${destinationStop?.name || "Terminal"}`;
-      } else {
-        // Inbound route parked in dedicated bay inside University Campus Depot (dynamic from DB)
+      const isDestinationCampus =
+        destinationStop?.id === campusStop.id ||
+        Boolean(destinationStop?.campusId) ||
+        destinationStop?.name?.toLowerCase().includes("campus");
+
+      if (isDestinationCampus) {
+        // Parked in dedicated bay inside University Campus Depot (dynamic from DB)
         const depotSlot = getCampusDepotSlot(busIdx, campusStop);
         latitude = depotSlot.latitude;
         longitude = depotSlot.longitude;
         speedKmh = 0;
         headingDeg = 0;
         statusText = `Trip Completed • Parked in Depot Bay ${busIdx + 1} (${campusStop.name})`;
+      } else {
+        // Parked at outer destination terminal stop
+        latitude = destinationStop?.latitude ?? 0;
+        longitude = destinationStop?.longitude ?? 0;
+        speedKmh = 0;
+        headingDeg = 0;
+        statusText = `Trip Completed • Stationed at ${destinationStop?.name || "Terminal"}`;
       }
     } else if (state === "IN_TRANSIT") {
       // Case 2: IN TRANSIT — moving with driver coordinates or live corridor telemetry
@@ -287,7 +293,8 @@ export function computeFleetBusMarkers(
       speedKmh = 0;
       headingDeg = 0;
       const minsToDep = Math.max(0, depMinutes - currentMinutes);
-      statusText = `Standby at Starting Point (${startingStop?.name || "Starting Point"}) • Boarding in ${minsToDep}m (Dep: ${departureTime})`;
+      const depInfo = departureTime ? ` • Boarding in ${minsToDep}m (Dep: ${departureTime})` : "";
+      statusText = `Standby at Starting Point (${startingStop?.name || "Starting Point"})${depInfo}`;
     }
 
     return {
@@ -311,8 +318,8 @@ export function computeFleetBusMarkers(
       departureTime,
       arrivalTime,
       direction: tripDirection,
-      startingStopName: startingStop?.name || (tripDirection === "CAMPUS_TO_HOME" ? campusStop.name : "Starting Station"),
-      destinationStopName: tripDirection === "HOME_TO_CAMPUS" ? campusStop.name : (destinationStop?.name || "Terminal Station"),
+      startingStopName: startingStop?.name || "Starting Station",
+      destinationStopName: destinationStop?.name || campusStop.name,
     };
   });
 }

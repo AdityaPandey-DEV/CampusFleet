@@ -103,6 +103,7 @@ export default function TransportAdminTripsView({
 
   // Filters
   const [selectedDirection, setSelectedDirection] = useState<"ALL" | TripDirection>("ALL");
+  const [selectedShiftId, setSelectedShiftId] = useState<string>("ALL");
   const [selectedStatus, setSelectedStatus] = useState<"ALL" | string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -284,6 +285,7 @@ export default function TransportAdminTripsView({
   // Filtered trips for active feed view
   const filteredTrips = useMemo(() => {
     return dateScopedTrips.filter((trip) => {
+      if (selectedShiftId !== "ALL" && trip.shiftId !== selectedShiftId) return false;
       const dir = getTripDirection(trip);
       if (selectedDirection !== "ALL" && dir !== selectedDirection) return false;
       if (selectedStatus !== "ALL" && trip.status !== selectedStatus) return false;
@@ -309,7 +311,7 @@ export default function TransportAdminTripsView({
 
       return true;
     });
-  }, [dateScopedTrips, selectedDirection, selectedStatus, searchQuery, routes, buses, staff]);
+  }, [dateScopedTrips, selectedShiftId, selectedDirection, selectedStatus, searchQuery, routes, buses, staff]);
 
   // Group Trips by Bus for Bus Explorer Mode
   const busExplorerData = useMemo(() => {
@@ -332,6 +334,7 @@ export default function TransportAdminTripsView({
       .map((bus) => {
         const busTrips = dateScopedTrips.filter((t) => t.busId === bus.id);
         const matchingTrips = busTrips.filter((t) => {
+          if (selectedShiftId !== "ALL" && t.shiftId !== selectedShiftId) return false;
           if (selectedDirection === "ALL") return true;
           return getTripDirection(t) === selectedDirection;
         });
@@ -610,6 +613,55 @@ export default function TransportAdminTripsView({
               className="px-2.5 py-1 text-xs rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono font-bold text-gray-800 dark:text-gray-200 outline-none focus:border-blue-500"
             />
           </div>
+        </div>
+
+        {/* Dynamic Shift Filter Row (N Shifts from DB) */}
+        <div className="flex items-center gap-1.5 flex-wrap pt-1 pb-3 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-1.5 text-xs font-black text-gray-700 dark:text-gray-300 mr-1">
+            <Clock className="w-3.5 h-3.5 text-blue-600" />
+            <span>Shift Slot:</span>
+          </div>
+
+          <button
+            onClick={() => setSelectedShiftId("ALL")}
+            className={`px-3 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer ${
+              selectedShiftId === "ALL"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }`}
+          >
+            All Shifts ({dateScopedTrips.length})
+          </button>
+
+          {shifts.map((s) => {
+            const shiftCount = dateScopedTrips.filter((t) => t.shiftId === s.id).length;
+            const isSelected = selectedShiftId === s.id;
+            const isOutbound = s.direction === "CAMPUS_TO_HOME";
+
+            return (
+              <button
+                key={s.id}
+                onClick={() => setSelectedShiftId(s.id)}
+                className={`px-3 py-1.5 text-xs font-black rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isSelected
+                    ? isOutbound
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "bg-blue-600 text-white shadow-xs"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <span>{s.name}</span>
+                {s.startTime && (
+                  <span className="opacity-75 font-mono text-[10px] font-normal">
+                    ({s.startTime})
+                  </span>
+                )}
+                <span className="px-1.5 py-0.2 rounded-md text-[10px] bg-white/20 dark:bg-black/20 font-mono">
+                  {shiftCount}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Direction Tabs & View Mode Switcher */}

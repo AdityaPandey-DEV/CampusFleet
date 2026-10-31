@@ -163,7 +163,7 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
     id: sh.id,
     name: sh.name,
     shiftType: sh.type,
-    direction: sh.direction || (sh.type === "MORNING" ? "HOME_TO_CAMPUS" : "CAMPUS_TO_HOME"),
+    direction: (sh.direction || "HOME_TO_CAMPUS") as TripDirection,
     startTime: sh.start_time ? sh.start_time.slice(0, 5) : "",
     endTime: sh.end_time ? sh.end_time.slice(0, 5) : "",
     bookingCutoffMins: Number(sh.booking_cutoff_minutes || 0),
@@ -172,19 +172,16 @@ export async function getStaffServerData(redirectPath: string = "/transport-admi
 
   const trips: Trip[] = (dbTrips || []).map((t: any) => {
     const shift = shiftMap.get(t.shift_id);
-    const isEvening =
-      shift?.direction === "CAMPUS_TO_HOME" ||
-      shift?.type === "EVENING" ||
-      Boolean(t.trip_code && t.trip_code.includes("-E-"));
+    const direction: TripDirection =
+      (shift?.direction as TripDirection) ||
+      (t.direction as TripDirection) ||
+      (t.is_special ? "CAMPUS_TO_CAMPUS" : "HOME_TO_CAMPUS");
+
     const isC2C =
-      (t.trip_code && (t.trip_code.includes("C2C") || t.trip_code.includes("DDN"))) ||
+      direction === "CAMPUS_TO_CAMPUS" ||
       Boolean(t.is_special) ||
-      Boolean(shift?.is_special);
-    const direction: TripDirection = isEvening
-      ? "CAMPUS_TO_HOME"
-      : isC2C
-        ? "CAMPUS_TO_CAMPUS"
-        : (shift?.direction || t.direction || "HOME_TO_CAMPUS");
+      Boolean(shift?.is_special) ||
+      Boolean(t.trip_code && (t.trip_code.includes("C2C") || t.trip_code.includes("DDN")));
 
     return {
       id: t.id,
