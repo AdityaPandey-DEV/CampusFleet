@@ -123,15 +123,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   };
 
-  const topLevelLinks = [
-    { href: "/admin/maintenance", label: "Maintenance", icon: Wrench },
-    { href: "/admin/users", label: "Accounts & Roles", icon: Users },
-    { href: "/admin/campuses", label: "Campuses & Zones", icon: Building2 },
-    { href: "/transport-admin", label: "Transport Admin", icon: ShieldCheck },
-    { href: "/transport-manager", label: "Transport Manager", icon: Compass },
-  ];
-
-  let currentNavLinks = topLevelLinks;
+  // Determine active sub-portal navigation based on pathname (empty on hub root to avoid duplicating card access)
+  let currentNavLinks: any[] = [];
   let currentTitle = "Admin Operations Center";
 
   if (pathname.startsWith("/admin/maintenance")) {

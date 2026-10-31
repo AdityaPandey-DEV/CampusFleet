@@ -120,24 +120,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     }
   };
 
-  // 2. Define top-level Hub links (shown when exactly at /transport-admin)
-  const topLevelLinks = [
-    { href: "/transport-manager", label: "Transport Manager", icon: Compass },
-    { href: "/transport-admin/rfid", label: "RFID Cards", icon: Radio },
-    { href: "/transport-admin/esp32", label: "ESP32 Terminals", icon: Cpu },
-    { href: "/transport-admin/buses", label: "Bus Fleet", icon: BusFront },
-    { href: "/transport-admin/routes", label: "Routes & Stops", icon: Route },
-    { href: "/transport-admin/trips", label: "Trips & Dispatches", icon: Navigation },
-    { href: "/transport-admin/shifts", label: "Shift Master", icon: Clock },
-    { href: "/transport-admin/billing/approvals", label: "Bus Fees", icon: CreditCard },
-    { href: "/transport-admin/academics/students", label: "Students", icon: GraduationCap },
-    { href: "/transport-admin/classes", label: "Classes & Batches", icon: BookOpen },
-    { href: "/transport-admin/maintenance", label: "Repairs", icon: Wrench },
-    { href: "/transport-admin/system/users", label: "Accounts & Reports", icon: Shield },
-  ];
-
-  // 3. Determine current context based on URL
-  let currentNavLinks = topLevelLinks;
+  // 2. Determine current context based on URL (empty on hub root to avoid duplicating card access)
+  let currentNavLinks: any[] = [];
   let currentTitle = "Transport Admin Desk";
 
   if (pathname.startsWith("/transport-admin/rfid") || pathname.startsWith("/transport-admin/esp32")) {

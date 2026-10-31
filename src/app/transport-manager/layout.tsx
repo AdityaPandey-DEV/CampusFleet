@@ -62,16 +62,8 @@ export default function TransportManagerLayout({ children }: { children: React.R
     },
   };
 
-  // 2. Hub top-level navigation (shown when at /transport-manager)
-  const hubLinks = [
-    { href: "/transport-manager/drivers", label: "Assign Drivers", shortLabel: "Drivers", icon: Users },
-    { href: "/transport-manager/trips", label: "Today's Trips", shortLabel: "Trips", icon: Navigation },
-    { href: "/transport-manager/demand", label: "Passenger Demand", shortLabel: "Demand", icon: BarChart3 },
-    { href: "/transport-manager/combine-buses", label: "Combine Buses", shortLabel: "Combine", icon: GitMerge },
-  ];
-
-  // 3. Determine active sub-portal navigation based on pathname
-  let currentNavLinks = hubLinks;
+  // 2. Determine active sub-portal navigation based on pathname (empty on hub root to avoid duplicating card access)
+  let currentNavLinks: any[] = [];
   let currentTitle = "Transport Manager Logistics";
   let currentSubtitle = "Fleet Logistics & Bus Operations";
 
