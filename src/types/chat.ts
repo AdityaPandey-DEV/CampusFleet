@@ -5,11 +5,16 @@ export interface ChatConversation {
   description?: string;
   avatarInitials?: string;
   avatarBg?: string;
-  avatarColor?: string;
+  category?: "main" | "campus" | "bus" | "class" | "direct";
+  campusId?: string | null;
+  busId?: string | null;
+  busNumber?: number | string | null;
+  classId?: string | null;
   routeId?: string | null;
   shiftId?: string | null;
   isAutoAssigned?: boolean;
   memberIds: string[];
+  adminIds?: string[];
   lastMessage?: {
     text: string;
     senderId: string;

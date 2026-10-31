@@ -9,9 +9,12 @@ export interface ChatConversation {
   description?: string;
   avatarInitials: string;
   avatarBg: string;
+  category?: "main" | "campus" | "bus" | "class" | "direct";
   campusId?: string;
-  routeId?: string;
+  busId?: string;
+  busNumber?: number | string;
   classId?: string;
+  routeId?: string;
   isAutoAssigned?: boolean;
   memberIds: string[];
   adminIds?: string[];
@@ -88,8 +91,13 @@ export function getInitials(name: string): string {
 }
 
 /**
- * Dynamically synchronizes conversations into MongoDB directly from Supabase entities (Campuses, Routes)
- * so nothing is hardcoded, and all channels reflect real database state.
+ * Dynamically synchronizes conversations into MongoDB directly from Supabase entities:
+ * 1. CampusFleet Main Group (University-wide)
+ * 2. Campus Groups (from campuses table)
+ * 3. Bus Number Groups (from buses table - Bus 02, Bus 37, Bus 44, etc.)
+ * 4. Particular Class Groups (from classes table - B.Tech CSE, BCA, etc.)
+ * 
+ * Strict Domain Rule: No corridor groups. Commuters only interact with their physical Bus Number, Class, Campus & Main groups.
  */
 export async function syncConversationsFromDatabase(): Promise<void> {
   const db = await getMongoDb();
@@ -101,27 +109,46 @@ export async function syncConversationsFromDatabase(): Promise<void> {
   // Ensure unique index
   await convCol.createIndex({ id: 1 }, { unique: true });
   await convCol.createIndex({ memberIds: 1 });
+  await convCol.createIndex({ category: 1 });
   await msgCol.createIndex({ conversationId: 1, createdAt: 1 });
 
   const now = new Date().toISOString();
 
-  // 1. Ensure Main Official Announcements group exists in MongoDB
+  // 0. Purge legacy corridor/route groups completely from MongoDB
+  try {
+    await convCol.deleteMany({
+      $or: [
+        { routeId: { $exists: true, $ne: null } },
+        { id: { $regex: /^route-/i } },
+        { id: { $regex: /^route_bus_/i } },
+        { name: { $regex: /Corridor$/i } },
+        { name: { $regex: /to GEHU Bhimtal Corridor/i } },
+      ],
+    });
+  } catch (err) {
+    console.warn("Could not purge legacy corridor groups:", err);
+  }
+
+  // 1. Ensure Main Official Group exists (CampusFleet Main Group)
   await convCol.updateOne(
     { id: "campusfleet-main" },
     {
-      $setOnInsert: {
+      $set: {
         id: "campusfleet-main",
-        type: "ANNOUNCEMENT",
-        name: "CampusFleet Official Announcements",
-        description: "University-wide transport alerts, schedule changes, and official broadcast channel.",
+        type: "GROUP",
+        category: "main",
+        name: "CampusFleet Main Group",
+        description: "Official university-wide campus transit community, fleet broadcast & central operations channel.",
         avatarInitials: "CF",
         avatarBg: "bg-blue-600 text-white",
         isAutoAssigned: true,
         memberIds: ["*"],
-        createdAt: now,
         updatedAt: now,
+      },
+      $setOnInsert: {
+        createdAt: now,
         lastMessage: {
-          text: "Welcome to CampusFleet Unified Transit Broadcast. Transport Admin & Managers will post verified updates here.",
+          text: "Welcome to CampusFleet Main Group! All students, faculty, and fleet operations crew are synchronized here.",
           senderId: "system",
           senderName: "Operations Desk",
           createdAt: now,
@@ -131,32 +158,35 @@ export async function syncConversationsFromDatabase(): Promise<void> {
     { upsert: true }
   );
 
-  // 2. Query dynamic campuses from Supabase database
+  // 2. Query dynamic campuses from Supabase database (Campus Groups)
   const { data: campuses } = await supabaseAdmin
     .from("campuses")
     .select("id, name, code");
 
   if (campuses && campuses.length > 0) {
     for (const campus of campuses) {
-      const convId = campus.id;
+      const convId = `campus-${campus.id}`;
       const initials = campus.code ? campus.code.replace(/[^A-Za-z]/g, "").substring(0, 2).toUpperCase() : getInitials(campus.name);
       await convCol.updateOne(
         { id: convId },
         {
-          $setOnInsert: {
+          $set: {
             id: convId,
             type: "GROUP",
-            name: `${campus.name} Hub`,
-            description: `Campus-wide transit coordination, stop allocations, and dispatch updates for ${campus.name}.`,
+            category: "campus",
+            name: `${campus.name}`,
+            description: `Official campus transit hub and student body coordination channel for ${campus.name}.`,
             avatarInitials: initials,
             avatarBg: "bg-emerald-600 text-white",
             campusId: campus.id,
             isAutoAssigned: true,
             memberIds: ["*"],
-            createdAt: now,
             updatedAt: now,
+          },
+          $setOnInsert: {
+            createdAt: now,
             lastMessage: {
-              text: `Welcome to ${campus.name} Transit Channel. Use @transportadmin or @teacher for questions.`,
+              text: `Welcome to ${campus.name} Hub. For transport queries, tag @transportadmin or @teacher.`,
               senderId: "system",
               senderName: "Campus Desk",
               createdAt: now,
@@ -168,37 +198,84 @@ export async function syncConversationsFromDatabase(): Promise<void> {
     }
   }
 
-  // 3. Query dynamic routes from Supabase database
-  const { data: routes } = await supabaseAdmin
-    .from("routes")
-    .select("id, name, code");
+  // 3. Query physical buses from Supabase database (Bus Number Groups)
+  const { data: buses } = await supabaseAdmin
+    .from("buses")
+    .select("id, bus_number, registration_no, capacity, campus_id")
+    .order("bus_number");
 
-  if (routes && routes.length > 0) {
-    for (const route of routes) {
-      const convId = route.id;
-      // Extract bus number or short initials
-      const numMatch = route.name.match(/\b(?:Bus|Route)\s*(\d+)/i) || route.id.match(/bus-(\d+)/i);
-      const initials = numMatch ? numMatch[1] : (route.code ? route.code.substring(route.code.length - 2) : getInitials(route.name));
+  if (buses && buses.length > 0) {
+    for (const bus of buses) {
+      const convId = `bus-${bus.bus_number}`;
+      const busNumStr = String(bus.bus_number);
+      const initials = busNumStr.padStart(2, "0");
 
       await convCol.updateOne(
         { id: convId },
         {
-          $setOnInsert: {
+          $set: {
             id: convId,
             type: "GROUP",
-            name: `${route.name} Corridor`,
-            description: `Live commuter discussion, driver coordination, and pickup updates for ${route.name}.`,
+            category: "bus",
+            name: `Bus ${bus.bus_number}`,
+            description: `Official passenger & crew channel for Bus ${bus.bus_number} (${bus.registration_no || "CampusFleet"}). Live passenger halts, driver alerts & conductor updates.`,
             avatarInitials: initials,
-            avatarBg: "bg-purple-600 text-white",
-            routeId: route.id,
+            avatarBg: "bg-amber-600 text-white",
+            busId: String(bus.id),
+            busNumber: bus.bus_number,
+            campusId: bus.campus_id,
             isAutoAssigned: true,
             memberIds: ["*"],
-            createdAt: now,
             updatedAt: now,
+          },
+          $setOnInsert: {
+            createdAt: now,
             lastMessage: {
-              text: `Transit group active for ${route.name}. Passengers can tag @driver or @conductor for live halts.`,
+              text: `Bus ${bus.bus_number} group is active. Passengers can alert @driver or @conductor for live halts.`,
               senderId: "system",
               senderName: "Fleet Telematics",
+              createdAt: now,
+            },
+          },
+        },
+        { upsert: true }
+      );
+    }
+  }
+
+  // 4. Query particular academic classes from Supabase database (Class Groups)
+  const { data: classes } = await supabaseAdmin
+    .from("classes")
+    .select("id, name, semester")
+    .order("name");
+
+  if (classes && classes.length > 0) {
+    for (const classItem of classes) {
+      const convId = `class-${classItem.id}`;
+      const initials = getInitials(classItem.name);
+
+      await convCol.updateOne(
+        { id: convId },
+        {
+          $set: {
+            id: convId,
+            type: "GROUP",
+            category: "class",
+            name: `${classItem.name}`,
+            description: `Official academic class transit & lecture-shift commute group for ${classItem.name}.`,
+            avatarInitials: initials,
+            avatarBg: "bg-indigo-600 text-white",
+            classId: classItem.id,
+            isAutoAssigned: true,
+            memberIds: ["*"],
+            updatedAt: now,
+          },
+          $setOnInsert: {
+            createdAt: now,
+            lastMessage: {
+              text: `Class transit channel ready for ${classItem.name}. Tag @teacher for gate passes and timetable shifts.`,
+              senderId: "system",
+              senderName: "Academic Desk",
               createdAt: now,
             },
           },
@@ -211,6 +288,11 @@ export async function syncConversationsFromDatabase(): Promise<void> {
 
 /**
  * Resolves user's eligible conversations from MongoDB.
+ * Automatically adds the user into the memberIds of their assigned automated groups:
+ * - CampusFleet Main Group
+ * - Their Campus Group
+ * - Their Bus Number Group
+ * - Their Class Group
  */
 export async function getUserConversations(userId: string, userRole: string): Promise<ChatConversation[]> {
   const db = await getMongoDb();
@@ -219,38 +301,105 @@ export async function getUserConversations(userId: string, userRole: string): Pr
   // Synchronize dynamic channels from Supabase tables into MongoDB
   await syncConversationsFromDatabase();
 
-  let userCampusId = "";
-  let userRouteId = "";
+  const convCol = db.collection("chat_conversations");
 
-  if (userId) {
+  let userCampusId = "";
+  let userClassId = "";
+  let userBusNumber = "";
+
+  if (userId && userId !== "guest") {
+    // 1. Resolve student record
     const { data: student } = await supabaseAdmin
       .from("students")
-      .select("campus_id, primary_route_id")
+      .select("id, campus_id, class_id, primary_route_id")
       .or(`user_id.eq.${userId},id.eq.${userId}`)
       .maybeSingle();
 
     if (student) {
       if (student.campus_id) userCampusId = student.campus_id;
-      if (student.primary_route_id) userRouteId = student.primary_route_id;
+      if (student.class_id) userClassId = student.class_id;
+
+      // Resolve bus number from route or active bookings
+      if (student.primary_route_id) {
+        const { data: bus } = await supabaseAdmin
+          .from("buses")
+          .select("bus_number")
+          .eq("current_route_id", student.primary_route_id)
+          .maybeSingle();
+        if (bus) userBusNumber = String(bus.bus_number);
+      }
+
+      if (!userBusNumber) {
+        const { data: booking } = await supabaseAdmin
+          .from("bookings")
+          .select("buses(bus_number)")
+          .eq("student_id", student.id || userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if ((booking as any)?.buses?.bus_number) {
+          userBusNumber = String((booking as any).buses.bus_number);
+        }
+      }
+    }
+
+    // 2. Resolve teacher/faculty record if not student
+    if (!student) {
+      const { data: teacherClass } = await supabaseAdmin
+        .from("classes")
+        .select("id, name")
+        .eq("assigned_teacher_id", userId)
+        .maybeSingle();
+      if (teacherClass) userClassId = teacherClass.id;
+    }
+
+    // 3. Resolve driver/conductor bus
+    if (userRole === "driver" || userRole === "conductor") {
+      const { data: busStaff } = await supabaseAdmin
+        .from("buses")
+        .select("bus_number, campus_id")
+        .or(`driver_id.eq.${userId},conductor_id.eq.${userId}`)
+        .maybeSingle();
+      if (busStaff) {
+        userBusNumber = String(busStaff.bus_number);
+        if (busStaff.campus_id) userCampusId = busStaff.campus_id;
+      }
+    }
+
+    // Automatically enroll user into their groups in MongoDB
+    const targetGroupIds: string[] = ["campusfleet-main"];
+    if (userCampusId) targetGroupIds.push(`campus-${userCampusId}`);
+    if (userBusNumber) targetGroupIds.push(`bus-${userBusNumber}`);
+    if (userClassId) targetGroupIds.push(`class-${userClassId}`);
+
+    try {
+      await convCol.updateMany(
+        { id: { $in: targetGroupIds } },
+        { $addToSet: { memberIds: userId } }
+      );
+    } catch (err) {
+      console.warn("Auto-enrollment update error:", err);
     }
   }
 
-  const convCol = db.collection("chat_conversations");
+  // Super-admin & manager roles can see all institutional channels
+  const isSupervisor = ["transport_admin", "transport_manager", "admin"].includes(userRole);
 
   const query: any = {
     isArchived: { $ne: true },
-    $or: [
+    name: { $not: /Corridor$/i },
+    id: { $not: /^route-/i },
+  };
+
+  if (!isSupervisor) {
+    query.$or = [
       { memberIds: "*" },
       { memberIds: userId },
       { isAutoAssigned: true },
-    ],
-  };
-
-  if (userCampusId) {
-    query.$or.push({ campusId: userCampusId });
-  }
-  if (userRouteId) {
-    query.$or.push({ routeId: userRouteId });
+    ];
+    if (userCampusId) query.$or.push({ campusId: userCampusId });
+    if (userClassId) query.$or.push({ classId: userClassId });
+    if (userBusNumber) query.$or.push({ busNumber: Number(userBusNumber) || userBusNumber });
   }
 
   const docs = await convCol
@@ -261,13 +410,16 @@ export async function getUserConversations(userId: string, userRole: string): Pr
   return docs.map((d) => ({
     id: d.id || String(d._id),
     type: d.type || "GROUP",
+    category: d.category || (d.id?.startsWith("bus-") ? "bus" : d.id?.startsWith("class-") ? "class" : d.id?.startsWith("campus-") ? "campus" : d.id === "campusfleet-main" ? "main" : "direct"),
     name: d.name,
     description: d.description,
     avatarInitials: d.avatarInitials || getInitials(d.name),
     avatarBg: d.avatarBg || "bg-blue-600 text-white",
     campusId: d.campusId,
-    routeId: d.routeId,
+    busId: d.busId,
+    busNumber: d.busNumber,
     classId: d.classId,
+    routeId: d.routeId,
     isAutoAssigned: d.isAutoAssigned,
     memberIds: d.memberIds || [],
     adminIds: d.adminIds || [],

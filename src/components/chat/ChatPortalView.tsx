@@ -34,6 +34,7 @@ import {
   MessageSquare,
   Sparkles,
   ChevronRight,
+  ChevronDown,
   User,
   Bell,
   RefreshCw,
@@ -74,7 +75,7 @@ export function ChatPortalView() {
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [leftView, setLeftView] = useState<"messages" | "settings" | "new">("messages");
-  const [filterTab, setFilterTab] = useState<"All" | "Unread" | "Favorites" | "Groups" | "Staff">("All");
+  const [filterTab, setFilterTab] = useState<"All" | "Buses" | "Classes" | "Campus" | "Unread" | "Staff">("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [inputMessage, setInputMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -109,8 +110,31 @@ export function ChatPortalView() {
   const [currentUser, setCurrentUser] = useState<any>(() => store.getCurrentUser());
   const [userSettings, setUserSettings] = useState<ChatUserSettings | null>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isUserScrolledUpRef = useRef(false);
+  const prevConvIdRef = useRef<string | null>(null);
+  const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
+
+  // Dedicated container-only scroll: NEVER scrolls outer window or pushes headers off screen
+  const scrollToBottom = (smooth = true) => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: smooth ? "smooth" : "auto",
+    });
+  };
+
+  const handleContainerScroll = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    // If user is more than 120px above the bottom, consider them reading older history
+    const isUp = distanceFromBottom > 120;
+    isUserScrolledUpRef.current = isUp;
+    setShowScrollBottomBtn(isUp);
+  };
 
   // Sync user state
   useEffect(() => {
@@ -147,10 +171,23 @@ export function ChatPortalView() {
     return () => clearInterval(interval);
   }, [activeConvId]);
 
-  // Scroll to bottom when messages update
+  // Safe scroll effect: jumps on conversation change, smooth scrolls only if user is at the bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!activeConvId) return;
+
+    if (prevConvIdRef.current !== activeConvId) {
+      prevConvIdRef.current = activeConvId;
+      isUserScrolledUpRef.current = false;
+      setShowScrollBottomBtn(false);
+      const timer = setTimeout(() => scrollToBottom(false), 60);
+      return () => clearTimeout(timer);
+    }
+
+    if (!isUserScrolledUpRef.current) {
+      const timer = setTimeout(() => scrollToBottom(true), 60);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, activeConvId]);
 
   const loadConversations = async () => {
     try {
@@ -158,9 +195,13 @@ export function ChatPortalView() {
       const data = await res.json();
       if (data.success && data.conversations) {
         setConversations(data.conversations);
-        if (!activeConvId && data.conversations.length > 0 && !searchParams.get("c")) {
-          // If wide screen, default select the main group
-          if (window.innerWidth >= 768) {
+        const queryC = searchParams.get("c");
+        // If query param matches an active valid conversation
+        if (queryC && data.conversations.some((c: any) => c.id === queryC)) {
+          setActiveConvId(queryC);
+        } else if (!activeConvId || !data.conversations.some((c: any) => c.id === activeConvId)) {
+          // If unset or invalid (e.g. old corridor route), default to the first valid channel
+          if (data.conversations.length > 0 && window.innerWidth >= 768) {
             setActiveConvId(data.conversations[0].id);
           }
         }
@@ -229,7 +270,10 @@ export function ChatPortalView() {
       createdAt: new Date().toISOString(),
       reactions: [],
     };
+    isUserScrolledUpRef.current = false;
+    setShowScrollBottomBtn(false);
     setMessages((prev) => [...prev, optimisticMsg]);
+    setTimeout(() => scrollToBottom(true), 40);
 
     try {
       const res = await fetch("/api/chat/messages", {
@@ -455,9 +499,10 @@ export function ChatPortalView() {
     if (!matchesSearch) return false;
 
     if (filterTab === "Unread") return (c.unreadCount || 0) > 0;
-    if (filterTab === "Favorites") return userSettings?.favorites?.includes(c.id);
-    if (filterTab === "Groups") return c.type === "GROUP" || c.type === "ANNOUNCEMENT";
-    if (filterTab === "Staff") return c.type === "DIRECT" || c.name.toLowerCase().includes("conductor") || c.name.toLowerCase().includes("driver");
+    if (filterTab === "Buses") return c.category === "bus" || c.name.startsWith("Bus ") || c.id.startsWith("bus-");
+    if (filterTab === "Classes") return c.category === "class" || c.id.startsWith("class-");
+    if (filterTab === "Campus") return c.category === "campus" || c.category === "main" || c.id === "campusfleet-main" || c.id.startsWith("campus-");
+    if (filterTab === "Staff") return c.type === "DIRECT" || c.name.toLowerCase().includes("conductor") || c.name.toLowerCase().includes("driver") || c.name.toLowerCase().includes("admin") || c.name.toLowerCase().includes("manager");
     return true;
   });
 
@@ -526,13 +571,13 @@ export function ChatPortalView() {
   };
 
   return (
-    <div className="flex-1 flex w-full h-[calc(100vh-64px)] bg-white dark:bg-gray-900 border-x border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+    <div className="flex-1 min-h-0 flex w-full h-full bg-white dark:bg-gray-900 border-x border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
       
       {/* ======================================================== */}
       {/* LEFT COLUMN: Sidebar (Messages / Settings / New Chat)   */}
       {/* ======================================================== */}
       <div
-        className={`w-full md:w-[380px] lg:w-[420px] flex-shrink-0 border-r border-gray-200 dark:border-gray-800 flex flex-col h-full bg-white dark:bg-gray-900 transition-all ${
+        className={`w-full md:w-[380px] lg:w-[420px] flex-shrink-0 border-r border-gray-200 dark:border-gray-800 flex flex-col h-full min-h-0 bg-white dark:bg-gray-900 transition-all ${
           activeConvId ? "hidden md:flex" : "flex"
         }`}
       >
@@ -593,7 +638,7 @@ export function ChatPortalView() {
 
             {/* Filter Pills */}
             <div className="px-4 pb-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar border-b border-gray-100 dark:border-gray-800">
-              {(["All", "Unread", "Favorites", "Groups", "Staff"] as const).map((tab) => {
+              {(["All", "Buses", "Classes", "Campus", "Unread", "Staff"] as const).map((tab) => {
                 const isActive = filterTab === tab;
                 return (
                   <button
@@ -652,10 +697,29 @@ export function ChatPortalView() {
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                            {conv.name}
-                          </h3>
-                          <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                              {conv.name}
+                            </h3>
+                            {conv.category === "bus" || conv.name.startsWith("Bus ") ? (
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex-shrink-0">
+                                Bus
+                              </span>
+                            ) : conv.category === "class" || conv.id.startsWith("class-") ? (
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex-shrink-0">
+                                Class
+                              </span>
+                            ) : conv.category === "campus" || conv.id.startsWith("campus-") ? (
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
+                                Campus
+                              </span>
+                            ) : conv.id === "campusfleet-main" ? (
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 flex-shrink-0">
+                                Main
+                              </span>
+                            ) : null}
+                          </div>
+                          <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap flex-shrink-0">
                             {formatTime(conv.lastMessage?.createdAt) || "Recent"}
                           </span>
                         </div>
@@ -953,14 +1017,14 @@ export function ChatPortalView() {
       {/* RIGHT COLUMN: Chat Viewport / Active Thread              */}
       {/* ======================================================== */}
       <div
-        className={`flex-1 flex flex-col h-full bg-white dark:bg-gray-900 relative ${
+        className={`flex-1 min-h-0 flex flex-col h-full bg-white dark:bg-gray-900 relative ${
           activeConvId ? "flex" : "hidden md:flex"
         }`}
       >
         {activeConversation ? (
           <>
             {/* Conversation Header (Matching Screenshot 5) */}
-            <div className="h-16 px-4 sm:px-6 border-b border-gray-200/80 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-900 z-10">
+            <div className="h-16 flex-shrink-0 px-4 sm:px-6 border-b border-gray-200/80 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-900 z-10">
               <div className="flex items-center gap-3 min-w-0">
                 {/* Mobile Back Button */}
                 <button
@@ -1106,7 +1170,11 @@ export function ChatPortalView() {
             )}
 
             {/* Message Thread (Matching Screenshot 5) */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50/40 dark:bg-gray-900/40">
+            <div
+              ref={messagesContainerRef}
+              onScroll={handleContainerScroll}
+              className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50/40 dark:bg-gray-900/40 overscroll-contain"
+            >
               {/* Day divider */}
               <div className="flex items-center justify-center my-2">
                 <span className="px-3 py-1 rounded-full text-[11px] font-semibold text-gray-500 bg-gray-200/60 dark:bg-gray-800 shadow-2xs">
@@ -1235,7 +1303,7 @@ export function ChatPortalView() {
                   </div>
                 );
               })}
-              <div ref={messagesEndRef} />
+              <div className="h-2 w-full" />
             </div>
 
             {/* Mention Suggestions Popover (Opens above input when typing @) */}
@@ -1287,8 +1355,24 @@ export function ChatPortalView() {
               </div>
             )}
 
-            {/* Bottom Input Toolbar (Matching Screenshot 5) */}
-            <div className="p-3 sm:p-4 bg-white dark:bg-gray-900 border-t border-gray-200/80 dark:border-gray-800">
+            {/* Floating Jump to Bottom Button */}
+            {showScrollBottomBtn && (
+              <button
+                type="button"
+                onClick={() => {
+                  isUserScrolledUpRef.current = false;
+                  setShowScrollBottomBtn(false);
+                  scrollToBottom(true);
+                }}
+                className="absolute bottom-20 right-6 z-20 p-2.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all flex items-center justify-center animate-in fade-in zoom-in duration-150"
+                title="Jump to latest message"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Bottom Input Toolbar: Always fixed at bottom */}
+            <div className="flex-shrink-0 p-3 sm:p-4 bg-white dark:bg-gray-900 border-t border-gray-200/80 dark:border-gray-800 z-10 sticky bottom-0">
               <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800/80 rounded-full px-3 py-1.5 border border-transparent focus-within:border-gray-300 dark:focus-within:border-gray-700 transition-all">
                 {/* + Attachment button */}
                 <button
